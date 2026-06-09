@@ -330,11 +330,13 @@ const seed = async () => {
       limit: 1,
       depth: 0,
     })
+    // `data` is built dynamically from the source arrays; cast to `never` so it
+    // satisfies Payload's per-collection create/update overloads without `any`.
     if (existing.docs.length > 0) {
-      await payload.update({ collection, id: existing.docs[0].id, data })
+      await payload.update({ collection, id: existing.docs[0].id, data: data as never })
       return 'updated'
     }
-    await payload.create({ collection, data })
+    await payload.create({ collection, data: data as never })
     return 'created'
   }
 

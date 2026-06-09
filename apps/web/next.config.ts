@@ -6,6 +6,11 @@ const __filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(__filename);
 
 const nextConfig: NextConfig = {
+  // Emit a self-contained server bundle for a lean Docker runtime image.
+  output: "standalone",
+  // In this monorepo the app is nested under apps/web, so trace dependencies
+  // from the repo root to bundle the hoisted node_modules into standalone.
+  outputFileTracingRoot: path.join(dirname, "../../"),
   images: {
     remotePatterns: [
       {

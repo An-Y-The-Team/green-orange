@@ -1,0 +1,83 @@
+name: Deploy
+
+# Build + deploy only on a version tag, e.g.  git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags: ['v*']
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    name: Build & push (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push images to GHCR with the built-in GITHUB_TOKEN
+    strategy:
+      matrix:
+        include:
+          - app: web
+            dockerfile: apps/web/Dockerfile
+          - app: cms
+            dockerfile: apps/cms/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.app }}
+          tags: |
+            type=ref,event=tag
+            type=sha
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # NEXT_PUBLIC_CMS_URL must be baked into the web image at build time.
+          build-args: ${{ matrix.app == 'web' && format('NEXT_PUBLIC_CMS_URL={0}', vars.NEXT_PUBLIC_CMS_URL) || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to VPS
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            cd "${{ secrets.VPS_PATH }}"
+            git pull --ff-only
+            REPO=$(echo "${{ github.repository }}" | tr 'A-Z' 'a-z')
+            TAG="${{ github.ref_name }}"
+            # Pin the running images to this release tag.
+            sed -i "s|^WEB_IMAGE=.*|WEB_IMAGE=ghcr.io/${REPO}-web:${TAG}|" .env.production
+            sed -i "s|^CMS_IMAGE=.*|CMS_IMAGE=ghcr.io/${REPO}-cms:${TAG}|" .env.production
+            docker compose -f docker-compose.prod.yml --env-file .env.production pull
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+            docker image prune -f

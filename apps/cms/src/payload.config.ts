@@ -15,6 +15,13 @@ import { ContactSubmissions } from './collections/ContactSubmissions'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+// Origins allowed to call the API from a browser (the web app's contact form
+// POSTs cross-origin). Comma-separated CORS_ORIGINS in prod; defaults to the
+// local web dev server. Note: localhost:3000 -> :3001 is already cross-origin.
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
+  : ['http://localhost:3000']
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -23,6 +30,8 @@ export default buildConfig({
     },
   },
   collections: [Users, Media, Services, Projects, Testimonials, ContactSubmissions],
+  cors: corsOrigins,
+  csrf: corsOrigins,
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

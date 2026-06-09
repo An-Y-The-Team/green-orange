@@ -1,0 +1,30 @@
+# Dependencies (reinstalled inside the image)
+**/node_modules
+
+# Build outputs
+**/.next
+**/.turbo
+**/dist
+**/build
+apps/web/tsconfig.tsbuildinfo
+
+# VCS / editor / CI
+.git
+.github
+.vscode
+.agents
+.claude
+
+# Local env & secrets — never bake into images
+**/.env
+**/.env.*
+!**/.env.example
+
+# Docker / deploy artifacts not needed in the build context
+docker-compose*.yml
+apps/cms/docker-compose.yml
+nginx
+DEPLOY.md
+
+# OS noise
+**/.DS_Store

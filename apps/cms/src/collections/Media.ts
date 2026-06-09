@@ -12,5 +12,9 @@ export const Media: CollectionConfig = {
       required: true,
     },
   ],
-  upload: true,
+  upload: {
+    // Defaults to "<cwd>/media" (dev). In production set MEDIA_DIR to an
+    // absolute path backed by a persistent volume so uploads survive deploys.
+    staticDir: process.env.MEDIA_DIR || 'media',
+  },
 }
