@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "servers": {
+      "ux-patterns": {
+        "command": "npx",
+        "args": ["-y", "mcp-remote", "https://mcp.uxpatterns.dev"]
+      }
+    }
+  }
+}

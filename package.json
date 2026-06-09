@@ -1,0 +1,23 @@
+{
+  "name": "yan-portf-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "clean": "turbo run clean",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{js,ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "prettier": "^3.2.5",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "turbo": "^2.0.4"
+  },
+  "packageManager": "bun@1.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

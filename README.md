@@ -1,20 +1,59 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# GreenOrange Services - Portfolio & CMS
 
-# Run and deploy your AI Studio app
+This is a full-stack monorepo for **GreenOrange Services** (Vệ Sinh & Thi Công Cửa Hàng). It contains both the public-facing landing page and the internal Content Management System.
 
-This contains everything you need to run your app locally.
+## 🏗️ Project Structure
 
-View your app in AI Studio: https://ai.studio/apps/a35cf97a-2993-4562-8b05-5f65d557ff2d
+This project uses **Turborepo** to manage multiple applications in a single repository:
 
-## Run Locally
+- `apps/web`: The Next.js 16 frontend landing page and portfolio. Built with React Server Components, Tailwind CSS, and standard UI components.
+- `apps/cms`: The Payload CMS backend, providing a headless content management interface to manage services, projects, and testimonials.
 
-**Prerequisites:**  Node.js
+## 🚀 Getting Started
 
+### Prerequisites
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+This project uses [Bun](https://bun.sh/) as its package manager and script runner.
+
+### Installation
+
+1. Clone the repository and install dependencies using Bun:
+
+   ```bash
+   bun install
+   ```
+
+2. (Optional) Set up any required environment variables. You may need to configure `.env.local` or `.env` inside `apps/cms` or `apps/web` for database connections and secret keys.
+
+### Running Development Servers
+
+To start both the Web frontend and the CMS backend concurrently, run:
+
+```bash
+bun run dev
+```
+
+This uses Turborepo to start the development servers:
+
+- **Web App**: <http://localhost:3000>
+- **CMS Admin**: <http://localhost:3001>
+
+## 🛠️ Available Commands
+
+From the root directory, you can run the following commands:
+
+- `bun run dev`: Start all development servers.
+- `bun run build`: Build all applications for production.
+- `bun run lint`: Run ESLint across all workspaces.
+- `bun run format`: Format all codebase files (`.js, .ts, .tsx, .md`) using Prettier.
+- `bun run clean`: Clean up build artifacts (`.next`, `dist`, etc.) across all apps.
+
+## 🎨 Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **CMS**: Payload CMS
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Monorepo**: Turborepo
+- **Package Manager**: Bun
+- **Linting & Formatting**: ESLint 9 (Flat Config) & Prettier

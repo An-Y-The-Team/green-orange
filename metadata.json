@@ -1,0 +1,6 @@
+{
+  "name": "Dịch vụ Vệ sinh và Thi công Cửa hàng",
+  "description": "Trang web doanh nghiệp giới thiệu dịch vụ vệ sinh công nghiệp và tư vấn, thi công, hoàn thiện cửa hàng chuyên nghiệp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

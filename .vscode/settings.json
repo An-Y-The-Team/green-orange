@@ -1,0 +1,12 @@
+{
+  "eslint.workingDirectories": [
+    {
+      "pattern": "apps/*"
+    }
+  ],
+  "eslint.useFlatConfig": true,
+  "eslint.enable": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  }
+}
