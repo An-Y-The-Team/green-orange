@@ -84,17 +84,16 @@ client-resource reachable at the alias **`ssh.newt-01`** (port 22). Register a
 
 The workflow's **"Connect to Pangolin and deploy"** step (one step) installs the
 CLI (`curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash`), runs
-`sudo pangolin up … --attach` in the **foreground, backgrounded** (the default
-daemonize mode fails in CI with "could not open a new TTY"), waits until
-`ssh.newt-01:22` is reachable, then SSHes in and deploys — all in the same step
-so the tunnel stays up for the duration.
+`sudo pangolin up … --silent` (detached with **no TUI** — the default TUI needs a
+TTY and fails in CI with "could not open a new TTY"), waits until `ssh.newt-01:22`
+is reachable, then SSHes in and deploys — all in the same step so the tunnel
+stays up for the duration.
 
 > ⚠️ Rotate the client secret if it has ever been shared in plaintext.
 >
 > - If `ssh.newt-01` doesn't resolve on the runner after connecting, set
->   `VPS_HOST` to the resource's Pangolin-assigned IP instead.
-> - If `--attach` is rejected, run `pangolin up --help` and use whatever
->   foreground/no-daemon flag your CLI version exposes.
+>   `VPS_HOST` to the resource's Pangolin-assigned IP instead. Note the CLI's
+>   `--override-dns` is on by default, so Pangolin aliases should resolve.
 
 ---
 

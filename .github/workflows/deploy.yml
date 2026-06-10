@@ -134,12 +134,14 @@ jobs:
           echo "Installing Pangolin CLI…"
           curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash
 
-          echo "Bringing up the tunnel (foreground via --attach, backgrounded)…"
+          # --silent runs detached with NO TUI (the default TUI needs a TTY,
+          # which CI lacks → "could not open a new TTY"). Background + wait below.
+          echo "Bringing up the tunnel (detached, --silent)…"
           sudo pangolin up \
             --id "${{ secrets.PANGOLIN_ID }}" \
             --secret "${{ secrets.PANGOLIN_SECRET }}" \
             --endpoint "${{ secrets.PANGOLIN_ENDPOINT }}" \
-            --attach > /tmp/pangolin.log 2>&1 &
+            --silent > /tmp/pangolin.log 2>&1 &
 
           echo "Waiting for ${VPS_HOST}:${VPS_PORT}…"
           for i in $(seq 1 30); do
