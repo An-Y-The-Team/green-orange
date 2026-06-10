@@ -82,18 +82,21 @@ client-resource reachable at the alias **`ssh.newt-01`** (port 22). Register a
 - `PANGOLIN_ID`, `PANGOLIN_SECRET`, `PANGOLIN_ENDPOINT` (`https://prp.hdc-cloud.org`)
 - `VPS_HOST` = `ssh.newt-01`, `VPS_PORT` = `22`
 
-The workflow's **"Connect to Pangolin and deploy"** step (one step) installs the
-CLI (`curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash`), runs
-`sudo pangolin up … --silent` (detached with **no TUI** — the default TUI needs a
-TTY and fails in CI with "could not open a new TTY"), waits until `ssh.newt-01:22`
-is reachable, then SSHes in and deploys — all in the same step so the tunnel
-stays up for the duration.
+The workflow's **"Connect to Pangolin and deploy"** step (one step):
 
-> ⚠️ Rotate the client secret if it has ever been shared in plaintext.
->
-> - If `ssh.newt-01` doesn't resolve on the runner after connecting, set
->   `VPS_HOST` to the resource's Pangolin-assigned IP instead. Note the CLI's
->   `--override-dns` is on by default, so Pangolin aliases should resolve.
+1. Installs the CLI (`get-cli.sh`) + `dig`.
+2. `sudo pangolin up … --silent` — detached, **no TUI** (the default TUI needs a
+   TTY and fails in CI with "could not open a new TTY").
+3. Waits for `WireGuard device created` in the log.
+4. The runner's system resolver doesn't pick up Pangolin's per-link DNS, so it
+   reads the **DNS proxy** address from the log and resolves `ssh.newt-01` against
+   it directly (`dig @<proxy> ssh.newt-01`), then SSHes to the resulting **IP**.
+
+Everything is one step so the tunnel stays up for the whole deploy.
+
+> ⚠️ Rotate the client secret if it has ever been shared in plaintext. If the
+> alias can't be resolved via the proxy, double-check the SSH client-resource's
+> alias in Pangolin (it must match `VPS_HOST`).
 
 ---
 

@@ -131,8 +131,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Installing Pangolin CLI…"
+          echo "Installing Pangolin CLI + dig…"
           curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash
+          sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils >/dev/null
 
           # --silent runs detached with NO TUI (the default TUI needs a TTY,
           # which CI lacks → "could not open a new TTY"). Background + wait below.
@@ -143,12 +144,32 @@ jobs:
             --endpoint "${{ secrets.PANGOLIN_ENDPOINT }}" \
             --silent > /tmp/pangolin.log 2>&1 &
 
-          echo "Waiting for ${VPS_HOST}:${VPS_PORT}…"
-          for i in $(seq 1 30); do
-            nc -z -w 2 "$VPS_HOST" "$VPS_PORT" && break
+          echo "Waiting for the WireGuard tunnel…"
+          for i in $(seq 1 40); do
+            grep -q "WireGuard device created" /tmp/pangolin.log && break
             sleep 2
           done
-          nc -z -w 2 "$VPS_HOST" "$VPS_PORT" || { echo "Tunnel not reachable:"; cat /tmp/pangolin.log; exit 1; }
+          grep -q "WireGuard device created" /tmp/pangolin.log \
+            || { echo "Tunnel did not come up:"; cat /tmp/pangolin.log; exit 1; }
+
+          # The system resolver on the runner doesn't pick up Pangolin's per-link
+          # DNS, so resolve the alias directly against Pangolin's DNS proxy and
+          # connect by IP.
+          DNS=$(grep -oE 'DNS proxy started on [0-9.]+' /tmp/pangolin.log | awk '{print $NF}' | head -1)
+          [ -n "$DNS" ] || { echo "No DNS proxy in log:"; cat /tmp/pangolin.log; exit 1; }
+          echo "Pangolin DNS proxy: $DNS — resolving $VPS_HOST…"
+          IP=""
+          for i in $(seq 1 20); do
+            IP=$(dig +short "@$DNS" "$VPS_HOST" A | grep -E '^[0-9.]+$' | head -1 || true)
+            [ -n "$IP" ] && break
+            sleep 2
+          done
+          [ -n "$IP" ] || { echo "Could not resolve $VPS_HOST via $DNS"; cat /tmp/pangolin.log; exit 1; }
+          echo "$VPS_HOST -> $IP"
+
+          echo "Waiting for $IP:$VPS_PORT…"
+          for i in $(seq 1 30); do nc -z -w 2 "$IP" "$VPS_PORT" && break; sleep 2; done
+          nc -z -w 2 "$IP" "$VPS_PORT" || { echo "SSH not reachable at $IP:$VPS_PORT"; exit 1; }
 
           echo "Preparing SSH key…"
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -158,9 +179,9 @@ jobs:
           REPO=$(echo "${{ github.repository }}" | tr 'A-Z' 'a-z')
           TAG="${{ github.ref_name }}"
 
-          echo "Deploying ${TAG}…"
+          echo "Deploying ${TAG} to ${IP}…"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
-            -p "$VPS_PORT" "${VPS_USER}@${VPS_HOST}" \
+            -p "$VPS_PORT" "${VPS_USER}@${IP}" \
             "REPO='$REPO' TAG='$TAG' VPS_PATH='$VPS_PATH' bash -se" <<'REMOTE'
           set -e
           cd "$VPS_PATH"
