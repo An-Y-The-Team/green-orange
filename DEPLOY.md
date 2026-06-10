@@ -94,8 +94,10 @@ The workflow's **"Connect to Pangolin and deploy"** step (one step):
    `ssh.newt-01` never resolves (this is Pangolin's "Enable Aliases" preference;
    the desktop client has it on by default, the bare CLI does not).
 3. Waits for `WireGuard device created` in that log.
-4. Waits for the alias `ssh.newt-01` to resolve (`getent hosts`, the same path
-   `ssh` uses), then SSHes straight to the alias — the client resolves it.
+4. Resolves the alias by querying the Pangolin DNS proxy directly at
+   `100.96.144.1:53` using `dig` (bypasses `systemd-resolved` routing
+   issues on GitHub Actions runners), falling back to `getent hosts`.
+   Once the alias resolves to an IP, SSHes to that IP directly.
 
 Everything is one step so the tunnel stays up for the whole deploy.
 
