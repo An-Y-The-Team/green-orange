@@ -48,10 +48,10 @@ Secrets:
 | Name | Value |
 | ------ | ------- |
 | `VPS_HOST` | The VPS's **Pangolin** resource alias, e.g. `ssh.newt-01` (NOT the public IP) |
-| `VPS_USER` | deploy user (e.g. `deploy`) |
+| `VPS_USER` | deploy user (e.g. `root`) |
 | `VPS_SSH_KEY` | private key whose public half is in the VPS user's `~/.ssh/authorized_keys` |
 | `VPS_PORT` | SSH port (optional, defaults to 22) |
-| `VPS_PATH` | repo path on the VPS, e.g. `/opt/green-orange` |
+| `VPS_PATH` | repo path on the VPS, e.g. `/root/green-orange` |
 | `PANGOLIN_ID` | Pangolin client ID (used by `pangolin up --id`) |
 | `PANGOLIN_SECRET` | Pangolin client secret (`pangolin up --secret`) |
 | `PANGOLIN_ENDPOINT` | Pangolin control URL, e.g. `https://prp.hdc-cloud.org` |
@@ -175,9 +175,9 @@ rm ./deploy_key                  # delete the local private key
 As the `deploy` user:
 
 ```bash
-sudo mkdir -p /opt/green-orange && sudo chown deploy:deploy /opt/green-orange
-git clone https://github.com/An-Y-The-Team/green-orange.git /opt/green-orange
-cd /opt/green-orange
+sudo mkdir -p /root/green-orange && sudo chown deploy:deploy /root/green-orange
+git clone https://github.com/An-Y-The-Team/green-orange.git /root/green-orange
+cd /root/green-orange
 
 # Production env
 cp .env.production.example .env.production
@@ -289,11 +289,11 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 
 ```bash
 # Postgres — nightly dump (add to deploy user's crontab)
-0 3 * * * docker compose -f /opt/green-orange/docker-compose.prod.yml --env-file /opt/green-orange/.env.production \
-  exec -T postgres pg_dump -U postgres cms | gzip > /opt/backups/cms-$(date +\%F).sql.gz
+0 3 * * * docker compose -f /root/green-orange/docker-compose.prod.yml --env-file /root/green-orange/.env.production \
+  exec -T postgres pg_dump -U postgres cms | gzip > /root/backups/cms-$(date +\%F).sql.gz
 
 # Media uploads live in the `media` named volume — back it up too:
-docker run --rm -v green-orange_media:/data -v /opt/backups:/backup alpine \
+docker run --rm -v green-orange_media:/data -v /root/backups:/backup alpine \
   tar czf /backup/media-$(date +%F).tar.gz -C /data .
 ```
 

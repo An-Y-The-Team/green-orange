@@ -6,12 +6,12 @@
 }
 
 # Public marketing site
-{$SITE_DOMAIN}, www.{$SITE_DOMAIN} {
+http://{$SITE_DOMAIN}:3000, http://www.{$SITE_DOMAIN}:3000 {
 	reverse_proxy web:3000
 }
 
 # Payload CMS (admin + REST/GraphQL API)
-{$CMS_DOMAIN} {
+http://{$CMS_DOMAIN}:3001 {
 	# Allow media uploads through the admin panel.
 	request_body {
 		max_size 25MB
