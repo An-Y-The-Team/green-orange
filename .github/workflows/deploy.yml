@@ -153,6 +153,21 @@ jobs:
           grep -q "WireGuard device created" /tmp/pangolin.log \
             || { echo "Tunnel did not come up:"; cat /tmp/pangolin.log; exit 1; }
 
+          # After the WireGuard interface is created, Pangolin still needs to
+          # establish a holepunch (direct P2P) or relay path to the VPS. In CI
+          # the holepunch usually fails (GitHub runners are behind NAT) and the
+          # client falls back to relay, which takes ~5-10 s after WireGuard.
+          echo "Waiting for holepunch or relay to establish…"
+          for i in $(seq 1 20); do
+            if grep -qE "holepunch (succeeded|connected)|point to relay" /tmp/pangolin.log 2>/dev/null; then
+              echo "Peer path established."
+              break
+            fi
+            sleep 2
+          done
+          # Give the relay a moment to stabilise after reconfiguration.
+          sleep 3
+
           # The Pangolin Olm client's DNS proxy doesn't reliably serve alias
           # records in headless/CI environments ("0 exit nodes", tunnelDNS=false).
           # Use VPS_PANGOLIN_IP (the resource's stable Pangolin tunnel IP, visible
