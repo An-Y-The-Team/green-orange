@@ -2,7 +2,7 @@
 #   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 #
 # Image refs (WEB_IMAGE / CMS_IMAGE) and secrets come from .env.production.
-name: yan-portf
+name: green-orange
 
 services:
   postgres:

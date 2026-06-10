@@ -5,7 +5,8 @@
       "Bash(pkill -f \"turbo run dev\")",
       "Bash(pkill -f \"bun run.*dev\")",
       "Bash(pkill -f \"bun run dev\")",
-      "Bash(echo \"--- exit: $? ---\")"
+      "Bash(echo \"--- exit: $? ---\")",
+      "Bash(echo \"--- parse exit: $? ---\")"
     ]
   }
 }
