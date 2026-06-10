@@ -82,15 +82,19 @@ client-resource reachable at the alias **`ssh.newt-01`** (port 22). Register a
 - `PANGOLIN_ID`, `PANGOLIN_SECRET`, `PANGOLIN_ENDPOINT` (`https://prp.hdc-cloud.org`)
 - `VPS_HOST` = `ssh.newt-01`, `VPS_PORT` = `22`
 
-The workflow's **"Connect to Pangolin"** step installs the CLI
-(`curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash`), runs
-`sudo pangolin up …` (needs root for the TUN interface; daemonizes by default),
-waits until `ssh.newt-01:22` is reachable over the tunnel, then runs the SSH
-deploy.
+The workflow's **"Connect to Pangolin and deploy"** step (one step) installs the
+CLI (`curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash`), runs
+`sudo pangolin up … --attach` in the **foreground, backgrounded** (the default
+daemonize mode fails in CI with "could not open a new TTY"), waits until
+`ssh.newt-01:22` is reachable, then SSHes in and deploys — all in the same step
+so the tunnel stays up for the duration.
 
 > ⚠️ Rotate the client secret if it has ever been shared in plaintext.
-> If `ssh.newt-01` doesn't resolve on the runner after connecting, use the
-> resource's Pangolin-assigned IP for `VPS_HOST` instead.
+>
+> - If `ssh.newt-01` doesn't resolve on the runner after connecting, set
+>   `VPS_HOST` to the resource's Pangolin-assigned IP instead.
+> - If `--attach` is rejected, run `pangolin up --help` and use whatever
+>   foreground/no-daemon flag your CLI version exposes.
 
 ---
 
@@ -228,10 +232,10 @@ Verify:
 - `https://cms.example.com/admin` logs in over HTTPS.
 - Submitting the contact form creates a row under **Leads → Contact Submissions**.
 
-> **First-render note:** the web image is built in CI where the CMS isn't
-> reachable, so the homepage prerenders with empty content and fills in on the
-> first runtime revalidation (ISR, 5 min). To force-populate immediately after
-> deploy, `docker compose restart web` once the CMS is up, or hit the page once.
+> **Rendering note:** the homepage is `force-dynamic`, so it renders at request
+> time reading the CMS over the internal network (`CMS_INTERNAL_URL`). Content is
+> correct from the first request — there's no build-time CMS dependency and no
+> empty-prerender window.
 
 ---
 
@@ -242,6 +246,13 @@ Just cut a new tag:
 ```bash
 git tag v1.1.0 && git push origin v1.1.0
 ```
+
+> **Incremental builds:** the `changes` job diffs the new tag against the
+> previous one. An app whose dir + shared root files (`package.json`, `bun.lock`,
+> `turbo.json`) are unchanged is **not rebuilt** — its previous image is re-tagged
+> to the new release via `docker buildx imagetools` (registry-side, seconds). So
+> a CMS-only change won't rebuild the web image, and vice-versa. (If the previous
+> image is missing, it falls back to a full build.)
 
 **Rollback** — redeploy a previous tag by re-running that release's workflow
 (Actions → select run → Re-run), or on the VPS:
