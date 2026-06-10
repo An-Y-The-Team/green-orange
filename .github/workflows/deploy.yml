@@ -117,9 +117,12 @@ jobs:
     name: Deploy to VPS
     needs: build
     runs-on: ubuntu-latest
-    # The VPS SSH is private (only over the Pangolin network). We bring the tunnel
-    # up and SSH in within ONE step, because `pangolin up --attach` runs in the
-    # foreground (no TTY/daemonize) and must stay alive while we deploy.
+    # The VPS SSH is private (only over the Pangolin network) and is exposed as a
+    # private-resource ALIAS (ssh.newt-01). We bring the tunnel up and SSH in
+    # within ONE step, because `pangolin up --attach` runs in the foreground (no
+    # TTY/daemonize) and must stay alive while we deploy. `--override-dns` is
+    # required for the alias to resolve: it makes the Olm client intercept DNS
+    # queries for private-resource aliases (see Pangolin "Enable Aliases").
     env:
       SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -131,15 +134,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Installing Pangolin CLI + dig…"
+          echo "Installing Pangolin CLI…"
           curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash
-          sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils >/dev/null
 
-          echo "Bringing up the tunnel (foreground via --attach, backgrounded)…"
+          echo "Bringing up the tunnel with alias resolution (--override-dns)…"
           sudo pangolin up \
             --id "${{ secrets.PANGOLIN_ID }}" \
             --secret "${{ secrets.PANGOLIN_SECRET }}" \
             --endpoint "${{ secrets.PANGOLIN_ENDPOINT }}" \
+            --override-dns \
             --attach > /tmp/pangolin.log 2>&1 &
 
           echo "Waiting for the WireGuard tunnel…"
@@ -150,24 +153,20 @@ jobs:
           grep -q "WireGuard device created" /tmp/pangolin.log \
             || { echo "Tunnel did not come up:"; cat /tmp/pangolin.log; exit 1; }
 
-          # The system resolver on the runner doesn't pick up Pangolin's per-link
-          # DNS, so resolve the alias directly against Pangolin's DNS proxy and
-          # connect by IP.
-          DNS=$(grep -oE 'DNS proxy started on [0-9.]+' /tmp/pangolin.log | awk '{print $NF}' | head -1)
-          [ -n "$DNS" ] || { echo "No DNS proxy in log:"; cat /tmp/pangolin.log; exit 1; }
-          echo "Pangolin DNS proxy: $DNS — resolving $VPS_HOST…"
-          IP=""
-          for i in $(seq 1 20); do
-            IP=$(dig +short "@$DNS" "$VPS_HOST" A | grep -E '^[0-9.]+$' | head -1 || true)
-            [ -n "$IP" ] && break
+          # With --override-dns the Olm client intercepts queries for the
+          # private-resource alias and resolves it. getent uses the same
+          # (getaddrinfo) path ssh does, so wait until the alias actually resolves.
+          echo "Waiting for alias $VPS_HOST to resolve…"
+          for i in $(seq 1 30); do
+            getent hosts "$VPS_HOST" && break
             sleep 2
           done
-          [ -n "$IP" ] || { echo "Could not resolve $VPS_HOST via $DNS"; cat /tmp/pangolin.log; exit 1; }
-          echo "$VPS_HOST -> $IP"
+          getent hosts "$VPS_HOST" >/dev/null \
+            || { echo "Alias $VPS_HOST did not resolve:"; cat /tmp/pangolin.log; exit 1; }
 
-          echo "Waiting for $IP:$VPS_PORT…"
-          for i in $(seq 1 30); do nc -z -w 2 "$IP" "$VPS_PORT" && break; sleep 2; done
-          nc -z -w 2 "$IP" "$VPS_PORT" || { echo "SSH not reachable at $IP:$VPS_PORT"; exit 1; }
+          echo "Waiting for $VPS_HOST:$VPS_PORT…"
+          for i in $(seq 1 30); do nc -z -w 2 "$VPS_HOST" "$VPS_PORT" && break; sleep 2; done
+          nc -z -w 2 "$VPS_HOST" "$VPS_PORT" || { echo "SSH not reachable at $VPS_HOST:$VPS_PORT"; exit 1; }
 
           echo "Preparing SSH key…"
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -177,9 +176,9 @@ jobs:
           REPO=$(echo "${{ github.repository }}" | tr 'A-Z' 'a-z')
           TAG="${{ github.ref_name }}"
 
-          echo "Deploying ${TAG} to ${IP}…"
+          echo "Deploying ${TAG} to ${VPS_HOST}…"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
-            -p "$VPS_PORT" "${VPS_USER}@${IP}" \
+            -p "$VPS_PORT" "${VPS_USER}@${VPS_HOST}" \
             "REPO='$REPO' TAG='$TAG' VPS_PATH='$VPS_PATH' bash -se" <<'REMOTE'
           set -e
           cd "$VPS_PATH"

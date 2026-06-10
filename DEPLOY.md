@@ -84,19 +84,24 @@ client-resource reachable at the alias **`ssh.newt-01`** (port 22). Register a
 
 The workflow's **"Connect to Pangolin and deploy"** step (one step):
 
-1. Installs the CLI (`get-cli.sh`) + `dig`.
-2. `sudo pangolin up … --silent` — detached, **no TUI** (the default TUI needs a
-   TTY and fails in CI with "could not open a new TTY").
-3. Waits for `WireGuard device created` in the log.
-4. The runner's system resolver doesn't pick up Pangolin's per-link DNS, so it
-   reads the **DNS proxy** address from the log and resolves `ssh.newt-01` against
-   it directly (`dig @<proxy> ssh.newt-01`), then SSHes to the resulting **IP**.
+1. Installs the CLI (`get-cli.sh`).
+2. `sudo pangolin up … --override-dns --attach &` — foreground mode, backgrounded
+   with output redirected to a log. (The default daemonize mode tries to open a
+   TUI/TTY and fails in CI; `--silent`/detached would fork a daemon that stops
+   writing to our log, breaking the readiness check below. `--attach` keeps
+   logging to the file.) **`--override-dns` is required** — without it the Olm
+   client does NOT intercept queries for the private-resource alias, so
+   `ssh.newt-01` never resolves (this is Pangolin's "Enable Aliases" preference;
+   the desktop client has it on by default, the bare CLI does not).
+3. Waits for `WireGuard device created` in that log.
+4. Waits for the alias `ssh.newt-01` to resolve (`getent hosts`, the same path
+   `ssh` uses), then SSHes straight to the alias — the client resolves it.
 
 Everything is one step so the tunnel stays up for the whole deploy.
 
 > ⚠️ Rotate the client secret if it has ever been shared in plaintext. If the
-> alias can't be resolved via the proxy, double-check the SSH client-resource's
-> alias in Pangolin (it must match `VPS_HOST`).
+> alias never resolves, confirm `--override-dns` is present and that the SSH
+> client-resource's alias in Pangolin matches `VPS_HOST`.
 
 ---
 
