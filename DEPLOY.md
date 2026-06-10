@@ -28,6 +28,11 @@ The VPS never builds — it only pulls finished images, so a small (1–2 GB) bo
 - Docker Engine + Compose plugin on the VPS.
 - This repo pushed to GitHub.
 
+> **Network model:** the public site + CMS stay public on **80/443** (served by
+> Caddy). **SSH (22) is NOT public** — it's reachable only over the **Pangolin**
+> network. CI therefore joins that network (Olm client) before deploying. See
+> §2a.
+>
 > Repo: `An-Y-The-Team/green-orange` → images publish to
 > `ghcr.io/an-y-the-team/green-orange-{web,cms}`. Replace `example.com` throughout
 > with your real domain.
@@ -42,11 +47,14 @@ Secrets:
 
 | Name | Value |
 | ------ | ------- |
-| `VPS_HOST` | VPS IP or hostname |
+| `VPS_HOST` | The VPS's **Pangolin** resource alias, e.g. `ssh.newt-01` (NOT the public IP) |
 | `VPS_USER` | deploy user (e.g. `deploy`) |
 | `VPS_SSH_KEY` | private key whose public half is in the VPS user's `~/.ssh/authorized_keys` |
 | `VPS_PORT` | SSH port (optional, defaults to 22) |
 | `VPS_PATH` | repo path on the VPS, e.g. `/opt/green-orange` |
+| `PANGOLIN_ID` | Pangolin client ID (used by `pangolin up --id`) |
+| `PANGOLIN_SECRET` | Pangolin client secret (`pangolin up --secret`) |
+| `PANGOLIN_ENDPOINT` | Pangolin control URL, e.g. `https://prp.hdc-cloud.org` |
 
 Variables:
 
@@ -55,6 +63,32 @@ Variables:
 | `NEXT_PUBLIC_CMS_URL` | `https://cms.example.com` (baked into the web image at build) |
 
 GHCR push uses the built-in `GITHUB_TOKEN` — no extra token needed for the build side.
+
+---
+
+## 2a. Pangolin access for CI (private SSH)
+
+The VPS's SSH isn't public, so the deploy job joins the Pangolin network with the
+`pangolin` client before connecting — the same command you run locally:
+
+```bash
+pangolin up --id <CLIENT_ID> --secret <CLIENT_SECRET> --endpoint https://prp.hdc-cloud.org
+```
+
+In Pangolin: the VPS is a **Site** (Newt agent) and its SSH is exposed as a
+client-resource reachable at the alias **`ssh.newt-01`** (port 22). Register a
+**Client** for CI to get the id/secret, then set the GitHub secrets:
+
+- `PANGOLIN_ID`, `PANGOLIN_SECRET`, `PANGOLIN_ENDPOINT` (`https://prp.hdc-cloud.org`)
+- `VPS_HOST` = `ssh.newt-01`, `VPS_PORT` = `22`
+
+The workflow's **"Connect to Pangolin"** step installs the `pangolin` CLI, runs
+`pangolin up` in the background, waits until `ssh.newt-01:22` is reachable over
+the tunnel, then runs the SSH deploy.
+
+> ⚠️ Rotate the client secret if it has ever been shared in plaintext. The CLI
+> install line in the workflow is a placeholder — set it to however you actually
+> install the `pangolin` client on Linux.
 
 ---
 
@@ -67,11 +101,50 @@ curl -fsSL https://get.docker.com | sh
 # Create a deploy user and add to docker group
 adduser --disabled-password --gecos "" deploy
 usermod -aG docker deploy
-# add your CI public key to /home/deploy/.ssh/authorized_keys
 
-# Firewall: only SSH + HTTP + HTTPS
-ufw allow OpenSSH && ufw allow 80 && ufw allow 443 && ufw enable
+# Firewall: expose only the public site. SSH stays OFF the public internet —
+# it's reached over the Pangolin tunnel. (Keep a console/out-of-band way in.)
+ufw allow 80 && ufw allow 443 && ufw enable
+# Do NOT `ufw allow OpenSSH`. If you need a safety net during setup, allow SSH
+# from your Pangolin/admin subnet only, e.g.:
+#   ufw allow from <PANGOLIN_SUBNET> to any port 22
 ```
+
+### CI deploy SSH key
+
+**On your LOCAL machine** (not the VPS), generate a dedicated key pair for CI
+(no passphrase so the runner can use it non-interactively):
+
+```bash
+ssh-keygen -t ed25519 -C "green-orange-ci" -f ./deploy_key -N ""
+# → deploy_key       (PRIVATE — goes into the GitHub secret VPS_SSH_KEY)
+# → deploy_key.pub   (PUBLIC  — goes onto the VPS, below)
+
+cat ./deploy_key.pub             # copy this whole line for the next step
+```
+
+Install the **public** key for the `deploy` user **on the VPS** (run as root via
+your Pangolin tunnel or the provider console). The `>>` creates the file if it
+doesn't exist, so do it in this order:
+
+```bash
+mkdir -p /home/deploy/.ssh && chmod 700 /home/deploy/.ssh
+echo "ssh-ed25519 AAAA...paste deploy_key.pub here... green-orange-ci" \
+  >> /home/deploy/.ssh/authorized_keys
+chmod 600 /home/deploy/.ssh/authorized_keys
+chown -R deploy:deploy /home/deploy/.ssh
+```
+
+Then put the **private** key into the repo secret (back on your local machine):
+
+```bash
+pbcopy < ./deploy_key            # macOS — copies the whole key incl. BEGIN/END
+# Paste it as the value of the GitHub secret  VPS_SSH_KEY, then:
+rm ./deploy_key                  # delete the local private key
+```
+
+> Private key → GitHub secret `VPS_SSH_KEY`. Public key → VPS
+> `~/.ssh/authorized_keys`. (Reversing these is the most common mistake.)
 
 As the `deploy` user:
 
