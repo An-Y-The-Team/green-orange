@@ -117,12 +117,8 @@ jobs:
     name: Deploy to VPS
     needs: build
     runs-on: ubuntu-latest
-    # The VPS SSH is private (only over the Pangolin network) and is exposed as a
-    # private-resource ALIAS (ssh.newt-01). We bring the tunnel up and SSH in
-    # within ONE step, because `pangolin up --attach` runs in the foreground (no
-    # TTY/daemonize) and must stay alive while we deploy. `--override-dns` is
-    # required for the alias to resolve: it makes the Olm client intercept DNS
-    # queries for private-resource aliases (see Pangolin "Enable Aliases").
+    # SSH is private (Pangolin network only). We join the tunnel, wait for the
+    # relay path, then SSH in — all in one step so the tunnel stays alive.
     env:
       SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -134,10 +130,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Installing Pangolin CLI…"
+          # ── 1. Install Pangolin CLI ──────────────────────────────────────
           curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash
 
-          echo "Bringing up the tunnel with alias resolution (--override-dns)…"
+          # ── 2. Bring up tunnel (foreground + backgrounded) ───────────────
           sudo pangolin up \
             --id "${{ secrets.PANGOLIN_ID }}" \
             --secret "${{ secrets.PANGOLIN_SECRET }}" \
@@ -145,7 +141,8 @@ jobs:
             --override-dns \
             --attach > /tmp/pangolin.log 2>&1 &
 
-          echo "Waiting for the WireGuard tunnel…"
+          # ── 3. Wait for WireGuard ────────────────────────────────────────
+          echo "Waiting for WireGuard tunnel…"
           for i in $(seq 1 40); do
             grep -q "WireGuard device created" /tmp/pangolin.log && break
             sleep 2
@@ -153,53 +150,36 @@ jobs:
           grep -q "WireGuard device created" /tmp/pangolin.log \
             || { echo "Tunnel did not come up:"; cat /tmp/pangolin.log; exit 1; }
 
-          # After the WireGuard interface is created, Pangolin still needs to
-          # establish a holepunch (direct P2P) or relay path to the VPS. In CI
-          # the holepunch usually fails (GitHub runners are behind NAT) and the
-          # client falls back to relay, which takes ~5-10 s after WireGuard.
-          echo "Waiting for holepunch or relay to establish…"
+          # ── 4. Wait for relay (holepunch fails behind GitHub NAT) ────────
+          echo "Waiting for peer path…"
           for i in $(seq 1 20); do
-            if grep -qE "holepunch (succeeded|connected)|point to relay" /tmp/pangolin.log 2>/dev/null; then
-              echo "Peer path established."
-              break
-            fi
+            grep -qE "holepunch (succeeded|connected)|point to relay" /tmp/pangolin.log 2>/dev/null && break
             sleep 2
           done
-          # Give the relay a moment to stabilise after reconfiguration.
-          sleep 3
+          sleep 3   # let the relay stabilise
 
-          # The Pangolin Olm client's DNS proxy doesn't reliably serve alias
-          # records in headless/CI environments ("0 exit nodes", tunnelDNS=false).
-          # Use VPS_PANGOLIN_IP (the resource's stable Pangolin tunnel IP, visible
-          # in Newt logs as the "original" destination) to bypass DNS entirely.
-          # Falls back to alias resolution if VPS_PANGOLIN_IP is not set.
+          # ── 5. Resolve VPS address ───────────────────────────────────────
           RESOLVED_IP="${{ secrets.VPS_PANGOLIN_IP }}"
-
           if [ -n "$RESOLVED_IP" ]; then
-            echo "Using VPS_PANGOLIN_IP=$RESOLVED_IP (skipping DNS)."
+            echo "Using VPS_PANGOLIN_IP=$RESOLVED_IP"
           else
-            echo "VPS_PANGOLIN_IP not set — trying DNS resolution for $VPS_HOST…"
-            sudo resolvectl domain pangolin "~." 2>/dev/null || true
-            for i in $(seq 1 30); do
+            echo "Resolving $VPS_HOST via DNS…"
+            for i in $(seq 1 15); do
               RESOLVED_IP=$(getent hosts "$VPS_HOST" 2>/dev/null | awk '{print $1}' | head -1) || true
               [ -n "$RESOLVED_IP" ] && break
               sleep 2
             done
+            [ -n "$RESOLVED_IP" ] \
+              || { echo "Could not resolve $VPS_HOST. Set VPS_PANGOLIN_IP secret."; cat /tmp/pangolin.log; exit 1; }
           fi
 
-          if [ -z "$RESOLVED_IP" ]; then
-            echo "Could not determine VPS IP. Set the VPS_PANGOLIN_IP secret"
-            echo "(find it in Newt logs: 'original: <IP>')."
-            cat /tmp/pangolin.log
-            exit 1
-          fi
-          echo "Target IP: $RESOLVED_IP"
+          # ── 6. Wait for SSH ──────────────────────────────────────────────
+          echo "Waiting for SSH at $RESOLVED_IP:$VPS_PORT…"
+          for i in $(seq 1 15); do nc -z -w 2 "$RESOLVED_IP" "$VPS_PORT" && break; sleep 2; done
+          nc -z -w 2 "$RESOLVED_IP" "$VPS_PORT" \
+            || { echo "SSH unreachable at $RESOLVED_IP:$VPS_PORT"; cat /tmp/pangolin.log; exit 1; }
 
-          echo "Waiting for $RESOLVED_IP:$VPS_PORT…"
-          for i in $(seq 1 30); do nc -z -w 2 "$RESOLVED_IP" "$VPS_PORT" && break; sleep 2; done
-          nc -z -w 2 "$RESOLVED_IP" "$VPS_PORT" || { echo "SSH not reachable at $RESOLVED_IP:$VPS_PORT"; cat /tmp/pangolin.log; exit 1; }
-
-          echo "Preparing SSH key…"
+          # ── 7. Deploy ────────────────────────────────────────────────────
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
@@ -207,7 +187,7 @@ jobs:
           REPO=$(echo "${{ github.repository }}" | tr 'A-Z' 'a-z')
           TAG="${{ github.ref_name }}"
 
-          echo "Deploying ${TAG} to ${RESOLVED_IP} (${VPS_HOST})…"
+          echo "Deploying $TAG → $RESOLVED_IP ($VPS_HOST)…"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
             -p "$VPS_PORT" "${VPS_USER}@${RESOLVED_IP}" \
             "REPO='$REPO' TAG='$TAG' VPS_PATH='$VPS_PATH' bash -se" <<'REMOTE'
@@ -220,3 +200,4 @@ jobs:
           docker compose -f docker-compose.prod.yml --env-file .env.production up -d
           docker image prune -f
           REMOTE
+
