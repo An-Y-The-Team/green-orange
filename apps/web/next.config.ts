@@ -5,12 +5,22 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(__filename);
 
+// Standalone output + the monorepo file-tracing root are ONLY needed for the
+// production Docker image. Enabling them under `next dev` makes Turbopack scan
+// the entire monorepo (incl. the hoisted root node_modules) and hang, so they
+// are opt-in via NEXT_OUTPUT_STANDALONE — set in the web Dockerfile build stage,
+// never in local dev.
+const standalone = process.env.NEXT_OUTPUT_STANDALONE === "1";
+
 const nextConfig: NextConfig = {
-  // Emit a self-contained server bundle for a lean Docker runtime image.
-  output: "standalone",
-  // In this monorepo the app is nested under apps/web, so trace dependencies
-  // from the repo root to bundle the hoisted node_modules into standalone.
-  outputFileTracingRoot: path.join(dirname, "../../"),
+  ...(standalone
+    ? {
+        output: "standalone" as const,
+        // App is nested under apps/web; trace deps from the repo root so the
+        // hoisted node_modules are bundled into the standalone output.
+        outputFileTracingRoot: path.join(dirname, "../../"),
+      }
+    : {}),
   images: {
     remotePatterns: [
       {
@@ -19,11 +29,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Pin Turbopack's root to the monorepo root so Next doesn't infer it from a
-  // stray lockfile elsewhere on the machine. `turbopack` is a top-level key in
-  // Next 16 (it was previously under `experimental`).
-  turbopack: {
-    root: path.join(dirname, "../../"),
-  },
 };
+
 export default nextConfig;

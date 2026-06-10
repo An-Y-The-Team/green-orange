@@ -19,6 +19,9 @@ COPY . .
 ARG NEXT_PUBLIC_CMS_URL
 ENV NEXT_PUBLIC_CMS_URL=$NEXT_PUBLIC_CMS_URL
 ENV NEXT_TELEMETRY_DISABLED=1
+# Opt in to standalone output + monorepo tracing for the production build only
+# (next.config keeps these off in dev to avoid a Turbopack scan hang).
+ENV NEXT_OUTPUT_STANDALONE=1
 RUN bunx turbo run build --filter=@yan-portf/web
 
 # --- Runtime: minimal Node image running the standalone server -------------
