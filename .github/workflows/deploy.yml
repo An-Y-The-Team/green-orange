@@ -134,9 +134,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Installing dnsutils (dig) for direct DNS queries…"
-          sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils > /dev/null
-
           echo "Installing Pangolin CLI…"
           curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash
 
@@ -156,24 +153,20 @@ jobs:
           grep -q "WireGuard device created" /tmp/pangolin.log \
             || { echo "Tunnel did not come up:"; cat /tmp/pangolin.log; exit 1; }
 
-          # systemd-resolved doesn't always route alias queries to the
-          # Pangolin DNS proxy on the pangolin interface. Query the proxy
-          # directly at 100.96.144.1:53 to resolve the alias, then SSH
-          # to the IP. Falls back to getent in case future Pangolin
-          # versions fix the resolver integration.
-          PANGOLIN_DNS="100.96.144.1"
+          # The Pangolin CLI sets 100.96.144.1 as DNS on the pangolin interface
+          # but does NOT add a routing domain. systemd-resolved therefore never
+          # forwards queries for the private alias there. Fix by explicitly
+          # setting "~." (catch-all route) on the pangolin interface.
+          echo "Configuring DNS routing for the pangolin interface…"
+          sudo resolvectl dns pangolin 100.96.144.1 || true
+          sudo resolvectl domain pangolin "~." || true
+          echo "--- resolvectl status pangolin ---"
+          resolvectl status pangolin 2>/dev/null || true
 
-          echo "Waiting for alias $VPS_HOST to resolve (via Pangolin DNS at $PANGOLIN_DNS)…"
+          echo "Waiting for alias $VPS_HOST to resolve…"
           RESOLVED_IP=""
           for i in $(seq 1 30); do
-            # Try dig against the Pangolin DNS proxy first
-            if command -v dig &>/dev/null; then
-              RESOLVED_IP=$(dig +short "@${PANGOLIN_DNS}" "$VPS_HOST" A 2>/dev/null | head -1)
-            fi
-            # Fallback: getent (works if systemd-resolved is routing correctly)
-            if [ -z "$RESOLVED_IP" ]; then
-              RESOLVED_IP=$(getent hosts "$VPS_HOST" 2>/dev/null | awk '{print $1}' | head -1)
-            fi
+            RESOLVED_IP=$(getent hosts "$VPS_HOST" 2>/dev/null | awk '{print $1}' | head -1) || true
             [ -n "$RESOLVED_IP" ] && break
             sleep 2
           done
@@ -184,6 +177,8 @@ jobs:
             cat /tmp/pangolin.log
             echo "--- resolvectl status ---"
             resolvectl status 2>/dev/null || true
+            echo "--- ip addr show pangolin ---"
+            ip addr show pangolin 2>/dev/null || true
             exit 1
           fi
           echo "Resolved $VPS_HOST → $RESOLVED_IP"
@@ -200,7 +195,7 @@ jobs:
           REPO=$(echo "${{ github.repository }}" | tr 'A-Z' 'a-z')
           TAG="${{ github.ref_name }}"
 
-          echo "Deploying ${TAG} to ${RESOLVED_IP} ($VPS_HOST)…"
+          echo "Deploying ${TAG} to ${RESOLVED_IP} (${VPS_HOST})…"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
             -p "$VPS_PORT" "${VPS_USER}@${RESOLVED_IP}" \
             "REPO='$REPO' TAG='$TAG' VPS_PATH='$VPS_PATH' bash -se" <<'REMOTE'
