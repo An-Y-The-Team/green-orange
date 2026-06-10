@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"next dev\")",
+      "Bash(pkill -f \"turbo run dev\")",
+      "Bash(pkill -f \"bun run.*dev\")",
+      "Bash(pkill -f \"bun run dev\")",
+      "Bash(echo \"--- exit: $? ---\")"
+    ]
+  }
+}

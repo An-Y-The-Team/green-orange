@@ -23,7 +23,7 @@ apps/web/tsconfig.tsbuildinfo
 # Docker / deploy artifacts not needed in the build context
 docker-compose*.yml
 apps/cms/docker-compose.yml
-nginx
+Caddyfile
 DEPLOY.md
 
 # OS noise

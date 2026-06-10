@@ -51,37 +51,30 @@ services:
       CMS_INTERNAL_URL: http://cms:3001
     networks: [internal]
 
-  nginx:
-    image: nginx:1.27-alpine
+  caddy:
+    image: caddy:2-alpine
     restart: unless-stopped
     depends_on: [web, cms]
     ports:
       - '80:80'
       - '443:443'
+      - '443:443/udp' # HTTP/3 (QUIC)
+    environment:
+      # Caddy substitutes these into the Caddyfile and auto-provisions TLS.
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      CMS_DOMAIN: ${CMS_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - certbot-www:/var/www/certbot
-      - letsencrypt:/etc/letsencrypt
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # certificates + ACME account — MUST persist
+      - caddy_config:/config
     networks: [internal]
-    # Reload every 6h so renewed certificates are picked up without downtime.
-    command: >
-      /bin/sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
-
-  certbot:
-    image: certbot/certbot
-    restart: unless-stopped
-    volumes:
-      - certbot-www:/var/www/certbot
-      - letsencrypt:/etc/letsencrypt
-    # Attempt renewal twice a day; no-op until a cert is within 30 days of expiry.
-    entrypoint: >
-      /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
 
 volumes:
   pgdata:
   media:
-  certbot-www:
-  letsencrypt:
+  caddy_data:
+  caddy_config:
 
 networks:
   internal:

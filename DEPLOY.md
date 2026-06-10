@@ -2,16 +2,17 @@
 
 Build images on **GitHub Actions**, push to **GHCR** (private), and **SSH-deploy**
 to a single VPS running everything in Docker Compose: Postgres + CMS + web behind
-nginx with Let's Encrypt TLS.
+**Caddy** with automatic Let's Encrypt TLS.
 
-```
+```bash
 push tag vX.Y.Z ─► GitHub Actions ─► build web+cms (amd64) ─► GHCR
                                                                 │
                           SSH ◄──── deploy job ────────────────┘
                           git pull · compose pull · up -d · (cms runs migrate)
 
-VPS:  nginx(443) ─► web:3000           ┌ Postgres (internal, volume: pgdata)
+VPS:  caddy(443) ─► web:3000           ┌ Postgres (internal, volume: pgdata)
                  └► cms:3001 ──────────┘ uploads (volume: media)
+      (auto-HTTPS; certs persist in volume: caddy_data)
 ```
 
 The VPS never builds — it only pulls finished images, so a small (1–2 GB) box is fine.
@@ -33,11 +34,12 @@ The VPS never builds — it only pulls finished images, so a small (1–2 GB) bo
 
 ## 2. GitHub configuration (one-time)
 
-**Repo → Settings → Secrets and variables → Actions**
+### Repo → Settings → Secrets and variables → Actions
 
 Secrets:
+
 | Name | Value |
-|------|-------|
+| ------ | ------- |
 | `VPS_HOST` | VPS IP or hostname |
 | `VPS_USER` | deploy user (e.g. `deploy`) |
 | `VPS_SSH_KEY` | private key whose public half is in the VPS user's `~/.ssh/authorized_keys` |
@@ -45,6 +47,7 @@ Secrets:
 | `VPS_PATH` | repo path on the VPS, e.g. `/opt/yan-portf` |
 
 Variables:
+
 | Name | Value |
 |------|-------|
 | `NEXT_PUBLIC_CMS_URL` | `https://cms.example.com` (baked into the web image at build) |
@@ -78,7 +81,8 @@ cd /opt/yan-portf
 # Production env
 cp .env.production.example .env.production
 # Edit it: set a strong POSTGRES_PASSWORD, a fresh PAYLOAD_SECRET
-#   (openssl rand -hex 32), and CORS_ORIGINS=https://example.com,https://www.example.com
+#   (openssl rand -hex 32), CORS_ORIGINS, and the Caddy domains
+#   (SITE_DOMAIN / CMS_DOMAIN / ACME_EMAIL).
 nano .env.production
 
 # Log in to GHCR so the VPS can PULL the private images.
@@ -86,35 +90,20 @@ nano .env.production
 echo "<YOUR_GHCR_PAT>" | docker login ghcr.io -u OWNER --password-stdin
 ```
 
-Point the nginx configs and cert script at your real domains:
-
-```bash
-# Replace example.com / cms.example.com in both server blocks
-sed -i 's/example\.com/yourdomain.com/g' nginx/conf.d/web.conf nginx/conf.d/cms.conf
-# (the cms.conf subdomain becomes cms.yourdomain.com — verify it)
-nano nginx/conf.d/web.conf nginx/conf.d/cms.conf
-
-# Edit EMAIL and the CERTS map (domain names) at the top of the script
-nano init-letsencrypt.sh
-```
+There are **no proxy config files to edit** — Caddy reads `SITE_DOMAIN`,
+`CMS_DOMAIN`, and `ACME_EMAIL` from the environment via the `Caddyfile`.
 
 ---
 
-## 4. Issue TLS certificates (one-time)
+## 4. TLS — automatic
 
-DNS must already resolve to the VPS. Then:
+There is no cert step. Once DNS resolves to the VPS and the stack is up
+(section 5), Caddy obtains and renews Let's Encrypt certificates automatically on
+first request to each domain, storing them in the persistent `caddy_data` volume.
 
-```bash
-# Set WEB_IMAGE/CMS_IMAGE in .env.production to any pushed tag first, or run a
-# manual first deploy (section 5) so the images exist — nginx/certbot only need
-# the compose file, but `up -d` later needs the app images.
-./init-letsencrypt.sh
-```
-
-This creates temporary certs, starts nginx, completes the HTTP-01 challenge, and
-swaps in real Let's Encrypt certs. Renewals are automatic (the `certbot` service
-renews twice daily; nginx reloads every 6h). Tip: set `STAGING=1` in the script
-for a dry run to avoid rate limits, then re-run with `STAGING=0`.
+Just make sure DNS is correct **before** first start (Caddy validates over ports
+80/443) and that the firewall allows 80 + 443. If you want a rate-limit-safe dry
+run, point `ACME_EMAIL` at a real address and watch `docker compose logs caddy`.
 
 ---
 
@@ -123,12 +112,15 @@ for a dry run to avoid rate limits, then re-run with `STAGING=0`.
 Two options:
 
 **A. Cut a release (recommended)** — this triggers the full pipeline:
+
 ```bash
 git tag v1.0.0 && git push origin v1.0.0
 ```
+
 GitHub builds both images, pushes to GHCR, and SSHes in to deploy.
 
 **B. Manual first deploy on the VPS** (e.g. to have images present before TLS):
+
 ```bash
 # After at least one successful build job has pushed images to GHCR:
 # set WEB_IMAGE / CMS_IMAGE in .env.production to that tag, then:
@@ -153,6 +145,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.production exec cms \
 ```
 
 Verify:
+
 - `https://example.com` loads (see note on first-render below).
 - `https://cms.example.com/admin` logs in over HTTPS.
 - Submitting the contact form creates a row under **Leads → Contact Submissions**.
@@ -167,12 +160,14 @@ Verify:
 ## 7. Ongoing deploys
 
 Just cut a new tag:
+
 ```bash
 git tag v1.1.0 && git push origin v1.1.0
 ```
 
 **Rollback** — redeploy a previous tag by re-running that release's workflow
 (Actions → select run → Re-run), or on the VPS:
+
 ```bash
 sed -i 's|^WEB_IMAGE=.*|WEB_IMAGE=ghcr.io/owner/yan-portf-web:v1.0.0|' .env.production
 sed -i 's|^CMS_IMAGE=.*|CMS_IMAGE=ghcr.io/owner/yan-portf-cms:v1.0.0|' .env.production
@@ -200,11 +195,13 @@ Restore: `gunzip -c dump.sql.gz | docker compose ... exec -T postgres psql -U po
 ## 9. Schema changes (migrations)
 
 When you change a Payload collection:
+
 ```bash
 # locally, against your dev DB
 bun run --cwd apps/cms payload migrate:create <name>
 git add apps/cms/src/migrations && git commit
 ```
+
 The new migration ships in the next image and runs automatically on deploy.
 
 ---
@@ -212,7 +209,7 @@ The new migration ships in the next image and runs automatically on deploy.
 ## Notes / optional hardening
 
 - **`serverURL`:** not set in `payload.config.ts`; Payload uses relative URLs,
-  which work behind nginx. Set one via env if you need absolute media/admin URLs.
+  which work behind Caddy. Set one via env if you need absolute media/admin URLs.
 - **Machine user:** instead of a personal PAT on the VPS, use a dedicated GitHub
   machine user with read-only package access.
 - **Postgres is internal-only** (no published port); keep it that way.

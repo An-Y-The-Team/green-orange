@@ -1,0 +1,20 @@
+# Caddy automatically provisions + renews Let's Encrypt TLS for these domains.
+# Domains/email come from the environment (set in .env.production), so there is
+# nothing to edit in this file per-deployment.
+{
+	email {$ACME_EMAIL}
+}
+
+# Public marketing site
+{$SITE_DOMAIN}, www.{$SITE_DOMAIN} {
+	reverse_proxy web:3000
+}
+
+# Payload CMS (admin + REST/GraphQL API)
+{$CMS_DOMAIN} {
+	# Allow media uploads through the admin panel.
+	request_body {
+		max_size 25MB
+	}
+	reverse_proxy cms:3001
+}
