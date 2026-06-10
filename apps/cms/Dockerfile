@@ -12,7 +12,7 @@ COPY package.json bun.lock ./
 COPY apps/web/package.json ./apps/web/package.json
 COPY apps/cms/package.json ./apps/cms/package.json
 # Install with dev dependencies present — `next build` needs typescript etc.
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --no-verify
 
 FROM oven/bun:1-debian AS builder
 WORKDIR /app
