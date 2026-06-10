@@ -153,39 +153,36 @@ jobs:
           grep -q "WireGuard device created" /tmp/pangolin.log \
             || { echo "Tunnel did not come up:"; cat /tmp/pangolin.log; exit 1; }
 
-          # The Pangolin CLI sets 100.96.144.1 as DNS on the pangolin interface
-          # but does NOT add a routing domain. systemd-resolved therefore never
-          # forwards queries for the private alias there. Fix by explicitly
-          # setting "~." (catch-all route) on the pangolin interface.
-          echo "Configuring DNS routing for the pangolin interface…"
-          sudo resolvectl dns pangolin 100.96.144.1 || true
-          sudo resolvectl domain pangolin "~." || true
-          echo "--- resolvectl status pangolin ---"
-          resolvectl status pangolin 2>/dev/null || true
+          # The Pangolin Olm client's DNS proxy doesn't reliably serve alias
+          # records in headless/CI environments ("0 exit nodes", tunnelDNS=false).
+          # Use VPS_PANGOLIN_IP (the resource's stable Pangolin tunnel IP, visible
+          # in Newt logs as the "original" destination) to bypass DNS entirely.
+          # Falls back to alias resolution if VPS_PANGOLIN_IP is not set.
+          RESOLVED_IP="${{ secrets.VPS_PANGOLIN_IP }}"
 
-          echo "Waiting for alias $VPS_HOST to resolve…"
-          RESOLVED_IP=""
-          for i in $(seq 1 30); do
-            RESOLVED_IP=$(getent hosts "$VPS_HOST" 2>/dev/null | awk '{print $1}' | head -1) || true
-            [ -n "$RESOLVED_IP" ] && break
-            sleep 2
-          done
+          if [ -n "$RESOLVED_IP" ]; then
+            echo "Using VPS_PANGOLIN_IP=$RESOLVED_IP (skipping DNS)."
+          else
+            echo "VPS_PANGOLIN_IP not set — trying DNS resolution for $VPS_HOST…"
+            sudo resolvectl domain pangolin "~." 2>/dev/null || true
+            for i in $(seq 1 30); do
+              RESOLVED_IP=$(getent hosts "$VPS_HOST" 2>/dev/null | awk '{print $1}' | head -1) || true
+              [ -n "$RESOLVED_IP" ] && break
+              sleep 2
+            done
+          fi
 
           if [ -z "$RESOLVED_IP" ]; then
-            echo "Alias $VPS_HOST did not resolve after 60 s."
-            echo "--- Pangolin log ---"
+            echo "Could not determine VPS IP. Set the VPS_PANGOLIN_IP secret"
+            echo "(find it in Newt logs: 'original: <IP>')."
             cat /tmp/pangolin.log
-            echo "--- resolvectl status ---"
-            resolvectl status 2>/dev/null || true
-            echo "--- ip addr show pangolin ---"
-            ip addr show pangolin 2>/dev/null || true
             exit 1
           fi
-          echo "Resolved $VPS_HOST → $RESOLVED_IP"
+          echo "Target IP: $RESOLVED_IP"
 
           echo "Waiting for $RESOLVED_IP:$VPS_PORT…"
           for i in $(seq 1 30); do nc -z -w 2 "$RESOLVED_IP" "$VPS_PORT" && break; sleep 2; done
-          nc -z -w 2 "$RESOLVED_IP" "$VPS_PORT" || { echo "SSH not reachable at $RESOLVED_IP:$VPS_PORT"; exit 1; }
+          nc -z -w 2 "$RESOLVED_IP" "$VPS_PORT" || { echo "SSH not reachable at $RESOLVED_IP:$VPS_PORT"; cat /tmp/pangolin.log; exit 1; }
 
           echo "Preparing SSH key…"
           mkdir -p ~/.ssh && chmod 700 ~/.ssh

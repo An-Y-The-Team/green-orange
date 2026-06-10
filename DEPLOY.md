@@ -55,6 +55,7 @@ Secrets:
 | `PANGOLIN_ID` | Pangolin client ID (used by `pangolin up --id`) |
 | `PANGOLIN_SECRET` | Pangolin client secret (`pangolin up --secret`) |
 | `PANGOLIN_ENDPOINT` | Pangolin control URL, e.g. `https://prp.hdc-cloud.org` |
+| `VPS_PANGOLIN_IP` | The VPS resource's **Pangolin tunnel IP** (e.g. `100.96.144.8`). See §2a for how to find it. |
 
 Variables:
 
@@ -82,26 +83,38 @@ client-resource reachable at the alias **`ssh.newt-01`** (port 22). Register a
 - `PANGOLIN_ID`, `PANGOLIN_SECRET`, `PANGOLIN_ENDPOINT` (`https://prp.hdc-cloud.org`)
 - `VPS_HOST` = `ssh.newt-01`, `VPS_PORT` = `22`
 
+### Finding `VPS_PANGOLIN_IP`
+
+The Pangolin Olm CLI's DNS proxy does not reliably resolve resource aliases in
+headless/CI environments. The workflow bypasses DNS by SSHing directly to the
+resource's **tunnel IP** (`VPS_PANGOLIN_IP`). To find it, check the Newt agent
+logs on the VPS:
+
+```bash
+sudo journalctl -u newt --no-pager -n 50 | grep 'original:'
+# Example output:
+#   TCP Forwarder: Using rewritten destination 127.0.0.1 (original: 100.96.144.8)
+#                                                          ^^^^^^^^^^^^^^^^
+# VPS_PANGOLIN_IP = 100.96.144.8
+```
+
+Set this as the `VPS_PANGOLIN_IP` GitHub secret.
+
 The workflow's **"Connect to Pangolin and deploy"** step (one step):
 
 1. Installs the CLI (`get-cli.sh`).
 2. `sudo pangolin up … --override-dns --attach &` — foreground mode, backgrounded
-   with output redirected to a log. (The default daemonize mode tries to open a
-   TUI/TTY and fails in CI; `--silent`/detached would fork a daemon that stops
-   writing to our log, breaking the readiness check below. `--attach` keeps
-   logging to the file.) **`--override-dns` is required** — without it the Olm
-   client does NOT intercept queries for the private-resource alias, so
-   `ssh.newt-01` never resolves (this is Pangolin's "Enable Aliases" preference;
-   the desktop client has it on by default, the bare CLI does not).
+   with output redirected to a log. `--attach` keeps logging to the file (the
+   default daemonize mode fails without a TTY).
 3. Waits for `WireGuard device created` in that log.
-4. Waits for the alias `ssh.newt-01` to resolve (`getent hosts`, the same path
-   `ssh` uses), then SSHes straight to the alias — the client resolves it.
+4. Uses `VPS_PANGOLIN_IP` to SSH directly through the WireGuard tunnel (no DNS).
+   Falls back to alias resolution via `getent hosts` if `VPS_PANGOLIN_IP` is unset.
 
 Everything is one step so the tunnel stays up for the whole deploy.
 
-> ⚠️ Rotate the client secret if it has ever been shared in plaintext. If the
-> alias never resolves, confirm `--override-dns` is present and that the SSH
-> client-resource's alias in Pangolin matches `VPS_HOST`.
+> ⚠️ Rotate the client secret if it has ever been shared in plaintext. If
+> `VPS_PANGOLIN_IP` changes (rare — check after Pangolin server upgrades or
+> resource re-creation), update the secret.
 
 ---
 
