@@ -68,15 +68,15 @@ jobs:
       # client is connected. Credentials come from repo secrets.
       - name: Connect to Pangolin
         run: |
-          # Install the Pangolin client CLI (the same `pangolin` tool you run
-          # locally). >>> Replace this line with your actual install method. <<<
-          curl -fsSL https://pangolin.fossorial.io/install.sh | sudo bash
+          # Install the Pangolin CLI (the same `pangolin` tool used locally).
+          curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash
 
-          # `pangolin up` brings up the WireGuard tunnel; run it in the background.
+          # `pangolin up` needs root (creates a TUN interface) and daemonizes by
+          # default, so it returns immediately — no `&` needed.
           sudo pangolin up \
             --id "${{ secrets.PANGOLIN_ID }}" \
             --secret "${{ secrets.PANGOLIN_SECRET }}" \
-            --endpoint "${{ secrets.PANGOLIN_ENDPOINT }}" &
+            --endpoint "${{ secrets.PANGOLIN_ENDPOINT }}"
 
           echo "Waiting for ${{ secrets.VPS_HOST }}:${{ secrets.VPS_PORT || 22 }} over the tunnel…"
           for i in $(seq 1 30); do

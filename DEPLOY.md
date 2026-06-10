@@ -82,13 +82,15 @@ client-resource reachable at the alias **`ssh.newt-01`** (port 22). Register a
 - `PANGOLIN_ID`, `PANGOLIN_SECRET`, `PANGOLIN_ENDPOINT` (`https://prp.hdc-cloud.org`)
 - `VPS_HOST` = `ssh.newt-01`, `VPS_PORT` = `22`
 
-The workflow's **"Connect to Pangolin"** step installs the `pangolin` CLI, runs
-`pangolin up` in the background, waits until `ssh.newt-01:22` is reachable over
-the tunnel, then runs the SSH deploy.
+The workflow's **"Connect to Pangolin"** step installs the CLI
+(`curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash`), runs
+`sudo pangolin up …` (needs root for the TUN interface; daemonizes by default),
+waits until `ssh.newt-01:22` is reachable over the tunnel, then runs the SSH
+deploy.
 
-> ⚠️ Rotate the client secret if it has ever been shared in plaintext. The CLI
-> install line in the workflow is a placeholder — set it to however you actually
-> install the `pangolin` client on Linux.
+> ⚠️ Rotate the client secret if it has ever been shared in plaintext.
+> If `ssh.newt-01` doesn't resolve on the runner after connecting, use the
+> resource's Pangolin-assigned IP for `VPS_HOST` instead.
 
 ---
 
