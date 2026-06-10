@@ -13,4 +13,4 @@ export const HERO_BENEFITS: string[] = [
 ];
 
 // Inline style kept on the hero card.
-export const HERO_CARD_STYLE: CSSProperties = { marginLeft: "0px" };
+export const HERO_CARD_STYLE: CSSProperties = {};
