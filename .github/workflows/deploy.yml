@@ -135,14 +135,12 @@ jobs:
           curl -fsSL https://static.pangolin.net/get-cli.sh | sudo bash
           sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils >/dev/null
 
-          # --silent runs detached with NO TUI (the default TUI needs a TTY,
-          # which CI lacks → "could not open a new TTY"). Background + wait below.
-          echo "Bringing up the tunnel (detached, --silent)…"
+          echo "Bringing up the tunnel (foreground via --attach, backgrounded)…"
           sudo pangolin up \
             --id "${{ secrets.PANGOLIN_ID }}" \
             --secret "${{ secrets.PANGOLIN_SECRET }}" \
             --endpoint "${{ secrets.PANGOLIN_ENDPOINT }}" \
-            --silent > /tmp/pangolin.log 2>&1 &
+            --attach > /tmp/pangolin.log 2>&1 &
 
           echo "Waiting for the WireGuard tunnel…"
           for i in $(seq 1 40); do
