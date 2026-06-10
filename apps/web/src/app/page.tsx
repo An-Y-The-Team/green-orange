@@ -10,6 +10,11 @@ import Services from "../components/services/services";
 import Testimonials from "../components/testimonials/testimonials";
 import { getProjects, getServices, getTestimonials } from "../data";
 
+// Render at request time instead of prerendering at build: the CMS isn't
+// reachable from the CI build, and this keeps content fresh from the internal
+// CMS on every request. Data fetches are still cached (see REVALIDATE_SECONDS).
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   // Fetch CMS content on the server, then hand it to the interactive client
   // sections as props (keeps those components free of data-fetching effects).

@@ -2,14 +2,16 @@ import { Project, Service, Testimonial } from "./types";
 
 // Base URL of the decoupled Payload CMS. Public so the client-side contact form
 // can POST to it as well; falls back to the local dev CMS port.
+// `||` (not `??`) so an empty-string build arg also falls back instead of
+// producing an invalid base URL.
 export const CMS_URL =
-  process.env.NEXT_PUBLIC_CMS_URL ?? "http://localhost:3001";
+  process.env.NEXT_PUBLIC_CMS_URL || "http://localhost:3001";
 
-// Server-only base URL for SSR/build-time reads. In production set this to the
-// CMS's internal container address (e.g. http://cms:3001) so server fetches go
-// direct over the docker network instead of hairpinning out through the public
-// domain + TLS. Falls back to the public URL when unset (local dev).
-const SERVER_CMS_URL = process.env.CMS_INTERNAL_URL ?? CMS_URL;
+// Server-only base URL for SSR reads. In production set this to the CMS's
+// internal container address (e.g. http://cms:3001) so server fetches go direct
+// over the docker network instead of hairpinning out through the public domain
+// + TLS. Falls back to the public URL when unset (local dev).
+const SERVER_CMS_URL = process.env.CMS_INTERNAL_URL || CMS_URL;
 
 // How long (seconds) fetched CMS content stays cached before revalidation.
 const REVALIDATE_SECONDS = 300;
@@ -78,7 +80,11 @@ async function fetchCollection<T>(slug: string): Promise<T[]> {
   try {
     const res = await fetch(
       `${SERVER_CMS_URL}/api/${slug}?limit=100&depth=0&sort=order`,
-      { next: { revalidate: REVALIDATE_SECONDS } }
+      {
+        next: { revalidate: REVALIDATE_SECONDS },
+        // Never let an unreachable CMS hang a build/render; fail fast to [].
+        signal: AbortSignal.timeout(8000),
+      }
     );
     if (!res.ok) {
       console.error(`CMS fetch failed for "${slug}": ${res.status}`);
