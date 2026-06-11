@@ -8,6 +8,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/web/package.json ./apps/web/package.json
 COPY apps/cms/package.json ./apps/cms/package.json
+COPY packages/shared/package.json ./packages/shared/package.json
 RUN bun install --frozen-lockfile --no-verify
 
 FROM oven/bun:1-debian AS builder
