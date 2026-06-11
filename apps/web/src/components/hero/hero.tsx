@@ -4,14 +4,15 @@ import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
 
-import { STATS } from "../../data";
+import { SiteSettings } from "../../data";
 import {
   HERO_BACKGROUND_IMAGE_URL,
   HERO_BENEFITS,
   HERO_CARD_STYLE,
 } from "./constants";
 
-export default function Hero() {
+export default function Hero({ settings }: { settings: SiteSettings }) {
+  const { stats, hero } = settings;
   return (
     <section
       id="hero"
@@ -64,10 +65,7 @@ export default function Hero() {
 
           {/* Subtext description conforming to core business details */}
           <p className="text-slate-200 text-base md:text-lg lg:text-xl font-normal max-w-3xl leading-relaxed mb-10">
-            Hợp tác toàn diện 2-trong-1 thiết kế, cải tạo trần vách, ánh sáng
-            rọi, mặt dựng Alu cho chuỗi showroom toàn quốc. Kết hợp gói dọn dẹp
-            vệ sinh sâu bóc bụi mịn sơn bả trước giờ cắt băng bàn giao, giúp bạn
-            sở hữu cửa hiệu sang trọng, sạch bóng tươm tất nhanh chóng nhất.
+            {hero.subheadline}
           </p>
 
           {/* Dynamic Core Benefits Grid (2x2) inside centered panel */}
@@ -119,7 +117,7 @@ export default function Hero() {
         {/* Counters ribbon below with rich depth backdrop */}
         <div className="mt-12 bg-slate-950/60 backdrop-blur-xs border border-white/10 rounded-2xl p-6 md:p-8 w-full max-w-4xl shadow-xl">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
-            {STATS.map((stat, idx) => (
+            {stats.map((stat, idx) => (
               <div
                 key={idx}
                 className={`flex flex-col items-center justify-center text-center ${idx > 1 ? "pt-4 lg:pt-0" : ""} ${idx === 1 ? "pt-0 lg:pt-0" : ""}`}

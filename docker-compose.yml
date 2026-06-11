@@ -1,0 +1,27 @@
+# Local dev Postgres for the monorepo. Creates one database per app (cms today,
+# crm later) via the init script. `name` is pinned so the Compose project —
+# and therefore the container/volume names — never depends on the checkout
+# folder (local "yan-portf" vs prod "green-orange").
+name: green-orange-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_MULTIPLE_DATABASES: cms,crm
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

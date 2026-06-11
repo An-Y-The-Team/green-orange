@@ -1,13 +1,14 @@
 import Image from "next/image";
 
-import { COMPANY_INFO } from "../../data";
+import { SiteSettings } from "../../data";
 import {
   BRAND_VALUES,
   INTRODUCTION_IMAGE_URL,
   PROCESS_STEPS,
 } from "./constants";
 
-export default function Introduction() {
+export default function Introduction({ settings }: { settings: SiteSettings }) {
+  const { company } = settings;
   return (
     <section id="introduction" className="py-16 md:py-24 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
@@ -21,11 +22,11 @@ export default function Introduction() {
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
           <p className="text-slate-500 font-medium mt-6 text-base md:text-lg">
-            Được thành lập từ năm {COMPANY_INFO.founded}, **GreenOrange
-            Services** tự hào là đơn vị tiên phong kết hợp hai dịch vụ cốt lõi:
-            **Thi Công Cửa Hàng** sắc bén và **Vệ Sinh Công Nghiệp** chuẩn mực.
-            Chúng tôi kiến tạo không gian kinh doanh đầy ấn tượng và bảo dưỡng
-            sự khang trang đó vẹn nguyên theo thời gian.
+            Được thành lập từ năm {company.founded}, **GreenOrange Services** tự
+            hào là đơn vị tiên phong kết hợp hai dịch vụ cốt lõi: **Thi Công Cửa
+            Hàng** sắc bén và **Vệ Sinh Công Nghiệp** chuẩn mực. Chúng tôi kiến
+            tạo không gian kinh doanh đầy ấn tượng và bảo dưỡng sự khang trang
+            đó vẹn nguyên theo thời gian.
           </p>
         </div>
 
@@ -48,7 +49,7 @@ export default function Introduction() {
                   Phương châm làm nghề
                 </span>
                 <span className="text-lg md:text-xl font-bold italic leading-tight">
-                  &ldquo;{COMPANY_INFO.motto}&rdquo;
+                  &ldquo;{company.motto}&rdquo;
                 </span>
               </div>
             </div>

@@ -12,6 +12,17 @@ const dirname = path.dirname(__filename);
 // never in local dev.
 const standalone = process.env.NEXT_OUTPUT_STANDALONE === "1";
 
+// Allow <Image> to load media uploaded to the CMS. Derived from the public CMS
+// URL so it works across local dev (http://localhost:3001) and prod
+// (https://cms.example.com) without hardcoding the host.
+const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL || "http://localhost:3001";
+const cms = new URL(cmsUrl);
+const cmsRemotePattern = {
+  protocol: cms.protocol.replace(":", "") as "http" | "https",
+  hostname: cms.hostname,
+  ...(cms.port ? { port: cms.port } : {}),
+};
+
 const nextConfig: NextConfig = {
   ...(standalone
     ? {
@@ -27,6 +38,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      cmsRemotePattern,
     ],
   },
 };

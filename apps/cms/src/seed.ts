@@ -332,11 +332,14 @@ const seed = async () => {
     })
     // `data` is built dynamically from the source arrays; cast to `never` so it
     // satisfies Payload's per-collection create/update overloads without `any`.
+    // `_status: 'published'` makes seeded docs live immediately — these
+    // collections have drafts enabled, and the public web only reads published.
+    const published = { ...data, _status: 'published' }
     if (existing.docs.length > 0) {
-      await payload.update({ collection, id: existing.docs[0].id, data: data as never })
+      await payload.update({ collection, id: existing.docs[0].id, data: published as never })
       return 'updated'
     }
-    await payload.create({ collection, data: data as never })
+    await payload.create({ collection, data: published as never })
     return 'created'
   }
 

@@ -1,5 +1,6 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { seoPlugin } from '@payloadcms/plugin-seo'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -11,9 +12,15 @@ import { Services } from './collections/Services'
 import { Projects } from './collections/Projects'
 import { Testimonials } from './collections/Testimonials'
 import { ContactSubmissions } from './collections/ContactSubmissions'
+import { SiteSettings } from './globals/SiteSettings'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+// The CMS's own public origin. Used as Payload `serverURL` so uploaded media
+// `url`s are absolute (the web app reads them at depth=0 as plain strings) and
+// so admin/SEO links resolve correctly. Defaults to the local dev port.
+const serverURL = process.env.CMS_PUBLIC_URL || 'http://localhost:3001'
 
 // Origins allowed to call the API from a browser (the web app's contact form
 // POSTs cross-origin). Comma-separated CORS_ORIGINS in prod; defaults to the
@@ -23,6 +30,7 @@ const corsOrigins = process.env.CORS_ORIGINS
   : ['http://localhost:3000']
 
 export default buildConfig({
+  serverURL,
   admin: {
     user: Users.slug,
     importMap: {
@@ -30,6 +38,7 @@ export default buildConfig({
     },
   },
   collections: [Users, Media, Services, Projects, Testimonials, ContactSubmissions],
+  globals: [SiteSettings],
   cors: corsOrigins,
   csrf: corsOrigins,
   editor: lexicalEditor(),
@@ -48,4 +57,13 @@ export default buildConfig({
     fallback: true,
     defaultLocale: 'en',
   },
+  plugins: [
+    // Adds a `meta` group (title, description, image) to the content collections
+    // the web app renders. Site-wide defaults come from the SiteSettings global.
+    seoPlugin({
+      collections: ['services', 'projects'],
+      uploadsCollection: 'media',
+      tabbedUI: true,
+    }),
+  ],
 })

@@ -1,15 +1,18 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin } from '../access/isAdmin'
+
 // Write target for the web contact form. Public can CREATE (submit the form);
-// only authenticated admins can read/update/delete. Mirrors the web
-// `ContactSubmission` type (apps/web/src/types.ts). `submittedAt` is covered by
-// Payload's built-in `createdAt`; `status` drives the sales pipeline.
+// authenticated staff (editors + admins) read/update leads; only admins delete.
+// Mirrors the web `ContactSubmission` type (apps/web/src/types.ts). `submittedAt`
+// is covered by Payload's built-in `createdAt`; `status` drives the sales pipeline.
 export const ContactSubmissions: CollectionConfig = {
   slug: 'contact-submissions',
   access: {
-    // Public website can submit the form; everything else stays admin-only
-    // (read/update/delete fall back to Payload's authenticated-user default).
+    // Public website can submit the form; read/update fall back to Payload's
+    // authenticated-user default. Deleting leads is restricted to admins.
     create: () => true,
+    delete: isAdmin,
   },
   admin: {
     useAsTitle: 'fullName',
