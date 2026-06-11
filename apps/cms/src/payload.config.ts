@@ -1,6 +1,8 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { seoPlugin } from '@payloadcms/plugin-seo'
+import { en } from '@payloadcms/translations/languages/en'
+import { vi } from '@payloadcms/translations/languages/vi'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -52,10 +54,18 @@ export default buildConfig({
     },
   }),
   sharp,
+  // Content locale: Vietnamese. Single-locale today; the structure leaves room
+  // to add 'en' later without reworking the schema.
   localization: {
-    locales: ['en'],
+    locales: ['vi'],
     fallback: true,
-    defaultLocale: 'en',
+    defaultLocale: 'vi',
+  },
+  // Admin panel UI language — default the interface to Vietnamese for the owner,
+  // with English kept available as a switchable option.
+  i18n: {
+    supportedLanguages: { vi, en },
+    fallbackLanguage: 'vi',
   },
   plugins: [
     // Adds a `meta` group (title, description, image) to the content collections
