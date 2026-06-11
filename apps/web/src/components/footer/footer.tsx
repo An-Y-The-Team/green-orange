@@ -1,10 +1,18 @@
-import { ArrowUpCircle, Mail, MapPin, Sparkles, Wrench } from "lucide-react";
+import {
+  ArrowUpCircle,
+  Mail,
+  MapPin,
+  Phone,
+  Sparkles,
+  Wrench,
+} from "lucide-react";
 import Link from "next/link";
 
-import { COMPANY_INFO } from "../../data";
+import { SiteSettings } from "../../data";
 import { QUICK_LINKS } from "./constants";
 
-export default function Footer() {
+export default function Footer({ settings }: { settings: SiteSettings }) {
+  const { company } = settings;
   return (
     <footer className="bg-slate-900 text-slate-300 pt-16 pb-8 border-t border-slate-800 relative">
       <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-emerald-500/50 via-white/10 to-orange-500/50" />
@@ -72,7 +80,7 @@ export default function Footer() {
                   <span className="text-white font-bold block mb-0.5 text-[11px]">
                     Trụ Sở Hà Nội:
                   </span>
-                  {COMPANY_INFO.address}
+                  {company.address}
                 </p>
               </div>
               <div className="flex gap-2.5 items-start">
@@ -81,7 +89,7 @@ export default function Footer() {
                   <span className="text-white font-bold block mb-0.5 text-[11px]">
                     Chi Nhánh TP. HCM:
                   </span>
-                  {COMPANY_INFO.branch}
+                  {company.branch}
                 </p>
               </div>
             </div>
@@ -93,15 +101,28 @@ export default function Footer() {
               Hỗ Trợ Trực Tuyến
             </h4>
             <div className="pt-2 space-y-3.5 text-xs font-semibold">
-              <div className="flex items-center gap-2.5">
-                <Mail className="size-4 text-emerald-400" />
-                <a
-                  href={`mailto:${COMPANY_INFO.email}`}
-                  className="hover:text-emerald-400 transition-colors text-slate-300"
-                >
-                  Email: {COMPANY_INFO.email}
-                </a>
-              </div>
+              {company.phone && (
+                <div className="flex items-center gap-2.5">
+                  <Phone className="size-4 text-orange-400" />
+                  <a
+                    href={`tel:${company.phone.replace(/\s+/g, "")}`}
+                    className="hover:text-orange-400 transition-colors text-slate-300"
+                  >
+                    Hotline: {company.phone}
+                  </a>
+                </div>
+              )}
+              {company.email && (
+                <div className="flex items-center gap-2.5">
+                  <Mail className="size-4 text-emerald-400" />
+                  <a
+                    href={`mailto:${company.email}`}
+                    className="hover:text-emerald-400 transition-colors text-slate-300"
+                  >
+                    Email: {company.email}
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -109,8 +130,8 @@ export default function Footer() {
         {/* Closing details and copy */}
         <div className="border-t border-slate-800/80 pt-8 mt-8 flex flex-col md:flex-row items-center justify-between text-slate-500 text-[11px] font-bold">
           <p>
-            © {new Date().getFullYear()} {COMPANY_INFO.name}. Tất cả các quyền
-            được bảo lưu.
+            © {new Date().getFullYear()} {company.name}. Tất cả các quyền được
+            bảo lưu.
           </p>
 
           <Link

@@ -16,9 +16,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # NEXT_PUBLIC_* is inlined into the client bundle at build time, so the public
-# CMS URL must be supplied here (not at runtime).
+# CMS URL and site URL must be supplied here (not at runtime).
 ARG NEXT_PUBLIC_CMS_URL
 ENV NEXT_PUBLIC_CMS_URL=$NEXT_PUBLIC_CMS_URL
+ARG NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 # Opt in to standalone output + monorepo tracing for the production build only
 # (next.config keeps these off in dev to avoid a Turbopack scan hang).

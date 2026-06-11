@@ -95,8 +95,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: ('false' | 'none' | 'null') | false | null | 'en' | 'en'[];
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-settings': SiteSetting;
+  };
+  globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+  };
   locale: 'en';
   widgets: {
     collections: CollectionsWidget;
@@ -200,6 +204,14 @@ export interface Service {
    * Display order (ascending).
    */
   order?: number | null;
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -221,6 +233,13 @@ export interface Project {
   completionTime: string;
   description: string;
   achievement: string;
+  /**
+   * Upload the project cover photo. Fills the image URL below automatically.
+   */
+  image?: (number | null) | Media;
+  /**
+   * Auto-filled from the uploaded image above, or paste an external image URL.
+   */
   imageUrl: string;
   tags: {
     item: string;
@@ -233,6 +252,13 @@ export interface Project {
     author?: string | null;
     role?: string | null;
     content?: string | null;
+    /**
+     * Upload the author photo. Fills the avatar URL below automatically.
+     */
+    avatar?: (number | null) | Media;
+    /**
+     * Auto-filled from the uploaded avatar above, or paste an external URL.
+     */
     avatarUrl?: string | null;
     rating?: number | null;
   };
@@ -240,6 +266,14 @@ export interface Project {
    * Display order (ascending).
    */
   order?: number | null;
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -258,6 +292,13 @@ export interface Testimonial {
   company: string;
   content: string;
   rating: number;
+  /**
+   * Upload the author photo. Fills the avatar URL below automatically.
+   */
+  avatar?: (number | null) | Media;
+  /**
+   * Auto-filled from the uploaded avatar above, or paste an external URL.
+   */
   avatarUrl: string;
   category: 'cleaning' | 'construction' | 'both';
   /**
@@ -443,6 +484,13 @@ export interface ServicesSelect<T extends boolean = true> {
   iconName?: T;
   popular?: T;
   order?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -460,6 +508,7 @@ export interface ProjectsSelect<T extends boolean = true> {
   completionTime?: T;
   description?: T;
   achievement?: T;
+  image?: T;
   imageUrl?: T;
   tags?:
     | T
@@ -473,10 +522,18 @@ export interface ProjectsSelect<T extends boolean = true> {
         author?: T;
         role?: T;
         content?: T;
+        avatar?: T;
         avatarUrl?: T;
         rating?: T;
       };
   order?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -491,6 +548,7 @@ export interface TestimonialsSelect<T extends boolean = true> {
   company?: T;
   content?: T;
   rating?: T;
+  avatar?: T;
   avatarUrl?: T;
   category?: T;
   order?: T;
@@ -553,6 +611,135 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  company?: {
+    /**
+     * Full legal company name.
+     */
+    name?: string | null;
+    shortName?: string | null;
+    /**
+     * Year founded, e.g. "2019".
+     */
+    founded?: string | null;
+    /**
+     * Primary contact number — the main call-to-action channel.
+     */
+    phone?: string | null;
+    email?: string | null;
+    /**
+     * Head office address.
+     */
+    address?: string | null;
+    /**
+     * Secondary branch address.
+     */
+    branch?: string | null;
+    motto?: string | null;
+    certification?: string | null;
+  };
+  /**
+   * Optional social / messaging links.
+   */
+  social?: {
+    facebook?: string | null;
+    zalo?: string | null;
+    messenger?: string | null;
+  };
+  /**
+   * Intro copy shown in the landing hero section.
+   */
+  hero?: {
+    /**
+     * The paragraph under the main hero heading.
+     */
+    subheadline?: string | null;
+  };
+  /**
+   * Headline counters (e.g. "500+" projects delivered).
+   */
+  stats?:
+    | {
+        /**
+         * e.g. "500+"
+         */
+        value: string;
+        label: string;
+        /**
+         * Tailwind text-color class, e.g. "text-green-600".
+         */
+        color?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Default metadata used when a page has no specific SEO entry.
+   */
+  seo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    /**
+     * Social share image (Open Graph / Twitter card).
+     */
+    ogImage?: (number | null) | Media;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  company?:
+    | T
+    | {
+        name?: T;
+        shortName?: T;
+        founded?: T;
+        phone?: T;
+        email?: T;
+        address?: T;
+        branch?: T;
+        motto?: T;
+        certification?: T;
+      };
+  social?:
+    | T
+    | {
+        facebook?: T;
+        zalo?: T;
+        messenger?: T;
+      };
+  hero?:
+    | T
+    | {
+        subheadline?: T;
+      };
+  stats?:
+    | T
+    | {
+        value?: T;
+        label?: T;
+        color?: T;
+        id?: T;
+      };
+  seo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        ogImage?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

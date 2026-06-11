@@ -108,8 +108,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # NEXT_PUBLIC_CMS_URL must be baked into the web image at build time.
-          build-args: ${{ matrix.app == 'web' && format('NEXT_PUBLIC_CMS_URL={0}', vars.NEXT_PUBLIC_CMS_URL) || '' }}
+          # NEXT_PUBLIC_* values must be baked into the web image at build time.
+          build-args: |
+            ${{ matrix.app == 'web' && format('NEXT_PUBLIC_CMS_URL={0}', vars.NEXT_PUBLIC_CMS_URL) || '' }}
+            ${{ matrix.app == 'web' && format('NEXT_PUBLIC_SITE_URL={0}', vars.NEXT_PUBLIC_SITE_URL) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

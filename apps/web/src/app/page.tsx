@@ -8,34 +8,84 @@ import Introduction from "../components/introduction/introduction";
 import Projects from "../components/projects/projects";
 import Services from "../components/services/services";
 import Testimonials from "../components/testimonials/testimonials";
-import { getProjects, getServices, getTestimonials } from "../data";
+import {
+  SITE_URL,
+  type SiteSettings,
+  getProjects,
+  getServices,
+  getSiteSettings,
+  getTestimonials,
+} from "../data";
+import { Service } from "../types";
 
 // Render at request time instead of prerendering at build: the CMS isn't
 // reachable from the CI build, and this keeps content fresh from the internal
 // CMS on every request. Data fetches are still cached (see REVALIDATE_SECONDS).
 export const dynamic = "force-dynamic";
 
+// Structured data (schema.org LocalBusiness + the service catalog) so search
+// engines render rich results — high value for a local, Google-driven business.
+function buildJsonLd(settings: SiteSettings, services: Service[]) {
+  const { company, seo } = settings;
+  return {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: company.name,
+    url: SITE_URL,
+    ...(company.phone ? { telephone: company.phone } : {}),
+    ...(company.email ? { email: company.email } : {}),
+    ...(company.address ? { address: company.address } : {}),
+    ...(company.motto ? { slogan: company.motto } : {}),
+    ...(seo.ogImageUrl ? { image: seo.ogImageUrl } : {}),
+    ...(services.length
+      ? {
+          hasOfferCatalog: {
+            "@type": "OfferCatalog",
+            name: "Dịch vụ",
+            itemListElement: services.map((s) => ({
+              "@type": "Offer",
+              itemOffered: {
+                "@type": "Service",
+                name: s.title,
+                description: s.description,
+              },
+            })),
+          },
+        }
+      : {}),
+  };
+}
+
 export default async function Page() {
   // Fetch CMS content on the server, then hand it to the interactive client
   // sections as props (keeps those components free of data-fetching effects).
-  const [services, projects, testimonials] = await Promise.all([
+  const [services, projects, testimonials, settings] = await Promise.all([
     getServices(),
     getProjects(),
     getTestimonials(),
+    getSiteSettings(),
   ]);
+
+  const jsonLd = buildJsonLd(settings, services);
 
   return (
     <div className="min-h-screen flex flex-col bg-white overflow-x-hidden antialiased font-sans">
+      {/* schema.org structured data for rich search results */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* Header component containing the logo and active states */}
       <Header />
 
       {/* Main page body */}
       <main className="flex-grow">
         {/* Hero banner section */}
-        <Hero />
+        <Hero settings={settings} />
 
         {/* Corporate introduction, values representation, and 5-step process */}
-        <Introduction />
+        <Introduction settings={settings} />
 
         {/* Service grid catalog */}
         <Services services={services} />
@@ -59,7 +109,7 @@ export default async function Page() {
       </main>
 
       {/* Trust credentials corporate footer */}
-      <Footer />
+      <Footer settings={settings} />
     </div>
   );
 }

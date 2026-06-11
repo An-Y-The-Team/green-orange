@@ -19,6 +19,7 @@
   "dependencies": {
     "@payloadcms/db-postgres": "latest",
     "@payloadcms/next": "latest",
+    "@payloadcms/plugin-seo": "3.85.1",
     "@payloadcms/richtext-lexical": "latest",
     "@payloadcms/ui": "latest",
     "cross-env": "10.1.0",
