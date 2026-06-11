@@ -8,13 +8,15 @@
     "build": "next build",
     "start": "next start",
     "clean": "rm -rf dist server.js && rm -rf .turbo",
-    "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint ."
+    "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@fontsource-variable/geist": "^5.2.9",
     "@google/genai": "^2.4.0",
     "@tailwindcss/postcss": "^4.3.0",
+    "@yan/shared": "*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",

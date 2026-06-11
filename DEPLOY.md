@@ -45,22 +45,22 @@ The VPS never builds — it only pulls finished images, so a small (1–2 GB) bo
 
 Secrets:
 
-| Name | Value |
-| ------ | ------- |
-| `VPS_HOST` | The VPS's **Pangolin** resource alias, e.g. `ssh.newt-01` (NOT the public IP) |
-| `VPS_USER` | deploy user (e.g. `root`) |
-| `VPS_SSH_KEY` | private key whose public half is in the VPS user's `~/.ssh/authorized_keys` |
-| `VPS_PORT` | SSH port (optional, defaults to 22) |
-| `VPS_PATH` | repo path on the VPS, e.g. `/root/green-orange` |
-| `PANGOLIN_ID` | Pangolin client ID (used by `pangolin up --id`) |
-| `PANGOLIN_SECRET` | Pangolin client secret (`pangolin up --secret`) |
-| `PANGOLIN_ENDPOINT` | Pangolin control URL, e.g. `https://prp.hdc-cloud.org` |
-| `VPS_PANGOLIN_IP` | The VPS resource's **Pangolin tunnel IP** (e.g. `100.96.144.8`). See §2a for how to find it. |
+| Name                | Value                                                                                        |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| `VPS_HOST`          | The VPS's **Pangolin** resource alias, e.g. `ssh.newt-01` (NOT the public IP)                |
+| `VPS_USER`          | deploy user (e.g. `root`)                                                                    |
+| `VPS_SSH_KEY`       | private key whose public half is in the VPS user's `~/.ssh/authorized_keys`                  |
+| `VPS_PORT`          | SSH port (optional, defaults to 22)                                                          |
+| `VPS_PATH`          | repo path on the VPS, e.g. `/root/green-orange`                                              |
+| `PANGOLIN_ID`       | Pangolin client ID (used by `pangolin up --id`)                                              |
+| `PANGOLIN_SECRET`   | Pangolin client secret (`pangolin up --secret`)                                              |
+| `PANGOLIN_ENDPOINT` | Pangolin control URL, e.g. `https://prp.hdc-cloud.org`                                       |
+| `VPS_PANGOLIN_IP`   | The VPS resource's **Pangolin tunnel IP** (e.g. `100.96.144.8`). See §2a for how to find it. |
 
 Variables:
 
-| Name | Value |
-|------|-------|
+| Name                  | Value                                                         |
+| --------------------- | ------------------------------------------------------------- |
 | `NEXT_PUBLIC_CMS_URL` | `https://cms.example.com` (baked into the web image at build) |
 
 GHCR push uses the built-in `GITHUB_TOKEN` — no extra token needed for the build side.

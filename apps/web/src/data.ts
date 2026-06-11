@@ -1,3 +1,5 @@
+import { api } from "@yan/shared/api";
+
 import { Project, Service, Testimonial } from "./types";
 
 // Base URL of the decoupled Payload CMS. Public so the client-side contact form
@@ -78,7 +80,7 @@ interface PayloadTestimonial {
 // Returns [] on failure so a CMS hiccup degrades the page rather than crashing.
 async function fetchCollection<T>(slug: string): Promise<T[]> {
   try {
-    const res = await fetch(
+    const res = await api.fetch(
       `${SERVER_CMS_URL}/api/${slug}?limit=100&depth=0&sort=order`,
       {
         next: { revalidate: REVALIDATE_SECONDS },
