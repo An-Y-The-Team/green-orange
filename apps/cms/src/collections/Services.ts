@@ -1,13 +1,19 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin } from '../access/isAdmin'
+import { readPublishedOrAuth } from '../access/readPublishedOrAuth'
+
 // Mirrors the web `Service` type (apps/web/src/types.ts). `slug` preserves the
 // stable string id used by the web app; `order` keeps the display order that
-// was implicit in the data.ts array.
+// was implicit in the data.ts array. Drafts let editors stage content; the web
+// (unauthenticated) only ever sees published docs.
 export const Services: CollectionConfig = {
   slug: 'services',
   access: {
-    read: () => true,
+    read: readPublishedOrAuth,
+    delete: isAdmin,
   },
+  versions: { drafts: true },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'popular', 'order'],

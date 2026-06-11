@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin } from '../access/isAdmin'
+import { readPublishedOrAuth } from '../access/readPublishedOrAuth'
 import { resolveMediaUrl } from '../hooks/resolveMediaUrl'
 
 // Mirrors the web `Project` type (apps/web/src/types.ts), including the optional
@@ -10,8 +12,10 @@ import { resolveMediaUrl } from '../hooks/resolveMediaUrl'
 export const Projects: CollectionConfig = {
   slug: 'projects',
   access: {
-    read: () => true,
+    read: readPublishedOrAuth,
+    delete: isAdmin,
   },
+  versions: { drafts: true },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'client', 'category', 'completionTime', 'order'],

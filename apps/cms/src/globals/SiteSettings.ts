@@ -1,14 +1,21 @@
 import type { GlobalConfig } from 'payload'
 
+import { isAdmin } from '../access/isAdmin'
+
 // Editable site-wide content the business owner controls without a code deploy:
 // company contact details, headline stats, hero copy, and SEO defaults. The web
 // app reads this via GET /api/globals/site-settings and falls back to hardcoded
 // defaults (apps/web/src/data.ts) if the global is empty/unreachable.
+//
+// Intentionally NOT drafts-enabled: settings (phone, address, stats) should go
+// live the moment they're saved, not wait behind a separate publish step. Only
+// admins can edit them.
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Site Settings',
   access: {
     read: () => true,
+    update: isAdmin,
   },
   admin: {
     group: 'Settings',

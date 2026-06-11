@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin } from '../access/isAdmin'
+import { readPublishedOrAuth } from '../access/readPublishedOrAuth'
 import { resolveMediaUrl } from '../hooks/resolveMediaUrl'
 
 // Mirrors the web `Testimonial` type (apps/web/src/types.ts). Unlike Services
@@ -9,8 +11,10 @@ import { resolveMediaUrl } from '../hooks/resolveMediaUrl'
 export const Testimonials: CollectionConfig = {
   slug: 'testimonials',
   access: {
-    read: () => true,
+    read: readPublishedOrAuth,
+    delete: isAdmin,
   },
+  versions: { drafts: true },
   admin: {
     useAsTitle: 'author',
     defaultColumns: ['author', 'company', 'category', 'rating', 'order'],
