@@ -195,7 +195,13 @@ jobs:
             "REPO='$REPO' TAG='$TAG' VPS_PATH='$VPS_PATH' bash -se" <<'REMOTE'
           set -e
           cd "$VPS_PATH"
-          git pull --ff-only
+          # Deploy target mirrors the released commit exactly. Force-sync to the
+          # tag instead of `git pull --ff-only` so local drift on the VPS (e.g. an
+          # untracked file that later becomes tracked upstream) can't wedge the
+          # deploy. `reset --hard` only rewrites tracked paths, so gitignored
+          # runtime files like .env.production and docker volumes are untouched.
+          git fetch origin --tags --prune --force
+          git reset --hard "refs/tags/${TAG}"
           sed -i "s|^WEB_IMAGE=.*|WEB_IMAGE=ghcr.io/${REPO}-web:${TAG}|" .env.production
           sed -i "s|^CMS_IMAGE=.*|CMS_IMAGE=ghcr.io/${REPO}-cms:${TAG}|" .env.production
           docker compose -f docker-compose.prod.yml --env-file .env.production pull
