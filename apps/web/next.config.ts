@@ -24,6 +24,9 @@ const cmsRemotePattern = {
 };
 
 const nextConfig: NextConfig = {
+  // Workspace packages ship raw TS/TSX (see their package.json "exports"); Next
+  // must transpile them rather than expect prebuilt JS.
+  transpilePackages: ["@yan/ui", "@yan/shared"],
   ...(standalone
     ? {
         output: "standalone" as const,

@@ -1,10 +1,6 @@
 "use client";
 
-import { CheckCircle } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@yan/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +8,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@yan/ui/components/dialog";
+import { CheckCircle } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+
 import { Category, CategoryFilter } from "@/constants/category";
 
 import { Service } from "../../types";

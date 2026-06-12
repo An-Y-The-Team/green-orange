@@ -1,0 +1,58 @@
+import type { Customer } from "@/types";
+
+export const customers: Customer[] = [
+  {
+    id: 1,
+    name: "Nguyễn Văn An",
+    email: "an.nguyen@acme.vn",
+    phone: "+84 90 123 4567",
+    company: "Acme Corp",
+    status: "active",
+    created_at: "2026-01-12",
+  },
+  {
+    id: 2,
+    name: "Trần Thị Bình",
+    email: "binh.tran@globex.vn",
+    phone: "+84 91 234 5678",
+    company: "Globex",
+    status: "active",
+    created_at: "2026-02-03",
+  },
+  {
+    id: 3,
+    name: "Lê Hoàng Cường",
+    email: "cuong.le@initech.vn",
+    phone: "+84 92 345 6789",
+    company: "Initech",
+    status: "lead",
+    created_at: "2026-03-21",
+  },
+  {
+    id: 4,
+    name: "Phạm Thu Dung",
+    email: "dung.pham@umbrella.vn",
+    phone: "+84 93 456 7890",
+    company: "Umbrella",
+    status: "churned",
+    created_at: "2025-11-08",
+  },
+  {
+    id: 5,
+    name: "Vũ Minh Đức",
+    email: "duc.vu@hooli.vn",
+    phone: "+84 94 567 8901",
+    company: "Hooli",
+    status: "active",
+    created_at: "2026-04-17",
+  },
+  {
+    id: 6,
+    name: "Đặng Quỳnh Hoa",
+    email: "hoa.dang@piedpiper.vn",
+    phone: "+84 95 678 9012",
+    company: "Pied Piper",
+    status: "lead",
+    created_at: "2026-05-29",
+  },
+];

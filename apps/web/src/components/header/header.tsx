@@ -1,10 +1,10 @@
 "use client";
 
+import { buttonVariants } from "@yan/ui/components/button";
 import { Menu, Sparkles, Wrench, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-import { buttonVariants } from "@/components/ui/button";
 import { useScrollSpy } from "@/hooks/use-scroll-spy/use-scroll-spy";
 
 import { NAV_ITEMS, SCROLL_SPY_SECTIONS } from "./constants";
