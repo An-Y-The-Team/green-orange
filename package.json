@@ -7,7 +7,10 @@
     "clean": "turbo run clean",
     "check-types": "turbo run check-types",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{js,ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{js,ts,tsx,md}\"",
+    "release:fix": "./scripts/release.sh fix",
+    "release:feat": "./scripts/release.sh feat",
+    "release:release": "./scripts/release.sh release"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",

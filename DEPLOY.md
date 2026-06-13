@@ -356,7 +356,25 @@ client id/secret) to paste into crm-api/crm-web env **when you deploy the CRM ap
 
 ## 7. Ongoing deploys
 
-Just cut a new tag:
+Just cut a new tag. The repo uses `vX.Y.Z` tags, and pushing one triggers the
+full build → deploy pipeline. Use the helper script so you never have to look up
+the last tag — it reads the latest `vX.Y.Z`, bumps the requested part (resetting
+lower parts to 0), then tags and pushes:
+
+```bash
+bun run release:fix       # 0.5.8 -> 0.5.9   patch  (bug fix)
+bun run release:feat      # 0.5.8 -> 0.6.0   minor  (new feature)
+bun run release:release   # 0.5.8 -> 1.0.0   major  (release)
+```
+
+The script (`scripts/release.sh`) runs `git fetch --tags` first so it bumps from
+the true latest tag, and accepts `--dry-run` (`-n`) to preview without pushing:
+
+```bash
+./scripts/release.sh feat --dry-run   # prints "latest: v0.5.8 -> next: v0.6.0 (feat)"
+```
+
+Or tag by hand if you need a specific version:
 
 ```bash
 git tag v1.1.0 && git push origin v1.1.0
