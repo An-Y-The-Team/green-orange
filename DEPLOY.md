@@ -280,6 +280,11 @@ reuses `POSTGRES_USER`/`POSTGRES_PASSWORD` for its DB connection.
 
 ```bash
 cd "$VPS_PATH"   # e.g. /root/green-orange
+# Load POSTGRES_USER etc. into THIS shell — compose's --env-file only feeds the
+# containers, not your interactive shell, so $POSTGRES_USER would otherwise be
+# empty and psql would fall back to the OS user `root` (not a Postgres role).
+set -a; . ./.env.production; set +a
+
 docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
   psql -U "$POSTGRES_USER" -tc "SELECT 1 FROM pg_database WHERE datname='authentik'" \
   | grep -q 1 || \
