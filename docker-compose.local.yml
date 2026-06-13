@@ -1,0 +1,188 @@
+# Full stack, built and run entirely on your machine — no GHCR, no VPS.
+# Builds all four apps from their Dockerfiles against a local Postgres so you can
+# run the whole system in containers with one command:
+#
+#   docker compose -f docker-compose.local.yml up --build
+#
+# This is the local-build counterpart to docker-compose.prod.yml (which pulls
+# prebuilt images). For everyday coding you usually want the much faster
+# `bun run dev` (see README) — reach for this when you need to exercise the
+# production container images locally (migrations, standalone Next servers, etc.).
+#
+# Pinned project name so container/volume names don't depend on the checkout
+# folder. NOTE: this uses its OWN Postgres volume — it does not share data with
+# the `docker compose up postgres` dev workflow, and both bind host port 5432, so
+# run one or the other (not both at once).
+name: green-orange-local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      # One container, a database per app, created on first boot by the init script.
+      POSTGRES_MULTIPLE_DATABASES: cms,crm,authentik
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Payload CMS (port 3001) — runs `payload migrate` on startup ─────────────
+  cms:
+    build:
+      context: .
+      dockerfile: apps/cms/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:password@postgres:5432/cms
+      PAYLOAD_SECRET: local-dev-secret-change-me
+      CORS_ORIGINS: http://localhost:3000
+      CMS_PUBLIC_URL: http://localhost:3001
+      MEDIA_DIR: /app/apps/cms/media
+    ports:
+      - '3001:3001'
+    volumes:
+      - media:/app/apps/cms/media
+
+  # ── Public web/portfolio (port 3000) ───────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_* is inlined into the client bundle at build time.
+        NEXT_PUBLIC_CMS_URL: http://localhost:3001
+        NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    restart: unless-stopped
+    depends_on: [cms]
+    environment:
+      # SSR/ISR reads hit the CMS directly over the docker network.
+      CMS_INTERNAL_URL: http://cms:3001
+    ports:
+      - '3000:3000'
+
+  # ── CRM API — FastAPI (port 8000) — runs `alembic upgrade head` on startup ──
+  crm-api:
+    build:
+      context: ./apps/crm-api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:password@postgres:5432/crm
+      JWT_SECRET: dev-only-change-me
+      AUTH_MODE: local
+      CORS_ORIGINS: http://localhost:3002
+    ports:
+      - '8000:8000'
+
+  # ── CRM dashboard — Next.js (port 3002) ─────────────────────────────────────
+  # Builds with NO NEXT_PUBLIC_API_URL, so it serves built-in MOCK data and needs
+  # no backend. To run it against the live crm-api instead, add the build arg
+  #   args: { NEXT_PUBLIC_API_URL: http://localhost:8000 }
+  # and supply a server-only CRM_API_TOKEN below (mint one from the running API:
+  #   curl -s -X POST http://localhost:8000/auth/token -d "username=admin&password=admin").
+  crm-web:
+    build:
+      context: .
+      dockerfile: apps/crm-web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - '3002:3002'
+
+  # ── Authentik (CRM single-sign-on / OIDC) — OPT-IN ──────────────────────────
+  # SSO is NOT needed for day-to-day CRUD/API work, so these three services sit
+  # behind the `authentik` profile and DON'T start with a plain `up`. Bring them
+  # up with:  docker compose -f docker-compose.local.yml --profile authentik up
+  # They reuse the `authentik` database in the postgres container above. The
+  # secret/bootstrap values default to throwaway local-dev values — override them
+  # via the environment if you like. UI at http://localhost:9000 (akadmin/admin).
+  authentik-redis:
+    image: docker.io/library/redis:alpine
+    profiles: [authentik]
+    restart: unless-stopped
+    command: --save 60 1 --loglevel warning
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep PONG']
+      start_period: 20s
+      interval: 30s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - authentik_redis:/data
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.10}
+    profiles: [authentik]
+    restart: unless-stopped
+    command: server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      authentik-redis:
+        condition: service_healthy
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-local-dev-insecure-secret-change-me}
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      AUTHENTIK_POSTGRESQL__HOST: postgres
+      AUTHENTIK_POSTGRESQL__USER: postgres
+      AUTHENTIK_POSTGRESQL__PASSWORD: password
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      # First-boot bootstrap (fresh `authentik` DB only): creates the akadmin user
+      # + an API token so scripts/setup-authentik-crm.py can register the crm app.
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-admin}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-local-dev-bootstrap-token}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-akadmin@localhost}
+    ports:
+      - '9000:9000'
+    volumes:
+      - authentik_media:/media
+      - authentik_templates:/templates
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.10}
+    profiles: [authentik]
+    restart: unless-stopped
+    command: worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      authentik-redis:
+        condition: service_healthy
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-local-dev-insecure-secret-change-me}
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      AUTHENTIK_POSTGRESQL__HOST: postgres
+      AUTHENTIK_POSTGRESQL__USER: postgres
+      AUTHENTIK_POSTGRESQL__PASSWORD: password
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-admin}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-local-dev-bootstrap-token}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-akadmin@localhost}
+    # The official template also mounts /var/run/docker.sock for managed outposts;
+    # the CRM only needs plain OIDC (no outpost), so that mount is omitted.
+    volumes:
+      - authentik_media:/media
+      - authentik_certs:/certs
+      - authentik_templates:/templates
+
+volumes:
+  pgdata:
+  media:
+  authentik_redis:
+  authentik_media:
+  authentik_certs:
+  authentik_templates:

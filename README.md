@@ -43,6 +43,108 @@ This uses Turborepo to start the development servers:
 - **Web App**: <http://localhost:3000>
 - **CMS Admin**: <http://localhost:3001>
 
+## 🐳 Running the full stack in Docker (locally)
+
+For day-to-day coding, `bun run dev` is faster (hot reload, no image builds). Use
+this when you want to exercise the **production container images** on your own
+machine — local builds of all four apps + Postgres, no GHCR pull and no VPS.
+This is the local-build counterpart to [`docker-compose.prod.yml`](docker-compose.prod.yml)
+(which pulls prebuilt images); the file lives at
+[`docker-compose.local.yml`](docker-compose.local.yml).
+
+> **Prerequisite:** [Docker](https://www.docker.com/) (with the Compose plugin).
+> Nothing else — Bun/uv/Node all run inside the containers.
+
+### Run everything
+
+Build the images and start the whole stack (Postgres + CMS + web + crm-api + crm-web):
+
+```bash
+docker compose -f docker-compose.local.yml up --build
+```
+
+Add `-d` to run detached. The CMS and crm-api apply their database migrations
+automatically on startup. Once it's up:
+
+| Service   | URL                              | Notes                                       |
+| --------- | -------------------------------- | ------------------------------------------- |
+| `web`     | <http://localhost:3000>          | Public landing page / portfolio             |
+| `cms`     | <http://localhost:3001/admin>    | Payload admin (create the first user)       |
+| `crm-web` | <http://localhost:3002>          | CRM dashboard — **mock data** by default    |
+| `crm-api` | <http://localhost:8000/docs>     | FastAPI Swagger UI (`admin` / `admin`)      |
+| `postgres`| `localhost:5432`                 | `cms`, `crm`, `authentik` databases         |
+
+Stop it with `Ctrl-C` (or `docker compose -f docker-compose.local.yml down` if
+detached). Add `-v` to `down` to also wipe the Postgres + media volumes.
+
+### Run a specific app only
+
+Pass the service name(s) to `up`. Compose starts each target plus anything it
+`depends_on` (e.g. `web` pulls in `cms`, and both pull in `postgres`):
+
+```bash
+# Just the CMS (and its Postgres):
+docker compose -f docker-compose.local.yml up --build cms
+
+# Public web app (also starts cms + postgres, which it depends on):
+docker compose -f docker-compose.local.yml up --build web
+
+# CRM backend only (and its Postgres):
+docker compose -f docker-compose.local.yml up --build crm-api
+
+# CRM dashboard only (mock data — no backend needed):
+docker compose -f docker-compose.local.yml up --build crm-web
+
+# A custom combo — e.g. the whole CRM stack, nothing else:
+docker compose -f docker-compose.local.yml up --build crm-api crm-web
+```
+
+Other handy per-service commands:
+
+```bash
+# Rebuild one image after a code change:
+docker compose -f docker-compose.local.yml build web
+
+# Tail logs for one service:
+docker compose -f docker-compose.local.yml logs -f cms
+
+# Open a shell inside a running container:
+docker compose -f docker-compose.local.yml exec cms sh
+```
+
+> **`crm-web` live mode:** by default the dashboard ships with built-in mock data
+> so it runs with no backend. To point it at the live `crm-api`, add a
+> `NEXT_PUBLIC_API_URL: http://localhost:8000` build arg and a server-only
+> `CRM_API_TOKEN` to the `crm-web` service in
+> [`docker-compose.local.yml`](docker-compose.local.yml) — the file has inline
+> notes showing how.
+>
+> **One Postgres at a time:** this stack uses its own Postgres volume and binds
+> host port `5432`, so don't run it at the same time as the `docker compose up
+> postgres` dev workflow below.
+
+### Authentik SSO (opt-in)
+
+The CRM's single-sign-on identity provider isn't needed for everyday CRUD/API
+work, so its three services (`authentik-server`, `authentik-worker`,
+`authentik-redis`) sit behind a Compose **profile** and **don't start** with a
+plain `up`. They reuse the `authentik` database in the same `postgres` container.
+To bring the whole stack up _with_ SSO:
+
+```bash
+docker compose -f docker-compose.local.yml --profile authentik up --build
+```
+
+Authentik applies its own schema migrations on first start. The UI is at
+<http://localhost:9000> — log in as **`akadmin` / `admin`** (the local-dev
+bootstrap default; override `AUTHENTIK_BOOTSTRAP_PASSWORD` to change it). To
+actually wire the CRM apps to it, register the OIDC app with
+`scripts/setup-authentik-crm.py` and flip `AUTH_MODE=oidc` — see
+[Authentik SSO](#5-optional-authentik-sso) below and
+[`docs/authentik-oidc-milestone.md`](docs/authentik-oidc-milestone.md). The
+secret/bootstrap values default to throwaway local-dev strings; the prod stack
+([`docker-compose.prod.yml`](docker-compose.prod.yml)) requires real ones.
+
 ## 🧑‍🎓 Running just the CRM stack
 
 If you're working on the **CRM** only, you only need three
