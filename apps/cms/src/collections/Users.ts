@@ -46,6 +46,7 @@ export const Users: CollectionConfig = {
         // collection-level `create: isAdmin` already gates who can make users,
         // and the first-user hook below needs to set this on the initial admin
         // (a field-level create rule would strip the hook's value).
+        create: () => true,
         update: isAdminFieldAccess,
       },
       admin: {
