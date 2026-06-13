@@ -101,9 +101,11 @@ def main() -> None:
         provider = api("GET", f"/providers/oauth2/{app['provider']}/")
         print(f"Existing '{APP_SLUG}' application found — reusing.\n")
     else:
+        # Implicit consent: it's a first-party app, so skip the "allow this app
+        # to access your info?" prompt — login is seamless after authentication.
         auth_flow = first(
             "/flows/instances/",
-            slug="default-provider-authorization-explicit-consent",
+            slug="default-provider-authorization-implicit-consent",
         )
         inval_flow = first(
             "/flows/instances/", slug="default-provider-invalidation-flow"

@@ -93,9 +93,10 @@ python3 scripts/setup-authentik-crm.py
 This idempotently creates the **`crm-dev`** OAuth2/OpenID provider (confidential
 client, **signed with the self-signed cert so access tokens are RS256 JWTs** —
 critical; without a signing key Authentik issues opaque tokens JWKS can't verify)
-+ application, and prints the OIDC coordinates + ready-to-paste env. Verified live:
-`…/application/o/crm-dev/.well-known/openid-configuration` and `…/jwks/` serve an
-RS256 key. (Create the prod app later with `APP_SLUG=crm`.)
+
+- application, and prints the OIDC coordinates + ready-to-paste env. Verified live:
+  `…/application/o/crm-dev/.well-known/openid-configuration` and `…/jwks/` serve an
+  RS256 key. (Create the prod app later with `APP_SLUG=crm`.)
 
 Resulting OIDC coordinates (slug `crm-dev`):
 
@@ -175,8 +176,8 @@ redirects to `…/application/o/authorize/` with `response_type=code`, the corre
 
 1. `docker compose up -d postgres` and `docker compose -f docker-compose.authentik.yml --env-file .env.authentik up -d`.
 2. `python3 scripts/setup-authentik-crm.py` → paste the printed env into
-   `apps/crm-api/.env` (AUTH_MODE=oidc + OIDC_*) and `apps/crm-web/.env.local`
-   (AUTH_* ), and add `AUTH_SECRET`.
+   `apps/crm-api/.env` (AUTH*MODE=oidc + OIDC*\_) and `apps/crm-web/.env.local`
+   (AUTH\_\_ ), and add `AUTH_SECRET`.
 3. In Authentik (`http://localhost:9000`, akadmin) create a normal user account.
 4. Start crm-api (`AUTH_MODE=oidc`) + crm-web; visit `http://localhost:3002` → land
    on `/login` → "Đăng nhập với Authentik" → log in → back at `/dashboard`, and the
