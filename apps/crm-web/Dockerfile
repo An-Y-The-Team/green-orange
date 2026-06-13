@@ -2,21 +2,21 @@
 # Build context = repo root (Bun + Turbo monorepo).
 #   docker build -f apps/crm-web/Dockerfile --build-arg NEXT_PUBLIC_API_URL=https://crm-api.example.com .
 
-FROM oven/bun:1-debian AS pruner
+FROM oven/bun:1-debian AS base
 WORKDIR /app
-COPY . .
-RUN bunx turbo prune @yan/crm-web --docker
 
-FROM oven/bun:1-debian AS deps
-WORKDIR /app
-# Copy the pruned lockfile and package.json files
+# --- Prune: generate a sparse monorepo for just this app ---
+FROM base AS pruner
+RUN bun install -g turbo@^2
+COPY . .
+RUN turbo prune @yan/crm-web --docker
+
+# --- Builder: install deps then build (single stage to preserve symlinks) ---
+FROM base AS builder
+# First install dependencies (as they change less often)
 COPY --from=pruner /app/out/json/ .
 RUN bun install --frozen-lockfile --no-verify
-
-FROM oven/bun:1-debian AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-# Copy only the source code needed for crm-web
+# Then copy source and build
 COPY --from=pruner /app/out/full/ .
 # NEXT_PUBLIC_* is inlined into the client bundle at build time.
 ARG NEXT_PUBLIC_API_URL
