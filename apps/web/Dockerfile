@@ -2,20 +2,22 @@
 # Build context = repo root (this is a Bun + Turbo monorepo).
 #   docker build -f apps/web/Dockerfile --build-arg NEXT_PUBLIC_CMS_URL=https://cms.example.com .
 
+FROM oven/bun:1-debian AS pruner
+WORKDIR /app
+COPY . .
+RUN bunx turbo prune @yan-portf/web --docker
+
 FROM oven/bun:1-debian AS deps
 WORKDIR /app
-# Copy only manifests first for a cached install layer.
-COPY package.json bun.lock ./
-COPY apps/web/package.json ./apps/web/package.json
-COPY apps/cms/package.json ./apps/cms/package.json
-COPY packages/shared/package.json ./packages/shared/package.json
-COPY packages/ui/package.json ./packages/ui/package.json
+# Copy the pruned lockfile and package.json files
+COPY --from=pruner /app/out/json/ .
 RUN bun install --frozen-lockfile --no-verify
 
 FROM oven/bun:1-debian AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Copy only the source code needed for web
+COPY --from=pruner /app/out/full/ .
 # NEXT_PUBLIC_* is inlined into the client bundle at build time, so the public
 # CMS URL and site URL must be supplied here (not at runtime).
 ARG NEXT_PUBLIC_CMS_URL

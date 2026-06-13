@@ -6,20 +6,23 @@
 # node_modules so the Payload CLI is available to run database migrations on
 # startup. sharp is a native dep, so we stay on a glibc (debian) base.
 
+FROM oven/bun:1-debian AS pruner
+WORKDIR /app
+COPY . .
+RUN bunx turbo prune @yan-portf/cms --docker
+
 FROM oven/bun:1-debian AS deps
 WORKDIR /app
-COPY package.json bun.lock ./
-COPY apps/web/package.json ./apps/web/package.json
-COPY apps/cms/package.json ./apps/cms/package.json
-COPY packages/shared/package.json ./packages/shared/package.json
-COPY packages/ui/package.json ./packages/ui/package.json
+# Copy the pruned lockfile and package.json files
+COPY --from=pruner /app/out/json/ .
 # Install with dev dependencies present — `next build` needs typescript etc.
 RUN bun install --frozen-lockfile --no-verify
 
 FROM oven/bun:1-debian AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Copy only the source code needed for cms
+COPY --from=pruner /app/out/full/ .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN bunx turbo run build --filter=@yan-portf/cms
 
