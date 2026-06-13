@@ -35,6 +35,14 @@ def get_current_user(token: TokenDep, session: SessionDep) -> User:
         raise credentials_exception
 
     user = session.exec(select(User).where(User.username == username)).first()
+    if user is None and settings.auth_mode == "oidc":
+        # Provision-on-first-login: identities are owned by Authentik, so the
+        # first time we see a valid token for a user we create a local row
+        # (empty password — they authenticate via OIDC, never locally).
+        user = User(username=username, hashed_password="")
+        session.add(user)
+        session.commit()
+        session.refresh(user)
     if not user or user.disabled:
         raise credentials_exception
     return user

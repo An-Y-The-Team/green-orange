@@ -84,13 +84,13 @@ Field names must match the `crm-web` TypeScript types in
 - `AUTH_MODE=local` (default) — username/password → local HS256 JWT. Implemented.
 - `AUTH_MODE=oidc` — validate access tokens issued by self-hosted **Authentik**.
   Scaffolded in `app/core/security.verify_oidc_token` (raises `NotImplementedError`)
-  and `app/api/deps.get_current_user`. Implementing JWKS validation + wiring
-  `crm-web` to log in via Authentik (authorization-code + PKCE) is the OIDC
-  milestone — see the function docstring for the outline.
+  and `app/api/deps.get_current_user`. The full execution plan (opt-in Authentik
+  compose, JWKS verification, crm-web login via Auth.js) lives in
+  [`docs/authentik-oidc-milestone.md`](../../docs/authentik-oidc-milestone.md).
 
 ## Layout
 
-```
+```text
 app/
   main.py            FastAPI app, CORS, router includes, lifespan
   core/

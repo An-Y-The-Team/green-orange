@@ -11,9 +11,12 @@
  * over to live data with zero changes to any component. Response shapes match
  * the types in src/types, so no mapping is needed.
  *
- * These functions run in Server Components (no token handling here yet). When
- * Authentik OIDC lands, attach the bearer token in `apiFetch` below.
+ * These functions run in Server Components. The bearer token sent to crm-api is
+ * resolved by getBearer() below: the user's Authentik session token when OIDC is
+ * enabled, else the server-only CRM_API_TOKEN dev fallback.
  */
+import { auth } from "@/auth";
+import { authEnabled } from "@/auth.config";
 import { contacts } from "@/data/mock/contacts";
 import { customers } from "@/data/mock/customers";
 import { deals } from "@/data/mock/deals";
@@ -23,22 +26,28 @@ import type { Contact, Customer, Deal, Lead, Task } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// Server-only bearer token (NOT NEXT_PUBLIC — never shipped to the browser).
-// The crm-api endpoints are auth-protected, so live mode must present a token.
-// For local dev, mint one and export it:
-//   TOKEN=$(curl -s -X POST $API/auth/token -d "username=admin&password=admin" | jq -r .access_token)
-//   CRM_API_TOKEN=$TOKEN NEXT_PUBLIC_API_URL=http://localhost:8000 bun dev
-// When Authentik OIDC lands, this is replaced by the user's session token.
-const API_TOKEN = process.env.CRM_API_TOKEN;
-
 export const isLiveMode = Boolean(API_URL);
+
+// Resolve the bearer token for crm-api. Two sources, in order:
+//   1. The logged-in user's Authentik access token (when OIDC is enabled).
+//   2. CRM_API_TOKEN — a server-only dev token (mint via crm-api's /auth/token)
+//      for working against a local-auth backend without a login flow.
+// Server-only either way; never shipped to the browser.
+async function getBearer(): Promise<string | undefined> {
+  if (authEnabled) {
+    const session = await auth();
+    if (session?.accessToken) return session.accessToken;
+  }
+  return process.env.CRM_API_TOKEN;
+}
 
 async function apiFetch<T>(path: string): Promise<T> {
   // No caching so the dashboard always reflects the latest backend state while
   // students iterate.
+  const token = await getBearer();
   const res = await fetch(`${API_URL}${path}`, {
     cache: "no-store",
-    headers: API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : undefined,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   if (!res.ok) {
     throw new Error(`API ${path} failed: ${res.status} ${res.statusText}`);

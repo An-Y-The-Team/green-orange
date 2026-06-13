@@ -11,12 +11,20 @@ Two auth strategies share this module:
 
 from datetime import UTC, datetime, timedelta
 
+import httpx
 import jwt
+from jwt import PyJWKClient
+from jwt.exceptions import PyJWKClientError
 from pwdlib import PasswordHash
 
 from app.core.config import settings
 
 _password_hash = PasswordHash.recommended()
+
+# Lazily-built, cached JWKS client for Authentik OIDC verification. Built once
+# (resolving the jwks_uri from the issuer's discovery doc) and reused so the
+# JWKS isn't refetched per request; PyJWKClient caches the keys internally.
+_jwks_client: PyJWKClient | None = None
 
 
 def hash_password(plain: str) -> str:
@@ -46,20 +54,40 @@ def decode_access_token(token: str) -> str | None:
     return payload.get("sub")
 
 
+def _get_jwks_client() -> PyJWKClient:
+    """Resolve the issuer's jwks_uri (via OIDC discovery) and cache the client."""
+    global _jwks_client
+    if _jwks_client is None:
+        if not settings.oidc_issuer:
+            raise RuntimeError("OIDC_ISSUER is not configured (AUTH_MODE=oidc).")
+        discovery_url = (
+            settings.oidc_issuer.rstrip("/") + "/.well-known/openid-configuration"
+        )
+        jwks_uri = httpx.get(discovery_url, timeout=10).raise_for_status().json()[
+            "jwks_uri"
+        ]
+        _jwks_client = PyJWKClient(jwks_uri)
+    return _jwks_client
+
+
 def verify_oidc_token(token: str) -> str | None:
-    """Validate an Authentik-issued OIDC access token. (OIDC milestone — TODO.)
+    """Validate an Authentik-issued OIDC access token; return its username.
 
-    Reference implementation outline for students/future work:
-      1. Fetch  {oidc_issuer}/.well-known/openid-configuration  (cache it).
-      2. Fetch the `jwks_uri` from that document and cache the JWKS.
-      3. Use jwt.PyJWKClient(jwks_uri).get_signing_key_from_jwt(token) to get
-         the RS256 signing key.
-      4. jwt.decode(token, key, algorithms=["RS256"],
-                    audience=settings.oidc_audience, issuer=settings.oidc_issuer)
-      5. Return the `preferred_username` / `email` / `sub` claim.
+    Verifies the RS256 signature against Authentik's JWKS and checks `iss` (and
+    `aud` when OIDC_AUDIENCE is set). Returns the user identity from the standard
+    claims, or None if the token is invalid/expired. Config errors (bad issuer,
+    JWKS unreachable) raise — those are misconfiguration, not a bad token.
 
-    Enable by setting AUTH_MODE=oidc plus OIDC_ISSUER and OIDC_AUDIENCE in .env.
+    Enable with AUTH_MODE=oidc plus OIDC_ISSUER and OIDC_AUDIENCE in .env.
     """
-    raise NotImplementedError(
-        "OIDC verification not implemented yet — this is the Authentik milestone."
-    )
+    decode_kwargs: dict = {"algorithms": ["RS256"], "issuer": settings.oidc_issuer}
+    if settings.oidc_audience:
+        decode_kwargs["audience"] = settings.oidc_audience
+    try:
+        # get_signing_key_from_jwt parses the (untrusted) header, so a malformed
+        # token raises here — catch alongside signature/claim failures from decode.
+        signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
+        claims = jwt.decode(token, signing_key.key, **decode_kwargs)
+    except (jwt.InvalidTokenError, PyJWKClientError):
+        return None
+    return claims.get("preferred_username") or claims.get("email") or claims.get("sub")
