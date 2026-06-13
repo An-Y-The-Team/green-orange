@@ -280,17 +280,23 @@ reuses `POSTGRES_USER`/`POSTGRES_PASSWORD` for its DB connection.
 
 ```bash
 cd "$VPS_PATH"   # e.g. /root/green-orange
-# Load POSTGRES_USER etc. into THIS shell — compose's --env-file only feeds the
-# containers, not your interactive shell, so $POSTGRES_USER would otherwise be
-# empty and psql would fall back to the OS user `root` (not a Postgres role).
-set -a; . ./.env.production; set +a
-
+# Run psql AS the postgres superuser. Inside the container, local socket
+# connections use `trust` auth, so `-U postgres` needs no password and no env
+# vars at all — the command is fully self-contained.
 docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
-  psql -U "$POSTGRES_USER" -tc "SELECT 1 FROM pg_database WHERE datname='authentik'" \
+  psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='authentik'" \
   | grep -q 1 || \
 docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
-  psql -U "$POSTGRES_USER" -c "CREATE DATABASE authentik"
+  psql -U postgres -c "CREATE DATABASE authentik"
 ```
+
+> ⚠️ **Never `source` / `set -a; . ./.env.production` before running compose.** Two
+> footguns compound: (1) if any value uses `$(...)` (e.g. a `PASSWORD=$(openssl …)`
+> placeholder), sourcing **executes** it, silently producing a throwaway value; and
+> (2) shell environment variables **override** `--env-file` during compose's `${VAR}`
+> interpolation — so that poisoned value gets injected into the containers instead of
+> the file's real one. This is exactly what broke Postgres auth during the initial
+> Authentik bring-up. Let compose read `--env-file` itself; use `-U postgres` for psql.
 
 (On a brand-new VPS with an empty volume, skip this — the init script creates it.)
 
@@ -327,6 +333,24 @@ client id/secret) to paste into crm-api/crm-web env **when you deploy the CRM ap
 > **Network note:** Caddy publishes `9000` for `auth.` the same way it publishes
 > `3000`/`3001` for the site/CMS (HTTP on a custom port, fronted by the Pangolin/Newt
 > edge that terminates TLS). No `ufw` change beyond what the site already needs.
+>
+> Two edge gotchas that both look like "Authentik is healthy but the login page
+> won't load" (the UI shell renders, then shows *"The request failed and the
+> interceptors did not return an alternative response"*):
+>
+> 1. **The Pangolin resource for `auth.` must be PUBLIC.** Authentik *is* the
+>    identity provider, so it can't sit behind Pangolin's own resource-auth gate —
+>    otherwise the edge 302-redirects the SPA's `/api/*` calls to its login portal
+>    (a different origin), the fetch fails cross-origin, and you get the interceptor
+>    error. Disable authentication on that resource in the Pangolin dashboard.
+> 2. **Caddy must forward `X-Forwarded-Proto https` to Authentik.** TLS is terminated
+>    upstream, so Caddy sees plain HTTP and would otherwise tell Authentik
+>    `scheme=http`. Authentik then builds its CSP / redirect URLs for `http://`, and
+>    the browser (on `https://`) blocks the SPA's own API fetch. The `auth.` block in
+>    [`Caddyfile`](Caddyfile) sets this header — keep it. Verify with:
+>    `curl -sSI https://auth.example.com/ | grep -i location` → should be
+>    `/flows/-/default/authentication/`, **not** the Pangolin portal; and the
+>    `content-security-policy` response header should reference `https://`.
 
 ---
 
