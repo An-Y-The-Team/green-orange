@@ -12,6 +12,7 @@ COPY package.json bun.lock ./
 COPY apps/web/package.json ./apps/web/package.json
 COPY apps/cms/package.json ./apps/cms/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
+COPY packages/ui/package.json ./packages/ui/package.json
 # Install with dev dependencies present — `next build` needs typescript etc.
 RUN bun install --frozen-lockfile --no-verify
 
