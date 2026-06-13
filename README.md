@@ -8,8 +8,8 @@ This project uses **Turborepo** to manage multiple applications in a single repo
 
 - `apps/web`: The Next.js 16 frontend landing page and portfolio. Built with React Server Components, Tailwind CSS, and standard UI components.
 - `apps/cms`: The Payload CMS backend, providing a headless content management interface to manage services, projects, and testimonials.
-- `apps/crm-web`: A Next.js 16 CRM dashboard (teaching app). Runs on built-in mock data by default; switches to live data when pointed at `crm-api`.
-- `apps/crm-api`: A FastAPI + SQLModel backend (teaching scaffold). `customers` is fully worked; `contacts`/`leads`/`deals`/`tasks` are exercises for students to implement.
+- `apps/crm-web`: A Next.js 16 CRM dashboard. Runs on built-in mock data by default; switches to live data when pointed at `crm-api`.
+- `apps/crm-api`: A FastAPI + SQLModel backend. `customers` is fully worked; `contacts`/`leads`/`deals`/`tasks` are exercises for students to implement.
 - `packages/ui` (`@yan/ui`): Shared shadcn + Tailwind v4 UI primitives consumed by both `web` and `crm-web`.
 
 > **Working on the CRM?** Jump to [Running just the CRM stack](#running-just-the-crm-stack) — you do **not** need `web` or `cms`.
@@ -45,7 +45,7 @@ This uses Turborepo to start the development servers:
 
 ## 🧑‍🎓 Running just the CRM stack
 
-If you're a student working on the **CRM** (the teaching app), you only need three
+If you're working on the **CRM** only, you only need three
 things — **Postgres**, **crm-api** (FastAPI backend), and **crm-web** (Next.js UI).
 You can ignore `web` and `cms` entirely. Authentik (SSO) is **optional** and not
 needed for day-to-day CRUD/API work.
