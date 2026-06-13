@@ -20,6 +20,13 @@ http://{$CMS_DOMAIN}:3001 {
 }
 
 # Authentik (identity provider) — OIDC login + admin UI for the CRM.
+# TLS is terminated upstream at the Newt/Pangolin edge, which forwards plain
+# HTTP here. Without this, Caddy advertises scheme=http to Authentik, so
+# Authentik builds its CSP / redirect URLs for http:// — and the browser (on
+# https://) then blocks the SPA's own API fetch ("interceptors" error). Force
+# the real outside scheme so Authentik generates https:// URLs + CSP.
 http://{$AUTH_DOMAIN}:9000 {
-	reverse_proxy authentik-server:9000
+	reverse_proxy authentik-server:9000 {
+		header_up X-Forwarded-Proto https
+	}
 }
