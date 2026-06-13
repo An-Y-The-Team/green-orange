@@ -1,0 +1,100 @@
+# Opt-in self-hosted Authentik (Identity Provider) for the CRM's OIDC milestone.
+# NOT part of the default dev stack — only runs when you explicitly start it:
+#
+#   # 1. the shared Postgres (provides the `authentik` database) must be up first:
+#   docker compose up -d postgres
+#   # 2. then bring up Authentik:
+#   cp .env.authentik.example .env.authentik   # then fill in the secrets
+#   docker compose -f docker-compose.authentik.yml --env-file .env.authentik up -d
+#
+# Authentik uses the SHARED Postgres from docker-compose.yml (the `authentik`
+# database) — one Postgres container now hosts cms + crm + authentik. It still
+# runs its own redis (a cache, not a DB). UI at http://localhost:9000.
+#
+# Pinned name so container/volume names don't depend on the checkout folder.
+name: authentik-dev
+
+services:
+  redis:
+    image: docker.io/library/redis:alpine
+    command: --save 60 1 --loglevel warning
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep PONG']
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    volumes:
+      - redis:/data
+    networks: [authentik]
+
+  server:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.10}
+    restart: unless-stopped
+    command: server
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?set AUTHENTIK_SECRET_KEY in .env.authentik}
+      AUTHENTIK_REDIS__HOST: redis
+      # Shared Postgres from docker-compose.yml, reached over the external
+      # `green-orange-net` network by the service alias `postgres`.
+      AUTHENTIK_POSTGRESQL__HOST: ${PG_HOST:-postgres}
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-postgres}
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS:-password}
+      # First-boot bootstrap (applied only on a fresh `authentik` DB): auto-creates
+      # the `akadmin` user + an API token, so dev setup is reproducible/scriptable.
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-akadmin@localhost}
+    volumes:
+      - media:/media
+      - custom-templates:/templates
+    ports:
+      - '${AUTHENTIK_PORT_HTTP:-9000}:9000'
+      - '${AUTHENTIK_PORT_HTTPS:-9443}:9443'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [authentik, shared]
+
+  worker:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.10}
+    restart: unless-stopped
+    command: worker
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?set AUTHENTIK_SECRET_KEY in .env.authentik}
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_POSTGRESQL__HOST: ${PG_HOST:-postgres}
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-postgres}
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS:-password}
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-akadmin@localhost}
+    volumes:
+      - media:/media
+      - certs:/certs
+      - custom-templates:/templates
+    # NOTE: the official template also mounts /var/run/docker.sock so the worker
+    # can manage "outpost" containers (proxy/LDAP). The CRM only needs the OIDC
+    # provider, which requires no outpost, so that mount is intentionally omitted
+    # to keep the footprint small and avoid handing the worker the Docker socket.
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [authentik, shared]
+
+volumes:
+  redis:
+  media:
+  certs:
+  custom-templates:
+
+networks:
+  # Internal network for server/worker ↔ redis.
+  authentik:
+  # The shared CRM network (defined in docker-compose.yml) where Postgres lives.
+  shared:
+    external: true
+    name: green-orange-net

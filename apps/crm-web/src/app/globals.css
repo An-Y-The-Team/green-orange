@@ -1,0 +1,10 @@
+@import "@yan/ui/styles.css";
+
+/* Shared theme tokens (colors, radii, Tailwind + shadcn setup) come from
+   @yan/ui/styles.css. The CRM uses a clean system sans-serif rather than the
+   portfolio's serif branding. --font-heading is mapped to the same stack so the
+   shared components that reference it (e.g. DialogTitle) render correctly. */
+@theme inline {
+  --font-heading:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}

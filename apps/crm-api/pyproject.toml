@@ -1,0 +1,38 @@
+[project]
+name = "crm-api"
+version = "0.0.0"
+description = "Teaching CRM backend — FastAPI + SQLModel + JWT (apps/crm-api)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.122",
+    "uvicorn[standard]>=0.34",
+    "sqlmodel>=0.0.24",
+    "psycopg[binary]>=3.2",
+    "alembic>=1.14",
+    "pyjwt[crypto]>=2.10",
+    "pwdlib[argon2]>=0.2.1",
+    "python-multipart>=0.0.20",
+    "pydantic-settings>=2.7",
+    "httpx>=0.28",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9",
+    "pytest>=8.3",
+]
+
+# This is an application, not a library — tell uv not to try to build/install
+# the project itself, just manage its dependencies in a local .venv.
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

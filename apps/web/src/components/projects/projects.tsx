@@ -1,17 +1,17 @@
 "use client";
 
-import { Calendar, MapPin, Scaling, Star, Trophy, ZoomIn } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useState } from "react";
-
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@yan/ui/components/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@yan/ui/components/dialog";
+import { Calendar, MapPin, Scaling, Star, Trophy, ZoomIn } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+
 import { Category, CategoryFilter } from "@/constants/category";
 
 import { Project } from "../../types";

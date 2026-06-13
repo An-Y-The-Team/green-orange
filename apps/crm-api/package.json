@@ -1,0 +1,16 @@
+{
+  "name": "@yan/crm-api",
+  "private": true,
+  "version": "0.0.0",
+  "//": "Thin wrapper so the Python backend is a Turbo citizen: `turbo run dev|lint|check-types` includes it and delegates to uv/ruff/pytest.",
+  "scripts": {
+    "dev": "uv run uvicorn app.main:app --reload --port 8000",
+    "start": "uv run uvicorn app.main:app --port 8000",
+    "build": "echo 'crm-api: no build step (Python)'",
+    "lint": "uv run ruff check .",
+    "check-types": "uv run ruff check .",
+    "test": "uv run pytest -q",
+    "migrate": "uv run alembic upgrade head",
+    "clean": "rm -rf .turbo .ruff_cache .pytest_cache"
+  }
+}

@@ -9,9 +9,25 @@
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "format": {
+      "cache": false,
+      "dependsOn": ["^format"]
+    },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      // Turbo 2 runs tasks in strict env mode. NEXT_PUBLIC_* is auto-passed;
+      // custom vars (crm-web's server-only API token, crm-api's DB URL) must be
+      // listed here to reach the task.
+      "passThroughEnv": [
+        "NEXT_PUBLIC_API_URL",
+        "CRM_API_TOKEN",
+        "DATABASE_URL",
+        "AUTH_SECRET",
+        "AUTH_AUTHENTIK_ID",
+        "AUTH_AUTHENTIK_SECRET",
+        "AUTH_AUTHENTIK_ISSUER"
+      ]
     },
     "check-types": {
       "dependsOn": ["^check-types"]

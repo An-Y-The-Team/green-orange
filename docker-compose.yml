@@ -1,7 +1,9 @@
-# Local dev Postgres for the monorepo. Creates one database per app (cms today,
-# crm later) via the init script. `name` is pinned so the Compose project —
-# and therefore the container/volume names — never depends on the checkout
-# folder (local "yan-portf" vs prod "green-orange").
+# Local dev Postgres for the monorepo. One container hosts a database per app via
+# the init script: `cms`, `crm`, and `authentik` (the opt-in IdP in
+# docker-compose.authentik.yml connects here instead of running its own Postgres).
+# `name` is pinned so the Compose project — and therefore the container/volume
+# names — never depends on the checkout folder (local "yan-portf" vs prod
+# "green-orange").
 name: green-orange-dev
 
 services:
@@ -11,7 +13,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_MULTIPLE_DATABASES: cms,crm
+      POSTGRES_MULTIPLE_DATABASES: cms,crm,authentik
     ports:
       - '5432:5432'
     volumes:
@@ -25,3 +27,9 @@ services:
 
 volumes:
   pgdata:
+
+# Explicit, stable network name so the opt-in Authentik stack can join it as an
+# external network and reach this Postgres by the service alias `postgres`.
+networks:
+  default:
+    name: green-orange-net
