@@ -18,3 +18,8 @@ http://{$CMS_DOMAIN}:3001 {
 	}
 	reverse_proxy cms:3001
 }
+
+# Authentik (identity provider) — OIDC login + admin UI for the CRM.
+http://{$AUTH_DOMAIN}:9000 {
+	reverse_proxy authentik-server:9000
+}

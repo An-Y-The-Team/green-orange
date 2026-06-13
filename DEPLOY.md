@@ -259,6 +259,72 @@ Verify:
 
 ---
 
+## 6a. Authentik (CRM identity provider)
+
+Authentik runs **in this same stack** (services `authentik-server`, `authentik-worker`,
+`authentik-redis`) against an `authentik` database in the existing postgres
+container, and is published by Caddy at `AUTH_DOMAIN`. It's the OIDC login for the
+CRM. The image is the public `ghcr.io/goauthentik/server` — no CI build, the deploy
+job's `compose pull` fetches it like any other image.
+
+**1. DNS** — add an A record `auth.example.com` → the VPS IP (same as the others).
+
+**2. Env** — in `.env.production`, set `AUTH_DOMAIN`, a fresh `AUTHENTIK_SECRET_KEY`
+(`openssl rand -base64 60`), an `AUTHENTIK_BOOTSTRAP_PASSWORD` (the akadmin
+password), and an `AUTHENTIK_BOOTSTRAP_TOKEN` (`openssl rand -hex 32`). Authentik
+reuses `POSTGRES_USER`/`POSTGRES_PASSWORD` for its DB connection.
+
+**3. Create the `authentik` database** — the multi-DB init script only runs on a
+**fresh** postgres volume. Your prod DB already exists, so create it once by hand
+(idempotent — safe to re-run):
+
+```bash
+cd "$VPS_PATH"   # e.g. /root/green-orange
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+  psql -U "$POSTGRES_USER" -tc "SELECT 1 FROM pg_database WHERE datname='authentik'" \
+  | grep -q 1 || \
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+  psql -U "$POSTGRES_USER" -c "CREATE DATABASE authentik"
+```
+
+(On a brand-new VPS with an empty volume, skip this — the init script creates it.)
+
+**4. Bring the stack up** — the next tagged release deploys Authentik automatically.
+To do it immediately on the VPS:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production pull
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+```
+
+Authentik applies its own schema migrations on first start, and the
+`AUTHENTIK_BOOTSTRAP_*` values create the `akadmin` superuser + an API token on the
+fresh `authentik` DB. Confirm: `https://auth.example.com` loads and you can log in
+as `akadmin`.
+
+**5. Register the prod `crm` application** — run the setup script against the prod
+Authentik (from your laptop or the VPS), using the bootstrap token. This creates a
+**separate `crm` app** (the dev sandbox uses `crm-dev`), with the prod redirect URI:
+
+```bash
+AUTHENTIK_URL=https://auth.example.com \
+AUTHENTIK_API_TOKEN=<AUTHENTIK_BOOTSTRAP_TOKEN> \
+APP_SLUG=crm APP_NAME="CRM" \
+CRM_REDIRECT_URIS=https://crm.example.com/api/auth/callback/authentik \
+python3 scripts/setup-authentik-crm.py
+```
+
+It prints the OIDC coordinates (issuer `https://auth.example.com/application/o/crm/`,
+client id/secret) to paste into crm-api/crm-web env **when you deploy the CRM apps**
+(a later milestone — Authentik is ready and waiting). See
+[`docs/authentik-oidc-milestone.md`](docs/authentik-oidc-milestone.md).
+
+> **Network note:** Caddy publishes `9000` for `auth.` the same way it publishes
+> `3000`/`3001` for the site/CMS (HTTP on a custom port, fronted by the Pangolin/Newt
+> edge that terminates TLS). No `ufw` change beyond what the site already needs.
+
+---
+
 ## 7. Ongoing deploys
 
 Just cut a new tag:
@@ -288,9 +354,12 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 ## 8. Backups
 
 ```bash
-# Postgres — nightly dump (add to deploy user's crontab)
+# Postgres — nightly dump per database (add to deploy user's crontab).
+# `pg_dumpall` is simplest if you'd rather grab cms + authentik in one shot.
 0 3 * * * docker compose -f /root/green-orange/docker-compose.prod.yml --env-file /root/green-orange/.env.production \
   exec -T postgres pg_dump -U postgres cms | gzip > /root/backups/cms-$(date +\%F).sql.gz
+5 3 * * * docker compose -f /root/green-orange/docker-compose.prod.yml --env-file /root/green-orange/.env.production \
+  exec -T postgres pg_dump -U postgres authentik | gzip > /root/backups/authentik-$(date +\%F).sql.gz
 
 # Media uploads live in the `media` named volume — back it up too:
 docker run --rm -v green-orange_media:/data -v /root/backups:/backup alpine \

@@ -12,8 +12,14 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      # Extra databases created alongside ${POSTGRES_DB} (cms) on a FRESH volume:
+      # Authentik gets its own `authentik` DB in this same container. NOTE: the
+      # init script only runs on first boot of an empty volume — on an EXISTING
+      # prod DB you must create it once by hand (see DEPLOY.md §Authentik).
+      POSTGRES_MULTIPLE_DATABASES: authentik
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
@@ -53,17 +59,90 @@ services:
       CMS_INTERNAL_URL: http://cms:3001
     networks: [internal]
 
+  # ── Authentik (identity provider) ──────────────────────────────────────────
+  # The shared IdP for the CRM's OIDC login. Uses the prebuilt public image (no
+  # CI build) and the `authentik` database in the postgres container above. Its
+  # own redis is a cache, not a DB. Reachable publicly at AUTH_DOMAIN via Caddy.
+  authentik-redis:
+    image: docker.io/library/redis:alpine
+    restart: unless-stopped
+    command: --save 60 1 --loglevel warning
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep PONG']
+      start_period: 20s
+      interval: 30s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - authentik_redis:/data
+    networks: [internal]
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.10}
+    restart: unless-stopped
+    command: server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      authentik-redis:
+        condition: service_healthy
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      AUTHENTIK_POSTGRESQL__HOST: postgres
+      AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_USER}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_PASSWORD}
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      # First-boot bootstrap (fresh `authentik` DB only): creates akadmin + an API
+      # token so the prod `crm` app can be registered via scripts/setup-authentik-crm.py.
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-akadmin@localhost}
+    volumes:
+      - authentik_media:/media
+      - authentik_templates:/templates
+    networks: [internal]
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.10}
+    restart: unless-stopped
+    command: worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      authentik-redis:
+        condition: service_healthy
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      AUTHENTIK_POSTGRESQL__HOST: postgres
+      AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_USER}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_PASSWORD}
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-akadmin@localhost}
+    # The official template also mounts /var/run/docker.sock for managed outposts;
+    # the CRM only needs plain OIDC (no outpost), so that mount is omitted.
+    volumes:
+      - authentik_media:/media
+      - authentik_certs:/certs
+      - authentik_templates:/templates
+    networks: [internal]
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
-    depends_on: [web, cms]
+    depends_on: [web, cms, authentik-server]
     ports:
       - '3000:3000'
       - '3001:3001'
+      - '9000:9000'
     environment:
       # Caddy substitutes these into the Caddyfile and auto-provisions TLS.
       SITE_DOMAIN: ${SITE_DOMAIN}
       CMS_DOMAIN: ${CMS_DOMAIN}
+      AUTH_DOMAIN: ${AUTH_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
@@ -76,6 +155,10 @@ volumes:
   media:
   caddy_data:
   caddy_config:
+  authentik_redis:
+  authentik_media:
+  authentik_certs:
+  authentik_templates:
 
 networks:
   internal:
