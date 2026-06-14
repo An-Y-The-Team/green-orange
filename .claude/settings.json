@@ -69,7 +69,7 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3002/)",
       "Bash(pkill -f \"next dev --port=3002\")",
       "Bash(pkill -f \"turbo run dev --filter=@yan/crm-web\")",
-      "Bash(NEXT_PUBLIC_API_URL=http://localhost:8000 bunx turbo run dev --filter=@yan/crm-web)",
+      "Bash(CRM_API_URL=http://localhost:8000 bunx turbo run dev --filter=@yan/crm-web)",
       "Bash(pkill -f \"filter=@yan/crm-web\")",
       "Bash(grep -v \"Compiled\\\\|compiling\\\\|^\\\\s*$\")",
       "Bash(curl -s -o /dev/null -w \"api /health: %{http_code}\\\\n\" http://localhost:8000/health)",

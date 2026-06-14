@@ -3,18 +3,21 @@
  * calls. Each resource's reads live in its route's `queries.ts`; each mutation
  * lives directly in its server action. They share only these primitives.
  *
- *   • NEXT_PUBLIC_API_URL unset → callers fall back to bundled mock data.
- *   • NEXT_PUBLIC_API_URL set    → these hit the FastAPI backend (apps/crm-api).
+ *   • CRM_API_URL unset → callers fall back to bundled mock data.
+ *   • CRM_API_URL set   → these hit the FastAPI backend (apps/crm-api).
  *
- * Runs server-side only. The bearer token is the user's Authentik session token
- * when OIDC is enabled, else the server-only CRM_API_TOKEN dev fallback.
+ * Runs server-side only — CRM_API_URL is a server-only var (no NEXT_PUBLIC_
+ * prefix), so the backend URL is never inlined into the client bundle, and the
+ * backend itself can stay unexposed on an internal network. The bearer token is
+ * the user's Authentik session token when OIDC is enabled, else the server-only
+ * CRM_API_TOKEN dev fallback.
  */
 import { api } from "@yan/shared/api";
 
 import { auth } from "@/auth";
 import { authEnabled } from "@/auth.config";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL;
+export const API_URL = process.env.CRM_API_URL;
 export const isLiveMode = Boolean(API_URL);
 
 async function getBearer(): Promise<string | undefined> {

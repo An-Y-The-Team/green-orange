@@ -133,32 +133,39 @@ def create_subscription(*, user_id: int, data: CreateSubscriptionInput) -> Subsc
 
 Import symbols directly from the module that defines them (`from app.subscriptions.service import create_subscription`) rather than funneling everything through a catch-all `__init__.py`. Keep `__init__.py` files empty (or absent where namespace packages allow). This mirrors the frontend's "no `index.tsx` barrel files" rule — barrels obscure where a symbol actually lives, create import cycles, and slow startup.
 
-### Feature Package Structure
+### Feature-Based Package Structure (Strictly Enforced)
 
-Wrap each feature in a package so its router, schemas, models, service logic, and constants live together. Use `snake_case` for module and package names:
+We strictly enforce a **Feature-Based (Domain-Driven) folder structure**. You must **never** use a layer-based structure (e.g., grouping all models in a global `models/` folder, all routers in a global `routers/` folder, etc.).
+
+Wrap each feature in a self-contained package so its router, schemas, models, service logic, and constants live together. Use `snake_case` for module and package names:
 
 ```text
 app/
   main.py                     # FastAPI app, middleware, router registration only
-  core/
+  core/                       # App-wide shared logic (not feature-specific)
     config.py                 # Settings (pydantic-settings)
     database.py               # engine, get_session dependency
-  subscriptions/
+    security.py               # Global security, JWT hashing
+  customers/                  # 📦 FEATURE: Customers
     router.py                 # APIRouter — thin HTTP layer
-    service.py                # business logic, no FastAPI imports
+    service.py                # Business logic, DB operations, no FastAPI imports
     models.py                 # SQLModel table models
-    schemas.py                # Pydantic request/response models
-    constants.py              # enums, default values, magic numbers
-    dependencies.py           # feature-scoped Depends providers
-  insights/
+    schemas.py                # Pydantic request/response validation models
+    constants.py              # Enums, default values, magic numbers
+    dependencies.py           # Feature-scoped Depends providers
+  leads/                      # 📦 FEATURE: Leads
     router.py
     service.py
     ...
 ```
 
-**Why this matters**: This makes dependencies explicit and keeps the HTTP layer thin. `router.py` parses/validates and delegates; `service.py` holds logic and is unit-testable without spinning up the app. A flat `app/` of `routes.py`, `models.py`, `utils.py` makes every feature appear tangled with every other — the backend version of the frontend's "child components belong in a `components/` subfolder" reasoning.
+**Why this matters**:
 
-**Apply this pattern to all new work going forward.**
+- **Encapsulation**: All the context for a domain (like "Customers") is isolated in one folder. Changing how a Customer is processed doesn't require jumping across multiple different global folders.
+- **Scalability**: As the application grows to include new domains, you simply add new feature folders.
+- **Maintainability**: This makes dependencies explicit, keeps the HTTP layer thin (`router.py`), delegates logic to `service.py`, and prevents the tangled dependencies that plague layer-based monoliths.
+
+**Apply this pattern to all new work going forward. Creating layer-based dumping grounds (e.g., global `models.py` or `routers/` folders) is forbidden.**
 
 ### Keep Routers Thin, Logic in Services
 

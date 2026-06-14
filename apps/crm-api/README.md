@@ -6,7 +6,7 @@ worked as a reference; `contacts`, `leads`, `deals`, and `tasks` are skeletons
 left for you to implement.
 
 It pairs with **`apps/crm-web`** (the Next.js UI). The UI runs on mock data by
-default; point it at this API by setting `NEXT_PUBLIC_API_URL=http://localhost:8000`.
+default; point it at this API by setting `CRM_API_URL=http://localhost:8000`.
 
 ## Stack
 

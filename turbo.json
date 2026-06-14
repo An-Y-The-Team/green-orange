@@ -20,7 +20,7 @@
       // custom vars (crm-web's server-only API token, crm-api's DB URL) must be
       // listed here to reach the task.
       "passThroughEnv": [
-        "NEXT_PUBLIC_API_URL",
+        "CRM_API_URL",
         "CRM_API_TOKEN",
         "DATABASE_URL",
         "AUTH_SECRET",
