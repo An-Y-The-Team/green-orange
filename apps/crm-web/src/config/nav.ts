@@ -1,11 +1,11 @@
 import {
-  Briefcase,
-  CheckSquare,
-  Contact,
+  FileSignature,
+  FileText,
+  HardHat,
   LayoutDashboard,
   type LucideIcon,
-  Target,
   Users,
+  Wallet,
 } from "lucide-react";
 
 export interface NavItem {
@@ -14,11 +14,15 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
+// Domain-focused nav for the cleaning & construction CRM. The old generic
+// pages (contacts/leads/deals/tasks) remain on disk for reference but are no
+// longer linked here. Công trình is the hub; Báo giá / Hợp đồng / Thu-Nợ are
+// cross-project views.
 export const navItems: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard", icon: LayoutDashboard },
   { label: "Khách hàng", href: "/customers", icon: Users },
-  { label: "Liên hệ", href: "/contacts", icon: Contact },
-  { label: "Tiềm năng", href: "/leads", icon: Target },
-  { label: "Cơ hội", href: "/deals", icon: Briefcase },
-  { label: "Công việc", href: "/tasks", icon: CheckSquare },
+  { label: "Công trình", href: "/projects", icon: HardHat },
+  { label: "Báo giá", href: "/quotes", icon: FileText },
+  { label: "Hợp đồng", href: "/contracts", icon: FileSignature },
+  { label: "Thu / Nợ", href: "/receivables", icon: Wallet },
 ];

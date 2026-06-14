@@ -1,3 +1,7 @@
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
 import { Badge } from "@yan/ui/components/badge";
 import {
   Card,
@@ -5,11 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@yan/ui/components/card";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { notFound } from "next/navigation";
 
-import { getCustomer } from "@/lib/api";
+import { getCustomer } from "../queries";
 
 export default async function CustomerDetailPage({
   params,

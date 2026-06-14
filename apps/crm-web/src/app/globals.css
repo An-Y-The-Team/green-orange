@@ -8,3 +8,25 @@
   --font-heading:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+
+/* Printing a Báo giá / Hợp đồng: the dashboard chrome is hidden via `print:hidden`
+   utilities in the layout. Here we force a clean white A4 surface and let the
+   document sheet flow naturally across pages. The printable sheet itself is
+   marked with `.print-sheet` (see document-shell). */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    height: auto !important;
+  }
+  .print-sheet {
+    box-shadow: none !important;
+    margin: 0 !important;
+    border: none !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+  @page {
+    margin: 16mm;
+  }
+}

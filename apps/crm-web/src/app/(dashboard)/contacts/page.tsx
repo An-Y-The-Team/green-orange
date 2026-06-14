@@ -9,7 +9,8 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { listContacts } from "@/lib/api";
+
+import { listContacts } from "./queries";
 
 export default async function ContactsPage() {
   const contacts = await listContacts();

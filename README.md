@@ -66,13 +66,13 @@ docker compose -f docker-compose.local.yml up --build
 Add `-d` to run detached. The CMS and crm-api apply their database migrations
 automatically on startup. Once it's up:
 
-| Service   | URL                              | Notes                                       |
-| --------- | -------------------------------- | ------------------------------------------- |
-| `web`     | <http://localhost:3000>          | Public landing page / portfolio             |
-| `cms`     | <http://localhost:3001/admin>    | Payload admin (create the first user)       |
-| `crm-web` | <http://localhost:3002>          | CRM dashboard — **mock data** by default    |
-| `crm-api` | <http://localhost:8000/docs>     | FastAPI Swagger UI (`admin` / `admin`)      |
-| `postgres`| `localhost:5432`                 | `cms`, `crm`, `authentik` databases         |
+| Service    | URL                           | Notes                                    |
+| ---------- | ----------------------------- | ---------------------------------------- |
+| `web`      | <http://localhost:3000>       | Public landing page / portfolio          |
+| `cms`      | <http://localhost:3001/admin> | Payload admin (create the first user)    |
+| `crm-web`  | <http://localhost:3002>       | CRM dashboard — **mock data** by default |
+| `crm-api`  | <http://localhost:8000/docs>  | FastAPI Swagger UI (`admin` / `admin`)   |
+| `postgres` | `localhost:5432`              | `cms`, `crm`, `authentik` databases      |
 
 Stop it with `Ctrl-C` (or `docker compose -f docker-compose.local.yml down` if
 detached). Add `-v` to `down` to also wipe the Postgres + media volumes.
@@ -121,7 +121,7 @@ docker compose -f docker-compose.local.yml exec cms sh
 >
 > **One Postgres at a time:** this stack uses its own Postgres volume and binds
 > host port `5432`, so don't run it at the same time as the `docker compose up
-> postgres` dev workflow below.
+postgres` dev workflow below.
 
 ### Authentik SSO (opt-in)
 

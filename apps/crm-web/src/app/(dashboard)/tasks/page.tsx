@@ -10,8 +10,9 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { listTasks } from "@/lib/api";
 import type { TaskPriority, TaskStatus } from "@/types";
+
+import { listTasks } from "./queries";
 
 const statusVariant: Record<TaskStatus, "secondary" | "warning" | "success"> = {
   todo: "secondary",

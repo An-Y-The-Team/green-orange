@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Badge } from "@yan/ui/components/badge";
 import {
   Card,
@@ -15,45 +17,52 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { listCustomers, listDeals, listLeads, listTasks } from "@/lib/api";
-import { formatUSD } from "@/lib/format";
+import { formatVND, projectActuals, receivables } from "@/lib/format";
+import { projectStage, projectType } from "@/lib/labels";
 
-const dealStageVariant = {
-  prospect: "secondary",
-  proposal: "default",
-  negotiation: "warning",
-  won: "success",
-  lost: "destructive",
-} as const;
+import { listCustomers } from "../customers/queries";
+import { listCosts, listProjects } from "../projects/queries";
+import { listQuotes } from "../quotes/queries";
+import { listPaymentMilestones } from "../receivables/queries";
 
 export default async function DashboardPage() {
-  const [customers, leads, deals, tasks] = await Promise.all([
+  const [customers, projects, quotes, costs, milestones] = await Promise.all([
     listCustomers(),
-    listLeads(),
-    listDeals(),
-    listTasks(),
+    listProjects(),
+    listQuotes(),
+    listCosts(),
+    listPaymentMilestones(),
   ]);
 
-  const openPipeline = deals
-    .filter((d) => d.stage !== "won" && d.stage !== "lost")
-    .reduce((sum, d) => sum + d.amount, 0);
-  const openTasks = tasks.filter((t) => t.status !== "done").length;
+  const activeProjects = projects.filter(
+    (p) => p.stage !== "dong" && p.stage !== "yeu_cau"
+  ).length;
+  const pendingQuotes = quotes.filter((q) => q.status === "da_gui").length;
+  const { outstanding } = receivables(milestones);
+
+  // Estimated gross profit = Σ(revenue) − Σ(actual costs) across all projects.
+  const estimatedProfit = projects.reduce(
+    (sum, p) =>
+      sum +
+      projectActuals(
+        p,
+        costs.filter((c) => c.project_code === p.code)
+      ).margin,
+    0
+  );
 
   const kpis = [
-    { label: "Khách hàng", value: customers.length },
-    {
-      label: "Tiềm năng đang mở",
-      value: leads.filter((l) => l.status !== "lost").length,
-    },
-    { label: "Pipeline đang mở", value: formatUSD(openPipeline) },
-    { label: "Công việc chưa xong", value: openTasks },
+    { label: "Công trình đang triển khai", value: String(activeProjects) },
+    { label: "Còn phải thu", value: formatVND(outstanding) },
+    { label: "Báo giá chờ duyệt", value: String(pendingQuotes) },
+    { label: "Lợi nhuận ước tính", value: formatVND(estimatedProfit) },
   ];
 
   return (
     <>
       <PageHeader
         title="Tổng quan"
-        description="Bảng điều khiển tóm tắt hoạt động kinh doanh."
+        description={`${customers.length} khách hàng · bảng điều khiển hoạt động kinh doanh.`}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -71,32 +80,45 @@ export default async function DashboardPage() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Cơ hội gần đây</CardTitle>
+          <CardTitle>Công trình gần đây</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Cơ hội</TableHead>
-                <TableHead>Công ty</TableHead>
+                <TableHead>Mã</TableHead>
+                <TableHead>Tên công trình</TableHead>
+                <TableHead>Khách hàng</TableHead>
+                <TableHead>Loại</TableHead>
                 <TableHead>Giai đoạn</TableHead>
                 <TableHead className="text-right">Giá trị</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {deals.map((deal) => (
-                <TableRow key={deal.id}>
-                  <TableCell className="font-medium">{deal.title}</TableCell>
+              {projects.map((project) => (
+                <TableRow key={project.id}>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/projects/${project.id}`}
+                      className="hover:underline"
+                    >
+                      {project.code}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{project.name}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {deal.company}
+                    {project.customer}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {projectType[project.type]}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={dealStageVariant[deal.stage]}>
-                      {deal.stage}
+                    <Badge variant={projectStage[project.stage].variant}>
+                      {projectStage[project.stage].label}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatUSD(deal.amount)}
+                    {formatVND(project.contract_value)}
                   </TableCell>
                 </TableRow>
               ))}

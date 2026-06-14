@@ -335,10 +335,10 @@ client id/secret) to paste into crm-api/crm-web env **when you deploy the CRM ap
 > edge that terminates TLS). No `ufw` change beyond what the site already needs.
 >
 > Two edge gotchas that both look like "Authentik is healthy but the login page
-> won't load" (the UI shell renders, then shows *"The request failed and the
-> interceptors did not return an alternative response"*):
+> won't load" (the UI shell renders, then shows _"The request failed and the
+> interceptors did not return an alternative response"_):
 >
-> 1. **The Pangolin resource for `auth.` must be PUBLIC.** Authentik *is* the
+> 1. **The Pangolin resource for `auth.` must be PUBLIC.** Authentik _is_ the
 >    identity provider, so it can't sit behind Pangolin's own resource-auth gate —
 >    otherwise the edge 302-redirects the SPA's `/api/*` calls to its login portal
 >    (a different origin), the fetch fails cross-origin, and you get the interceptor

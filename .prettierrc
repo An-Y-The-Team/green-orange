@@ -9,6 +9,7 @@
   "arrowParens": "always",
   "importOrder": [
     "<THIRD_PARTY_MODULES>",
+    "@yan/(.*)$",
     "^@/(.*)$",
     "^[./].*(?<!\\.(c|le|sc)ss)$",
     "^[.]/[-a-zA-Z0-9_]+[.](module)[.](css|scss|less)$"

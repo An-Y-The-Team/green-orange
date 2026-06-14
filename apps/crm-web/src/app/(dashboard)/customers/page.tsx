@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Badge } from "@yan/ui/components/badge";
 import { Card } from "@yan/ui/components/card";
 import {
@@ -8,12 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from "@yan/ui/components/table";
-import Link from "next/link";
 
-import { CustomerFormDialog } from "@/components/customer-form-dialog";
 import { PageHeader } from "@/components/page-header";
-import { listCustomers } from "@/lib/api";
 import type { CustomerStatus } from "@/types";
+
+import { CustomerFormDialog } from "./components/customer-form-dialog/customer-form-dialog";
+import { listCustomers } from "./queries";
 
 const statusVariant: Record<
   CustomerStatus,

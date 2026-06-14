@@ -1,7 +1,8 @@
-import { buttonVariants } from "@yan/ui/components/button";
 import { ArrowRight, Check, ShieldCheck, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+
+import { buttonVariants } from "@yan/ui/components/button";
 
 import { SiteSettings } from "../../data";
 import {

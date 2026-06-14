@@ -1,8 +1,9 @@
 "use client";
 
-import { cn } from "@yan/ui/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+import { cn } from "@yan/ui/lib/utils";
 
 import { navItems } from "@/config/nav";
 
@@ -13,9 +14,9 @@ export function AppSidebar() {
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       <div className="flex h-14 items-center gap-2 px-4">
         <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
-          Y
+          G
         </div>
-        <span className="text-sm font-semibold">Yan CRM</span>
+        <span className="text-sm font-semibold">GreenOrange CRM</span>
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 px-2 py-2">
         {navItems.map((item) => {

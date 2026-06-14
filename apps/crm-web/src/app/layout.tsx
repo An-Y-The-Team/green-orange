@@ -1,6 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
 
+import { Providers } from "./providers";
+
 export const metadata: Metadata = {
   title: "Yan CRM",
   description: "CRM dashboard — teaching app (Next.js UI + FastAPI backend)",
@@ -13,7 +15,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

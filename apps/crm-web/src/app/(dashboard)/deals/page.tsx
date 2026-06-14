@@ -10,9 +10,10 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { listDeals } from "@/lib/api";
 import { formatUSD } from "@/lib/format";
 import type { DealStage } from "@/types";
+
+import { listDeals } from "./queries";
 
 const stageVariant: Record<
   DealStage,

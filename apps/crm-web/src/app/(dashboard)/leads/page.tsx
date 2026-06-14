@@ -10,9 +10,10 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { listLeads } from "@/lib/api";
 import { formatUSD } from "@/lib/format";
 import type { LeadStatus } from "@/types";
+
+import { listLeads } from "./queries";
 
 const statusVariant: Record<
   LeadStatus,

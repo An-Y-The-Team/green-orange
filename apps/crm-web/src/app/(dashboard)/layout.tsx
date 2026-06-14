@@ -1,10 +1,11 @@
-import { Button } from "@yan/ui/components/button";
 import { LogOut } from "lucide-react";
+
+import { Button } from "@yan/ui/components/button";
 
 import { auth, signOut } from "@/auth";
 import { authEnabled } from "@/auth.config";
 import { AppSidebar } from "@/components/app-sidebar";
-import { isLiveMode } from "@/lib/api";
+import { isLiveMode } from "@/lib/http";
 
 export default async function DashboardLayout({
   children,
@@ -17,10 +18,12 @@ export default async function DashboardLayout({
   const userLabel = session?.user?.email ?? session?.user?.name;
 
   return (
-    <div className="flex h-dvh overflow-hidden">
-      <AppSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border px-6">
+    <div className="flex h-dvh overflow-hidden print:block print:h-auto print:overflow-visible">
+      <div className="print:hidden">
+        <AppSidebar />
+      </div>
+      <div className="flex flex-1 flex-col overflow-hidden print:overflow-visible">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border px-6 print:hidden">
           <span className="text-sm text-muted-foreground">
             Quản lý quan hệ khách hàng
           </span>
@@ -57,7 +60,9 @@ export default async function DashboardLayout({
             )}
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6 print:overflow-visible print:p-0">
+          {children}
+        </main>
       </div>
     </div>
   );

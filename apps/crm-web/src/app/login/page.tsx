@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { Button } from "@yan/ui/components/button";
 import {
   Card,
@@ -5,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@yan/ui/components/card";
-import { redirect } from "next/navigation";
 
 import { auth, signIn } from "@/auth";
 import { authEnabled } from "@/auth.config";
