@@ -13,10 +13,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       # Extra databases created alongside ${POSTGRES_DB} (cms) on a FRESH volume:
-      # Authentik gets its own `authentik` DB in this same container. NOTE: the
-      # init script only runs on first boot of an empty volume — on an EXISTING
-      # prod DB you must create it once by hand (see DEPLOY.md §Authentik).
-      POSTGRES_MULTIPLE_DATABASES: authentik
+      # Authentik gets `authentik`, crm-api gets `crm`, both in this same
+      # container. NOTE: the init script only runs on first boot of an empty
+      # volume — on an EXISTING prod DB you must create each one by hand (see
+      # DEPLOY.md §6a Authentik / §6b CRM).
+      POSTGRES_MULTIPLE_DATABASES: authentik,crm
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
@@ -57,6 +58,51 @@ services:
       # hairpin). The browser uses NEXT_PUBLIC_CMS_URL, which is baked into the
       # image at build time by the GitHub Actions workflow.
       CMS_INTERNAL_URL: http://cms:3001
+    networks: [internal]
+
+  # ── CRM API — FastAPI (INTERNAL ONLY, never exposed) ────────────────────────
+  # The CRM's backend. Reachable ONLY on the internal docker network — note the
+  # deliberate absence of a `ports:` block, so nothing outside the network (not
+  # even the host) can reach it. crm-web calls it server-side at
+  # http://crm-api:8000; the browser never touches it.
+  crm-api:
+    image: ${CRM_API_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # crm-api's own `crm` database in the shared postgres container (reuses the
+      # POSTGRES creds, same pattern as Authentik). The DB must exist first — on
+      # an existing prod volume create it by hand (see DEPLOY.md §6b).
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/crm
+      # Prod validates Authentik-issued OIDC tokens — no local username/password.
+      AUTH_MODE: oidc
+      OIDC_ISSUER: https://${AUTH_DOMAIN}/application/o/crm/
+      OIDC_AUDIENCE: ${CRM_OIDC_CLIENT_ID}
+      # Calls arrive server-to-server (no browser Origin), so CORS is belt-and-braces.
+      CORS_ORIGINS: https://${CRM_DOMAIN}
+    networks: [internal]
+    # The image entrypoint runs `alembic upgrade head` before starting uvicorn.
+
+  # ── CRM dashboard — Next.js (published at CRM_DOMAIN) ───────────────────────
+  crm-web:
+    image: ${CRM_WEB_IMAGE}
+    restart: unless-stopped
+    depends_on: [crm-api]
+    environment:
+      # Server-only, read at RUNTIME: the internal backend URL. Never inlined
+      # into the client bundle, so crm-api stays unexposed.
+      CRM_API_URL: http://crm-api:8000
+      # Auth.js / Authentik OIDC. AUTH_TRUST_HOST makes Auth.js honor the
+      # X-Forwarded-Proto https that Caddy injects (TLS terminates upstream), so
+      # the OAuth callback URL is built as https and matches what's registered.
+      AUTH_SECRET: ${CRM_AUTH_SECRET}
+      AUTH_URL: https://${CRM_DOMAIN}
+      AUTH_TRUST_HOST: 'true'
+      AUTH_AUTHENTIK_ID: ${CRM_OIDC_CLIENT_ID}
+      AUTH_AUTHENTIK_SECRET: ${CRM_OIDC_CLIENT_SECRET}
+      AUTH_AUTHENTIK_ISSUER: https://${AUTH_DOMAIN}/application/o/crm/
     networks: [internal]
 
   # ── Authentik (identity provider) ──────────────────────────────────────────
@@ -133,15 +179,17 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
-    depends_on: [web, cms, authentik-server]
+    depends_on: [web, cms, crm-web, authentik-server]
     ports:
       - '3000:3000'
       - '3001:3001'
+      - '3002:3002'
       - '9000:9000'
     environment:
       # Caddy substitutes these into the Caddyfile and auto-provisions TLS.
       SITE_DOMAIN: ${SITE_DOMAIN}
       CMS_DOMAIN: ${CMS_DOMAIN}
+      CRM_DOMAIN: ${CRM_DOMAIN}
       AUTH_DOMAIN: ${AUTH_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:

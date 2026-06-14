@@ -19,6 +19,16 @@ http://{$CMS_DOMAIN}:3001 {
 	reverse_proxy cms:3001
 }
 
+# CRM dashboard (Next.js). crm-api is NOT proxied here — it stays internal-only.
+# Force X-Forwarded-Proto https: TLS terminates upstream at the Newt/Pangolin
+# edge, so Caddy sees plain HTTP. Without this, Auth.js builds its OAuth callback
+# (and cookies) for http://, and the Authentik redirect round-trip breaks.
+http://{$CRM_DOMAIN}:3002 {
+	reverse_proxy crm-web:3002 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
 # Authentik (identity provider) — OIDC login + admin UI for the CRM.
 # TLS is terminated upstream at the Newt/Pangolin edge, which forwards plain
 # HTTP here. Without this, Caddy advertises scheme=http to Authentik, so

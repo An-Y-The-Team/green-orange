@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 # Build context = repo root (Bun + Turbo monorepo).
-#   docker build -f apps/crm-web/Dockerfile --build-arg NEXT_PUBLIC_API_URL=https://crm-api.example.com .
+#   docker build -f apps/crm-web/Dockerfile .
+# The backend URL (CRM_API_URL) is read at RUNTIME, not baked in — point the
+# image at a backend by passing it as a container env var, no rebuild needed.
 
 FROM oven/bun:1-debian AS base
 WORKDIR /app
@@ -18,9 +20,8 @@ COPY --from=pruner /app/out/json/ .
 RUN bun install --frozen-lockfile --no-verify
 # Then copy source and build
 COPY --from=pruner /app/out/full/ .
-# NEXT_PUBLIC_* is inlined into the client bundle at build time.
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# CRM_API_URL is server-only and read at runtime, so nothing about the backend
+# is baked into the build — the same image works against any backend.
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_OUTPUT_STANDALONE=1
 RUN bunx turbo run build --filter=@yan/crm-web

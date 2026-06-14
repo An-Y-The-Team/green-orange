@@ -90,11 +90,13 @@ services:
       - '8000:8000'
 
   # ── CRM dashboard — Next.js (port 3002) ─────────────────────────────────────
-  # Builds with NO NEXT_PUBLIC_API_URL, so it serves built-in MOCK data and needs
-  # no backend. To run it against the live crm-api instead, add the build arg
-  #   args: { NEXT_PUBLIC_API_URL: http://localhost:8000 }
-  # and supply a server-only CRM_API_TOKEN below (mint one from the running API:
-  #   curl -s -X POST http://localhost:8000/auth/token -d "username=admin&password=admin").
+  # Runs with NO CRM_API_URL, so it serves built-in MOCK data and needs no
+  # backend. To run it against the live crm-api instead, add a runtime env block
+  # (CRM_API_URL is server-only and read at runtime — no rebuild needed):
+  #   environment:
+  #     CRM_API_URL: http://crm-api:8000   # internal service DNS, never exposed
+  #     CRM_API_TOKEN: <token>             # mint one from the running API:
+  #   curl -s -X POST http://localhost:8000/auth/token -d "username=admin&password=admin"
   crm-web:
     build:
       context: .

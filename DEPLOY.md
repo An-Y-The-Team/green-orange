@@ -354,6 +354,60 @@ client id/secret) to paste into crm-api/crm-web env **when you deploy the CRM ap
 
 ---
 
+## 6b. CRM apps (crm-web + crm-api)
+
+The CRM dashboard (`crm-web`, Next.js) is published by Caddy at `CRM_DOMAIN`
+(`quanly.dichvuyan.com`). Its backend (`crm-api`, FastAPI) is **internal-only** —
+it has no `ports:` block and no Caddy route, so it's reachable solely on the
+docker network. crm-web calls it server-side at `http://crm-api:8000`; the
+browser never does. Both images are built + pushed by CI (`crm-web`, `crm-api`)
+and pinned by the deploy job alongside `web`/`cms`.
+
+**1. DNS** — add an A record `quanly.dichvuyan.com` → the VPS IP, and (like the
+others) front it with a **public** Pangolin resource on port `3002`.
+
+**2. Create the `crm` database** — `crm-api` runs Alembic migrations on start, but
+the database itself must exist first. As with `authentik` (§6a), the multi-DB init
+script only runs on a **fresh** volume, so create it once by hand (idempotent):
+
+```bash
+cd "$VPS_PATH"   # e.g. /root/green-orange
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+  psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='crm'" \
+  | grep -q 1 || \
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+  psql -U postgres -c "CREATE DATABASE crm"
+```
+
+(Brand-new VPS with an empty volume: skip — the init script creates it. The same
+`source ./.env.production` footgun called out in §6a applies here too.)
+
+**3. Env** — in `.env.production`, set `CRM_DOMAIN`, a fresh `CRM_AUTH_SECRET`
+(`openssl rand -hex 32`, the Auth.js session secret), and the OIDC client
+`CRM_OIDC_CLIENT_ID` / `CRM_OIDC_CLIENT_SECRET`. The client id/secret come from the
+prod `crm` Authentik app registered in §6a step 5 — the **same** client id is used
+twice: as crm-web's provider id (`AUTH_AUTHENTIK_ID`) and as crm-api's token
+audience (`OIDC_AUDIENCE`). The issuer is derived from `AUTH_DOMAIN` in
+[`docker-compose.prod.yml`](docker-compose.prod.yml), so no separate issuer var.
+
+**4. Redirect URI** — the prod `crm` Authentik app's redirect URI must be
+`https://quanly.dichvuyan.com/api/auth/callback/authentik`. If it was registered
+with a placeholder, re-run the setup script (§6a step 5) with
+`CRM_REDIRECT_URIS=https://quanly.dichvuyan.com/api/auth/callback/authentik`.
+
+**5. Bring up** — the next tagged release deploys both apps automatically (`compose
+pull` + `up -d`). Confirm `https://quanly.dichvuyan.com` redirects to Authentik
+login, and after sign-in the dashboard's data loads (crm-api answering over the
+internal network).
+
+> **Why `X-Forwarded-Proto https` for `quanly.` too:** same root cause as Authentik
+> (§6a) — TLS terminates upstream, so Caddy sees plain HTTP. Without forcing the
+> real scheme, Auth.js builds its OAuth callback URL and session cookies for
+> `http://`, and the Authentik round-trip fails. The `crm.`/`CRM_DOMAIN` block in
+> [`Caddyfile`](Caddyfile) sets it; `AUTH_TRUST_HOST=true` makes Auth.js honor it.
+
+---
+
 ## 7. Ongoing deploys
 
 Just cut a new tag. The repo uses `vX.Y.Z` tags, and pushing one triggers the

@@ -113,9 +113,9 @@ docker compose -f docker-compose.local.yml exec cms sh
 ```
 
 > **`crm-web` live mode:** by default the dashboard ships with built-in mock data
-> so it runs with no backend. To point it at the live `crm-api`, add a
-> `NEXT_PUBLIC_API_URL: http://localhost:8000` build arg and a server-only
-> `CRM_API_TOKEN` to the `crm-web` service in
+> so it runs with no backend. To point it at the live `crm-api`, add a runtime
+> `CRM_API_URL: http://localhost:8000` env var (server-only, read at runtime — no
+> rebuild) and a server-only `CRM_API_TOKEN` to the `crm-web` service in
 > [`docker-compose.local.yml`](docker-compose.local.yml) — the file has inline
 > notes showing how.
 >
@@ -200,7 +200,7 @@ Then choose one of two modes:
 
   ```bash
   # in apps/crm-web/.env.local
-  NEXT_PUBLIC_API_URL=http://localhost:8000
+  CRM_API_URL=http://localhost:8000
   # mint a dev token from the running crm-api:
   #   curl -s -X POST http://localhost:8000/auth/token -d "username=admin&password=admin"
   CRM_API_TOKEN=eyJhbG...   # paste the access_token here (server-only, never sent to the browser)

@@ -18,6 +18,8 @@ jobs:
     outputs:
       web_build: ${{ steps.f.outputs.web_build }}
       cms_build: ${{ steps.f.outputs.cms_build }}
+      crm-web_build: ${{ steps.f.outputs['crm-web_build'] }}
+      crm-api_build: ${{ steps.f.outputs['crm-api_build'] }}
       prev_tag: ${{ steps.f.outputs.prev_tag }}
     steps:
       - uses: actions/checkout@v4
@@ -28,21 +30,30 @@ jobs:
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
           if [ -z "$PREV_TAG" ]; then
-            echo "No previous tag — building both apps."
+            echo "No previous tag — building all apps."
             echo "web_build=true" >> "$GITHUB_OUTPUT"
             echo "cms_build=true" >> "$GITHUB_OUTPUT"
+            echo "crm-web_build=true" >> "$GITHUB_OUTPUT"
+            echo "crm-api_build=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "Diffing $PREV_TAG..HEAD"
           # An app rebuilds if its dir OR a shared root file changed.
           changed() { ! git diff --quiet "$PREV_TAG" HEAD -- "$@"; }
-          # `packages` covers any shared workspace package both apps depend on.
+          # `packages` covers any shared workspace package the JS apps depend on.
           changed apps/web packages package.json bun.lock turbo.json \
             && echo "web_build=true" >> "$GITHUB_OUTPUT" \
             || echo "web_build=false" >> "$GITHUB_OUTPUT"
           changed apps/cms packages package.json bun.lock turbo.json \
             && echo "cms_build=true" >> "$GITHUB_OUTPUT" \
             || echo "cms_build=false" >> "$GITHUB_OUTPUT"
+          changed apps/crm-web packages package.json bun.lock turbo.json \
+            && echo "crm-web_build=true" >> "$GITHUB_OUTPUT" \
+            || echo "crm-web_build=false" >> "$GITHUB_OUTPUT"
+          # crm-api is a self-contained Python app (its own uv.lock) — no JS packages.
+          changed apps/crm-api \
+            && echo "crm-api_build=true" >> "$GITHUB_OUTPUT" \
+            || echo "crm-api_build=false" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build & push (${{ matrix.app }})
@@ -56,8 +67,17 @@ jobs:
         include:
           - app: web
             dockerfile: apps/web/Dockerfile
+            context: .
           - app: cms
             dockerfile: apps/cms/Dockerfile
+            context: .
+          - app: crm-web
+            dockerfile: apps/crm-web/Dockerfile
+            context: .
+          # Self-contained Python app — its Dockerfile expects the app dir as context.
+          - app: crm-api
+            dockerfile: apps/crm-api/Dockerfile
+            context: apps/crm-api
     steps:
       - uses: actions/checkout@v4
 
@@ -102,7 +122,7 @@ jobs:
         if: steps.decide.outputs.build == 'true' || steps.retag.outcome == 'failure'
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           platforms: linux/amd64
           push: true
@@ -204,6 +224,8 @@ jobs:
           git reset --hard "refs/tags/${TAG}"
           sed -i "s|^WEB_IMAGE=.*|WEB_IMAGE=ghcr.io/${REPO}-web:${TAG}|" .env.production
           sed -i "s|^CMS_IMAGE=.*|CMS_IMAGE=ghcr.io/${REPO}-cms:${TAG}|" .env.production
+          sed -i "s|^CRM_WEB_IMAGE=.*|CRM_WEB_IMAGE=ghcr.io/${REPO}-crm-web:${TAG}|" .env.production
+          sed -i "s|^CRM_API_IMAGE=.*|CRM_API_IMAGE=ghcr.io/${REPO}-crm-api:${TAG}|" .env.production
           docker compose -f docker-compose.prod.yml --env-file .env.production pull
           docker compose -f docker-compose.prod.yml --env-file .env.production up -d
           docker image prune -f
