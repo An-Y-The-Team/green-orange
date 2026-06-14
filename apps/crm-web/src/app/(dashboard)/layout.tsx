@@ -7,6 +7,14 @@ import { authEnabled } from "@/auth.config";
 import { AppSidebar } from "@/components/app-sidebar";
 import { isLiveMode } from "@/lib/http";
 
+// CRM_API_URL is runtime-only, but the data layer chooses mock-vs-live by reading
+// it at module load. Without this, Next prerenders every dashboard page at BUILD
+// time (where CRM_API_URL is absent → mock branch) and serves that frozen mock
+// HTML in prod, never hitting the live backend. Forcing dynamic here applies to
+// all routes in this group, so they fetch live data (and resolve the session)
+// per request. Inherited by child pages; the [id] routes are already dynamic.
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: Readonly<{
