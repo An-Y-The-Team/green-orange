@@ -153,10 +153,8 @@ jobs:
           set -euo pipefail
 
           # ── 1. Install Pangolin CLI ──────────────────────────────────────
-          # Using GITHUB_TOKEN to avoid anonymous API rate limits from get-cli.sh
-          LATEST_VERSION=$(curl -sSL -H "Authorization: Bearer ${{ github.token }}" https://api.github.com/repos/fosrl/cli/releases/latest | jq -r .tag_name | sed 's/^v//')
-          curl -fsSL "https://github.com/fosrl/cli/releases/download/v${LATEST_VERSION}/pangolin-cli_linux_amd64" | sudo tee /usr/local/bin/pangolin > /dev/null
-          sudo chmod +x /usr/local/bin/pangolin
+          # Use the official download script, but inject GITHUB_TOKEN to bypass anonymous API rate limits
+          curl -fsSL https://static.pangolin.net/get-cli.sh | sed "s|curl -fsSL \\\"\$GITHUB_API_URL\\\"|curl -fsSL -H \\\"Authorization: Bearer ${{ github.token }}\\\" \\\"\$GITHUB_API_URL\\\"|g" | sudo bash
 
           # ── 2. Bring up tunnel (foreground + backgrounded) ───────────────
           sudo pangolin up \
