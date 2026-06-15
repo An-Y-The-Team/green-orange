@@ -176,14 +176,22 @@ services:
       - authentik_templates:/templates
     networks: [internal]
 
+  dozzle:
+    image: amir20/dozzle:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [internal]
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
-    depends_on: [web, cms, crm-web, authentik-server]
+    depends_on: [web, cms, crm-web, authentik-server, dozzle]
     ports:
       - '3000:3000'
       - '3001:3001'
       - '3002:3002'
+      - '8080:8080'
       - '9000:9000'
     environment:
       # Caddy substitutes these into the Caddyfile and auto-provisions TLS.
@@ -191,6 +199,7 @@ services:
       CMS_DOMAIN: ${CMS_DOMAIN}
       CRM_DOMAIN: ${CRM_DOMAIN}
       AUTH_DOMAIN: ${AUTH_DOMAIN}
+      LOGS_DOMAIN: ${LOGS_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

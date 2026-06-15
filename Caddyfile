@@ -40,3 +40,9 @@ http://{$AUTH_DOMAIN}:9000 {
 		header_up X-Forwarded-Proto https
 	}
 }
+
+# Dozzle (real-time Docker log viewer).
+# Fronted by Pangolin zero-trust network.
+http://{$LOGS_DOMAIN}:8080 {
+	reverse_proxy dozzle:8080
+}
