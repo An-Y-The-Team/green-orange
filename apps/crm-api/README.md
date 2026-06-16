@@ -83,9 +83,10 @@ Field names must match the `crm-web` TypeScript types in
 
 - `AUTH_MODE=local` (default) — username/password → local HS256 JWT. Implemented.
 - `AUTH_MODE=oidc` — validate access tokens issued by self-hosted **Authentik**.
-  Scaffolded in `app/core/security.verify_oidc_token` (raises `NotImplementedError`)
-  and `app/api/deps.get_current_user`. The full execution plan (opt-in Authentik
-  compose, JWKS verification, crm-web login via Auth.js) lives in
+  Implemented in `app/core/security.verify_oidc_token` (RS256 verification against
+  Authentik's JWKS, `iss`/`aud` checks) and `app/api/deps.get_current_user`
+  (provision-on-first-login). The full execution plan (opt-in Authentik compose,
+  JWKS verification, crm-web login via Auth.js) lives in
   [`docs/authentik-oidc-milestone.md`](../../docs/authentik-oidc-milestone.md).
 
 ## Layout
@@ -96,7 +97,7 @@ app/
   core/
     config.py        settings (pydantic-settings)
     db.py            engine + get_session dependency
-    security.py      password hashing, local JWT, OIDC stub
+    security.py      password hashing, local JWT, OIDC verification
   api/
     deps.py          SessionDep, CurrentUser
     routes/          auth.py, customers.py (worked) + *.py (exercises)

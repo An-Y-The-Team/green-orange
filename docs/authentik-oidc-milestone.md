@@ -1,6 +1,6 @@
 # Milestone: Self-hosted Authentik OIDC for the CRM
 
-Status: **Phase 1 + 2 done & verified; Phase 3 (crm-web login) in progress.** The
+Status: **All 3 phases done & verified.** The
 execution checklist for switching the CRM from local username/password JWT auth to
 self-hosted **Authentik** as the identity provider.
 
