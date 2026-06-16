@@ -1,5 +1,5 @@
 import NextAuth from "next-auth";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import authConfig, { authEnabled } from "@/auth.config";
 
@@ -9,7 +9,14 @@ import authConfig, { authEnabled } from "@/auth.config";
 // AUTH_SECRET is required.
 const { auth } = NextAuth(authConfig);
 
-export default authEnabled ? auth : () => NextResponse.next();
+export default authEnabled
+  ? auth((req) => {
+      console.log(`[REQ] ${req.method} ${req.nextUrl.pathname}`);
+    })
+  : (req: NextRequest) => {
+      console.log(`[REQ] ${req.method} ${req.nextUrl.pathname}`);
+      return NextResponse.next();
+    };
 
 export const config = {
   // Run on app routes, but never on Auth.js endpoints, the login page, Next
