@@ -9,7 +9,7 @@ own `crm-api`.
 This document is kept for the day a **real client** requires a fully-branded,
 **inline** login where the user never navigates away from the page they're on
 (e.g. a customer-facing portal where bouncing to `auth.<domain>` is unacceptable).
-It captures *how* to build that with Authentik's Flow Executor API so the design
+It captures _how_ to build that with Authentik's Flow Executor API so the design
 work doesn't have to be re-derived.
 
 ## When to reach for this (and when NOT to)
@@ -21,7 +21,7 @@ real costs:
   the relying party never sees credentials).
 - The headless executor supports only **Identification, Password, and
   Authenticator-Validation** stages — no consent UI, captcha, email verification,
-  MFA *enrollment*, social login, or passkeys through this path.
+  MFA _enrollment_, social login, or passkeys through this path.
 - It is **Authentik-proprietary** and brittle against Authentik version bumps
   (hand-rolled cookie/CSRF/redirect handling).
 
@@ -96,8 +96,12 @@ sign-in passes `user`, not `account`):
 
 ```ts
 if (user?.accessToken) {
-  return { ...token, accessToken: user.accessToken,
-           expiresAt: user.expiresAt, refreshToken: user.refreshToken };
+  return {
+    ...token,
+    accessToken: user.accessToken,
+    expiresAt: user.expiresAt,
+    refreshToken: user.refreshToken,
+  };
 }
 ```
 
@@ -137,14 +141,14 @@ password reset still work for any stage the headless path can't handle.
 
 ## Files touched (summary)
 
-| File | Change |
-| --- | --- |
-| `apps/crm-web/src/lib/authentik-flow.ts` | new — `headlessLogin()` flow-executor + token-exchange driver |
-| `apps/crm-web/src/components/login-overlay.tsx` | new — inline credentials dialog |
-| `apps/crm-web/src/auth.config.ts` | add Credentials provider; extend `jwt` callback |
-| `apps/crm-web/src/types/next-auth.d.ts` | augment `User` with token fields |
-| `apps/crm-web/src/app/(dashboard)/layout.tsx` | render overlay + withhold children when unauthenticated |
-| `apps/crm-web/src/middleware.ts` | pass-through (drop redirect-to-/login for dashboard routes) |
+| File                                            | Change                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| `apps/crm-web/src/lib/authentik-flow.ts`        | new — `headlessLogin()` flow-executor + token-exchange driver |
+| `apps/crm-web/src/components/login-overlay.tsx` | new — inline credentials dialog                               |
+| `apps/crm-web/src/auth.config.ts`               | add Credentials provider; extend `jwt` callback               |
+| `apps/crm-web/src/types/next-auth.d.ts`         | augment `User` with token fields                              |
+| `apps/crm-web/src/app/(dashboard)/layout.tsx`   | render overlay + withhold children when unauthenticated       |
+| `apps/crm-web/src/middleware.ts`                | pass-through (drop redirect-to-/login for dashboard routes)   |
 
 ## Verification (end-to-end, local)
 
