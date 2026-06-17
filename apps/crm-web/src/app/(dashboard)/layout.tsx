@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react";
 
 import { Button } from "@yan/ui/components/button";
+import { ThemeSwitcher } from "@yan/ui/components/theme-switcher";
 
 import { auth, signOut } from "@/auth";
 import { authEnabled } from "@/auth.config";
@@ -48,6 +49,7 @@ export default async function DashboardLayout({
                 ? "● Dữ liệu trực tiếp (API)"
                 : "● Dữ liệu mẫu (mock)"}
             </span>
+            <ThemeSwitcher />
             {userLabel && (
               <>
                 <span className="text-xs text-muted-foreground">

@@ -13,32 +13,32 @@ page with a stage pipeline and tabs — but its backend **does not exist yet**, 
 **Công trình** sidebar page is empty in live mode.
 
 Unlike the flat resources, there is **no skeleton file** here: you create the model,
-the route file, *and* register the router in `main.py`. The crm-web side already
+the route file, _and_ register the router in `main.py`. The crm-web side already
 calls `GET /projects`, `GET /projects/{id}`, and `POST /projects`
-(see [`projects/queries.ts`](../../apps/crm-web/src/app/(dashboard)/projects/queries.ts)
-and [`projects/actions/add-project.ts`](../../apps/crm-web/src/app/(dashboard)/projects/actions/add-project.ts)).
+(see [`projects/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/projects/queries.ts>)
+and [`projects/actions/add-project.ts`](<../../apps/crm-web/src/app/(dashboard)/projects/actions/add-project.ts>)).
 
 The matching type is `Project` in
 [`apps/crm-web/src/types/index.ts`](../../apps/crm-web/src/types/index.ts).
 
 ## Fields (match the `Project` TS type exactly)
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | int | server-assigned |
-| `code` | str | business key, e.g. `CT-001` — index it (other records reference it) |
-| `name` | str | |
-| `customer` | str | customer name |
-| `type` | str | `"ve_sinh" \| "thi_cong"` |
-| `address` | str | site address |
-| `stage` | str | one of the 10 lifecycle stages (`yeu_cau`, `khao_sat`, `bao_gia`, `hop_dong`, `chuan_bi`, `thi_cong`, `nghiem_thu`, `quyet_toan`, `thanh_toan`, `dong`) |
-| `schedule_outcome` | str \| None | optional: `"on_time" \| "delayed" \| "early"` |
-| `start_date` | date | |
-| `end_date` | date | |
-| `manager` | str | |
-| `contract_value` | int | revenue (VND) |
-| `estimated_cost` | int | budgeted internal cost (VND) |
-| `progress` | int | 0..100 |
+| Field              | Type        | Notes                                                                                                                                                   |
+| ------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | int         | server-assigned                                                                                                                                         |
+| `code`             | str         | business key, e.g. `CT-001` — index it (other records reference it)                                                                                     |
+| `name`             | str         |                                                                                                                                                         |
+| `customer`         | str         | customer name                                                                                                                                           |
+| `type`             | str         | `"ve_sinh" \| "thi_cong"`                                                                                                                               |
+| `address`          | str         | site address                                                                                                                                            |
+| `stage`            | str         | one of the 10 lifecycle stages (`yeu_cau`, `khao_sat`, `bao_gia`, `hop_dong`, `chuan_bi`, `thi_cong`, `nghiem_thu`, `quyet_toan`, `thanh_toan`, `dong`) |
+| `schedule_outcome` | str \| None | optional: `"on_time" \| "delayed" \| "early"`                                                                                                           |
+| `start_date`       | date        |                                                                                                                                                         |
+| `end_date`         | date        |                                                                                                                                                         |
+| `manager`          | str         |                                                                                                                                                         |
+| `contract_value`   | int         | revenue (VND)                                                                                                                                           |
+| `estimated_cost`   | int         | budgeted internal cost (VND)                                                                                                                            |
+| `progress`         | int         | 0..100                                                                                                                                                  |
 
 ## Task
 
@@ -49,8 +49,8 @@ The matching type is `Project` in
 3. **Routes** — new `app/api/routes/projects.py` with the five CRUD handlers
    (prefix `/projects`, protected by `CurrentUser`). Copy `customers.py`.
 4. **Wire it up** — add `projects` to the import and `app.include_router(...)` calls
-   in [`app/main.py`](../../apps/crm-api/app/main.py). *(This step is new — the flat
-   resources were already wired.)*
+   in [`app/main.py`](../../apps/crm-api/app/main.py). _(This step is new — the flat
+   resources were already wired.)_
 5. **Migration:** `uv run alembic revision --autogenerate -m "projects"` →
    `uv run alembic upgrade head`.
 6. **Test** — `tests/test_projects.py`, mirroring `test_customers.py`.

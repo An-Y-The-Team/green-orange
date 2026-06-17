@@ -11,8 +11,8 @@ same shape reconciling actual costs (the `type` field discriminates them). The U
 list + a **printable A4 document** are already built; the backend isn't, so the
 **Báo giá** sidebar page is empty in live mode. The UI calls `GET /quotes`,
 `GET /quotes/{id}`, `POST /quotes` (see
-[`quotes/queries.ts`](../../apps/crm-web/src/app/(dashboard)/quotes/queries.ts) and
-[`add-quote.ts`](../../apps/crm-web/src/app/(dashboard)/quotes/actions/add-quote.ts)).
+[`quotes/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/quotes/queries.ts>) and
+[`add-quote.ts`](<../../apps/crm-web/src/app/(dashboard)/quotes/actions/add-quote.ts>)).
 
 **New concept:** a quote has a **list of line items** (`items: QuoteItem[]`). This is
 the first resource that isn't a flat row. You have two valid approaches — pick one
@@ -33,29 +33,29 @@ Type: `Quote` + `QuoteItem` in
 
 ### Quote — match the `Quote` type
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | int | server-assigned |
-| `code` | str | e.g. `BG-001` — index it |
-| `project_code` | str | the project this quotes — index it |
-| `customer` | str | |
-| `title` | str | |
-| `type` | str | `"bao_gia" \| "quyet_toan"` |
-| `issue_date` | date | |
-| `valid_until` | date | |
-| `status` | str | `"nhap" \| "da_gui" \| "da_duyet" \| "tu_choi"` (default `"nhap"`) |
-| `items` | QuoteItem[] | nested — see approach A/B above |
-| `vat_rate` | float | e.g. `0.08` for 8% |
-| `notes` | str | |
+| Field          | Type        | Notes                                                              |
+| -------------- | ----------- | ------------------------------------------------------------------ |
+| `id`           | int         | server-assigned                                                    |
+| `code`         | str         | e.g. `BG-001` — index it                                           |
+| `project_code` | str         | the project this quotes — index it                                 |
+| `customer`     | str         |                                                                    |
+| `title`        | str         |                                                                    |
+| `type`         | str         | `"bao_gia" \| "quyet_toan"`                                        |
+| `issue_date`   | date        |                                                                    |
+| `valid_until`  | date        |                                                                    |
+| `status`       | str         | `"nhap" \| "da_gui" \| "da_duyet" \| "tu_choi"` (default `"nhap"`) |
+| `items`        | QuoteItem[] | nested — see approach A/B above                                    |
+| `vat_rate`     | float       | e.g. `0.08` for 8%                                                 |
+| `notes`        | str         |                                                                    |
 
 ### QuoteItem (nested)
 
-| Field | Type |
-| --- | --- |
-| `description` | str |
-| `unit` | str |
-| `quantity` | int |
-| `unit_price` | int |
+| Field         | Type |
+| ------------- | ---- |
+| `description` | str  |
+| `unit`        | str  |
+| `quantity`    | int  |
+| `unit_price`  | int  |
 
 ## Task
 

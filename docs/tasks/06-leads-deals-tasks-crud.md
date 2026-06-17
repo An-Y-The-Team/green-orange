@@ -20,37 +20,37 @@ Match the corresponding TypeScript type in
 
 ### Leads — match the `Lead` type
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | int | server-assigned |
-| `name` | str | index it |
-| `company` | str | |
-| `source` | str | e.g. "website", "referral" |
-| `status` | str | `"new" \| "contacted" \| "qualified" \| "lost"` (default `"new"`) |
-| `value` | int | estimated value |
-| `owner` | str | |
+| Field     | Type | Notes                                                             |
+| --------- | ---- | ----------------------------------------------------------------- |
+| `id`      | int  | server-assigned                                                   |
+| `name`    | str  | index it                                                          |
+| `company` | str  |                                                                   |
+| `source`  | str  | e.g. "website", "referral"                                        |
+| `status`  | str  | `"new" \| "contacted" \| "qualified" \| "lost"` (default `"new"`) |
+| `value`   | int  | estimated value                                                   |
+| `owner`   | str  |                                                                   |
 
 ### Deals — match the `Deal` type
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | int | server-assigned |
-| `title` | str | index it |
-| `company` | str | |
-| `stage` | str | `"prospect" \| "proposal" \| "negotiation" \| "won" \| "lost"` |
-| `amount` | int | |
-| `close_date` | date | use `datetime.date`, serializes as `YYYY-MM-DD` |
+| Field        | Type | Notes                                                          |
+| ------------ | ---- | -------------------------------------------------------------- |
+| `id`         | int  | server-assigned                                                |
+| `title`      | str  | index it                                                       |
+| `company`    | str  |                                                                |
+| `stage`      | str  | `"prospect" \| "proposal" \| "negotiation" \| "won" \| "lost"` |
+| `amount`     | int  |                                                                |
+| `close_date` | date | use `datetime.date`, serializes as `YYYY-MM-DD`                |
 
 ### Tasks — match the `Task` type
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | int | server-assigned |
-| `title` | str | index it |
-| `due_date` | date | |
-| `status` | str | `"todo" \| "in_progress" \| "done"` (default `"todo"`) |
-| `priority` | str | `"low" \| "medium" \| "high"` |
-| `assignee` | str | |
+| Field      | Type | Notes                                                  |
+| ---------- | ---- | ------------------------------------------------------ |
+| `id`       | int  | server-assigned                                        |
+| `title`    | str  | index it                                               |
+| `due_date` | date |                                                        |
+| `status`   | str  | `"todo" \| "in_progress" \| "done"` (default `"todo"`) |
+| `priority` | str  | `"low" \| "medium" \| "high"`                          |
+| `assignee` | str  |                                                        |
 
 > The route prefixes (`/leads`, `/deals`, `/tasks`) and the `main.py` includes
 > already exist — you only replace the stub body.

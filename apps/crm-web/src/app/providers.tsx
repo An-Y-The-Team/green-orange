@@ -9,6 +9,8 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import * as React from "react";
 import { Toaster } from "sonner";
 
+import { ThemeProvider } from "@yan/ui/components/theme-provider";
+
 // App-Router TanStack Query setup. The data layer still runs through
 // src/lib/api today (Server Components); this provider makes Query available
 // for students to build client-side fetching/mutations on top of crm-api —
@@ -44,12 +46,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-      {/* sonner toasts — used by the shared useServerAction hook for
-          success/error feedback on server actions. */}
-      <Toaster position="top-right" richColors />
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <QueryClientProvider client={queryClient}>
+        {children}
+        {/* sonner toasts — used by the shared useServerAction hook for
+            success/error feedback on server actions. */}
+        <Toaster position="top-right" richColors />
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

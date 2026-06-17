@@ -69,7 +69,7 @@ In dev that's the server-only `CRM_API_TOKEN` (you mint it the same way as task 
 
 - The seam + transport: [`src/lib/http.ts`](../../apps/crm-web/src/lib/http.ts)
   (`apiFetch`, `apiFetchSafe`, `apiSend`).
-- The customers reads: [`src/app/(dashboard)/customers/queries.ts`](../../apps/crm-web/src/app/(dashboard)/customers/queries.ts)
+- The customers reads: [`src/app/(dashboard)/customers/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/customers/queries.ts>)
 - A list query degrades to `[]` when its endpoint is missing/erroring — that's why
   unimplemented pages render **empty** in live mode instead of crashing.
 

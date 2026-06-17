@@ -35,11 +35,12 @@ operations — **list, read, create, update, delete** — each protected by
    ```
 
    It uses in-memory SQLite, so it needs neither Postgres nor a running server.
+
 3. **Answer these for yourself** (write the answers in the issue comments):
-   - Why does `CustomerCreate` *not* include `id` or `created_at`?
+   - Why does `CustomerCreate` _not_ include `id` or `created_at`?
    - Why is every field on `CustomerUpdate` optional?
    - What does `_user: CurrentUser` do on each route, and what happens if it's removed?
-   - Where is the model *registered* so its table gets created?
+   - Where is the model _registered_ so its table gets created?
      (Hint: [`app/models/__init__.py`](../../apps/crm-api/app/models/__init__.py).)
 
 ## Acceptance criteria

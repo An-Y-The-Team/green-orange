@@ -42,6 +42,7 @@ auth.
 
    On first start the app creates the tables and seeds a demo user + sample
    customers (see [`app/main.py`](../../apps/crm-api/app/main.py) `lifespan`).
+
 4. **Verify it's alive:**
 
    ```bash

@@ -13,9 +13,9 @@ The **project detail page** has tabs that log what happens on-site: **Chi phí
 
 The UI already calls `GET /costs`, `POST /costs`, `GET /acceptances`,
 `POST /acceptances` (see
-[`projects/queries.ts`](../../apps/crm-web/src/app/(dashboard)/projects/queries.ts),
-[`add-cost.ts`](../../apps/crm-web/src/app/(dashboard)/projects/actions/add-cost.ts),
-[`add-acceptance.ts`](../../apps/crm-web/src/app/(dashboard)/projects/actions/add-acceptance.ts)).
+[`projects/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/projects/queries.ts>),
+[`add-cost.ts`](<../../apps/crm-web/src/app/(dashboard)/projects/actions/add-cost.ts>),
+[`add-acceptance.ts`](<../../apps/crm-web/src/app/(dashboard)/projects/actions/add-acceptance.ts>)).
 Types: `Cost` and `Acceptance` in
 [`src/types/index.ts`](../../apps/crm-web/src/types/index.ts).
 
@@ -27,27 +27,27 @@ optional but encouraged), and add a **filter query param** `project_code`.
 
 ### Cost — match the `Cost` type
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | int | server-assigned |
-| `project_code` | str | parent project's `code` — index it |
-| `date` | date | |
-| `category` | str | `"vat_tu" \| "nhan_cong" \| "thiet_bi" \| "su_co" \| "khac"` |
-| `description` | str | |
-| `amount` | int | VND |
-| `is_incident` | bool | true for `su_co` breakages |
+| Field          | Type | Notes                                                        |
+| -------------- | ---- | ------------------------------------------------------------ |
+| `id`           | int  | server-assigned                                              |
+| `project_code` | str  | parent project's `code` — index it                           |
+| `date`         | date |                                                              |
+| `category`     | str  | `"vat_tu" \| "nhan_cong" \| "thiet_bi" \| "su_co" \| "khac"` |
+| `description`  | str  |                                                              |
+| `amount`       | int  | VND                                                          |
+| `is_incident`  | bool | true for `su_co` breakages                                   |
 
 ### Acceptance — match the `Acceptance` type
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | int | server-assigned |
-| `project_code` | str | parent project's `code` — index it |
-| `date` | date | |
-| `status` | str | `"cho_nghiem_thu" \| "da_nghiem_thu" \| "co_van_de"` |
-| `inspector` | str | |
-| `client_rep` | str | client representative |
-| `notes` | str | |
+| Field          | Type | Notes                                                |
+| -------------- | ---- | ---------------------------------------------------- |
+| `id`           | int  | server-assigned                                      |
+| `project_code` | str  | parent project's `code` — index it                   |
+| `date`         | date |                                                      |
+| `status`       | str  | `"cho_nghiem_thu" \| "da_nghiem_thu" \| "co_van_de"` |
+| `inspector`    | str  |                                                      |
+| `client_rep`   | str  | client representative                                |
+| `notes`        | str  |                                                      |
 
 ## Task
 

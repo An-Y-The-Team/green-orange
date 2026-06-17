@@ -9,7 +9,7 @@
 `contacts` is currently a `501` stub
 ([`app/api/routes/contacts.py`](../../apps/crm-api/app/api/routes/contacts.py)).
 Your job: make it a full CRUD resource by **mirroring `customers`**. This is the
-flat, no-surprises resource — get the *workflow* (model → register → routes →
+flat, no-surprises resource — get the _workflow_ (model → register → routes →
 migration → test) into muscle memory here; tasks 06–11 reuse it.
 
 The matching UI type is `Contact` in
@@ -17,14 +17,14 @@ The matching UI type is `Contact` in
 
 ## Fields (must match the `Contact` TS type exactly)
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | int | server-assigned (table only) |
-| `name` | str | index it, like `customers` |
-| `email` | str | |
-| `phone` | str | |
-| `title` | str | job title |
-| `company` | str | |
+| Field     | Type | Notes                        |
+| --------- | ---- | ---------------------------- |
+| `id`      | int  | server-assigned (table only) |
+| `name`    | str  | index it, like `customers`   |
+| `email`   | str  |                              |
+| `phone`   | str  |                              |
+| `title`   | str  | job title                    |
+| `company` | str  |                              |
 
 > Note: unlike `Customer`, the `Contact` type has **no** `created_at` — match the
 > TS type, don't add fields it doesn't have.
@@ -58,8 +58,8 @@ The matching UI type is `Contact` in
 - [ ] `ContactPublic` fields match the `Contact` TS type 1:1.
 - [ ] An Alembic migration for the `contact` table is committed.
 - [ ] `tests/test_contacts.py` passes under `uv run pytest -q`.
-- [ ] Visiting `/contacts` in crm-web (live mode) shows your data. *(The page is on
-      disk but not in the sidebar — navigate to it directly.)*
+- [ ] Visiting `/contacts` in crm-web (live mode) shows your data. _(The page is on
+      disk but not in the sidebar — navigate to it directly.)_
 
 ## Hints & references
 

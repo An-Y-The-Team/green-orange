@@ -11,8 +11,8 @@ contract is collected in stages — tạm ứng (advance), theo tiến độ (pr
 nghiệm thu (acceptance), and a retained amount held until warranty ends. The **Thu /
 Nợ** sidebar page is built but empty in live mode; it calls `GET /payment-milestones`
 and `POST /payment-milestones` (see
-[`receivables/queries.ts`](../../apps/crm-web/src/app/(dashboard)/receivables/queries.ts)
-and [`add-payment-milestone.ts`](../../apps/crm-web/src/app/(dashboard)/receivables/actions/add-payment-milestone.ts)).
+[`receivables/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/receivables/queries.ts>)
+and [`add-payment-milestone.ts`](<../../apps/crm-web/src/app/(dashboard)/receivables/actions/add-payment-milestone.ts>)).
 
 **New concept — a business rule, not just CRUD.** Some milestones are
 `gated_by_acceptance`: they **cannot be collected until the project's nghiệm thu is
@@ -25,19 +25,19 @@ Type: `PaymentMilestone` in
 
 ## Fields (match the `PaymentMilestone` TS type exactly)
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | int | server-assigned |
-| `contract_code` | str | parent contract `code` — index it |
-| `project_code` | str | parent project `code` — index it |
-| `customer` | str | |
-| `name` | str | e.g. "Tạm ứng đợt 1" |
-| `type` | str | `"tam_ung" \| "tien_do" \| "nghiem_thu" \| "giu_bao_hanh"` |
-| `status` | str | `"chua_den_han" \| "cho_thanh_toan" \| "da_thu" \| "qua_han"` |
-| `due_amount` | int | amount due (VND) |
-| `paid_amount` | int | amount collected so far (VND), default `0` |
-| `due_date` | date | |
-| `gated_by_acceptance` | bool | cannot collect until nghiệm thu is done |
+| Field                 | Type | Notes                                                         |
+| --------------------- | ---- | ------------------------------------------------------------- |
+| `id`                  | int  | server-assigned                                               |
+| `contract_code`       | str  | parent contract `code` — index it                             |
+| `project_code`        | str  | parent project `code` — index it                              |
+| `customer`            | str  |                                                               |
+| `name`                | str  | e.g. "Tạm ứng đợt 1"                                          |
+| `type`                | str  | `"tam_ung" \| "tien_do" \| "nghiem_thu" \| "giu_bao_hanh"`    |
+| `status`              | str  | `"chua_den_han" \| "cho_thanh_toan" \| "da_thu" \| "qua_han"` |
+| `due_amount`          | int  | amount due (VND)                                              |
+| `paid_amount`         | int  | amount collected so far (VND), default `0`                    |
+| `due_date`            | date |                                                               |
+| `gated_by_acceptance` | bool | cannot collect until nghiệm thu is done                       |
 
 ## Task
 

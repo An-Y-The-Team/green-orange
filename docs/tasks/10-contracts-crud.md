@@ -11,8 +11,8 @@ value and payment terms, and it's the parent of the payment milestones in
 [#11](11-payment-milestones.md). The UI list + a printable contract document are
 built; the backend isn't, so the **Hợp đồng** sidebar page is empty in live mode.
 The UI calls `GET /contracts`, `GET /contracts/{id}`, `POST /contracts` (see
-[`contracts/queries.ts`](../../apps/crm-web/src/app/(dashboard)/contracts/queries.ts)
-and [`add-contract.ts`](../../apps/crm-web/src/app/(dashboard)/contracts/actions/add-contract.ts)).
+[`contracts/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/contracts/queries.ts>)
+and [`add-contract.ts`](<../../apps/crm-web/src/app/(dashboard)/contracts/actions/add-contract.ts>)).
 
 This is a **flat resource** like contacts — no nesting — but it's a visible business
 page, and its `code` is referenced by payment milestones. Good warm-up before the
@@ -22,19 +22,19 @@ Type: `Contract` in [`src/types/index.ts`](../../apps/crm-web/src/types/index.ts
 
 ## Fields (match the `Contract` TS type exactly)
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | int | server-assigned |
-| `code` | str | e.g. `HD-001` — index it (milestones reference it) |
-| `project_code` | str | the project — index it |
-| `customer` | str | |
-| `title` | str | |
-| `value` | int | contract value (VND) |
-| `signed_date` | date | |
-| `start_date` | date | |
-| `end_date` | date | |
-| `status` | str | `"nhap" \| "da_ky" \| "dang_thuc_hien" \| "thanh_ly"` (default `"nhap"`) |
-| `payment_terms` | str | free text |
+| Field           | Type | Notes                                                                    |
+| --------------- | ---- | ------------------------------------------------------------------------ |
+| `id`            | int  | server-assigned                                                          |
+| `code`          | str  | e.g. `HD-001` — index it (milestones reference it)                       |
+| `project_code`  | str  | the project — index it                                                   |
+| `customer`      | str  |                                                                          |
+| `title`         | str  |                                                                          |
+| `value`         | int  | contract value (VND)                                                     |
+| `signed_date`   | date |                                                                          |
+| `start_date`    | date |                                                                          |
+| `end_date`      | date |                                                                          |
+| `status`        | str  | `"nhap" \| "da_ky" \| "dang_thuc_hien" \| "thanh_ly"` (default `"nhap"`) |
+| `payment_terms` | str  | free text                                                                |
 
 ## Task
 
