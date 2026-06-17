@@ -90,8 +90,8 @@ export function ProjectFormDialog() {
         <DialogHeader>
           <DialogTitle>Công trình mới</DialogTitle>
           <DialogDescription>
-            Xác thực phía client (react-hook-form + Zod) rồi lưu qua Server
-            Action.
+            Thêm công trình mới vào hệ thống. Điền đầy đủ thông tin dưới đây để
+            tạo công trình mới.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

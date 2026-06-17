@@ -91,8 +91,8 @@ export function ContractFormDialog() {
         <DialogHeader>
           <DialogTitle>Hợp đồng mới</DialogTitle>
           <DialogDescription>
-            Xác thực phía client (react-hook-form + Zod) rồi lưu qua Server
-            Action.
+            Thêm hợp đồng mới vào hệ thống. Điền đầy đủ thông tin dưới đây để
+            tạo hợp đồng mới.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

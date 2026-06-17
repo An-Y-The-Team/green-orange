@@ -94,8 +94,8 @@ export function CustomerFormDialog() {
         <DialogHeader>
           <DialogTitle>Khách hàng mới</DialogTitle>
           <DialogDescription>
-            Xác thực phía client (react-hook-form + Zod) rồi lưu qua Server
-            Action.
+            Thêm khách hàng mới vào hệ thống. Điền đầy đủ thông tin dưới đây để
+            tạo khách hàng mới.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
