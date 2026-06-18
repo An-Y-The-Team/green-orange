@@ -9,8 +9,8 @@
 **Mẫu hợp đồng (Contract Template)** is user-authored boilerplate — clauses and
 headings with `{{placeholders}}` (e.g. `{{customer}}`, `{{value}}`,
 `{{company.name}}`) that get merged with a contract's data when the printable
-document is rendered. The *variable* data lives on the `Contract`; the *reusable
-prose* lives on the template. A contract optionally references one via a new
+document is rendered. The _variable_ data lives on the `Contract`; the _reusable
+prose_ lives on the template. A contract optionally references one via a new
 `template_id` field — when set, its detail page renders the merged document;
 when unset, it falls back to the built-in hard-coded layout.
 
