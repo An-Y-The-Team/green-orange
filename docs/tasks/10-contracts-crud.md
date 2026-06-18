@@ -36,6 +36,10 @@ Type: `Contract` in [`src/types/index.ts`](../../apps/crm-web/src/types/index.ts
 | `status`        | str  | `"nhap" \| "da_ky" \| "dang_thuc_hien" \| "thanh_ly"` (default `"nhap"`) |
 | `payment_terms` | str  | free text                                                                |
 
+> The `Contract` type also has an optional `template_id` (printable template). It
+> is **out of scope here** — leave it out for now; [#12 — Contract
+> Templates](12-contract-templates.md) adds the column and the related table.
+
 ## Task
 
 1. Model `app/models/contract.py` (`Base`/table/`Create`/`Public`/`Update`); index

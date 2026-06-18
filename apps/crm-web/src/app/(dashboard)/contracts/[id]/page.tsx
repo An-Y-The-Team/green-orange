@@ -5,8 +5,10 @@ import { notFound } from "next/navigation";
 import { DocumentShell, SignatureBlocks } from "@/components/document-shell";
 import { company } from "@/config/company";
 import { formatDate, formatVND } from "@/lib/format";
+import { buildContractContext, mergeTemplate } from "@/lib/merge-template";
 
-import { getContract } from "../queries";
+import { ContractDocumentBody } from "../components/contract-document";
+import { getContract, getContractTemplate } from "../queries";
 
 export default async function ContractDocumentPage({
   params,
@@ -18,6 +20,35 @@ export default async function ContractDocumentPage({
 
   if (!contract) {
     notFound();
+  }
+
+  // When the contract points at a template, render the merged document; the
+  // built-in layout below stays as the fallback for template-less contracts.
+  const template = contract.template_id
+    ? await getContractTemplate(contract.template_id)
+    : undefined;
+
+  if (template) {
+    const merged = mergeTemplate(template.body, buildContractContext(contract));
+    return (
+      <>
+        <Link
+          href="/contracts"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
+        >
+          <ArrowLeft className="size-4" />
+          Quay lại danh sách
+        </Link>
+
+        <DocumentShell
+          title={template.doc_title}
+          subtitle={`Số: ${contract.code}`}
+        >
+          <ContractDocumentBody body={merged} />
+          <SignatureBlocks />
+        </DocumentShell>
+      </>
+    );
   }
 
   return (

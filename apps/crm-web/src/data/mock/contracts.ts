@@ -19,6 +19,7 @@ export const contracts: Contract[] = [
     end_date: "2026-06-30",
     status: "dang_thuc_hien",
     payment_terms: STANDARD_TERMS,
+    template_id: 1,
   },
   {
     id: 2,
@@ -32,6 +33,7 @@ export const contracts: Contract[] = [
     end_date: "2026-05-15",
     status: "dang_thuc_hien",
     payment_terms: STANDARD_TERMS,
+    template_id: 2,
   },
   {
     id: 3,
@@ -45,6 +47,7 @@ export const contracts: Contract[] = [
     end_date: "2026-03-10",
     status: "dang_thuc_hien",
     payment_terms: STANDARD_TERMS,
+    template_id: 1,
   },
   {
     id: 4,

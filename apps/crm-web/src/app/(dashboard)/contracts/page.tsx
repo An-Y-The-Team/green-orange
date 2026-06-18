@@ -1,6 +1,8 @@
+import { FileText, Plus } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 import { Card } from "@yan/ui/components/card";
 import {
   Table,
@@ -15,7 +17,6 @@ import { PageHeader } from "@/components/page-header";
 import { formatDate, formatVND } from "@/lib/format";
 import { contractStatus } from "@/lib/labels";
 
-import { ContractFormDialog } from "./components/contract-form-dialog/contract-form-dialog";
 import { listContracts } from "./queries";
 
 export default async function ContractsPage() {
@@ -27,7 +28,22 @@ export default async function ContractsPage() {
       <PageHeader
         title="Hợp đồng"
         description={`${contracts.length} hợp đồng · ${formatVND(total)} tổng giá trị`}
-        action={<ContractFormDialog />}
+        action={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href="/contracts/templates" />}
+            >
+              <FileText />
+              Mẫu hợp đồng
+            </Button>
+            <Button size="sm" render={<Link href="/contracts/new" />}>
+              <Plus />
+              Tạo hợp đồng
+            </Button>
+          </div>
+        }
       />
       <Card className="py-0">
         <Table>

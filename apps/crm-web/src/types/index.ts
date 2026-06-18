@@ -159,6 +159,21 @@ export interface Contract {
   end_date: string;
   status: ContractStatus;
   payment_terms: string;
+  // Optional printable template. When set, the contract document is rendered by
+  // merging this template's body with the contract's data; when unset, the
+  // detail page falls back to the built-in hard-coded layout.
+  template_id?: number;
+}
+
+// Mẫu hợp đồng — user-authored boilerplate (clauses, headings) with
+// {{placeholders}} that merge against a contract's data at render time. The
+// variable data lives on the Contract; the reusable prose lives here.
+export interface ContractTemplate {
+  id: number;
+  name: string; // internal name, e.g. "Hợp đồng vệ sinh định kỳ"
+  doc_title: string; // printed heading, e.g. "HỢP ĐỒNG DỊCH VỤ VỆ SINH"
+  body: string; // text with {{tokens}}; see lib/merge-template.ts
+  is_active: boolean;
 }
 
 // Chi phí — actual costs and incidents/breakages logged during work (step 10).

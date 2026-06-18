@@ -29,6 +29,7 @@ Two families of resources are still missing a backend:
 | Công trình (`/projects`)                            | `/projects`, `/costs`, `/acceptances` | 🔴 no backend yet                       |
 | Báo giá (`/quotes`)                                 | `/quotes`                             | 🔴 no backend yet                       |
 | Hợp đồng (`/contracts`)                             | `/contracts`                          | 🔴 no backend yet                       |
+| Mẫu hợp đồng (`/contracts/templates`)               | `/contract-templates`                 | 🔴 no backend yet                       |
 | Thu / Nợ (`/receivables`)                           | `/payment-milestones`                 | 🔴 no backend yet                       |
 
 > The flat resources (contacts/leads/deals/tasks) have pages on disk but they are
@@ -50,7 +51,7 @@ Two families of resources are still missing a backend:
 
 **2a. Learn the CRUD pattern on a flat resource** 5. [05 — Implement Contacts CRUD (guided)](05-contacts-crud.md) 6. [06 — Implement Leads, Deals & Tasks (more reps)](06-leads-deals-tasks-crud.md)
 
-**2b. Bring the visible business UI to life (GreenOrange domain)** 7. [07 — Implement Projects / Công trình](07-projects-crud.md) 8. [08 — Implement Costs & Acceptances (project sub-resources)](08-costs-and-acceptances.md) 9. [09 — Implement Quotes / Báo giá (with line items)](09-quotes-crud.md) 10. [10 — Implement Contracts / Hợp đồng](10-contracts-crud.md) 11. [11 — Implement Payment Milestones / Thu-Nợ (with a business rule)](11-payment-milestones.md)
+**2b. Bring the visible business UI to life (GreenOrange domain)** 7. [07 — Implement Projects / Công trình](07-projects-crud.md) 8. [08 — Implement Costs & Acceptances (project sub-resources)](08-costs-and-acceptances.md) 9. [09 — Implement Quotes / Báo giá (with line items)](09-quotes-crud.md) 10. [10 — Implement Contracts / Hợp đồng](10-contracts-crud.md) 11. [11 — Implement Payment Milestones / Thu-Nợ (with a business rule)](11-payment-milestones.md) 12. [12 — Implement Contract Templates / Mẫu hợp đồng](12-contract-templates.md)
 
 ## Suggested split for 3 students
 
