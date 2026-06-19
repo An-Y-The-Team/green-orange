@@ -30,7 +30,7 @@ The **entire UI is built and works on mock data** (`apps/crm-web`):
   [`lib/merge-template.ts`](../../apps/crm-web/src/lib/merge-template.ts). The
   merge itself is node-level — merge-field nodes in the Lexical body are resolved
   against a contract's data by
-  [`components/editor/lexical-document.tsx`](<../../apps/crm-web/src/components/editor/lexical-document.tsx>);
+  [`components/editor/lexical-document.tsx`](../../apps/crm-web/src/components/editor/lexical-document.tsx);
   unknown tokens render as `⟨token?⟩`.
 - The contract create form is now a **page** (`/contracts/new`, not a modal) with
   a template picker.

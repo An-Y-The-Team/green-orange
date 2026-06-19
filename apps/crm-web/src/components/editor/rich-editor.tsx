@@ -41,23 +41,25 @@ export function RichEditor({
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-md border">
         <div className="flex flex-wrap items-center gap-0.5 border-b p-1">
           <Toolbar />
           <span className="mx-1 h-5 w-px bg-border" />
           <DocxImportButton />
         </div>
         <TokenPalette />
-        <div className="relative">
+        {/* The content is a white "paper" surface (like the print sheet) so the
+            zinc document typography stays readable in both light and dark mode. */}
+        <div className="relative bg-white text-zinc-900">
           <RichTextPlugin
             contentEditable={
               <ContentEditable
                 aria-label="Nội dung tài liệu"
-                className="min-h-[24rem] px-3 py-2 text-xs leading-relaxed outline-none"
+                className="min-h-[24rem] px-3 py-2 text-xs leading-relaxed text-zinc-900 outline-none"
               />
             }
             placeholder={
-              <div className="pointer-events-none absolute left-3 top-2 text-xs text-muted-foreground">
+              <div className="pointer-events-none absolute left-3 top-2 text-xs text-zinc-400">
                 Soạn nội dung tài liệu…
               </div>
             }
