@@ -159,10 +159,25 @@ export interface Contract {
   end_date: string;
   status: ContractStatus;
   payment_terms: string;
+  // Party A (customer) profile — printed in the contract preamble. `customer` is
+  // the legal name; these optional fields fill the rest of the party block.
+  customer_address?: string;
+  customer_tax_code?: string;
+  customer_rep?: string; // người đại diện
+  customer_position?: string; // chức vụ
+  customer_phone?: string;
+  // VAT rate applied to the contract value (e.g. 0.08). Drives the financial
+  // breakdown tokens (before-tax / VAT amount). Defaults to 0.08 when unset.
+  vat_rate?: number;
   // Optional printable template. When set, the contract document is rendered by
   // merging this template's body with the contract's data; when unset, the
   // detail page falls back to the built-in hard-coded layout.
   template_id?: number;
+  // Rich-text clause prose (Lexical editorState JSON, string form). Seeded from
+  // the chosen template on create, then editable per contract. Merge tokens stay
+  // live (resolved at render). When present it supersedes the template body on
+  // the detail page; see components/editor/lexical-document.tsx.
+  body?: string;
 }
 
 // Mẫu hợp đồng — user-authored boilerplate (clauses, headings) with
@@ -172,7 +187,10 @@ export interface ContractTemplate {
   id: number;
   name: string; // internal name, e.g. "Hợp đồng vệ sinh định kỳ"
   doc_title: string; // printed heading, e.g. "HỢP ĐỒNG DỊCH VỤ VỆ SINH"
-  body: string; // text with {{tokens}}; see lib/merge-template.ts
+  body: string; // Lexical editorState JSON (string form); see lib/lexical-build.ts
+  // Printed header style: "national" = CHXHCN VN motto (legal contracts),
+  // "letterhead" = company branding. Defaults to "letterhead" when unset.
+  header_style?: "letterhead" | "national";
   is_active: boolean;
 }
 

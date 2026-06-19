@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { lexicalPlainText } from "@/lib/lexical-build";
+
 // Hợp đồng form schema — shared by the dialog and the add-contract action.
 export const contractSchema = z.object({
   title: z.string().min(3, "Tiêu đề phải có ít nhất 3 ký tự"),
@@ -17,6 +19,10 @@ export const contractSchema = z.object({
     (v) => (v === "" || v === undefined || v === null ? undefined : Number(v)),
     z.number().int().positive().optional()
   ),
+  // Rich-text clause prose (Lexical JSON, string form). Seeded from the template
+  // on create and edited per contract; optional so contracts can be saved before
+  // the body is authored. Stored as an opaque string — no server-side parsing.
+  body: z.string().optional(),
 });
 export type ContractFormValues = z.infer<typeof contractSchema>;
 
@@ -24,7 +30,27 @@ export type ContractFormValues = z.infer<typeof contractSchema>;
 export const contractTemplateSchema = z.object({
   name: z.string().min(3, "Tên mẫu phải có ít nhất 3 ký tự"),
   doc_title: z.string().min(3, "Tiêu đề tài liệu phải có ít nhất 3 ký tự"),
-  body: z.string().min(10, "Nội dung mẫu quá ngắn"),
+  // Lexical editorState JSON (string form). The old min-length char check is
+  // meaningless against serialised JSON (an empty doc is already long), so
+  // validate real content via extracted plain text instead.
+  body: z
+    .string()
+    .refine(
+      (v) => lexicalPlainText(v).length > 0,
+      "Nội dung mẫu không được để trống"
+    ),
+  header_style: z.enum(["letterhead", "national"]).default("letterhead"),
   is_active: z.coerce.boolean(),
 });
 export type ContractTemplateFormValues = z.infer<typeof contractTemplateSchema>;
+
+// Per-contract rich body — edited on the contract edit page.
+export const contractBodySchema = z.object({
+  body: z
+    .string()
+    .refine(
+      (v) => lexicalPlainText(v).length > 0,
+      "Nội dung không được để trống"
+    ),
+});
+export type ContractBodyFormValues = z.infer<typeof contractBodySchema>;

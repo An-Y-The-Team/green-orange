@@ -12,3 +12,17 @@ export async function getQuote(id: number): Promise<Quote | undefined> {
   }
   return quotes.find((q) => q.id === id);
 }
+
+/**
+ * The báo giá (initial quote) for a project — drives a contract's line-items
+ * block. Prefers `type: "bao_gia"`; falls back to any quote for the project.
+ */
+export async function getQuoteByProjectCode(
+  projectCode: string
+): Promise<Quote | undefined> {
+  const all = await listQuotes();
+  return (
+    all.find((q) => q.project_code === projectCode && q.type === "bao_gia") ??
+    all.find((q) => q.project_code === projectCode)
+  );
+}

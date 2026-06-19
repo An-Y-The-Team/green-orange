@@ -1,13 +1,17 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { buttonVariants } from "@yan/ui/components/button";
+
 import { DocumentShell, SignatureBlocks } from "@/components/document-shell";
+import { DocxExportButton } from "@/components/editor/docx-export-button";
+import { LexicalDocument } from "@/components/editor/lexical-document";
 import { company } from "@/config/company";
 import { formatDate, formatVND } from "@/lib/format";
-import { buildContractContext, mergeTemplate } from "@/lib/merge-template";
+import { buildContractContext } from "@/lib/merge-template";
 
-import { ContractDocumentBody } from "../components/contract-document";
+import { getQuoteByProjectCode } from "../../quotes/queries";
 import { getContract, getContractTemplate } from "../queries";
 
 export default async function ContractDocumentPage({
@@ -22,29 +26,60 @@ export default async function ContractDocumentPage({
     notFound();
   }
 
-  // When the contract points at a template, render the merged document; the
-  // built-in layout below stays as the fallback for template-less contracts.
+  const backLink = (
+    <Link
+      href="/contracts"
+      className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
+    >
+      <ArrowLeft className="size-4" />
+      Quay lại danh sách
+    </Link>
+  );
+
+  // The contract's own rich body wins (edited per contract); otherwise seed from
+  // its template body; otherwise fall back to the built-in hard-coded layout.
   const template = contract.template_id
     ? await getContractTemplate(contract.template_id)
     : undefined;
+  const body = contract.body ?? template?.body;
 
-  if (template) {
-    const merged = mergeTemplate(template.body, buildContractContext(contract));
+  if (body) {
+    const ctx = buildContractContext(contract);
+    const docTitle = template?.doc_title ?? "HỢP ĐỒNG";
+    const headerVariant = template?.header_style ?? "letterhead";
+    // Resolve the linked báo giá to drive the line-items block (if any).
+    const quote = await getQuoteByProjectCode(contract.project_code);
+    const lineItems = quote
+      ? { items: quote.items, vatRate: quote.vat_rate }
+      : null;
     return (
       <>
-        <Link
-          href="/contracts"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
-        >
-          <ArrowLeft className="size-4" />
-          Quay lại danh sách
-        </Link>
+        <div className="mb-4 flex items-center justify-between print:hidden">
+          {backLink}
+          <Link
+            href={`/contracts/${contract.id}/edit`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <Pencil />
+            Sửa nội dung
+          </Link>
+        </div>
 
         <DocumentShell
-          title={template.doc_title}
+          title={docTitle}
           subtitle={`Số: ${contract.code}`}
+          headerVariant={headerVariant}
+          actions={
+            <DocxExportButton
+              body={body}
+              ctx={ctx}
+              lineItems={lineItems}
+              title={docTitle}
+              fileName={`${contract.code}.docx`}
+            />
+          }
         >
-          <ContractDocumentBody body={merged} />
+          <LexicalDocument body={body} ctx={ctx} lineItems={lineItems} />
           <SignatureBlocks />
         </DocumentShell>
       </>
@@ -53,13 +88,7 @@ export default async function ContractDocumentPage({
 
   return (
     <>
-      <Link
-        href="/contracts"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
-      >
-        <ArrowLeft className="size-4" />
-        Quay lại danh sách
-      </Link>
+      {backLink}
 
       <DocumentShell title="HỢP ĐỒNG DỊCH VỤ" subtitle={`Số: ${contract.code}`}>
         <p className="text-xs leading-relaxed text-zinc-600">

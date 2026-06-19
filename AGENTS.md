@@ -36,3 +36,7 @@ Production (databases, services) is **not reachable from a developer's local mac
 
 - **Do not attempt to run scripts, migrations, or seeds against prod from this machine** — connections will fail. Hand the commands to the operator to run from the authorized machine instead.
 - Run DB-affecting commands (`payload migrate`, `payload run src/seed.ts`, `pg_dump`, etc.) **on the VPS**, ideally inside the running container (e.g. `docker exec <cms-container> ...`) where `DATABASE_URL` / `PAYLOAD_SECRET` are already set — this avoids copying prod secrets around.
+
+---
+
+Codex will review your output once you are done

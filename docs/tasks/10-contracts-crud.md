@@ -36,9 +36,16 @@ Type: `Contract` in [`src/types/index.ts`](../../apps/crm-web/src/types/index.ts
 | `status`        | str  | `"nhap" \| "da_ky" \| "dang_thuc_hien" \| "thanh_ly"` (default `"nhap"`) |
 | `payment_terms` | str  | free text                                                                |
 
-> The `Contract` type also has an optional `template_id` (printable template). It
-> is **out of scope here** — leave it out for now; [#12 — Contract
-> Templates](12-contract-templates.md) adds the column and the related table.
+> The `Contract` type also carries several **optional** fields used only by the
+> printable document feature — all **out of scope here**; [#12 — Contract
+> Templates](12-contract-templates.md) adds them with the related table:
+>
+> - `template_id` (int, FK) and `body` (rich clause prose — a Lexical editorState
+>   JSON string, stored as an opaque long `str`/`text`, never parsed server-side).
+> - Party A profile: `customer_address`, `customer_tax_code`, `customer_rep`,
+>   `customer_position`, `customer_phone` (all nullable `str`).
+> - `vat_rate` (float, nullable; e.g. `0.08`) — the document's financial breakdown
+>   is derived from this on the client; the API just stores/returns it.
 
 ## Task
 

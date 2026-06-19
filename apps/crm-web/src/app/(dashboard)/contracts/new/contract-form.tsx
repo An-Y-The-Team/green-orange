@@ -62,8 +62,11 @@ export function ContractForm({ templates }: { templates: ContractTemplate[] }) {
   });
 
   const onValid = (values: ContractFormValues) => {
+    // Seed the contract body from the chosen template (copy its Lexical JSON);
+    // tokens stay live and the body is editable per contract afterwards.
+    const template = templates.find((t) => t.id === values.template_id);
     resetActionProcessed();
-    startTransition(() => formAction(values));
+    startTransition(() => formAction({ ...values, body: template?.body }));
   };
 
   return (

@@ -26,6 +26,14 @@
     max-width: none !important;
     width: 100% !important;
   }
+  /* Keep a row together, and repeat table headers, when a table spans pages. */
+  .print-sheet tr,
+  .print-sheet img {
+    break-inside: avoid;
+  }
+  .print-sheet thead {
+    display: table-header-group;
+  }
   @page {
     margin: 16mm;
   }

@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useActionState, useRef, useTransition } from "react";
+import { useActionState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import {
@@ -19,18 +19,19 @@ import {
   FormMessage,
 } from "@yan/ui/components/form";
 import { Input } from "@yan/ui/components/input";
-import { Textarea } from "@yan/ui/components/textarea";
 
 import { DocumentShell, SignatureBlocks } from "@/components/document-shell";
+import { DocxExportButton } from "@/components/editor/docx-export-button";
 import {
-  CONTRACT_TOKENS,
-  mergeTemplate,
-  previewContext,
-} from "@/lib/merge-template";
+  LexicalDocument,
+  type LineItemsData,
+} from "@/components/editor/lexical-document";
+import { RichEditor } from "@/components/editor/rich-editor";
+import { selectClass } from "@/components/form-bits";
+import { previewContext } from "@/lib/merge-template";
 import type { ContractTemplate } from "@/types";
 
 import { saveTemplate } from "../actions/save-template";
-import { ContractDocumentBody } from "../components/contract-document";
 import {
   type ContractTemplateFormValues,
   contractTemplateSchema,
@@ -44,9 +45,33 @@ const initialState: ServerActionState = {
 
 const SAMPLE_CTX = previewContext();
 
+// Stand-in pricing so authors see the báo giá block's shape in the preview.
+const SAMPLE_LINE_ITEMS: LineItemsData = {
+  vatRate: 0.08,
+  items: [
+    {
+      description: "Bảo hiểm công trình",
+      unit: "Gói",
+      quantity: 1,
+      unit_price: 4_000_000,
+    },
+    {
+      description: "Cung cấp & thay tấm trần",
+      unit: "Tấm",
+      quantity: 65,
+      unit_price: 130_000,
+    },
+    {
+      description: "Lăn epoxy sàn",
+      unit: "m²",
+      quantity: 143,
+      unit_price: 165_000,
+    },
+  ],
+};
+
 export function TemplateEditor({ template }: { template?: ContractTemplate }) {
   const router = useRouter();
-  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Bind the template id (edit) or undefined (create) to the action so the
@@ -61,6 +86,7 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
       name: template?.name ?? "",
       doc_title: template?.doc_title ?? "",
       body: template?.body ?? "",
+      header_style: template?.header_style ?? "national",
       is_active: template?.is_active ?? true,
     },
   });
@@ -75,28 +101,15 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
     startTransition(() => formAction(values));
   };
 
-  // Insert a {{token}} at the caret in the body textarea.
-  const insertToken = (token: string) => {
-    const el = bodyRef.current;
-    const current = form.getValues("body");
-    const snippet = `{{${token}}}`;
-    const start = el?.selectionStart ?? current.length;
-    const end = el?.selectionEnd ?? current.length;
-    const next = current.slice(0, start) + snippet + current.slice(end);
-    form.setValue("body", next, { shouldValidate: true, shouldDirty: true });
-    // Restore focus and place the caret after the inserted token.
-    requestAnimationFrame(() => {
-      el?.focus();
-      const pos = start + snippet.length;
-      el?.setSelectionRange(pos, pos);
-    });
-  };
-
   // useWatch (vs form.watch) is React-Compiler-safe — it subscribes via a hook
   // rather than returning a non-memoizable function, so the live preview stays
   // in sync without stale-UI warnings.
   const watchedBody = useWatch({ control: form.control, name: "body" });
   const watchedTitle = useWatch({ control: form.control, name: "doc_title" });
+  const watchedHeader = useWatch({
+    control: form.control,
+    name: "header_style",
+  });
 
   return (
     <Form {...form}>
@@ -133,29 +146,6 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
             )}
           />
 
-          {/* Token palette */}
-          <div>
-            <p className="mb-1.5 text-sm font-medium">Chèn trường dữ liệu</p>
-            <div className="flex flex-wrap gap-1.5">
-              {CONTRACT_TOKENS.map((t) => (
-                <Button
-                  key={t.token}
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={() => insertToken(t.token)}
-                  title={`{{${t.token}}}`}
-                >
-                  {t.label}
-                </Button>
-              ))}
-            </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Dùng <code>## Tiêu đề</code> để tạo điều khoản. Trường lạ sẽ hiện
-              ⟨tên?⟩ trong bản xem trước.
-            </p>
-          </div>
-
           <FormField
             control={form.control}
             name="body"
@@ -163,15 +153,28 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
               <FormItem>
                 <FormLabel>Nội dung mẫu</FormLabel>
                 <FormControl>
-                  <Textarea
-                    rows={18}
-                    className="font-mono text-xs"
-                    {...field}
-                    ref={(el) => {
-                      field.ref(el);
-                      bodyRef.current = el;
-                    }}
-                  />
+                  <RichEditor value={field.value} onChange={field.onChange} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="header_style"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Kiểu đầu trang</FormLabel>
+                <FormControl>
+                  <select {...field} className={selectClass}>
+                    <option value="national">
+                      Quốc hiệu (CHXHCN Việt Nam) — hợp đồng
+                    </option>
+                    <option value="letterhead">
+                      Letterhead công ty — báo giá/khác
+                    </option>
+                  </select>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -214,12 +217,26 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
 
         {/* Live preview column */}
         <div className="lg:sticky lg:top-4 lg:self-start">
-          <p className="mb-2 text-sm font-medium text-muted-foreground">
-            Xem trước (dữ liệu mẫu)
-          </p>
-          <DocumentShell title={watchedTitle || "TIÊU ĐỀ TÀI LIỆU"}>
-            <ContractDocumentBody
-              body={mergeTemplate(watchedBody, SAMPLE_CTX)}
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">
+              Xem trước (dữ liệu mẫu)
+            </p>
+            <DocxExportButton
+              body={watchedBody}
+              lineItems={SAMPLE_LINE_ITEMS}
+              title={watchedTitle || "MẪU HỢP ĐỒNG"}
+              fileName={`${watchedTitle || "mau-hop-dong"}.docx`}
+              label="Xuất .docx (mẫu)"
+            />
+          </div>
+          <DocumentShell
+            title={watchedTitle || "TIÊU ĐỀ TÀI LIỆU"}
+            headerVariant={watchedHeader}
+          >
+            <LexicalDocument
+              body={watchedBody}
+              ctx={SAMPLE_CTX}
+              lineItems={SAMPLE_LINE_ITEMS}
             />
             <SignatureBlocks />
           </DocumentShell>

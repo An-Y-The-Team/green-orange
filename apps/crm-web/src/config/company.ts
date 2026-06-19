@@ -11,4 +11,11 @@ export const company = {
   email: "lienhe@greenorange.vn",
   tax_id: "0312345678",
   website: "greenorange.vn",
+  // Legal representative — printed in the Party B block and signature line.
+  representative: "Nguyễn Văn A",
+  representative_title: "Giám Đốc",
+  // Banking details — printed in the Party B block / payment article.
+  bank_account: "0123456789",
+  bank_name: "Ngân hàng TMCP Á Châu (ACB)",
+  bank_branch: "PGD Quận 7 - TP.HCM",
 } as const;
