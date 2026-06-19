@@ -9,6 +9,8 @@ import type {
   AcceptanceStatus,
   ContractStatus,
   CostCategory,
+  CrewRole,
+  CrewStatus,
   MilestoneStatus,
   MilestoneType,
   ProjectStage,
@@ -103,6 +105,20 @@ export const milestoneType: Record<MilestoneType, string> = {
   tien_do: "Theo tiến độ",
   nghiem_thu: "Khi nghiệm thu",
   giu_bao_hanh: "Giữ lại bảo hành",
+};
+
+export const crewRole: Record<CrewRole, string> = {
+  tho_chinh: "Thợ chính",
+  tho_phu: "Thợ phụ",
+  ve_sinh: "Nhân viên vệ sinh",
+  giam_sat: "Giám sát",
+  lai_xe: "Lái xe",
+};
+
+export const crewStatus: Record<CrewStatus, Label> = {
+  dang_lam: { label: "Đang làm", variant: "success" },
+  tam_nghi: { label: "Tạm nghỉ", variant: "warning" },
+  nghi_viec: { label: "Nghỉ việc", variant: "secondary" },
 };
 
 export const milestoneStatus: Record<MilestoneStatus, Label> = {

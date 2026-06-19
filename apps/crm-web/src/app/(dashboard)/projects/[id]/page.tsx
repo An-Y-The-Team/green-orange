@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 
 import { listContracts } from "../../contracts/queries";
+import { listAssignments, listCrew } from "../../crew/queries";
 import { listQuotes } from "../../quotes/queries";
 import { listPaymentMilestones } from "../../receivables/queries";
 import { getProject, listAcceptances, listCosts } from "../queries";
@@ -26,15 +27,16 @@ export default async function ProjectDetailPage({
   // Fetch the related records and join them to this project by code. (The
   // backend could expose nested endpoints later; filtering here keeps the
   // mock↔API seam simple.)
-  const [quotes, contracts, costs, acceptances, milestones] = await Promise.all(
-    [
+  const [quotes, contracts, costs, acceptances, milestones, crew, assignments] =
+    await Promise.all([
       listQuotes(),
       listContracts(),
       listCosts(),
       listAcceptances(),
       listPaymentMilestones(),
-    ]
-  );
+      listCrew(),
+      listAssignments(),
+    ]);
 
   const byProject = <T extends { project_code: string }>(rows: T[]) =>
     rows.filter((r) => r.project_code === project.code);
@@ -56,6 +58,8 @@ export default async function ProjectDetailPage({
         costs={byProject(costs)}
         acceptances={byProject(acceptances)}
         milestones={byProject(milestones)}
+        crew={crew}
+        assignments={byProject(assignments)}
       />
     </>
   );

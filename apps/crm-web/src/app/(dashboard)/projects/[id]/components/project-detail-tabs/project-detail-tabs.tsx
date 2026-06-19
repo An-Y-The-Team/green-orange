@@ -31,6 +31,7 @@ import {
   acceptanceStatus,
   contractStatus,
   costCategory,
+  crewRole,
   milestoneStatus,
   milestoneType,
   projectStage,
@@ -41,13 +42,16 @@ import {
 } from "@/lib/labels";
 import type {
   Acceptance,
+  Assignment,
   Contract,
   Cost,
+  CrewMember,
   PaymentMilestone,
   Project,
   Quote,
 } from "@/types";
 
+import { CrewAssignDialog } from "../crew-assign-dialog/crew-assign-dialog";
 import { AcceptanceFormDialog } from "./components/acceptance-form-dialog/acceptance-form-dialog";
 import { CostFormDialog } from "./components/cost-form-dialog/cost-form-dialog";
 import { StagePipeline } from "./components/stage-pipeline/stage-pipeline";
@@ -56,6 +60,7 @@ const TABS = [
   "Tổng quan",
   "Báo giá",
   "Hợp đồng",
+  "Đội thi công",
   "Chi phí & Quyết toán",
   "Nghiệm thu",
   "Thanh toán",
@@ -68,6 +73,8 @@ export function ProjectDetailTabs({
   costs,
   acceptances,
   milestones,
+  crew,
+  assignments,
 }: {
   project: Project;
   quotes: Quote[];
@@ -75,6 +82,8 @@ export function ProjectDetailTabs({
   costs: Cost[];
   acceptances: Acceptance[];
   milestones: PaymentMilestone[];
+  crew: CrewMember[];
+  assignments: Assignment[];
 }) {
   const [tab, setTab] = React.useState<(typeof TABS)[number]>("Tổng quan");
 
@@ -103,6 +112,13 @@ export function ProjectDetailTabs({
       )}
       {tab === "Báo giá" && <QuotesTab quotes={quotes} />}
       {tab === "Hợp đồng" && <ContractsTab contracts={contracts} />}
+      {tab === "Đội thi công" && (
+        <CrewTab
+          projectCode={project.code}
+          crew={crew}
+          assignments={assignments}
+        />
+      )}
       {tab === "Chi phí & Quyết toán" && (
         <CostsTab project={project} costs={costs} quotes={quotes} />
       )}
@@ -514,6 +530,80 @@ function PaymentsTab({ milestones }: { milestones: PaymentMilestone[] }) {
           </TableBody>
         </Table>
       </Card>
+    </div>
+  );
+}
+
+function CrewTab({
+  projectCode,
+  crew,
+  assignments,
+}: {
+  projectCode: string;
+  crew: CrewMember[];
+  assignments: Assignment[];
+}) {
+  const byId = new Map(crew.map((m) => [m.id, m]));
+  const assignedIds = assignments.map((a) => a.crew_id);
+  // Active crew are the candidates the assign dialog offers.
+  const candidates = crew.filter((m) => m.status === "dang_lam");
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex justify-end">
+        <CrewAssignDialog
+          projectCode={projectCode}
+          crew={candidates}
+          assignedIds={assignedIds}
+        />
+      </div>
+      {assignments.length === 0 ? (
+        <EmptyState text="Chưa phân công nhân sự cho công trình này." />
+      ) : (
+        <Card className="py-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Họ và tên</TableHead>
+                <TableHead>Vai trò</TableHead>
+                <TableHead>Vai trò tại công trình</TableHead>
+                <TableHead className="text-right">Ngày công</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {assignments.map((assignment) => {
+                const member = byId.get(assignment.crew_id);
+                return (
+                  <TableRow key={assignment.id}>
+                    <TableCell className="font-medium">
+                      {member ? (
+                        <Link
+                          href={`/crew/${member.id}`}
+                          className="hover:underline"
+                        >
+                          {member.name}
+                        </Link>
+                      ) : (
+                        `#${assignment.crew_id}`
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {member ? crewRole[member.role] : "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {assignment.role_on_site ??
+                        (member ? crewRole[member.role] : "—")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {member ? formatVND(member.day_rate) : "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
     </div>
   );
 }

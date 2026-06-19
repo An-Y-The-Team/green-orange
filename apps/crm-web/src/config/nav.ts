@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   type LucideIcon,
   Users,
+  UsersRound,
   Wallet,
 } from "lucide-react";
 
@@ -22,6 +23,7 @@ export const navItems: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard", icon: LayoutDashboard },
   { label: "Khách hàng", href: "/customers", icon: Users },
   { label: "Công trình", href: "/projects", icon: HardHat },
+  { label: "Nhân sự", href: "/crew", icon: UsersRound },
   { label: "Báo giá", href: "/quotes", icon: FileText },
   { label: "Hợp đồng", href: "/contracts", icon: FileSignature },
   { label: "Thu / Nợ", href: "/receivables", icon: Wallet },
