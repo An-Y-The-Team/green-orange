@@ -22,10 +22,11 @@ import { Input } from "@yan/ui/components/input";
 import { Textarea } from "@yan/ui/components/textarea";
 
 import { selectClass } from "@/components/form-bits";
-import type { ContractTemplate } from "@/types";
 
 import { addContract } from "../actions/add-contract";
+import { ContractStatus } from "../enums";
 import { type ContractFormValues, contractSchema } from "../schema";
+import { type ContractTemplate } from "../types";
 
 const initialState: ServerActionState = {
   success: false,
@@ -49,7 +50,7 @@ export function ContractForm({ templates }: { templates: ContractTemplate[] }) {
       signed_date: "",
       start_date: "",
       end_date: "",
-      status: "nhap",
+      status: ContractStatus.NHAP,
       payment_terms: "",
       template_id: undefined,
     },
@@ -198,10 +199,14 @@ export function ContractForm({ templates }: { templates: ContractTemplate[] }) {
                   <FormLabel>Trạng thái</FormLabel>
                   <FormControl>
                     <select {...field} className={selectClass}>
-                      <option value="nhap">Nháp</option>
-                      <option value="da_ky">Đã ký</option>
-                      <option value="dang_thuc_hien">Đang thực hiện</option>
-                      <option value="thanh_ly">Đã thanh lý</option>
+                      <option value={ContractStatus.NHAP}>Nháp</option>
+                      <option value={ContractStatus.DA_KY}>Đã ký</option>
+                      <option value={ContractStatus.DANG_THUC_HIEN}>
+                        Đang thực hiện
+                      </option>
+                      <option value={ContractStatus.THANH_LY}>
+                        Đã thanh lý
+                      </option>
                     </select>
                   </FormControl>
                   <FormMessage />

@@ -6,9 +6,9 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { contracts } from "@/data/mock/contracts";
 import { API_URL, apiSend } from "@/lib/http";
-import type { Contract } from "@/types";
 
 import { type ContractBodyFormValues, contractBodySchema } from "../schema";
+import type { Contract } from "../types";
 
 /**
  * Update a contract's rich body (Lexical JSON). PATCHes the row when a backend

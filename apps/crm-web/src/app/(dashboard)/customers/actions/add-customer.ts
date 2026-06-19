@@ -6,9 +6,9 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { customers } from "@/data/mock/customers";
 import { API_URL, apiSend, nextId } from "@/lib/http";
-import type { Customer } from "@/types";
 
 import { type CustomerFormValues, customerSchema } from "../schema";
+import type { Customer } from "../types";
 
 // Server action for the "add customer" form. Wired into the dialog via
 // useActionState; the client reads the returned ServerActionState through the

@@ -31,6 +31,7 @@ import {
 import { Input } from "@yan/ui/components/input";
 
 import { addCost } from "@/app/(dashboard)/projects/actions/add-cost";
+import { CostCategory } from "@/app/(dashboard)/projects/enums";
 import {
   type CostFormValues,
   costSchema,
@@ -52,7 +53,7 @@ export function CostFormDialog({ projectCode }: { projectCode?: string }) {
   const defaults: CostFormValues = {
     project_code: projectCode ?? "",
     date: "",
-    category: "vat_tu",
+    category: CostCategory.VAT_TU,
     description: "",
     amount: 0,
     is_incident: false,

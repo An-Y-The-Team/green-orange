@@ -6,9 +6,9 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { acceptances } from "@/data/mock/acceptances";
 import { API_URL, apiSend, nextId } from "@/lib/http";
-import type { Acceptance } from "@/types";
 
 import { type AcceptanceFormValues, acceptanceSchema } from "../schema";
+import type { Acceptance } from "../types";
 
 export async function addAcceptance(
   _prevState: ServerActionState,

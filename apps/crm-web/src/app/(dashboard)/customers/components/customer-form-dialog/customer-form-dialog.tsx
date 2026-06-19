@@ -31,6 +31,7 @@ import {
 import { Input } from "@yan/ui/components/input";
 
 import { addCustomer } from "../../actions/add-customer";
+import { CustomerStatus } from "../../enums";
 import { type CustomerFormValues, customerSchema } from "../../schema";
 
 const initialState: ServerActionState = {
@@ -57,7 +58,7 @@ export function CustomerFormDialog() {
       email: "",
       phone: "",
       company: "",
-      status: "lead",
+      status: CustomerStatus.LEAD,
     },
   });
 

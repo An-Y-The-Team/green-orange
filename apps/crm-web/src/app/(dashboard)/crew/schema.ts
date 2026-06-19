@@ -1,17 +1,19 @@
 import { z } from "zod";
 
+import { CrewRole, CrewStatus } from "./enums";
+
 // Single source of truth for crew form validation. Imported by the server
 // actions (add/update) for server-side validation; the same shape is what
 // POST/PATCH /crew would accept on the backend. Mirrors the customers schema.
 export const crewSchema = z.object({
   name: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
   phone: z.string().min(6, "Số điện thoại không hợp lệ"),
-  role: z.enum(["tho_chinh", "tho_phu", "ve_sinh", "giam_sat", "lai_xe"]),
+  role: z.nativeEnum(CrewRole),
   day_rate: z.coerce
     .number({ invalid_type_error: "Ngày công phải là số" })
     .int("Ngày công phải là số nguyên")
     .min(0, "Ngày công không hợp lệ"),
-  status: z.enum(["dang_lam", "tam_nghi", "nghi_viec"]),
+  status: z.nativeEnum(CrewStatus),
   note: z.string().optional(),
 });
 

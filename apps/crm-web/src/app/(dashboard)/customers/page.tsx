@@ -12,24 +12,24 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import type { CustomerStatus } from "@/types";
 
 import { CustomerFormDialog } from "./components/customer-form-dialog/customer-form-dialog";
+import { CustomerStatus } from "./enums";
 import { listCustomers } from "./queries";
 
 const statusVariant: Record<
   CustomerStatus,
   "success" | "secondary" | "destructive"
 > = {
-  active: "success",
-  lead: "secondary",
-  churned: "destructive",
+  [CustomerStatus.ACTIVE]: "success",
+  [CustomerStatus.LEAD]: "secondary",
+  [CustomerStatus.CHURNED]: "destructive",
 };
 
 const statusLabel: Record<CustomerStatus, string> = {
-  active: "Đang hoạt động",
-  lead: "Tiềm năng",
-  churned: "Đã rời bỏ",
+  [CustomerStatus.ACTIVE]: "Đang hoạt động",
+  [CustomerStatus.LEAD]: "Tiềm năng",
+  [CustomerStatus.CHURNED]: "Đã rời bỏ",
 };
 
 export default async function CustomersPage() {

@@ -1,7 +1,8 @@
 import { contractTemplates } from "@/data/mock/contract-templates";
 import { contracts } from "@/data/mock/contracts";
 import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
-import type { Contract, ContractTemplate } from "@/types";
+
+import type { Contract, ContractTemplate } from "./types";
 
 export async function listContracts(): Promise<Contract[]> {
   return API_URL ? apiFetchSafe<Contract[]>("/contracts", []) : contracts;

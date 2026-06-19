@@ -29,10 +29,10 @@ import {
 } from "@/components/editor/lexical-document";
 import { RichEditor } from "@/components/editor/rich-editor";
 import { buildContractContext } from "@/lib/merge-template";
-import type { Contract } from "@/types";
 
 import { updateContract } from "../../actions/update-contract";
 import { type ContractBodyFormValues, contractBodySchema } from "../../schema";
+import type { Contract } from "../../types";
 
 const initialState: ServerActionState = {
   success: false,

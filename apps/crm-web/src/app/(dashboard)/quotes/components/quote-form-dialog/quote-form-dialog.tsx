@@ -35,6 +35,7 @@ import { selectClass } from "@/components/form-bits";
 import { formatVND, quoteTotals } from "@/lib/format";
 
 import { addQuote } from "../../actions/add-quote";
+import { QuoteType } from "../../enums";
 import { type QuoteFormValues, quoteSchema } from "../../schema";
 
 const initialState: ServerActionState = {
@@ -57,7 +58,7 @@ export function QuoteFormDialog() {
       title: "",
       customer: "",
       project_code: "",
-      type: "bao_gia",
+      type: QuoteType.BAO_GIA,
       issue_date: "",
       valid_until: "",
       vat_rate: 0.08,
@@ -168,8 +169,8 @@ export function QuoteFormDialog() {
                     <FormLabel>Loại</FormLabel>
                     <FormControl>
                       <select {...field} className={selectClass}>
-                        <option value="bao_gia">Báo giá</option>
-                        <option value="quyet_toan">Quyết toán</option>
+                        <option value={QuoteType.BAO_GIA}>Báo giá</option>
+                        <option value={QuoteType.QUYET_TOAN}>Quyết toán</option>
                       </select>
                     </FormControl>
                     <FormMessage />

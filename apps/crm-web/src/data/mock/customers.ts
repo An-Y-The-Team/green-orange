@@ -1,4 +1,5 @@
-import type { Customer } from "@/types";
+import { CustomerStatus } from "@/app/(dashboard)/customers/enums";
+import type { Customer } from "@/app/(dashboard)/customers/types";
 
 // Cleaning & construction clients — retail chains, malls and offices that hire
 // GreenOrange for vệ sinh / thi công work. `company` here is what Project,
@@ -10,7 +11,7 @@ export const customers: Customer[] = [
     email: "an.nguyen@vincom.vn",
     phone: "+84 90 123 4567",
     company: "Vincom Retail",
-    status: "active",
+    status: CustomerStatus.ACTIVE,
     created_at: "2026-01-08",
   },
   {
@@ -19,7 +20,7 @@ export const customers: Customer[] = [
     email: "binh.tran@circlek.vn",
     phone: "+84 91 234 5678",
     company: "Circle K Việt Nam",
-    status: "active",
+    status: CustomerStatus.ACTIVE,
     created_at: "2026-01-20",
   },
   {
@@ -28,7 +29,7 @@ export const customers: Customer[] = [
     email: "cuong.le@fpt.com.vn",
     phone: "+84 92 345 6789",
     company: "FPT Software",
-    status: "active",
+    status: CustomerStatus.ACTIVE,
     created_at: "2025-12-28",
   },
   {
@@ -37,7 +38,7 @@ export const customers: Customer[] = [
     email: "dung.pham@aeonmall.vn",
     phone: "+84 93 456 7890",
     company: "Aeon Mall Việt Nam",
-    status: "lead",
+    status: CustomerStatus.LEAD,
     created_at: "2026-04-17",
   },
   {
@@ -46,7 +47,7 @@ export const customers: Customer[] = [
     email: "duc.vu@gs25.vn",
     phone: "+84 94 567 8901",
     company: "GS25 Việt Nam",
-    status: "active",
+    status: CustomerStatus.ACTIVE,
     created_at: "2025-11-15",
   },
   {
@@ -55,7 +56,7 @@ export const customers: Customer[] = [
     email: "hoa.dang@highlandscoffee.vn",
     phone: "+84 95 678 9012",
     company: "Highlands Coffee",
-    status: "lead",
+    status: CustomerStatus.LEAD,
     created_at: "2026-05-29",
   },
 ];

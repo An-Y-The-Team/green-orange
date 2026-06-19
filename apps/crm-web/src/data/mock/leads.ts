@@ -1,4 +1,5 @@
-import type { Lead } from "@/types";
+import { LeadStatus } from "@/app/(dashboard)/leads/enums";
+import type { Lead } from "@/app/(dashboard)/leads/types";
 
 export const leads: Lead[] = [
   {
@@ -6,7 +7,7 @@ export const leads: Lead[] = [
     name: "Bùi Thanh Tùng",
     company: "Stark Industries",
     source: "Website",
-    status: "new",
+    status: LeadStatus.NEW,
     value: 12000,
     owner: "Mai Anh",
   },
@@ -15,7 +16,7 @@ export const leads: Lead[] = [
     name: "Ngô Bảo Châu",
     company: "Wayne Enterprises",
     source: "Giới thiệu",
-    status: "contacted",
+    status: LeadStatus.CONTACTED,
     value: 45000,
     owner: "Mai Anh",
   },
@@ -24,7 +25,7 @@ export const leads: Lead[] = [
     name: "Dương Tử Quân",
     company: "Wonka Industries",
     source: "Sự kiện",
-    status: "qualified",
+    status: LeadStatus.QUALIFIED,
     value: 30000,
     owner: "Quốc Bảo",
   },
@@ -33,7 +34,7 @@ export const leads: Lead[] = [
     name: "Tạ Quang Huy",
     company: "Cyberdyne",
     source: "Quảng cáo",
-    status: "lost",
+    status: LeadStatus.LOST,
     value: 8000,
     owner: "Quốc Bảo",
   },
@@ -42,7 +43,7 @@ export const leads: Lead[] = [
     name: "Lý Nhã Kỳ",
     company: "Soylent Corp",
     source: "Website",
-    status: "contacted",
+    status: LeadStatus.CONTACTED,
     value: 22000,
     owner: "Mai Anh",
   },

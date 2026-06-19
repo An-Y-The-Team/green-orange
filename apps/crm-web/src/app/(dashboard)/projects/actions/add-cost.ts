@@ -6,9 +6,9 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { costs } from "@/data/mock/costs";
 import { API_URL, apiSend, nextId } from "@/lib/http";
-import type { Cost } from "@/types";
 
 import { type CostFormValues, costSchema } from "../schema";
+import type { Cost } from "../types";
 
 export async function addCost(
   _prevState: ServerActionState,

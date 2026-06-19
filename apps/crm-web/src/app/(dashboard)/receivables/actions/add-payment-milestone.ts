@@ -6,9 +6,10 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { paymentMilestones } from "@/data/mock/payment-milestones";
 import { API_URL, apiSend, nextId } from "@/lib/http";
-import type { PaymentMilestone } from "@/types";
 
+import { MilestoneStatus } from "../enums";
 import { type MilestoneFormValues, milestoneSchema } from "../schema";
+import { PaymentMilestone } from "../types";
 
 export async function addPaymentMilestone(
   _prevState: ServerActionState,
@@ -35,7 +36,7 @@ export async function addPaymentMilestone(
       : {
           ...parsed.data,
           id: nextId(paymentMilestones),
-          status: "chua_den_han",
+          status: MilestoneStatus.CHUA_DEN_HAN,
           paid_amount: 0,
         };
     revalidatePath("/receivables");

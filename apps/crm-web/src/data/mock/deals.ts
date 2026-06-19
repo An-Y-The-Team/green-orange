@@ -1,11 +1,12 @@
-import type { Deal } from "@/types";
+import { DealStage } from "@/app/(dashboard)/deals/enums";
+import type { Deal } from "@/app/(dashboard)/deals/types";
 
 export const deals: Deal[] = [
   {
     id: 1,
     title: "Acme — Gói Enterprise",
     company: "Acme Corp",
-    stage: "negotiation",
+    stage: DealStage.NEGOTIATION,
     amount: 85000,
     close_date: "2026-07-15",
   },
@@ -13,7 +14,7 @@ export const deals: Deal[] = [
     id: 2,
     title: "Globex — Gia hạn năm",
     company: "Globex",
-    stage: "proposal",
+    stage: DealStage.PROPOSAL,
     amount: 42000,
     close_date: "2026-06-30",
   },
@@ -21,7 +22,7 @@ export const deals: Deal[] = [
     id: 3,
     title: "Initech — Triển khai mới",
     company: "Initech",
-    stage: "prospect",
+    stage: DealStage.PROSPECT,
     amount: 18000,
     close_date: "2026-08-01",
   },
@@ -29,7 +30,7 @@ export const deals: Deal[] = [
     id: 4,
     title: "Hooli — Mở rộng chỗ ngồi",
     company: "Hooli",
-    stage: "won",
+    stage: DealStage.WON,
     amount: 60000,
     close_date: "2026-05-20",
   },
@@ -37,7 +38,7 @@ export const deals: Deal[] = [
     id: 5,
     title: "Umbrella — Thí điểm",
     company: "Umbrella",
-    stage: "lost",
+    stage: DealStage.LOST,
     amount: 15000,
     close_date: "2026-04-10",
   },

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { AcceptanceStatus, CostCategory, ProjectType } from "./enums";
+
 // Validation schemas for the projects feature — the công trình itself plus its
 // on-site sub-records (chi phí, nghiệm thu). Shared by the form dialogs (client
 // validation) and the server actions (server-side re-validation). Numeric
@@ -8,7 +10,7 @@ import { z } from "zod";
 export const projectSchema = z.object({
   name: z.string().min(3, "Tên công trình phải có ít nhất 3 ký tự"),
   customer: z.string().min(1, "Vui lòng nhập khách hàng"),
-  type: z.enum(["ve_sinh", "thi_cong"]),
+  type: z.nativeEnum(ProjectType),
   address: z.string().min(1, "Vui lòng nhập địa điểm"),
   manager: z.string().min(1, "Vui lòng nhập người phụ trách"),
   contract_value: z.coerce.number().min(0, "Giá trị không hợp lệ"),
@@ -21,7 +23,7 @@ export type ProjectFormValues = z.infer<typeof projectSchema>;
 export const costSchema = z.object({
   project_code: z.string().min(1, "Vui lòng nhập mã công trình"),
   date: z.string().min(1, "Chọn ngày"),
-  category: z.enum(["vat_tu", "nhan_cong", "thiet_bi", "su_co", "khac"]),
+  category: z.nativeEnum(CostCategory),
   description: z.string().min(1, "Nhập diễn giải"),
   amount: z.coerce.number().min(0, "Số tiền không hợp lệ"),
   is_incident: z.boolean(),
@@ -31,7 +33,7 @@ export type CostFormValues = z.infer<typeof costSchema>;
 export const acceptanceSchema = z.object({
   project_code: z.string().min(1, "Vui lòng nhập mã công trình"),
   date: z.string().min(1, "Chọn ngày"),
-  status: z.enum(["cho_nghiem_thu", "da_nghiem_thu", "co_van_de"]),
+  status: z.nativeEnum(AcceptanceStatus),
   inspector: z.string().min(1, "Nhập người kiểm tra"),
   client_rep: z.string().min(1, "Nhập đại diện khách hàng"),
   notes: z.string().optional(),

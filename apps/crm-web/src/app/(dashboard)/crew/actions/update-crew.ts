@@ -6,9 +6,9 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { crew } from "@/data/mock/crew";
 import { API_URL, apiSend } from "@/lib/http";
-import type { CrewMember } from "@/types";
 
 import { type CrewFormValues, crewSchema } from "../schema";
+import type { CrewMember } from "../types";
 
 // Update a crew member. PATCHes the row when a backend is configured; in mock
 // mode the change isn't persisted across reloads, so the flow is demoable

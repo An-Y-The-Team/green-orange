@@ -2,8 +2,8 @@ import { Check } from "lucide-react";
 
 import { cn } from "@yan/ui/lib/utils";
 
+import type { ProjectStage } from "@/app/(dashboard)/projects/enums";
 import { projectStage, projectStageOrder } from "@/lib/labels";
-import type { ProjectStage } from "@/types";
 
 /**
  * Horizontal stepper of the Công Trình lifecycle. Stages before the current one

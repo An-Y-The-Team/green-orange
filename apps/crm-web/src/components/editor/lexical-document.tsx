@@ -13,11 +13,11 @@
  */
 import { Fragment, type ReactNode } from "react";
 
+import type { QuoteItem } from "@/app/(dashboard)/quotes/types";
 import { formatVND, quoteTotals } from "@/lib/format";
 import { type LexNode, TEXT_FORMAT } from "@/lib/lexical-build";
 import type { MergeContext } from "@/lib/merge-template";
 import { vndInWords } from "@/lib/vnd-in-words";
-import type { QuoteItem } from "@/types";
 
 /** Structured pricing for the line-items block (from the linked Quote). */
 export type LineItemsData = { items: QuoteItem[]; vatRate: number };

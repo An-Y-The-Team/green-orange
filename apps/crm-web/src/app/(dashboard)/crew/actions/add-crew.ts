@@ -6,9 +6,9 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { crew } from "@/data/mock/crew";
 import { API_URL, apiSend, nextId } from "@/lib/http";
-import type { CrewMember } from "@/types";
 
 import { type CrewFormValues, crewSchema } from "../schema";
+import type { CrewMember } from "../types";
 
 // Server action for the "add crew member" form. Wired into the dialog via
 // useActionState; the client reads the returned ServerActionState through the

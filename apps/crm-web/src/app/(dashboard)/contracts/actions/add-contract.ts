@@ -6,9 +6,9 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { contracts } from "@/data/mock/contracts";
 import { API_URL, apiSend, nextId, seq } from "@/lib/http";
-import type { Contract } from "@/types";
 
 import { type ContractFormValues, contractSchema } from "../schema";
+import type { Contract } from "../types";
 
 export async function addContract(
   _prevState: ServerActionState,

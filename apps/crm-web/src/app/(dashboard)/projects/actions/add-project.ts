@@ -6,9 +6,10 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { projects } from "@/data/mock/projects";
 import { API_URL, apiSend, nextId, seq } from "@/lib/http";
-import type { Project } from "@/types";
 
+import { ProjectStage } from "../enums";
 import { type ProjectFormValues, projectSchema } from "../schema";
+import type { Project } from "../types";
 
 export async function addProject(
   _prevState: ServerActionState,
@@ -33,7 +34,7 @@ export async function addProject(
           ...parsed.data,
           id,
           code: `CT-2026-${seq(id)}`,
-          stage: "yeu_cau",
+          stage: ProjectStage.YEU_CAU,
           progress: 0,
         };
     revalidatePath("/projects");

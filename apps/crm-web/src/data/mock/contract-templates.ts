@@ -1,5 +1,5 @@
+import type { ContractTemplate } from "@/app/(dashboard)/contracts/types";
 import { doc, h2, lineItems, mf, p, t } from "@/lib/lexical-build";
-import type { ContractTemplate } from "@/types";
 
 // Mẫu hợp đồng — reusable boilerplate authored in the rich-text editor. Bodies
 // are stored as Lexical editorState JSON (string form); the merge-field chips

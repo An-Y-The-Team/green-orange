@@ -1,4 +1,6 @@
-import type { Cost, PaymentMilestone, Project, QuoteItem } from "@/types";
+import type { Cost, Project } from "@/app/(dashboard)/projects/types";
+import type { QuoteItem } from "@/app/(dashboard)/quotes/types";
+import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
 
 export function formatUSD(amount: number): string {
   return new Intl.NumberFormat("en-US", {

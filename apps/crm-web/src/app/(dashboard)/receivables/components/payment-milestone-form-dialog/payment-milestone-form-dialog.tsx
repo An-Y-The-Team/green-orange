@@ -33,6 +33,7 @@ import { Input } from "@yan/ui/components/input";
 import { selectClass } from "@/components/form-bits";
 
 import { addPaymentMilestone } from "../../actions/add-payment-milestone";
+import { MilestoneType } from "../../enums";
 import { type MilestoneFormValues, milestoneSchema } from "../../schema";
 
 const initialState: ServerActionState = {
@@ -54,7 +55,7 @@ export function PaymentMilestoneFormDialog() {
       project_code: "",
       customer: "",
       name: "",
-      type: "tam_ung",
+      type: MilestoneType.TAM_UNG,
       due_amount: 0,
       due_date: "",
       gated_by_acceptance: false,
@@ -157,10 +158,16 @@ export function PaymentMilestoneFormDialog() {
                     <FormLabel>Loại đợt</FormLabel>
                     <FormControl>
                       <select {...field} className={selectClass}>
-                        <option value="tam_ung">Tạm ứng</option>
-                        <option value="tien_do">Theo tiến độ</option>
-                        <option value="nghiem_thu">Khi nghiệm thu</option>
-                        <option value="giu_bao_hanh">Giữ lại bảo hành</option>
+                        <option value={MilestoneType.TAM_UNG}>Tạm ứng</option>
+                        <option value={MilestoneType.TIEN_DO}>
+                          Theo tiến độ
+                        </option>
+                        <option value={MilestoneType.NGHIEM_THU}>
+                          Khi nghiệm thu
+                        </option>
+                        <option value={MilestoneType.GIU_BAO_HANH}>
+                          Giữ lại bảo hành
+                        </option>
                       </select>
                     </FormControl>
                     <FormMessage />

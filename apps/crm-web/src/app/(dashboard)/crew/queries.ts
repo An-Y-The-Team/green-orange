@@ -1,7 +1,8 @@
 import { assignments } from "@/data/mock/assignments";
 import { crew } from "@/data/mock/crew";
 import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
-import type { Assignment, CrewMember } from "@/types";
+
+import type { Assignment, CrewMember } from "./types";
 
 // Degrades to [] if the backend is unreachable/erroring — same as the other
 // list queries, so the page renders empty rather than 500-ing.

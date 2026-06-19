@@ -21,9 +21,9 @@ import {
 } from "@yan/ui/components/dialog";
 
 import { assignCrew } from "@/app/(dashboard)/crew/actions/assign-crew";
+import type { CrewMember } from "@/app/(dashboard)/crew/types";
 import { formatVND } from "@/lib/format";
 import { crewRole } from "@/lib/labels";
-import type { CrewMember } from "@/types";
 
 const initialState: ServerActionState = {
   success: false,

@@ -2,7 +2,8 @@ import { acceptances } from "@/data/mock/acceptances";
 import { costs } from "@/data/mock/costs";
 import { projects } from "@/data/mock/projects";
 import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
-import type { Acceptance, Cost, Project } from "@/types";
+
+import type { Acceptance, Cost, Project } from "./types";
 
 export async function listProjects(): Promise<Project[]> {
   return API_URL ? apiFetchSafe<Project[]>("/projects", []) : projects;

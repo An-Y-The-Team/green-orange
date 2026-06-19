@@ -1,4 +1,5 @@
-import type { Quote } from "@/types";
+import { QuoteStatus, QuoteType } from "@/app/(dashboard)/quotes/enums";
+import type { Quote } from "@/app/(dashboard)/quotes/types";
 
 // Báo giá (initial) + Quyết toán (final settlement). Line-item totals + 8% VAT
 // reconcile to each project's contract_value. The two `quyet_toan` entries show
@@ -10,10 +11,10 @@ export const quotes: Quote[] = [
     project_code: "CT-2026-001",
     customer: "Vincom Retail",
     title: "Báo giá vệ sinh tổng thể TTTM Vincom Plaza Q.1",
-    type: "bao_gia",
+    type: QuoteType.BAO_GIA,
     issue_date: "2026-03-02",
     valid_until: "2026-04-02",
-    status: "da_duyet",
+    status: QuoteStatus.DA_DUYET,
     vat_rate: 0.08,
     notes:
       "Báo giá đã bao gồm hóa chất và vật tư tiêu hao. Chưa gồm chi phí phát sinh ngoài phạm vi.",
@@ -50,10 +51,10 @@ export const quotes: Quote[] = [
     project_code: "CT-2026-002",
     customer: "Circle K Việt Nam",
     title: "Báo giá thi công cải tạo cửa hàng Circle K Q.7",
-    type: "bao_gia",
+    type: QuoteType.BAO_GIA,
     issue_date: "2026-02-12",
     valid_until: "2026-03-12",
-    status: "da_duyet",
+    status: QuoteStatus.DA_DUYET,
     vat_rate: 0.08,
     notes: "Thời gian thi công dự kiến 10 tuần. Bảo hành công trình 12 tháng.",
     items: [
@@ -95,10 +96,10 @@ export const quotes: Quote[] = [
     project_code: "CT-2026-003",
     customer: "FPT Software",
     title: "Báo giá vệ sinh sau xây dựng văn phòng FPT Tower",
-    type: "bao_gia",
+    type: QuoteType.BAO_GIA,
     issue_date: "2026-01-10",
     valid_until: "2026-02-10",
-    status: "da_duyet",
+    status: QuoteStatus.DA_DUYET,
     vat_rate: 0.08,
     notes:
       "Vệ sinh sau xây dựng, bàn giao mặt bằng sạch sẵn sàng đưa vào sử dụng.",
@@ -129,10 +130,10 @@ export const quotes: Quote[] = [
     project_code: "CT-2026-003",
     customer: "FPT Software",
     title: "Quyết toán vệ sinh sau xây dựng văn phòng FPT Tower",
-    type: "quyet_toan",
+    type: QuoteType.QUYET_TOAN,
     issue_date: "2026-03-09",
     valid_until: "2026-04-09",
-    status: "da_gui",
+    status: QuoteStatus.DA_GUI,
     vat_rate: 0.08,
     notes:
       "Quyết toán theo khối lượng thực tế. Phát sinh do khu vực bị thấm phải vệ sinh lại.",
@@ -169,10 +170,10 @@ export const quotes: Quote[] = [
     project_code: "CT-2026-004",
     customer: "Aeon Mall Việt Nam",
     title: "Báo giá thi công gian hàng Aeon Mall Tân Phú",
-    type: "bao_gia",
+    type: QuoteType.BAO_GIA,
     issue_date: "2026-05-20",
     valid_until: "2026-06-20",
-    status: "da_gui",
+    status: QuoteStatus.DA_GUI,
     vat_rate: 0.08,
     notes:
       "Chờ khách hàng duyệt. Cần giấy phép thi công trong khuôn viên Aeon Mall trước khi khởi công.",
@@ -215,10 +216,10 @@ export const quotes: Quote[] = [
     project_code: "CT-2026-005",
     customer: "GS25 Việt Nam",
     title: "Báo giá vệ sinh định kỳ chuỗi cửa hàng GS25",
-    type: "bao_gia",
+    type: QuoteType.BAO_GIA,
     issue_date: "2025-11-28",
     valid_until: "2025-12-28",
-    status: "da_duyet",
+    status: QuoteStatus.DA_DUYET,
     vat_rate: 0.08,
     notes: "Gói vệ sinh định kỳ hàng tuần trong 3 tháng.",
     items: [
@@ -242,10 +243,10 @@ export const quotes: Quote[] = [
     project_code: "CT-2026-005",
     customer: "GS25 Việt Nam",
     title: "Quyết toán vệ sinh định kỳ chuỗi cửa hàng GS25",
-    type: "quyet_toan",
+    type: QuoteType.QUYET_TOAN,
     issue_date: "2026-03-05",
     valid_until: "2026-04-05",
-    status: "da_duyet",
+    status: QuoteStatus.DA_DUYET,
     vat_rate: 0.08,
     notes: "Quyết toán cuối kỳ. Phát sinh vệ sinh kho lạnh theo yêu cầu.",
     items: [

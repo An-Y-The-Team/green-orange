@@ -1,4 +1,4 @@
-import type { Assignment } from "@/types";
+import type { Assignment } from "@/app/(dashboard)/crew/types";
 
 // Phân công — which crew members are staffed onto which công trình. Joins
 // crew (data/mock/crew.ts) to projects (data/mock/projects.ts) by `project_code`.

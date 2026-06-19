@@ -1,5 +1,6 @@
+import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
+import type { Contract } from "@/app/(dashboard)/contracts/types";
 import { doc, h2, lineItems, mf, p, t } from "@/lib/lexical-build";
-import type { Contract } from "@/types";
 
 // Hợp đồng — one per project that has reached the contract stage. CT-2026-004
 // (Aeon) is still at báo giá so it has no contract yet. `value` matches the
@@ -67,7 +68,7 @@ export const contracts: Contract[] = [
     signed_date: "2026-03-10",
     start_date: "2026-03-15",
     end_date: "2026-06-30",
-    status: "dang_thuc_hien",
+    status: ContractStatus.DANG_THUC_HIEN,
     payment_terms: STANDARD_TERMS,
     template_id: 1,
   },
@@ -87,7 +88,7 @@ export const contracts: Contract[] = [
     signed_date: "2026-02-20",
     start_date: "2026-02-25",
     end_date: "2026-05-15",
-    status: "dang_thuc_hien",
+    status: ContractStatus.DANG_THUC_HIEN,
     payment_terms: STANDARD_TERMS,
     template_id: 2,
     body: CIRCLE_K_BODY,
@@ -102,7 +103,7 @@ export const contracts: Contract[] = [
     signed_date: "2026-01-15",
     start_date: "2026-01-20",
     end_date: "2026-03-10",
-    status: "dang_thuc_hien",
+    status: ContractStatus.DA_KY,
     payment_terms: STANDARD_TERMS,
     template_id: 1,
   },
@@ -116,7 +117,7 @@ export const contracts: Contract[] = [
     signed_date: "2025-12-01",
     start_date: "2025-12-05",
     end_date: "2026-03-05",
-    status: "thanh_ly",
+    status: ContractStatus.THANH_LY,
     payment_terms: STANDARD_TERMS,
   },
 ];

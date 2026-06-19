@@ -9,10 +9,10 @@
  * The merge itself is now node-level: merge-field nodes in a Lexical `body` are
  * resolved against a MergeContext by components/editor/lexical-document.tsx.
  */
+import type { Contract } from "@/app/(dashboard)/contracts/types";
 import { company } from "@/config/company";
 import { formatDate, formatVND } from "@/lib/format";
 import { vndInWords } from "@/lib/vnd-in-words";
-import type { Contract } from "@/types";
 
 /** Default VAT rate when a contract doesn't pin its own. */
 export const DEFAULT_VAT_RATE = 0.08;

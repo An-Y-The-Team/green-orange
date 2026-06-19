@@ -6,9 +6,10 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { quotes } from "@/data/mock/quotes";
 import { API_URL, apiSend, nextId, seq } from "@/lib/http";
-import type { Quote } from "@/types";
 
+import { QuoteStatus } from "../enums";
 import { type QuoteFormValues, quoteSchema } from "../schema";
+import type { Quote } from "../types";
 
 export async function addQuote(
   _prevState: ServerActionState,
@@ -31,7 +32,12 @@ export async function addQuote(
     const prefix = payload.type === "quyet_toan" ? "QT" : "BG";
     const quote: Quote = API_URL
       ? await apiSend<Quote>("/quotes", "POST", payload)
-      : { ...payload, id, code: `${prefix}-2026-${seq(id)}`, status: "nhap" };
+      : {
+          ...payload,
+          id,
+          code: `${prefix}-2026-${seq(id)}`,
+          status: QuoteStatus.NHAP,
+        };
     revalidatePath("/quotes");
     return {
       success: true,

@@ -5,20 +5,20 @@
  * `variant` matches the @yan/ui Badge variants (default/secondary/warning/
  * success/destructive). `label` is the Vietnamese text shown to users.
  */
-import type {
+import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
+import { CrewRole, CrewStatus } from "@/app/(dashboard)/crew/enums";
+import {
   AcceptanceStatus,
-  ContractStatus,
   CostCategory,
-  CrewRole,
-  CrewStatus,
-  MilestoneStatus,
-  MilestoneType,
   ProjectStage,
   ProjectType,
-  QuoteStatus,
-  QuoteType,
   ScheduleOutcome,
-} from "@/types";
+} from "@/app/(dashboard)/projects/enums";
+import { QuoteStatus, QuoteType } from "@/app/(dashboard)/quotes/enums";
+import {
+  MilestoneStatus,
+  MilestoneType,
+} from "@/app/(dashboard)/receivables/enums";
 
 type BadgeVariant =
   | "default"
@@ -31,99 +31,114 @@ type Label = { label: string; variant: BadgeVariant };
 
 // The lifecycle stages, in display order — used by the pipeline stepper.
 export const projectStageOrder: ProjectStage[] = [
-  "yeu_cau",
-  "khao_sat",
-  "bao_gia",
-  "hop_dong",
-  "chuan_bi",
-  "thi_cong",
-  "nghiem_thu",
-  "quyet_toan",
-  "thanh_toan",
-  "dong",
+  ProjectStage.YEU_CAU,
+  ProjectStage.KHAO_SAT,
+  ProjectStage.BAO_GIA,
+  ProjectStage.HOP_DONG,
+  ProjectStage.CHUAN_BI,
+  ProjectStage.THI_CONG,
+  ProjectStage.NGHIEM_THU,
+  ProjectStage.QUYET_TOAN,
+  ProjectStage.THANH_TOAN,
+  ProjectStage.DONG,
 ];
 
 export const projectStage: Record<ProjectStage, Label> = {
-  yeu_cau: { label: "Yêu cầu", variant: "secondary" },
-  khao_sat: { label: "Khảo sát", variant: "secondary" },
-  bao_gia: { label: "Báo giá", variant: "default" },
-  hop_dong: { label: "Hợp đồng", variant: "default" },
-  chuan_bi: { label: "Chuẩn bị hồ sơ", variant: "warning" },
-  thi_cong: { label: "Đang thi công", variant: "warning" },
-  nghiem_thu: { label: "Nghiệm thu", variant: "default" },
-  quyet_toan: { label: "Quyết toán", variant: "default" },
-  thanh_toan: { label: "Chờ thanh toán", variant: "warning" },
-  dong: { label: "Đã đóng", variant: "success" },
+  [ProjectStage.YEU_CAU]: { label: "Yêu cầu", variant: "secondary" },
+  [ProjectStage.KHAO_SAT]: { label: "Khảo sát", variant: "secondary" },
+  [ProjectStage.BAO_GIA]: { label: "Báo giá", variant: "default" },
+  [ProjectStage.HOP_DONG]: { label: "Hợp đồng", variant: "default" },
+  [ProjectStage.CHUAN_BI]: { label: "Chuẩn bị hồ sơ", variant: "warning" },
+  [ProjectStage.THI_CONG]: { label: "Đang thi công", variant: "warning" },
+  [ProjectStage.NGHIEM_THU]: { label: "Nghiệm thu", variant: "default" },
+  [ProjectStage.QUYET_TOAN]: { label: "Quyết toán", variant: "default" },
+  [ProjectStage.THANH_TOAN]: { label: "Chờ thanh toán", variant: "warning" },
+  [ProjectStage.DONG]: { label: "Đã đóng", variant: "success" },
 };
 
 export const projectType: Record<ProjectType, string> = {
-  ve_sinh: "Vệ sinh",
-  thi_cong: "Thi công",
+  [ProjectType.VE_SINH]: "Vệ sinh",
+  [ProjectType.THI_CONG]: "Thi công",
 };
 
 export const scheduleOutcome: Record<ScheduleOutcome, Label> = {
-  on_time: { label: "Đúng hạn", variant: "success" },
-  delayed: { label: "Trễ hạn", variant: "destructive" },
-  early: { label: "Sớm hạn", variant: "success" },
+  [ScheduleOutcome.ON_TIME]: { label: "Đúng hạn", variant: "success" },
+  [ScheduleOutcome.DELAYED]: { label: "Trễ hạn", variant: "destructive" },
+  [ScheduleOutcome.EARLY]: { label: "Sớm hạn", variant: "success" },
 };
 
 export const quoteType: Record<QuoteType, string> = {
-  bao_gia: "Báo giá",
-  quyet_toan: "Quyết toán",
+  [QuoteType.BAO_GIA]: "Báo giá",
+  [QuoteType.QUYET_TOAN]: "Quyết toán",
 };
 
 export const quoteStatus: Record<QuoteStatus, Label> = {
-  nhap: { label: "Nháp", variant: "secondary" },
-  da_gui: { label: "Đã gửi", variant: "default" },
-  da_duyet: { label: "Đã duyệt", variant: "success" },
-  tu_choi: { label: "Từ chối", variant: "destructive" },
+  [QuoteStatus.NHAP]: { label: "Nháp", variant: "secondary" },
+  [QuoteStatus.DA_GUI]: { label: "Đã gửi", variant: "default" },
+  [QuoteStatus.DA_DUYET]: { label: "Đã duyệt", variant: "success" },
+  [QuoteStatus.TU_CHOI]: { label: "Từ chối", variant: "destructive" },
 };
 
 export const contractStatus: Record<ContractStatus, Label> = {
-  nhap: { label: "Nháp", variant: "secondary" },
-  da_ky: { label: "Đã ký", variant: "default" },
-  dang_thuc_hien: { label: "Đang thực hiện", variant: "warning" },
-  thanh_ly: { label: "Đã thanh lý", variant: "success" },
+  [ContractStatus.NHAP]: { label: "Nháp", variant: "secondary" },
+  [ContractStatus.DA_KY]: { label: "Đã ký", variant: "default" },
+  [ContractStatus.DANG_THUC_HIEN]: {
+    label: "Đang thực hiện",
+    variant: "warning",
+  },
+  [ContractStatus.THANH_LY]: { label: "Đã thanh lý", variant: "success" },
 };
 
 export const costCategory: Record<CostCategory, string> = {
-  vat_tu: "Vật tư",
-  nhan_cong: "Nhân công",
-  thiet_bi: "Thiết bị",
-  su_co: "Sự cố",
-  khac: "Khác",
+  [CostCategory.VAT_TU]: "Vật tư",
+  [CostCategory.NHAN_CONG]: "Nhân công",
+  [CostCategory.THIET_BI]: "Thiết bị",
+  [CostCategory.SU_CO]: "Sự cố",
+  [CostCategory.KHAC]: "Khác",
 };
 
 export const acceptanceStatus: Record<AcceptanceStatus, Label> = {
-  cho_nghiem_thu: { label: "Chờ nghiệm thu", variant: "warning" },
-  da_nghiem_thu: { label: "Đã nghiệm thu", variant: "success" },
-  co_van_de: { label: "Có vấn đề", variant: "destructive" },
+  [AcceptanceStatus.CHO_NGHIEM_THU]: {
+    label: "Chờ nghiệm thu",
+    variant: "warning",
+  },
+  [AcceptanceStatus.DA_NGHIEM_THU]: {
+    label: "Đã nghiệm thu",
+    variant: "success",
+  },
+  [AcceptanceStatus.CO_VAN_DE]: { label: "Có vấn đề", variant: "destructive" },
 };
 
 export const milestoneType: Record<MilestoneType, string> = {
-  tam_ung: "Tạm ứng",
-  tien_do: "Theo tiến độ",
-  nghiem_thu: "Khi nghiệm thu",
-  giu_bao_hanh: "Giữ lại bảo hành",
-};
-
-export const crewRole: Record<CrewRole, string> = {
-  tho_chinh: "Thợ chính",
-  tho_phu: "Thợ phụ",
-  ve_sinh: "Nhân viên vệ sinh",
-  giam_sat: "Giám sát",
-  lai_xe: "Lái xe",
-};
-
-export const crewStatus: Record<CrewStatus, Label> = {
-  dang_lam: { label: "Đang làm", variant: "success" },
-  tam_nghi: { label: "Tạm nghỉ", variant: "warning" },
-  nghi_viec: { label: "Nghỉ việc", variant: "secondary" },
+  [MilestoneType.TAM_UNG]: "Tạm ứng",
+  [MilestoneType.TIEN_DO]: "Theo tiến độ",
+  [MilestoneType.NGHIEM_THU]: "Khi nghiệm thu",
+  [MilestoneType.GIU_BAO_HANH]: "Giữ lại bảo hành",
 };
 
 export const milestoneStatus: Record<MilestoneStatus, Label> = {
-  chua_den_han: { label: "Chưa đến hạn", variant: "secondary" },
-  cho_thanh_toan: { label: "Chờ thanh toán", variant: "warning" },
-  da_thu: { label: "Đã thu", variant: "success" },
-  qua_han: { label: "Quá hạn", variant: "destructive" },
+  [MilestoneStatus.CHUA_DEN_HAN]: {
+    label: "Chưa đến hạn",
+    variant: "secondary",
+  },
+  [MilestoneStatus.CHO_THANH_TOAN]: {
+    label: "Chờ thanh toán",
+    variant: "warning",
+  },
+  [MilestoneStatus.DA_THU]: { label: "Đã thu", variant: "success" },
+  [MilestoneStatus.QUA_HAN]: { label: "Quá hạn", variant: "destructive" },
+};
+
+export const crewRole: Record<CrewRole, string> = {
+  [CrewRole.THO_CHINH]: "Thợ chính",
+  [CrewRole.THO_PHU]: "Thợ phụ",
+  [CrewRole.VE_SINH]: "Nhân viên vệ sinh",
+  [CrewRole.GIAM_SAT]: "Giám sát",
+  [CrewRole.LAI_XE]: "Lái xe",
+};
+
+export const crewStatus: Record<CrewStatus, Label> = {
+  [CrewStatus.DANG_LAM]: { label: "Đang làm", variant: "success" },
+  [CrewStatus.TAM_NGHI]: { label: "Tạm nghỉ", variant: "warning" },
+  [CrewStatus.NGHI_VIEC]: { label: "Nghỉ việc", variant: "secondary" },
 };

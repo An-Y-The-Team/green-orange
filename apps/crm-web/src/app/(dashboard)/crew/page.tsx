@@ -16,11 +16,14 @@ import { formatVND } from "@/lib/format";
 import { crewRole, crewStatus } from "@/lib/labels";
 
 import { CrewFormDialog } from "./components/crew-form-dialog/crew-form-dialog";
+import { CrewStatus } from "./enums";
 import { listCrew } from "./queries";
 
 export default async function CrewPage() {
   const members = await listCrew();
-  const activeCount = members.filter((m) => m.status === "dang_lam").length;
+  const activeCount = members.filter(
+    (m) => m.status === CrewStatus.DANG_LAM
+  ).length;
 
   return (
     <>

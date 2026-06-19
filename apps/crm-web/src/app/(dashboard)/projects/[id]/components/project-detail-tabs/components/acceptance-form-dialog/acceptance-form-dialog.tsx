@@ -32,6 +32,7 @@ import { Input } from "@yan/ui/components/input";
 import { Textarea } from "@yan/ui/components/textarea";
 
 import { addAcceptance } from "@/app/(dashboard)/projects/actions/add-acceptance";
+import { AcceptanceStatus } from "@/app/(dashboard)/projects/enums";
 import {
   type AcceptanceFormValues,
   acceptanceSchema,
@@ -56,7 +57,7 @@ export function AcceptanceFormDialog({
   const defaults: AcceptanceFormValues = {
     project_code: projectCode ?? "",
     date: "",
-    status: "cho_nghiem_thu",
+    status: AcceptanceStatus.CHO_NGHIEM_THU,
     inspector: "",
     client_rep: "",
     notes: "",
@@ -137,9 +138,15 @@ export function AcceptanceFormDialog({
                   <FormLabel>Trạng thái</FormLabel>
                   <FormControl>
                     <select {...field} className={selectClass}>
-                      <option value="cho_nghiem_thu">Chờ nghiệm thu</option>
-                      <option value="da_nghiem_thu">Đã nghiệm thu</option>
-                      <option value="co_van_de">Có vấn đề</option>
+                      <option value={AcceptanceStatus.CHO_NGHIEM_THU}>
+                        Chờ nghiệm thu
+                      </option>
+                      <option value={AcceptanceStatus.DA_NGHIEM_THU}>
+                        Đã nghiệm thu
+                      </option>
+                      <option value={AcceptanceStatus.CO_VAN_DE}>
+                        Có vấn đề
+                      </option>
                     </select>
                   </FormControl>
                   <FormMessage />

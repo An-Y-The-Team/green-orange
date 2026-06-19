@@ -1,4 +1,4 @@
-import type { Contact } from "@/types";
+import type { Contact } from "@/app/(dashboard)/contacts/types";
 
 export const contacts: Contact[] = [
   {

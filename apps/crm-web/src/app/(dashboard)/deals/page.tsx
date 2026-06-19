@@ -11,25 +11,25 @@ import {
 
 import { PageHeader } from "@/components/page-header";
 import { formatUSD } from "@/lib/format";
-import type { DealStage } from "@/types";
 
+import { DealStage } from "./enums";
 import { listDeals } from "./queries";
 
 const stageVariant: Record<
   DealStage,
   "default" | "secondary" | "warning" | "success" | "destructive"
 > = {
-  prospect: "secondary",
-  proposal: "default",
-  negotiation: "warning",
-  won: "success",
-  lost: "destructive",
+  [DealStage.PROSPECT]: "secondary",
+  [DealStage.PROPOSAL]: "default",
+  [DealStage.NEGOTIATION]: "warning",
+  [DealStage.WON]: "success",
+  [DealStage.LOST]: "destructive",
 };
 
 export default async function DealsPage() {
   const deals = await listDeals();
   const total = deals
-    .filter((d) => d.stage !== "lost")
+    .filter((d) => d.stage !== DealStage.LOST)
     .reduce((sum, d) => sum + d.amount, 0);
 
   return (

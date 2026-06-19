@@ -21,6 +21,16 @@ import {
 } from "@yan/ui/components/table";
 import { cn } from "@yan/ui/lib/utils";
 
+import type { Contract } from "@/app/(dashboard)/contracts/types";
+import { CrewStatus } from "@/app/(dashboard)/crew/enums";
+import type { Assignment, CrewMember } from "@/app/(dashboard)/crew/types";
+import type {
+  Acceptance,
+  Cost,
+  Project,
+} from "@/app/(dashboard)/projects/types";
+import type { Quote } from "@/app/(dashboard)/quotes/types";
+import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
 import {
   formatDate,
   formatVND,
@@ -40,16 +50,6 @@ import {
   quoteType,
   scheduleOutcome,
 } from "@/lib/labels";
-import type {
-  Acceptance,
-  Assignment,
-  Contract,
-  Cost,
-  CrewMember,
-  PaymentMilestone,
-  Project,
-  Quote,
-} from "@/types";
 
 import { CrewAssignDialog } from "../crew-assign-dialog/crew-assign-dialog";
 import { AcceptanceFormDialog } from "./components/acceptance-form-dialog/acceptance-form-dialog";
@@ -546,7 +546,7 @@ function CrewTab({
   const byId = new Map(crew.map((m) => [m.id, m]));
   const assignedIds = assignments.map((a) => a.crew_id);
   // Active crew are the candidates the assign dialog offers.
-  const candidates = crew.filter((m) => m.status === "dang_lam");
+  const candidates = crew.filter((m) => m.status === CrewStatus.DANG_LAM);
 
   return (
     <div className="grid gap-4">

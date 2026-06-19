@@ -11,18 +11,18 @@ import {
 
 import { PageHeader } from "@/components/page-header";
 import { formatUSD } from "@/lib/format";
-import type { LeadStatus } from "@/types";
 
+import { LeadStatus } from "./enums";
 import { listLeads } from "./queries";
 
 const statusVariant: Record<
   LeadStatus,
   "default" | "secondary" | "success" | "destructive"
 > = {
-  new: "secondary",
-  contacted: "default",
-  qualified: "success",
-  lost: "destructive",
+  [LeadStatus.NEW]: "secondary",
+  [LeadStatus.CONTACTED]: "default",
+  [LeadStatus.QUALIFIED]: "success",
+  [LeadStatus.LOST]: "destructive",
 };
 
 export default async function LeadsPage() {

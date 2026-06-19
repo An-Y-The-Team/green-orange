@@ -33,6 +33,7 @@ import { Input } from "@yan/ui/components/input";
 import { selectClass } from "@/components/form-bits";
 
 import { addProject } from "../../actions/add-project";
+import { ProjectType } from "../../enums";
 import { type ProjectFormValues, projectSchema } from "../../schema";
 
 const initialState: ServerActionState = {
@@ -52,7 +53,7 @@ export function ProjectFormDialog() {
     defaultValues: {
       name: "",
       customer: "",
-      type: "ve_sinh",
+      type: ProjectType.VE_SINH,
       address: "",
       manager: "",
       contract_value: 0,

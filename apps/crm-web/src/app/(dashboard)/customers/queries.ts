@@ -1,6 +1,7 @@
 import { customers } from "@/data/mock/customers";
 import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
-import type { Customer } from "@/types";
+
+import type { Customer } from "./types";
 
 // Degrades to [] if the backend is unreachable/erroring — same as the other list
 // queries. The dashboard fans out to all of these in one Promise.all, so a single

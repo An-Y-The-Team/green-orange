@@ -32,11 +32,12 @@ import { Input } from "@yan/ui/components/input";
 import { Textarea } from "@yan/ui/components/textarea";
 
 import { crewRole, crewStatus } from "@/lib/labels";
-import type { CrewMember, CrewRole, CrewStatus } from "@/types";
 
 import { addCrew } from "../../actions/add-crew";
 import { updateCrew } from "../../actions/update-crew";
+import { CrewRole, CrewStatus } from "../../enums";
 import { type CrewFormValues, crewSchema } from "../../schema";
+import type { CrewMember } from "../../types";
 
 const initialState: ServerActionState = {
   success: false,
@@ -44,8 +45,8 @@ const initialState: ServerActionState = {
   errors: {},
 };
 
-const roleOptions = Object.keys(crewRole) as CrewRole[];
-const statusOptions = Object.keys(crewStatus) as CrewStatus[];
+const roleOptions = Object.values(CrewRole);
+const statusOptions = Object.values(CrewStatus);
 
 // Shared add/edit dialog. When `member` is passed it edits that row (bound
 // updateCrew), otherwise it creates a new one (addCrew). The same schema drives
@@ -66,9 +67,9 @@ export function CrewFormDialog({ member }: { member?: CrewMember }) {
     defaultValues: {
       name: member?.name ?? "",
       phone: member?.phone ?? "",
-      role: member?.role ?? "tho_phu",
+      role: member?.role ?? CrewRole.THO_PHU,
       day_rate: member?.day_rate ?? 0,
-      status: member?.status ?? "dang_lam",
+      status: member?.status ?? CrewStatus.DANG_LAM,
       note: member?.note ?? "",
     },
   });

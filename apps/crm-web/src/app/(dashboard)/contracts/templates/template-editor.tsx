@@ -29,13 +29,13 @@ import {
 import { RichEditor } from "@/components/editor/rich-editor";
 import { selectClass } from "@/components/form-bits";
 import { previewContext } from "@/lib/merge-template";
-import type { ContractTemplate } from "@/types";
 
 import { saveTemplate } from "../actions/save-template";
 import {
   type ContractTemplateFormValues,
   contractTemplateSchema,
 } from "../schema";
+import type { ContractTemplate } from "../types";
 
 const initialState: ServerActionState = {
   success: false,
