@@ -1,32 +1,62 @@
+import { type LucideIcon, ShieldCheck, Trees, Wrench } from "lucide-react";
 import Image from "next/image";
 
-import { SiteSettings } from "../../data";
-import {
-  BRAND_VALUES,
-  INTRODUCTION_IMAGE_URL,
-  PROCESS_STEPS,
-} from "./constants";
+import { BrandValueAccent, BrandValueIcon, SiteSettings } from "../../data";
+
+// Static maps keep Tailwind classes greppable for the JIT compiler and let the
+// renderer reject any value the CMS shouldn't be able to send.
+const ICON_BY_NAME: Record<BrandValueIcon, LucideIcon> = {
+  Wrench,
+  ShieldCheck,
+  Trees,
+};
+
+interface TriColors {
+  left: string;
+  right: string;
+  bottom: string;
+}
+
+const ACCENT_TRI_COLORS: Record<BrandValueAccent, TriColors> = {
+  orange: {
+    left: "fill-orange-500 stroke-orange-600",
+    right: "fill-orange-100 stroke-orange-200",
+    bottom: "fill-orange-300 stroke-orange-400",
+  },
+  slate: {
+    left: "fill-slate-400 stroke-slate-550",
+    right: "fill-slate-100 stroke-slate-200",
+    bottom: "fill-slate-300 stroke-slate-400",
+  },
+  emerald: {
+    left: "fill-emerald-620 stroke-emerald-700",
+    right: "fill-emerald-100 stroke-emerald-200",
+    bottom: "fill-emerald-350 stroke-emerald-400",
+  },
+};
+
+const ACCENT_DOT_CLASS: Record<BrandValueAccent, string> = {
+  orange: "bg-orange-500",
+  slate: "bg-slate-400",
+  emerald: "bg-emerald-500",
+};
 
 export default function Introduction({ settings }: { settings: SiteSettings }) {
-  const { company } = settings;
+  const { company, introduction } = settings;
   return (
     <section id="introduction" className="py-16 md:py-24 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full">
-            Giới Thiệu Doanh Nghiệp
+            {introduction.eyebrow}
           </span>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4">
-            Về GreenOrange Services
+            {introduction.heading}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
           <p className="text-slate-500 font-medium mt-6 text-base md:text-lg">
-            Được thành lập từ năm {company.founded}, **GreenOrange Services** tự
-            hào là đơn vị tiên phong kết hợp hai dịch vụ cốt lõi: **Thi Công Cửa
-            Hàng** sắc bén và **Vệ Sinh Công Nghiệp** chuẩn mực. Chúng tôi kiến
-            tạo không gian kinh doanh đầy ấn tượng và bảo dưỡng sự khang trang
-            đó vẹn nguyên theo thời gian.
+            {introduction.narrative.replace("{founded}", company.founded)}
           </p>
         </div>
 
@@ -35,7 +65,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
           <div className="lg:col-span-5 relative">
             <div className="relative rounded-2xl overflow-hidden border border-gray-100 shadow-xl aspect-square">
               <Image
-                src={INTRODUCTION_IMAGE_URL}
+                src={introduction.imageUrl}
                 alt="Đội ngũ GreenOrange làm việc chuyên nghiệp"
                 fill
                 unoptimized
@@ -46,7 +76,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
               {/* Dynamic stats banner on top of image */}
               <div className="absolute bottom-6 left-6 right-6 text-white text-left">
                 <span className="block text-xs font-bold text-orange-400 uppercase tracking-widest mb-1">
-                  Phương châm làm nghề
+                  {introduction.mottoEyebrow}
                 </span>
                 <span className="text-lg md:text-xl font-bold italic leading-tight">
                   &ldquo;{company.motto}&rdquo;
@@ -57,17 +87,16 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
 
           <div className="lg:col-span-7 space-y-6">
             <h3 className="text-3xl md:text-4xl font-black font-heading text-slate-800 tracking-tight">
-              Ý Nghĩa Sứ Mệnh Qua Sắc Màu Nhận Diện
+              {introduction.brandStoryHeading}
             </h3>
             <p className="text-slate-500 text-sm md:text-base leading-relaxed">
-              Chúng tôi không chọn màu ngẫu nhiên. Bộ nhận diện **Màu Cam -
-              Trắng - Xanh lá** đại diện cho lời cam kết toàn diện của chúng tôi
-              về năng lực kỹ thuật và chất lượng vệ sinh bảo dưỡng:
+              {introduction.brandStoryIntro}
             </p>
 
             <div className="space-y-5">
-              {BRAND_VALUES.map((v, idx) => {
-                const IconComp = v.icon;
+              {introduction.brandValues.map((v, idx) => {
+                const IconComp = ICON_BY_NAME[v.icon];
+                const tri = ACCENT_TRI_COLORS[v.accent];
                 return (
                   <div
                     key={idx}
@@ -84,17 +113,17 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                           {/* Isosceles 1 (Left) */}
                           <path
                             d="M 50 6 L 50 52 L 10 75 Z"
-                            className={`${v.triColors.left} stroke-linejoin-round stroke-[6]`}
+                            className={`${tri.left} stroke-linejoin-round stroke-[6]`}
                           />
                           {/* Isosceles 2 (Right) */}
                           <path
                             d="M 50 6 L 50 52 L 90 75 Z"
-                            className={`${v.triColors.right} stroke-linejoin-round stroke-[6]`}
+                            className={`${tri.right} stroke-linejoin-round stroke-[6]`}
                           />
                           {/* Isosceles 3 (Bottom) */}
                           <path
                             d="M 10 75 L 50 52 L 90 75 Z"
-                            className={`${v.triColors.bottom} stroke-linejoin-round stroke-[6]`}
+                            className={`${tri.bottom} stroke-linejoin-round stroke-[6]`}
                           />
                         </svg>
                       </div>
@@ -109,7 +138,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                     <div className="text-center sm:text-left flex-1">
                       <h4 className="font-black font-heading text-slate-800 text-lg mb-1.5 flex items-center justify-center sm:justify-start gap-2">
                         <span
-                          className={`inline-block size-2 rounded-full ${idx === 0 ? "bg-orange-500" : idx === 1 ? "bg-slate-400" : "bg-emerald-500"}`}
+                          className={`inline-block size-2 rounded-full ${ACCENT_DOT_CLASS[v.accent]}`}
                         />
                         {v.title}
                       </h4>
@@ -131,19 +160,18 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
 
           <div className="max-w-3xl mx-auto text-center mb-12 relative z-10">
             <span className="text-sm font-black text-orange-400 uppercase tracking-widest bg-orange-400/15 px-4 py-1.5 rounded-full inline-block scale-110 mb-2">
-              Khép kín & Hoàn hảo
+              {introduction.processEyebrow}
             </span>
             <h3 className="text-3xl md:text-4xl font-black font-heading tracking-tight mt-3 mb-4 text-white">
-              Quy Trình 5 Bước Phục Vụ Chuyên Nghiệp
+              {introduction.processHeading}
             </h3>
             <p className="text-slate-300 text-base md:text-lg">
-              Tối ưu hóa thời gian mở showroom cho chủ đầu tư. Phối hợp nhịp
-              nhàng giữa thi công hoàn thiện và dọn sạch tinh tươm.
+              {introduction.processIntro}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 relative z-10">
-            {PROCESS_STEPS.map((step, idx) => (
+            {introduction.processSteps.map((step, idx) => (
               <div
                 key={idx}
                 className="relative bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 hover:border-white/20 transition-all flex flex-col items-start text-left"
@@ -155,9 +183,9 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                   {step.title}
                 </h4>
                 <p className="text-sm text-slate-400 leading-normal mt-auto">
-                  {step.desc}
+                  {step.description}
                 </p>
-                {idx < 4 && (
+                {idx < introduction.processSteps.length - 1 && (
                   <div className="hidden lg:block absolute top-[40px] -right-[15%] w-[30%] h-[1px] bg-gradient-to-r from-orange-400/40 to-emerald-400/40 z-20 pointer-events-none" />
                 )}
               </div>

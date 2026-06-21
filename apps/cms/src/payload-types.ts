@@ -711,13 +711,69 @@ export interface SiteSetting {
     mobileCtaLabel?: string | null;
   };
   /**
-   * Intro copy shown in the landing hero section.
+   * Landing hero section copy, headline, CTAs, and benefits.
    */
   hero?: {
+    /**
+     * Full-bleed background photo behind the hero card. Leave empty to fall back to the default Unsplash photo.
+     */
+    backgroundImage?: (number | null) | Media;
+    /**
+     * Pill label above the headline (e.g. "Tiêu chuẩn quốc tế ISO 9001:2015 ...").
+     */
+    trustBadge?: string | null;
+    /**
+     * The decorated multi-line headline, broken into colored pieces. The renderer will join segments with a space and respect "new line before".
+     */
+    headlineSegments?:
+      | {
+          text: string;
+          color: 'white' | 'emerald' | 'orange';
+          /**
+           * Render this segment in italic.
+           */
+          italic?: boolean | null;
+          /**
+           * Start a new line before this segment.
+           */
+          newLineBefore?: boolean | null;
+          id?: string | null;
+        }[]
+      | null;
     /**
      * The paragraph under the main hero heading.
      */
     subheadline?: string | null;
+    /**
+     * Selling points shown in the 2x2 grid inside the hero card.
+     */
+    benefits?:
+      | {
+          item: string;
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Filled orange button.
+     */
+    primaryCta?: {
+      label?: string | null;
+      /**
+       * Anchor like "#contact" or an external URL.
+       */
+      href?: string | null;
+    };
+    /**
+     * Outline button next to the primary CTA.
+     */
+    secondaryCta?: {
+      label?: string | null;
+      href?: string | null;
+    };
+    /**
+     * Mini line below the CTAs (e.g. "Cam kết đồng hành tin cậy...").
+     */
+    trustStrap?: string | null;
   };
   /**
    * Headline counters (e.g. "500+" projects delivered).
@@ -736,6 +792,68 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Company introduction section: brand story, brand-color meanings, and the 5-step process.
+   */
+  introduction?: {
+    /**
+     * Small label above the heading.
+     */
+    eyebrow?: string | null;
+    heading?: string | null;
+    /**
+     * Long company-narrative paragraph. Use **text** for bold; the placeholder {founded} expands to the founding year from Company tab.
+     */
+    narrative?: string | null;
+    /**
+     * Square photo shown next to the brand-color story.
+     */
+    image?: (number | null) | Media;
+    /**
+     * Label above the motto overlay on the photo (e.g. "Phương châm làm nghề").
+     */
+    mottoEyebrow?: string | null;
+    /**
+     * Heading next to the photo.
+     */
+    brandStoryHeading?: string | null;
+    /**
+     * Paragraph under the brand-story heading.
+     */
+    brandStoryIntro?: string | null;
+    /**
+     * The three brand colors and the meaning each represents. Recommend exactly 3 entries.
+     */
+    brandValues?:
+      | {
+          title: string;
+          description: string;
+          icon: 'Wrench' | 'ShieldCheck' | 'Trees';
+          accent: 'orange' | 'slate' | 'emerald';
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Label above the process heading (e.g. "Khép kín & Hoàn hảo").
+     */
+    processEyebrow?: string | null;
+    processHeading?: string | null;
+    processIntro?: string | null;
+    /**
+     * Service-delivery process steps. Recommend exactly 5 entries.
+     */
+    processSteps?:
+      | {
+          /**
+           * Two-digit string e.g. "01".
+           */
+          num: string;
+          title: string;
+          description: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
   /**
    * Footer copy, column headings, and quick links.
    */
@@ -854,7 +972,37 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   hero?:
     | T
     | {
+        backgroundImage?: T;
+        trustBadge?: T;
+        headlineSegments?:
+          | T
+          | {
+              text?: T;
+              color?: T;
+              italic?: T;
+              newLineBefore?: T;
+              id?: T;
+            };
         subheadline?: T;
+        benefits?:
+          | T
+          | {
+              item?: T;
+              id?: T;
+            };
+        primaryCta?:
+          | T
+          | {
+              label?: T;
+              href?: T;
+            };
+        secondaryCta?:
+          | T
+          | {
+              label?: T;
+              href?: T;
+            };
+        trustStrap?: T;
       };
   stats?:
     | T
@@ -863,6 +1011,37 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         label?: T;
         color?: T;
         id?: T;
+      };
+  introduction?:
+    | T
+    | {
+        eyebrow?: T;
+        heading?: T;
+        narrative?: T;
+        image?: T;
+        mottoEyebrow?: T;
+        brandStoryHeading?: T;
+        brandStoryIntro?: T;
+        brandValues?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              icon?: T;
+              accent?: T;
+              id?: T;
+            };
+        processEyebrow?: T;
+        processHeading?: T;
+        processIntro?: T;
+        processSteps?:
+          | T
+          | {
+              num?: T;
+              title?: T;
+              description?: T;
+              id?: T;
+            };
       };
   footer?:
     | T

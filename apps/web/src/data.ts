@@ -205,6 +205,36 @@ export interface SectionLink {
   sectionId: SectionId;
 }
 
+export type HeadlineColor = "white" | "emerald" | "orange";
+
+export interface HeadlineSegment {
+  text: string;
+  color: HeadlineColor;
+  italic: boolean;
+  newLineBefore: boolean;
+}
+
+export interface CtaButton {
+  label: string;
+  href: string;
+}
+
+export type BrandValueIcon = "Wrench" | "ShieldCheck" | "Trees";
+export type BrandValueAccent = "orange" | "slate" | "emerald";
+
+export interface BrandValue {
+  title: string;
+  description: string;
+  icon: BrandValueIcon;
+  accent: BrandValueAccent;
+}
+
+export interface ProcessStep {
+  num: string;
+  title: string;
+  description: string;
+}
+
 export interface SiteSettings {
   company: {
     name: string;
@@ -234,9 +264,30 @@ export interface SiteSettings {
     mobileCtaLabel: string;
   };
   hero: {
+    backgroundImageUrl: string;
+    trustBadge: string;
+    headlineSegments: HeadlineSegment[];
     subheadline: string;
+    benefits: string[];
+    primaryCta: CtaButton;
+    secondaryCta: CtaButton;
+    trustStrap: string;
   };
   stats: Stat[];
+  introduction: {
+    eyebrow: string;
+    heading: string;
+    narrative: string;
+    imageUrl: string;
+    mottoEyebrow: string;
+    brandStoryHeading: string;
+    brandStoryIntro: string;
+    brandValues: BrandValue[];
+    processEyebrow: string;
+    processHeading: string;
+    processIntro: string;
+    processSteps: ProcessStep[];
+  };
   footer: {
     brandDescription: string;
     quickLinksHeading: string;
@@ -291,8 +342,32 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     mobileCtaLabel: "Yêu cầu khảo sát miễn phí",
   },
   hero: {
+    backgroundImageUrl:
+      "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1920&q=80",
+    trustBadge: "Tiêu chuẩn quốc tế ISO 9001:2015 & chuẩn Eco-Safe",
+    headlineSegments: [
+      { text: "Thi Công", color: "white", italic: false, newLineBefore: false },
+      { text: "Kiến Tạo", color: "orange", italic: true, newLineBefore: false },
+      { text: "Cửa Hiệu", color: "white", italic: false, newLineBefore: false },
+      {
+        text: "Chuyên Nghiệp & Sạch Sẽ",
+        color: "emerald",
+        italic: false,
+        newLineBefore: true,
+      },
+    ],
     subheadline:
       "Hợp tác toàn diện 2-trong-1 thiết kế, cải tạo trần vách, ánh sáng rọi, mặt dựng Alu cho chuỗi showroom toàn quốc. Kết hợp gói dọn dẹp vệ sinh sâu bóc bụi mịn sơn bả trước giờ cắt băng bàn giao, giúp bạn sở hữu cửa hiệu sang trọng, sạch bóng tươm tất nhanh chóng nhất.",
+    benefits: [
+      "Thi công chuẩn kỹ thuật, bảo hành 12 tháng",
+      "Công nghệ màng lọc bụi mịn HEPA 3 lớp",
+      "Khảo sát đo đạc hiện trạng trong ngày miễn phí",
+      "Cam kết chất tẩy rửa hữu cơ sinh học Eco-Safe",
+    ],
+    primaryCta: { label: "Đặt lịch khảo sát ngay", href: "#contact" },
+    secondaryCta: { label: "Tìm hiểu dịch vụ", href: "#services" },
+    trustStrap:
+      "✓ Cam kết đồng hành tin cậy • Khảo sát lập phương án & báo giá trong ngày miễn phí",
   },
   stats: [
     {
@@ -316,6 +391,77 @@ export const DEFAULT_SETTINGS: SiteSettings = {
       color: "text-orange-600",
     },
   ],
+  introduction: {
+    eyebrow: "Giới Thiệu Doanh Nghiệp",
+    heading: "Về GreenOrange Services",
+    narrative:
+      "Được thành lập từ năm {founded}, **GreenOrange Services** tự hào là đơn vị tiên phong kết hợp hai dịch vụ cốt lõi: **Thi Công Cửa Hàng** sắc bén và **Vệ Sinh Công Nghiệp** chuẩn mực. Chúng tôi kiến tạo không gian kinh doanh đầy ấn tượng và bảo dưỡng sự khang trang đó vẹn nguyên theo thời gian.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
+    mottoEyebrow: "Phương châm làm nghề",
+    brandStoryHeading: "Ý Nghĩa Sứ Mệnh Qua Sắc Màu Nhận Diện",
+    brandStoryIntro:
+      "Chúng tôi không chọn màu ngẫu nhiên. Bộ nhận diện **Màu Cam - Trắng - Xanh lá** đại diện cho lời cam kết toàn diện của chúng tôi về năng lực kỹ thuật và chất lượng vệ sinh bảo dưỡng:",
+    brandValues: [
+      {
+        title: "Màu Cam: Thi Công Nhiệt Huyết",
+        description:
+          "Sáng tạo, tinh xảo trong từng đường điện, kệ tủ trưng bày và biển hiệu quảng cáo Alu nổi bật.",
+        icon: "Wrench",
+        accent: "orange",
+      },
+      {
+        title: "Màu Trắng: Sạch Sẽ & Minh Bạch",
+        description:
+          "Cam kết không gian sạch bóng chuyên sâu, bàn giao đúng tiến độ và minh bạch trong báo giá.",
+        icon: "ShieldCheck",
+        accent: "slate",
+      },
+      {
+        title: "Màu Xanh: Thân Thiện & An Toàn",
+        description:
+          "Dọn dẹp bằng hóa chất sinh học sinh thái Organic tuyệt đối an toàn cho nhân viên và quý khách.",
+        icon: "Trees",
+        accent: "emerald",
+      },
+    ],
+    processEyebrow: "Khép kín & Hoàn hảo",
+    processHeading: "Quy Trình 5 Bước Phục Vụ Chuyên Nghiệp",
+    processIntro:
+      "Tối ưu hóa thời gian mở showroom cho chủ đầu tư. Phối hợp nhịp nhàng giữa thi công hoàn thiện và dọn sạch tinh tươm.",
+    processSteps: [
+      {
+        num: "01",
+        title: "Khảo Sát & Đo Đạc Hiện Trạng",
+        description:
+          "Chuyên viên của chúng tôi sẽ đến trực tiếp mặt bằng thô hoặc shop cũ của bạn trong 2 giờ kể từ khi tiếp nhận để khảo sát diện tích, đặc thù kết cấu và đo đạt chính xác.",
+      },
+      {
+        num: "02",
+        title: "Lên Dự Toán & Bản Vẽ Khớp Thật",
+        description:
+          "Bóc tách chi tiết từng hạng mục: số lượng thạch cao, sàn nhựa, thiết bị điện, số lượng nhân công dọn dẹp và hóa chất cần dùng. Ký kết hợp đồng cam kết không phát sinh.",
+      },
+      {
+        num: "03",
+        title: "Thi Công Lắp Đặt Gấp Rút",
+        description:
+          "Tiến hành ốp Alu, dựng vách, sơn bả tường và đi dây nguồn điện rọi, điện trang trí. Hoạt động liên tục cả ca đêm nếu ban quản lý tòa nhà yêu cầu để kịp tiến độ.",
+      },
+      {
+        num: "04",
+        title: "Mài Sàn & Vệ Sinh Sâu Chi Tiết",
+        description:
+          "Triển khai máy đánh sàn công nghiệp, hút bụi mịn, bóc tẩy mọi silicone còn dính trên kính, lau chùi biển hiệu, tẩy mốc khử mùi sơn mới bám trần vách.",
+      },
+      {
+        num: "05",
+        title: "Nghiệm Thu Khắt Khe & Bàn Giao",
+        description:
+          "Tiến hành nghiệm thu từng chi tiết cùng chủ đầu tư theo checklist kỹ thuật chuẩn mực. Bàn giao chìa khóa để chủ shop yên tâm khai trương và hưởng bảo hành 12 tháng.",
+      },
+    ],
+  },
   footer: {
     brandDescription:
       "Đơn vị trọn gói uy tín hàng đầu cung cấp dịch vụ cải tạo, lắp đặt ánh sáng nội thất và vệ sinh bàn giao cho chuỗi retail, văn phòng và các thương hiệu cao cấp tại Việt Nam.",
@@ -356,6 +502,35 @@ interface PayloadSectionLink {
   sectionId?: string | null;
 }
 
+// Uploaded media comes back as `{ url, ... }` at depth=1 or as an id number at
+// depth=0. We always fetch at depth=1, so a string `url` is what we expect.
+type PayloadMedia = { url?: string | null } | number | null | undefined;
+
+interface PayloadHeadlineSegment {
+  text?: string | null;
+  color?: string | null;
+  italic?: boolean | null;
+  newLineBefore?: boolean | null;
+}
+
+interface PayloadBrandValue {
+  title?: string | null;
+  description?: string | null;
+  icon?: string | null;
+  accent?: string | null;
+}
+
+interface PayloadProcessStep {
+  num?: string | null;
+  title?: string | null;
+  description?: string | null;
+}
+
+interface PayloadCta {
+  label?: string | null;
+  href?: string | null;
+}
+
 interface PayloadSiteSettings {
   company?: Partial<SiteSettings["company"]> | null;
   social?: Partial<SiteSettings["social"]> | null;
@@ -365,8 +540,31 @@ interface PayloadSiteSettings {
     headerCtaLabel?: string | null;
     mobileCtaLabel?: string | null;
   } | null;
-  hero?: Partial<SiteSettings["hero"]> | null;
+  hero?: {
+    backgroundImage?: PayloadMedia;
+    trustBadge?: string | null;
+    headlineSegments?: PayloadHeadlineSegment[] | null;
+    subheadline?: string | null;
+    benefits?: Array<{ item?: string | null }> | null;
+    primaryCta?: PayloadCta | null;
+    secondaryCta?: PayloadCta | null;
+    trustStrap?: string | null;
+  } | null;
   stats?: Array<Partial<Stat>> | null;
+  introduction?: {
+    eyebrow?: string | null;
+    heading?: string | null;
+    narrative?: string | null;
+    image?: PayloadMedia;
+    mottoEyebrow?: string | null;
+    brandStoryHeading?: string | null;
+    brandStoryIntro?: string | null;
+    brandValues?: PayloadBrandValue[] | null;
+    processEyebrow?: string | null;
+    processHeading?: string | null;
+    processIntro?: string | null;
+    processSteps?: PayloadProcessStep[] | null;
+  } | null;
   footer?: {
     brandDescription?: string | null;
     quickLinksHeading?: string | null;
@@ -391,6 +589,97 @@ interface PayloadSiteSettings {
 // any value the CMS returns is either a valid SectionId or unknown. Drop links
 // with an unknown id so we never render dead anchors.
 const SECTION_IDS = new Set<string>(Object.values(SectionId));
+
+// Whitelists for CMS enum strings → web TS unions. Anything outside the
+// whitelist is treated as "missing" so the default applies, which keeps
+// Tailwind classes referenced statically and the union types honest.
+const HEADLINE_COLORS = new Set<string>(["white", "emerald", "orange"]);
+const BRAND_ICONS = new Set<string>(["Wrench", "ShieldCheck", "Trees"]);
+const BRAND_ACCENTS = new Set<string>(["orange", "slate", "emerald"]);
+
+const resolveMediaUrl = (media: PayloadMedia, fallback: string): string => {
+  if (media && typeof media === "object" && media.url) return media.url;
+  return fallback;
+};
+
+const mapHeadlineSegments = (
+  raw: PayloadHeadlineSegment[] | null | undefined,
+  fallback: HeadlineSegment[]
+): HeadlineSegment[] => {
+  const mapped = (raw ?? [])
+    .filter((s): s is { text: string; color: string } =>
+      Boolean(s.text && s.color && HEADLINE_COLORS.has(s.color))
+    )
+    .map((s) => ({
+      text: s.text,
+      color: s.color as HeadlineColor,
+      italic: Boolean((s as PayloadHeadlineSegment).italic),
+      newLineBefore: Boolean((s as PayloadHeadlineSegment).newLineBefore),
+    }));
+  return mapped.length ? mapped : fallback;
+};
+
+const mapBenefits = (
+  raw: Array<{ item?: string | null }> | null | undefined,
+  fallback: string[]
+): string[] => {
+  const items = (raw ?? [])
+    .map((b) => b.item?.trim() ?? "")
+    .filter((s) => s.length > 0);
+  return items.length ? items : fallback;
+};
+
+const mapBrandValues = (
+  raw: PayloadBrandValue[] | null | undefined,
+  fallback: BrandValue[]
+): BrandValue[] => {
+  const mapped = (raw ?? [])
+    .filter(
+      (
+        v
+      ): v is {
+        title: string;
+        description: string;
+        icon: string;
+        accent: string;
+      } =>
+        Boolean(
+          v.title &&
+          v.description &&
+          v.icon &&
+          BRAND_ICONS.has(v.icon) &&
+          v.accent &&
+          BRAND_ACCENTS.has(v.accent)
+        )
+    )
+    .map((v) => ({
+      title: v.title,
+      description: v.description,
+      icon: v.icon as BrandValueIcon,
+      accent: v.accent as BrandValueAccent,
+    }));
+  return mapped.length ? mapped : fallback;
+};
+
+const mapProcessSteps = (
+  raw: PayloadProcessStep[] | null | undefined,
+  fallback: ProcessStep[]
+): ProcessStep[] => {
+  const mapped = (raw ?? [])
+    .filter((s): s is { num: string; title: string; description: string } =>
+      Boolean(s.num && s.title && s.description)
+    )
+    .map((s) => ({ num: s.num, title: s.title, description: s.description }));
+  return mapped.length ? mapped : fallback;
+};
+
+const mapCta = (
+  raw: PayloadCta | null | undefined,
+  fallback: CtaButton
+): CtaButton => ({
+  label: orDefault(raw?.label, fallback.label),
+  href: orDefault(raw?.href, fallback.href),
+});
 const mapSectionLinks = (
   raw: PayloadSectionLink[] | null | undefined,
   fallback: SectionLink[]
@@ -417,10 +706,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   );
   if (!s) return d;
 
-  const ogImage =
-    s.seo?.ogImage && typeof s.seo.ogImage === "object"
-      ? (s.seo.ogImage.url ?? "")
-      : "";
+  const ogImage = resolveMediaUrl(s.seo?.ogImage, "");
   const stats = (s.stats ?? [])
     .filter((x): x is Stat => Boolean(x.value && x.label))
     .map((x) => ({
@@ -479,9 +765,60 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       ),
     },
     hero: {
+      backgroundImageUrl: resolveMediaUrl(
+        s.hero?.backgroundImage,
+        d.hero.backgroundImageUrl
+      ),
+      trustBadge: orDefault(s.hero?.trustBadge, d.hero.trustBadge),
+      headlineSegments: mapHeadlineSegments(
+        s.hero?.headlineSegments,
+        d.hero.headlineSegments
+      ),
       subheadline: orDefault(s.hero?.subheadline, d.hero.subheadline),
+      benefits: mapBenefits(s.hero?.benefits, d.hero.benefits),
+      primaryCta: mapCta(s.hero?.primaryCta, d.hero.primaryCta),
+      secondaryCta: mapCta(s.hero?.secondaryCta, d.hero.secondaryCta),
+      trustStrap: orDefault(s.hero?.trustStrap, d.hero.trustStrap),
     },
     stats: stats.length ? stats : d.stats,
+    introduction: {
+      eyebrow: orDefault(s.introduction?.eyebrow, d.introduction.eyebrow),
+      heading: orDefault(s.introduction?.heading, d.introduction.heading),
+      narrative: orDefault(s.introduction?.narrative, d.introduction.narrative),
+      imageUrl: resolveMediaUrl(s.introduction?.image, d.introduction.imageUrl),
+      mottoEyebrow: orDefault(
+        s.introduction?.mottoEyebrow,
+        d.introduction.mottoEyebrow
+      ),
+      brandStoryHeading: orDefault(
+        s.introduction?.brandStoryHeading,
+        d.introduction.brandStoryHeading
+      ),
+      brandStoryIntro: orDefault(
+        s.introduction?.brandStoryIntro,
+        d.introduction.brandStoryIntro
+      ),
+      brandValues: mapBrandValues(
+        s.introduction?.brandValues,
+        d.introduction.brandValues
+      ),
+      processEyebrow: orDefault(
+        s.introduction?.processEyebrow,
+        d.introduction.processEyebrow
+      ),
+      processHeading: orDefault(
+        s.introduction?.processHeading,
+        d.introduction.processHeading
+      ),
+      processIntro: orDefault(
+        s.introduction?.processIntro,
+        d.introduction.processIntro
+      ),
+      processSteps: mapProcessSteps(
+        s.introduction?.processSteps,
+        d.introduction.processSteps
+      ),
+    },
     footer: {
       brandDescription: orDefault(
         s.footer?.brandDescription,
