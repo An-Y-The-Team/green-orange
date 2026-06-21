@@ -4,12 +4,17 @@ import Link from "next/link";
 
 import { buttonVariants } from "@yan/ui/components/button";
 
-import { SiteSettings } from "../../data";
-import {
-  HERO_BACKGROUND_IMAGE_URL,
-  HERO_BENEFITS,
-  HERO_CARD_STYLE,
-} from "./constants";
+import { HeadlineColor, SiteSettings } from "../../data";
+
+// Static map keeps Tailwind classes greppable for the JIT compiler. Never
+// build a className from a raw CMS string.
+const HEADLINE_COLOR_CLASS: Record<HeadlineColor, string> = {
+  white: "text-white",
+  emerald:
+    "text-linear bg-linear-to-r from-emerald-400 to-emerald-500 bg-clip-text text-transparent",
+  orange:
+    "text-linear bg-linear-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent",
+};
 
 export default function Hero({ settings }: { settings: SiteSettings }) {
   const { stats, hero } = settings;
@@ -21,7 +26,7 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
       {/* 1. Large background image with high depth layer */}
       <div className="absolute inset-0 z-0">
         <Image
-          src={HERO_BACKGROUND_IMAGE_URL}
+          src={hero.backgroundImageUrl}
           alt="Không gian thi công và vệ sinh chuyên nghiệp"
           fill
           unoptimized
@@ -41,26 +46,25 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
         <div
           id="hero-main-card"
           className="w-full max-w-5xl mx-auto bg-slate-950/75 backdrop-blur-md border border-white/10 rounded-3xl p-10 md:p-14 lg:p-16 text-center flex flex-col items-center shadow-2xl transition-all duration-500 hover:border-emerald-500/30 transform hover:scale-[1.01]"
-          style={HERO_CARD_STYLE}
         >
           {/* Trust badge with glowing element */}
           <div className="inline-flex items-center gap-2 py-2 px-4 bg-white/10 border border-white/15 shadow-sm rounded-full text-emerald-300 text-sm font-bold mb-8 animate-fade-in">
             <ShieldCheck className="size-5 text-emerald-400" />
-            <span className="tracking-wide">
-              Tiêu chuẩn quốc tế ISO 9001:2015 & chuẩn Eco-Safe
-            </span>
+            <span className="tracking-wide">{hero.trustBadge}</span>
           </div>
 
-          {/* 3. Luxury Headings using Serif font */}
+          {/* 3. Luxury Headings using Serif font — joined from CMS segments */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif text-white tracking-normal leading-tight mb-8 max-w-4xl">
-            Thi Công{" "}
-            <span className="text-linear bg-linear-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent italic">
-              Kiến Tạo
-            </span>{" "}
-            Cửa Hiệu <br />
-            <span className="text-linear bg-linear-to-r from-emerald-400 to-emerald-500 bg-clip-text text-transparent">
-              Chuyên Nghiệp & Sạch Sẽ
-            </span>
+            {hero.headlineSegments.map((seg, idx) => (
+              <span key={idx}>
+                {seg.newLineBefore && idx > 0 ? <br /> : idx > 0 ? " " : null}
+                <span
+                  className={`${HEADLINE_COLOR_CLASS[seg.color]} ${seg.italic ? "italic" : ""}`}
+                >
+                  {seg.text}
+                </span>
+              </span>
+            ))}
           </h1>
 
           {/* Subtext description conforming to core business details */}
@@ -70,7 +74,7 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
 
           {/* Dynamic Core Benefits Grid (2x2) inside centered panel */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-10 mb-10 text-left border-t border-b border-white/10 py-8 w-full max-w-3xl">
-            {HERO_BENEFITS.map((value, idx) => (
+            {hero.benefits.map((value, idx) => (
               <div key={idx} className="flex items-center gap-3">
                 <div className="flex items-center justify-center size-6 bg-emerald-500/20 border border-emerald-500/40 rounded-full text-emerald-400">
                   <Check className="size-4" />
@@ -86,31 +90,31 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
           <div className="flex flex-col sm:flex-row gap-5 w-full justify-center items-center">
             <Link
               id="hero-primary-cta"
-              href="#contact"
+              href={hero.primaryCta.href}
               className={
                 buttonVariants({ variant: "default" }) +
                 " w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-5 rounded-2xl text-base shadow-xl shadow-orange-500/20 hover:shadow-orange-500/45 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
               }
             >
-              Đặt lịch khảo sát ngay{" "}
+              {hero.primaryCta.label}{" "}
               <ArrowRight className="size-5 animate-bounce-horizontal" />
             </Link>
             <Link
               id="hero-secondary-cta"
-              href="#services"
+              href={hero.secondaryCta.href}
               className={
                 buttonVariants({ variant: "outline" }) +
                 " w-full sm:w-auto border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold px-8 py-5 rounded-2xl text-base shadow-sm hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
               }
             >
-              Tìm hiểu dịch vụ <Sparkles className="size-5 text-orange-400" />
+              {hero.secondaryCta.label}{" "}
+              <Sparkles className="size-5 text-orange-400" />
             </Link>
           </div>
 
           {/* Mini trust label */}
           <span className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-8">
-            ✓ Cam kết đồng hành tin cậy • Khảo sát lập phương án & báo giá trong
-            ngày miễn phí
+            {hero.trustStrap}
           </span>
         </div>
 

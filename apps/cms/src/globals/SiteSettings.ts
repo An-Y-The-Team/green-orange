@@ -160,12 +160,98 @@ export const SiteSettings: GlobalConfig = {
             {
               name: 'hero',
               type: 'group',
-              admin: { description: 'Intro copy shown in the landing hero section.' },
+              admin: { description: 'Landing hero section copy, headline, CTAs, and benefits.' },
               fields: [
+                {
+                  name: 'backgroundImage',
+                  type: 'upload',
+                  relationTo: 'media',
+                  admin: {
+                    description:
+                      'Full-bleed background photo behind the hero card. Leave empty to fall back to the default Unsplash photo.',
+                  },
+                },
+                {
+                  name: 'trustBadge',
+                  type: 'text',
+                  admin: {
+                    description:
+                      'Pill label above the headline (e.g. "Tiêu chuẩn quốc tế ISO 9001:2015 ...").',
+                  },
+                },
+                {
+                  name: 'headlineSegments',
+                  type: 'array',
+                  admin: {
+                    description:
+                      'The decorated multi-line headline, broken into colored pieces. The renderer will join segments with a space and respect "new line before".',
+                  },
+                  fields: [
+                    { name: 'text', type: 'text', required: true },
+                    {
+                      name: 'color',
+                      type: 'select',
+                      required: true,
+                      defaultValue: 'white',
+                      options: [
+                        { label: 'White (plain)', value: 'white' },
+                        { label: 'Emerald (brand)', value: 'emerald' },
+                        { label: 'Orange (brand)', value: 'orange' },
+                      ],
+                    },
+                    {
+                      name: 'italic',
+                      type: 'checkbox',
+                      admin: { description: 'Render this segment in italic.' },
+                    },
+                    {
+                      name: 'newLineBefore',
+                      type: 'checkbox',
+                      admin: { description: 'Start a new line before this segment.' },
+                    },
+                  ],
+                },
                 {
                   name: 'subheadline',
                   type: 'textarea',
                   admin: { description: 'The paragraph under the main hero heading.' },
+                },
+                {
+                  name: 'benefits',
+                  type: 'array',
+                  admin: {
+                    description: 'Selling points shown in the 2x2 grid inside the hero card.',
+                  },
+                  fields: [{ name: 'item', type: 'text', required: true }],
+                },
+                {
+                  name: 'primaryCta',
+                  type: 'group',
+                  admin: { description: 'Filled orange button.' },
+                  fields: [
+                    { name: 'label', type: 'text' },
+                    {
+                      name: 'href',
+                      type: 'text',
+                      admin: { description: 'Anchor like "#contact" or an external URL.' },
+                    },
+                  ],
+                },
+                {
+                  name: 'secondaryCta',
+                  type: 'group',
+                  admin: { description: 'Outline button next to the primary CTA.' },
+                  fields: [
+                    { name: 'label', type: 'text' },
+                    { name: 'href', type: 'text' },
+                  ],
+                },
+                {
+                  name: 'trustStrap',
+                  type: 'textarea',
+                  admin: {
+                    description: 'Mini line below the CTAs (e.g. "Cam kết đồng hành tin cậy...").',
+                  },
                 },
               ],
             },
@@ -185,6 +271,117 @@ export const SiteSettings: GlobalConfig = {
                   name: 'color',
                   type: 'text',
                   admin: { description: 'Tailwind text-color class, e.g. "text-green-600".' },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          label: 'Introduction',
+          fields: [
+            {
+              name: 'introduction',
+              type: 'group',
+              admin: {
+                description:
+                  'Company introduction section: brand story, brand-color meanings, and the 5-step process.',
+              },
+              fields: [
+                {
+                  name: 'eyebrow',
+                  type: 'text',
+                  admin: { description: 'Small label above the heading.' },
+                },
+                { name: 'heading', type: 'text' },
+                {
+                  name: 'narrative',
+                  type: 'textarea',
+                  admin: {
+                    description:
+                      'Long company-narrative paragraph. Use **text** for bold; the placeholder {founded} expands to the founding year from Company tab.',
+                  },
+                },
+                {
+                  name: 'image',
+                  type: 'upload',
+                  relationTo: 'media',
+                  admin: { description: 'Square photo shown next to the brand-color story.' },
+                },
+                {
+                  name: 'mottoEyebrow',
+                  type: 'text',
+                  admin: {
+                    description:
+                      'Label above the motto overlay on the photo (e.g. "Phương châm làm nghề").',
+                  },
+                },
+                {
+                  name: 'brandStoryHeading',
+                  type: 'text',
+                  admin: { description: 'Heading next to the photo.' },
+                },
+                {
+                  name: 'brandStoryIntro',
+                  type: 'textarea',
+                  admin: { description: 'Paragraph under the brand-story heading.' },
+                },
+                {
+                  name: 'brandValues',
+                  type: 'array',
+                  admin: {
+                    description:
+                      'The three brand colors and the meaning each represents. Recommend exactly 3 entries.',
+                  },
+                  fields: [
+                    { name: 'title', type: 'text', required: true },
+                    { name: 'description', type: 'textarea', required: true },
+                    {
+                      name: 'icon',
+                      type: 'select',
+                      required: true,
+                      options: [
+                        { label: 'Wrench', value: 'Wrench' },
+                        { label: 'ShieldCheck', value: 'ShieldCheck' },
+                        { label: 'Trees', value: 'Trees' },
+                      ],
+                    },
+                    {
+                      name: 'accent',
+                      type: 'select',
+                      required: true,
+                      options: [
+                        { label: 'Orange', value: 'orange' },
+                        { label: 'Slate', value: 'slate' },
+                        { label: 'Emerald', value: 'emerald' },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  name: 'processEyebrow',
+                  type: 'text',
+                  admin: {
+                    description: 'Label above the process heading (e.g. "Khép kín & Hoàn hảo").',
+                  },
+                },
+                { name: 'processHeading', type: 'text' },
+                { name: 'processIntro', type: 'textarea' },
+                {
+                  name: 'processSteps',
+                  type: 'array',
+                  admin: {
+                    description: 'Service-delivery process steps. Recommend exactly 5 entries.',
+                  },
+                  fields: [
+                    {
+                      name: 'num',
+                      type: 'text',
+                      required: true,
+                      admin: { description: 'Two-digit string e.g. "01".' },
+                    },
+                    { name: 'title', type: 'text', required: true },
+                    { name: 'description', type: 'textarea', required: true },
+                  ],
                 },
               ],
             },

@@ -350,8 +350,25 @@ const SITE_SETTINGS = {
     mobileCtaLabel: 'Yêu cầu khảo sát miễn phí',
   },
   hero: {
+    trustBadge: 'Tiêu chuẩn quốc tế ISO 9001:2015 & chuẩn Eco-Safe',
+    headlineSegments: [
+      { text: 'Thi Công', color: 'white', italic: false, newLineBefore: false },
+      { text: 'Kiến Tạo', color: 'orange', italic: true, newLineBefore: false },
+      { text: 'Cửa Hiệu', color: 'white', italic: false, newLineBefore: false },
+      { text: 'Chuyên Nghiệp & Sạch Sẽ', color: 'emerald', italic: false, newLineBefore: true },
+    ],
     subheadline:
       'Hợp tác toàn diện 2-trong-1 thiết kế, cải tạo trần vách, ánh sáng rọi, mặt dựng Alu cho chuỗi showroom toàn quốc. Kết hợp gói dọn dẹp vệ sinh sâu bóc bụi mịn sơn bả trước giờ cắt băng bàn giao, giúp bạn sở hữu cửa hiệu sang trọng, sạch bóng tươm tất nhanh chóng nhất.',
+    benefits: [
+      { item: 'Thi công chuẩn kỹ thuật, bảo hành 12 tháng' },
+      { item: 'Công nghệ màng lọc bụi mịn HEPA 3 lớp' },
+      { item: 'Khảo sát đo đạc hiện trạng trong ngày miễn phí' },
+      { item: 'Cam kết chất tẩy rửa hữu cơ sinh học Eco-Safe' },
+    ],
+    primaryCta: { label: 'Đặt lịch khảo sát ngay', href: '#contact' },
+    secondaryCta: { label: 'Tìm hiểu dịch vụ', href: '#services' },
+    trustStrap:
+      '✓ Cam kết đồng hành tin cậy • Khảo sát lập phương án & báo giá trong ngày miễn phí',
   },
   stats: [
     { value: '500+', label: 'Cửa hàng & Văn phòng Đã Bàn Giao', color: 'text-green-600' },
@@ -359,6 +376,75 @@ const SITE_SETTINGS = {
     { value: '99.4%', label: 'Khách Hàng Đánh Giá Hài Lòng 5★', color: 'text-green-600' },
     { value: '35+', label: 'Trang thiết bị & Hóa chất Đạt Chuẩn', color: 'text-orange-600' },
   ],
+  introduction: {
+    eyebrow: 'Giới Thiệu Doanh Nghiệp',
+    heading: 'Về GreenOrange Services',
+    narrative:
+      'Được thành lập từ năm {founded}, **GreenOrange Services** tự hào là đơn vị tiên phong kết hợp hai dịch vụ cốt lõi: **Thi Công Cửa Hàng** sắc bén và **Vệ Sinh Công Nghiệp** chuẩn mực. Chúng tôi kiến tạo không gian kinh doanh đầy ấn tượng và bảo dưỡng sự khang trang đó vẹn nguyên theo thời gian.',
+    mottoEyebrow: 'Phương châm làm nghề',
+    brandStoryHeading: 'Ý Nghĩa Sứ Mệnh Qua Sắc Màu Nhận Diện',
+    brandStoryIntro:
+      'Chúng tôi không chọn màu ngẫu nhiên. Bộ nhận diện **Màu Cam - Trắng - Xanh lá** đại diện cho lời cam kết toàn diện của chúng tôi về năng lực kỹ thuật và chất lượng vệ sinh bảo dưỡng:',
+    brandValues: [
+      {
+        title: 'Màu Cam: Thi Công Nhiệt Huyết',
+        description:
+          'Sáng tạo, tinh xảo trong từng đường điện, kệ tủ trưng bày và biển hiệu quảng cáo Alu nổi bật.',
+        icon: 'Wrench',
+        accent: 'orange',
+      },
+      {
+        title: 'Màu Trắng: Sạch Sẽ & Minh Bạch',
+        description:
+          'Cam kết không gian sạch bóng chuyên sâu, bàn giao đúng tiến độ và minh bạch trong báo giá.',
+        icon: 'ShieldCheck',
+        accent: 'slate',
+      },
+      {
+        title: 'Màu Xanh: Thân Thiện & An Toàn',
+        description:
+          'Dọn dẹp bằng hóa chất sinh học sinh thái Organic tuyệt đối an toàn cho nhân viên và quý khách.',
+        icon: 'Trees',
+        accent: 'emerald',
+      },
+    ],
+    processEyebrow: 'Khép kín & Hoàn hảo',
+    processHeading: 'Quy Trình 5 Bước Phục Vụ Chuyên Nghiệp',
+    processIntro:
+      'Tối ưu hóa thời gian mở showroom cho chủ đầu tư. Phối hợp nhịp nhàng giữa thi công hoàn thiện và dọn sạch tinh tươm.',
+    processSteps: [
+      {
+        num: '01',
+        title: 'Khảo Sát & Đo Đạc Hiện Trạng',
+        description:
+          'Chuyên viên của chúng tôi sẽ đến trực tiếp mặt bằng thô hoặc shop cũ của bạn trong 2 giờ kể từ khi tiếp nhận để khảo sát diện tích, đặc thù kết cấu và đo đạt chính xác.',
+      },
+      {
+        num: '02',
+        title: 'Lên Dự Toán & Bản Vẽ Khớp Thật',
+        description:
+          'Bóc tách chi tiết từng hạng mục: số lượng thạch cao, sàn nhựa, thiết bị điện, số lượng nhân công dọn dẹp và hóa chất cần dùng. Ký kết hợp đồng cam kết không phát sinh.',
+      },
+      {
+        num: '03',
+        title: 'Thi Công Lắp Đặt Gấp Rút',
+        description:
+          'Tiến hành ốp Alu, dựng vách, sơn bả tường và đi dây nguồn điện rọi, điện trang trí. Hoạt động liên tục cả ca đêm nếu ban quản lý tòa nhà yêu cầu để kịp tiến độ.',
+      },
+      {
+        num: '04',
+        title: 'Mài Sàn & Vệ Sinh Sâu Chi Tiết',
+        description:
+          'Triển khai máy đánh sàn công nghiệp, hút bụi mịn, bóc tẩy mọi silicone còn dính trên kính, lau chùi biển hiệu, tẩy mốc khử mùi sơn mới bám trần vách.',
+      },
+      {
+        num: '05',
+        title: 'Nghiệm Thu Khắt Khe & Bàn Giao',
+        description:
+          'Tiến hành nghiệm thu từng chi tiết cùng chủ đầu tư theo checklist kỹ thuật chuẩn mực. Bàn giao chìa khóa để chủ shop yên tâm khai trương và hưởng bảo hành 12 tháng.',
+      },
+    ],
+  },
   footer: {
     brandDescription:
       'Đơn vị trọn gói uy tín hàng đầu cung cấp dịch vụ cải tạo, lắp đặt ánh sáng nội thất và vệ sinh bàn giao cho chuỗi retail, văn phòng và các thương hiệu cao cấp tại Việt Nam.',
