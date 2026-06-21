@@ -1,18 +1,39 @@
 import {
   ArrowUpCircle,
+  Facebook,
   Mail,
   MapPin,
+  MessageCircle,
+  MessageSquare,
   Phone,
   Sparkles,
   Wrench,
 } from "lucide-react";
 import Link from "next/link";
 
+import { SectionId } from "@/constants/section";
+
 import { SiteSettings } from "../../data";
-import { QUICK_LINKS } from "./constants";
 
 export default function Footer({ settings }: { settings: SiteSettings }) {
-  const { company } = settings;
+  const { company, social, branding, footer } = settings;
+  const socials: Array<{
+    href: string;
+    label: string;
+    Icon: typeof Facebook;
+  }> = [
+    social.facebook
+      ? { href: social.facebook, label: "Facebook", Icon: Facebook }
+      : null,
+    social.zalo
+      ? { href: social.zalo, label: "Zalo", Icon: MessageCircle }
+      : null,
+    social.messenger
+      ? { href: social.messenger, label: "Messenger", Icon: MessageSquare }
+      : null,
+  ].filter((s): s is { href: string; label: string; Icon: typeof Facebook } =>
+    Boolean(s)
+  );
   return (
     <footer className="bg-slate-900 text-slate-300 pt-16 pb-8 border-t border-slate-800 relative">
       <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-emerald-500/50 via-white/10 to-orange-500/50" />
@@ -22,7 +43,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
           {/* Brand Presentation Footer Area */}
           <div className="lg:col-span-4 space-y-6">
             <Link
-              href="#hero"
+              href={`#${SectionId.HERO}`}
               className="flex items-center gap-2.5 cursor-pointer"
             >
               <div className="flex items-center justify-center size-9 rounded-lg bg-linear-to-br from-emerald-500 via-white to-orange-400 p-[1.5px] shadow-sm">
@@ -33,32 +54,51 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
               </div>
               <div>
                 <span className="text-lg font-black tracking-tight text-white flex items-center gap-1 leading-none">
-                  <span className="text-emerald-400">Green</span>
-                  <span className="text-orange-400">Orange</span>
+                  <span className="text-emerald-400">
+                    {branding.logoTextPrimary}
+                  </span>
+                  <span className="text-orange-400">
+                    {branding.logoTextSecondary}
+                  </span>
                 </span>
                 <span className="block text-[8px] font-bold uppercase tracking-widest text-slate-450 leading-none mt-1">
-                  Xây dựng & Dọn sạch
+                  {branding.footerTagline}
                 </span>
               </div>
             </Link>
 
             <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-semibold">
-              Đơn vị trọn gói uy tín hàng đầu cung cấp dịch vụ cải tạo, lắp đặt
-              ánh sáng nội thất và vệ sinh bàn giao cho chuỗi retail, văn phòng
-              và các thương hiệu cao cấp tại Việt Nam.
+              {footer.brandDescription}
             </p>
+
+            {socials.length > 0 && (
+              <div className="flex items-center gap-3">
+                {socials.map(({ href, label, Icon }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="flex items-center justify-center size-9 rounded-full bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                  >
+                    <Icon className="size-4" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick Links Anchors */}
           <div className="lg:col-span-2 space-y-4">
             <h4 className="text-white text-xs font-black uppercase tracking-widest">
-              Đường Dẫn Nhanh
+              {footer.quickLinksHeading}
             </h4>
             <ul className="space-y-2.5 text-xs font-semibold text-slate-400">
-              {QUICK_LINKS.map((link) => (
-                <li key={link.id}>
+              {footer.quickLinks.map((link) => (
+                <li key={link.sectionId}>
                   <Link
-                    href={`#${link.id}`}
+                    href={`#${link.sectionId}`}
                     className="hover:text-emerald-400 hover:underline cursor-pointer transition-colors"
                   >
                     {link.label}
@@ -71,14 +111,14 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
           {/* Branch & Coordinate Addresses */}
           <div className="lg:col-span-3 space-y-4">
             <h4 className="text-white text-xs font-black uppercase tracking-widest">
-              Hệ Thống Văn Phòng
+              {footer.officesHeading}
             </h4>
             <div className="space-y-3.5 text-xs font-semibold text-slate-400 leading-relaxed">
               <div className="flex gap-2.5 items-start">
                 <MapPin className="size-4 text-orange-400 shrink-0 mt-0.5" />
                 <p>
                   <span className="text-white font-bold block mb-0.5 text-[11px]">
-                    Trụ Sở Hà Nội:
+                    {footer.headquartersLabel}
                   </span>
                   {company.address}
                 </p>
@@ -87,7 +127,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                 <MapPin className="size-4 text-emerald-400 shrink-0 mt-0.5" />
                 <p>
                   <span className="text-white font-bold block mb-0.5 text-[11px]">
-                    Chi Nhánh TP. HCM:
+                    {footer.branchLabel}
                   </span>
                   {company.branch}
                 </p>
@@ -98,7 +138,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
           {/* Support Channels */}
           <div className="lg:col-span-3 space-y-4">
             <h4 className="text-white text-xs font-black uppercase tracking-widest">
-              Hỗ Trợ Trực Tuyến
+              {footer.supportHeading}
             </h4>
             <div className="pt-2 space-y-3.5 text-xs font-semibold">
               {company.phone && (
@@ -108,7 +148,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                     href={`tel:${company.phone.replace(/\s+/g, "")}`}
                     className="hover:text-orange-400 transition-colors text-slate-300"
                   >
-                    Hotline: {company.phone}
+                    {footer.hotlinePrefix} {company.phone}
                   </a>
                 </div>
               )}
@@ -119,7 +159,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                     href={`mailto:${company.email}`}
                     className="hover:text-emerald-400 transition-colors text-slate-300"
                   >
-                    Email: {company.email}
+                    {footer.emailPrefix} {company.email}
                   </a>
                 </div>
               )}
@@ -130,16 +170,16 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
         {/* Closing details and copy */}
         <div className="border-t border-slate-800/80 pt-8 mt-8 flex flex-col md:flex-row items-center justify-between text-slate-500 text-[11px] font-bold">
           <p>
-            © {new Date().getFullYear()} {company.name}. Tất cả các quyền được
-            bảo lưu.
+            © {new Date().getFullYear()} {company.name}.{" "}
+            {footer.copyrightSuffix}
           </p>
 
           <Link
-            href="#hero"
+            href={`#${SectionId.HERO}`}
             className="flex items-center gap-1 hover:text-white cursor-pointer mt-4 md:mt-0"
           >
             <ArrowUpCircle className="size-4 text-emerald-400" />
-            Về đầu trang
+            {footer.backToTopLabel}
           </Link>
         </div>
       </div>

@@ -656,12 +656,59 @@ export interface SiteSetting {
     certification?: string | null;
   };
   /**
-   * Optional social / messaging links.
+   * Optional social / messaging links — rendered as icons in the footer when set.
    */
   social?: {
     facebook?: string | null;
     zalo?: string | null;
     messenger?: string | null;
+  };
+  /**
+   * Wordmark text and short taglines shown in the header and footer.
+   */
+  branding?: {
+    /**
+     * First half of the wordmark, e.g. "Green".
+     */
+    logoTextPrimary?: string | null;
+    /**
+     * Second half of the wordmark, e.g. "Orange".
+     */
+    logoTextSecondary?: string | null;
+    /**
+     * Small line under the logo in the header.
+     */
+    headerTagline?: string | null;
+    /**
+     * Small line under the logo in the footer.
+     */
+    footerTagline?: string | null;
+  };
+  /**
+   * Primary navigation links and header CTAs.
+   */
+  navigation?: {
+    /**
+     * Links shown in the desktop nav and mobile drawer.
+     */
+    items?:
+      | {
+          label: string;
+          /**
+           * Page section this link scrolls to.
+           */
+          sectionId: 'hero' | 'introduction' | 'services' | 'projects' | 'testimonials' | 'contact';
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Desktop header button label.
+     */
+    headerCtaLabel?: string | null;
+    /**
+     * Mobile drawer button label (typically longer).
+     */
+    mobileCtaLabel?: string | null;
   };
   /**
    * Intro copy shown in the landing hero section.
@@ -689,6 +736,61 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Footer copy, column headings, and quick links.
+   */
+  footer?: {
+    /**
+     * Short paragraph under the footer logo.
+     */
+    brandDescription?: string | null;
+    /**
+     * Heading above the quick-links column.
+     */
+    quickLinksHeading?: string | null;
+    /**
+     * Anchor links listed in the quick-links column.
+     */
+    quickLinks?:
+      | {
+          label: string;
+          sectionId: 'hero' | 'introduction' | 'services' | 'projects' | 'testimonials' | 'contact';
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Heading above the addresses column.
+     */
+    officesHeading?: string | null;
+    /**
+     * Label above the head-office address (e.g. "Trụ Sở Hà Nội:").
+     */
+    headquartersLabel?: string | null;
+    /**
+     * Label above the branch address.
+     */
+    branchLabel?: string | null;
+    /**
+     * Heading above the phone/email column.
+     */
+    supportHeading?: string | null;
+    /**
+     * Text shown before the phone number (e.g. "Hotline:").
+     */
+    hotlinePrefix?: string | null;
+    /**
+     * Text shown before the email address (e.g. "Email:").
+     */
+    emailPrefix?: string | null;
+    /**
+     * Text after "© YEAR Company Name." in the footer base.
+     */
+    copyrightSuffix?: string | null;
+    /**
+     * Label on the back-to-top link in the footer base.
+     */
+    backToTopLabel?: string | null;
+  };
   /**
    * Default metadata used when a page has no specific SEO entry.
    */
@@ -728,6 +830,27 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         zalo?: T;
         messenger?: T;
       };
+  branding?:
+    | T
+    | {
+        logoTextPrimary?: T;
+        logoTextSecondary?: T;
+        headerTagline?: T;
+        footerTagline?: T;
+      };
+  navigation?:
+    | T
+    | {
+        items?:
+          | T
+          | {
+              label?: T;
+              sectionId?: T;
+              id?: T;
+            };
+        headerCtaLabel?: T;
+        mobileCtaLabel?: T;
+      };
   hero?:
     | T
     | {
@@ -740,6 +863,27 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         label?: T;
         color?: T;
         id?: T;
+      };
+  footer?:
+    | T
+    | {
+        brandDescription?: T;
+        quickLinksHeading?: T;
+        quickLinks?:
+          | T
+          | {
+              label?: T;
+              sectionId?: T;
+              id?: T;
+            };
+        officesHeading?: T;
+        headquartersLabel?: T;
+        branchLabel?: T;
+        supportHeading?: T;
+        hotlinePrefix?: T;
+        emailPrefix?: T;
+        copyrightSuffix?: T;
+        backToTopLabel?: T;
       };
   seo?:
     | T

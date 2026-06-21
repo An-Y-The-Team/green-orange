@@ -1,5 +1,6 @@
 import { api } from "@yan/shared/api";
 
+import { SectionId } from "./constants/section";
 import { Project, Service, Testimonial } from "./types";
 
 // Base URL of the decoupled Payload CMS. Public so the client-side contact form
@@ -199,6 +200,11 @@ export interface Stat {
   color: string;
 }
 
+export interface SectionLink {
+  label: string;
+  sectionId: SectionId;
+}
+
 export interface SiteSettings {
   company: {
     name: string;
@@ -216,10 +222,34 @@ export interface SiteSettings {
     zalo: string;
     messenger: string;
   };
+  branding: {
+    logoTextPrimary: string;
+    logoTextSecondary: string;
+    headerTagline: string;
+    footerTagline: string;
+  };
+  navigation: {
+    items: SectionLink[];
+    headerCtaLabel: string;
+    mobileCtaLabel: string;
+  };
   hero: {
     subheadline: string;
   };
   stats: Stat[];
+  footer: {
+    brandDescription: string;
+    quickLinksHeading: string;
+    quickLinks: SectionLink[];
+    officesHeading: string;
+    headquartersLabel: string;
+    branchLabel: string;
+    supportHeading: string;
+    hotlinePrefix: string;
+    emailPrefix: string;
+    copyrightSuffix: string;
+    backToTopLabel: string;
+  };
   seo: {
     metaTitle: string;
     metaDescription: string;
@@ -243,6 +273,23 @@ export const DEFAULT_SETTINGS: SiteSettings = {
       "Chứng nhận Hệ thống Quản lý Chất lượng ISO 9001:2015 & Đạt tiêu chuẩn Vệ sinh Môi trường Xanh Eco-Safe.",
   },
   social: { facebook: "", zalo: "", messenger: "" },
+  branding: {
+    logoTextPrimary: "Green",
+    logoTextSecondary: "Orange",
+    headerTagline: "Thi Công & Vệ Sinh",
+    footerTagline: "Xây dựng & Dọn sạch",
+  },
+  navigation: {
+    items: [
+      { label: "Giới Thiệu", sectionId: SectionId.INTRODUCTION },
+      { label: "Dịch Vụ", sectionId: SectionId.SERVICES },
+      { label: "Dự Án Đã Làm", sectionId: SectionId.PROJECTS },
+      { label: "Đánh Giá", sectionId: SectionId.TESTIMONIALS },
+      { label: "Liên Hệ", sectionId: SectionId.CONTACT },
+    ],
+    headerCtaLabel: "Đặt lịch khảo sát",
+    mobileCtaLabel: "Yêu cầu khảo sát miễn phí",
+  },
   hero: {
     subheadline:
       "Hợp tác toàn diện 2-trong-1 thiết kế, cải tạo trần vách, ánh sáng rọi, mặt dựng Alu cho chuỗi showroom toàn quốc. Kết hợp gói dọn dẹp vệ sinh sâu bóc bụi mịn sơn bả trước giờ cắt băng bàn giao, giúp bạn sở hữu cửa hiệu sang trọng, sạch bóng tươm tất nhanh chóng nhất.",
@@ -269,6 +316,26 @@ export const DEFAULT_SETTINGS: SiteSettings = {
       color: "text-orange-600",
     },
   ],
+  footer: {
+    brandDescription:
+      "Đơn vị trọn gói uy tín hàng đầu cung cấp dịch vụ cải tạo, lắp đặt ánh sáng nội thất và vệ sinh bàn giao cho chuỗi retail, văn phòng và các thương hiệu cao cấp tại Việt Nam.",
+    quickLinksHeading: "Đường Dẫn Nhanh",
+    quickLinks: [
+      { label: "Về chúng tôi", sectionId: SectionId.INTRODUCTION },
+      { label: "Giải pháp dịch vụ", sectionId: SectionId.SERVICES },
+      { label: "Dự án tiêu biểu", sectionId: SectionId.PROJECTS },
+      { label: "Phản hồi khách hàng", sectionId: SectionId.TESTIMONIALS },
+      { label: "Yêu cầu khảo sát", sectionId: SectionId.CONTACT },
+    ],
+    officesHeading: "Hệ Thống Văn Phòng",
+    headquartersLabel: "Trụ Sở Hà Nội:",
+    branchLabel: "Chi Nhánh TP. HCM:",
+    supportHeading: "Hỗ Trợ Trực Tuyến",
+    hotlinePrefix: "Hotline:",
+    emailPrefix: "Email:",
+    copyrightSuffix: "Tất cả các quyền được bảo lưu.",
+    backToTopLabel: "Về đầu trang",
+  },
   seo: {
     metaTitle:
       "GreenOrange - Dịch vụ Thi công, Cải tạo & Vệ sinh Cửa hàng Chuyên nghiệp",
@@ -284,17 +351,57 @@ export const STATS = DEFAULT_SETTINGS.stats;
 export const COMPANY_INFO = DEFAULT_SETTINGS.company;
 
 // Shape of the Payload `site-settings` global (only the fields we consume).
+interface PayloadSectionLink {
+  label?: string | null;
+  sectionId?: string | null;
+}
+
 interface PayloadSiteSettings {
   company?: Partial<SiteSettings["company"]> | null;
   social?: Partial<SiteSettings["social"]> | null;
+  branding?: Partial<SiteSettings["branding"]> | null;
+  navigation?: {
+    items?: PayloadSectionLink[] | null;
+    headerCtaLabel?: string | null;
+    mobileCtaLabel?: string | null;
+  } | null;
   hero?: Partial<SiteSettings["hero"]> | null;
   stats?: Array<Partial<Stat>> | null;
+  footer?: {
+    brandDescription?: string | null;
+    quickLinksHeading?: string | null;
+    quickLinks?: PayloadSectionLink[] | null;
+    officesHeading?: string | null;
+    headquartersLabel?: string | null;
+    branchLabel?: string | null;
+    supportHeading?: string | null;
+    hotlinePrefix?: string | null;
+    emailPrefix?: string | null;
+    copyrightSuffix?: string | null;
+    backToTopLabel?: string | null;
+  } | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
     ogImage?: { url?: string | null } | number | null;
   } | null;
 }
+
+// `SectionId` is a closed enum; the CMS select uses the same string values, so
+// any value the CMS returns is either a valid SectionId or unknown. Drop links
+// with an unknown id so we never render dead anchors.
+const SECTION_IDS = new Set<string>(Object.values(SectionId));
+const mapSectionLinks = (
+  raw: PayloadSectionLink[] | null | undefined,
+  fallback: SectionLink[]
+): SectionLink[] => {
+  const mapped = (raw ?? [])
+    .filter((l): l is { label: string; sectionId: string } =>
+      Boolean(l.label && l.sectionId && SECTION_IDS.has(l.sectionId))
+    )
+    .map((l) => ({ label: l.label, sectionId: l.sectionId as SectionId }));
+  return mapped.length ? mapped : fallback;
+};
 
 // Replace empty/missing values with the default, so partially-filled globals
 // still render a complete page.
@@ -342,10 +449,73 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       zalo: orDefault(s.social?.zalo, d.social.zalo),
       messenger: orDefault(s.social?.messenger, d.social.messenger),
     },
+    branding: {
+      logoTextPrimary: orDefault(
+        s.branding?.logoTextPrimary,
+        d.branding.logoTextPrimary
+      ),
+      logoTextSecondary: orDefault(
+        s.branding?.logoTextSecondary,
+        d.branding.logoTextSecondary
+      ),
+      headerTagline: orDefault(
+        s.branding?.headerTagline,
+        d.branding.headerTagline
+      ),
+      footerTagline: orDefault(
+        s.branding?.footerTagline,
+        d.branding.footerTagline
+      ),
+    },
+    navigation: {
+      items: mapSectionLinks(s.navigation?.items, d.navigation.items),
+      headerCtaLabel: orDefault(
+        s.navigation?.headerCtaLabel,
+        d.navigation.headerCtaLabel
+      ),
+      mobileCtaLabel: orDefault(
+        s.navigation?.mobileCtaLabel,
+        d.navigation.mobileCtaLabel
+      ),
+    },
     hero: {
       subheadline: orDefault(s.hero?.subheadline, d.hero.subheadline),
     },
     stats: stats.length ? stats : d.stats,
+    footer: {
+      brandDescription: orDefault(
+        s.footer?.brandDescription,
+        d.footer.brandDescription
+      ),
+      quickLinksHeading: orDefault(
+        s.footer?.quickLinksHeading,
+        d.footer.quickLinksHeading
+      ),
+      quickLinks: mapSectionLinks(s.footer?.quickLinks, d.footer.quickLinks),
+      officesHeading: orDefault(
+        s.footer?.officesHeading,
+        d.footer.officesHeading
+      ),
+      headquartersLabel: orDefault(
+        s.footer?.headquartersLabel,
+        d.footer.headquartersLabel
+      ),
+      branchLabel: orDefault(s.footer?.branchLabel, d.footer.branchLabel),
+      supportHeading: orDefault(
+        s.footer?.supportHeading,
+        d.footer.supportHeading
+      ),
+      hotlinePrefix: orDefault(s.footer?.hotlinePrefix, d.footer.hotlinePrefix),
+      emailPrefix: orDefault(s.footer?.emailPrefix, d.footer.emailPrefix),
+      copyrightSuffix: orDefault(
+        s.footer?.copyrightSuffix,
+        d.footer.copyrightSuffix
+      ),
+      backToTopLabel: orDefault(
+        s.footer?.backToTopLabel,
+        d.footer.backToTopLabel
+      ),
+    },
     seo: {
       metaTitle: orDefault(s.seo?.metaTitle, d.seo.metaTitle),
       metaDescription: orDefault(s.seo?.metaDescription, d.seo.metaDescription),
