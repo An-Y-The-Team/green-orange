@@ -17,7 +17,7 @@ RUN turbo prune @yan/crm-web --docker
 FROM base AS builder
 # First install dependencies (as they change less often)
 COPY --from=pruner /app/out/json/ .
-RUN bun install --frozen-lockfile --no-verify
+RUN bun install --no-verify
 # Then copy source and build
 COPY --from=pruner /app/out/full/ .
 # CRM_API_URL is server-only and read at runtime, so nothing about the backend

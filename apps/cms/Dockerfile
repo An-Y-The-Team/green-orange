@@ -20,7 +20,7 @@ FROM base AS builder
 # First install dependencies (as they change less often)
 COPY --from=pruner /app/out/json/ .
 # Install with dev dependencies present — `next build` needs typescript etc.
-RUN bun install --frozen-lockfile --no-verify
+RUN bun install --no-verify
 # Then copy source and build
 COPY --from=pruner /app/out/full/ .
 ENV NEXT_TELEMETRY_DISABLED=1

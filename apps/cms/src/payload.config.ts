@@ -24,12 +24,20 @@ const dirname = path.dirname(filename)
 // so admin/SEO links resolve correctly. Defaults to the local dev port.
 const serverURL = process.env.CMS_PUBLIC_URL || 'http://localhost:3001'
 
-// Origins allowed to call the API from a browser (the web app's contact form
+// origins allowed to call the API from a browser (the web app's contact form
 // POSTs cross-origin). Comma-separated CORS_ORIGINS in prod; defaults to the
 // local web dev server. Note: localhost:3000 -> :3001 is already cross-origin.
 const corsOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
   : ['http://localhost:3000']
+
+// Public origin of the decoupled web front-end, used to build Live Preview
+// iframe URLs. Falls back to the local web dev server.
+const webURL = process.env.WEB_PUBLIC_URL || 'http://localhost:3000'
+
+// Shared secret the web app's /api/preview route validates before enabling
+// Next.js Draft Mode. Must match PAYLOAD_PREVIEW_SECRET in the web app's env.
+const previewSecret = process.env.PAYLOAD_PREVIEW_SECRET || ''
 
 export default buildConfig({
   serverURL,
@@ -37,6 +45,19 @@ export default buildConfig({
     user: Users.slug,
     importMap: {
       baseDir: path.resolve(dirname),
+    },
+    livePreview: {
+      // The iframe loads the web app's preview route, which validates the
+      // secret, turns on Draft Mode, then redirects to the page being previewed.
+      // This is a single-page site, so every document previews the home route.
+      url: () => `${webURL}/api/preview?secret=${previewSecret}&redirect=/`,
+      collections: ['services', 'projects', 'testimonials'],
+      globals: ['site-settings'],
+      breakpoints: [
+        { name: 'mobile', label: 'Mobile', width: 375, height: 667 },
+        { name: 'tablet', label: 'Tablet', width: 768, height: 1024 },
+        { name: 'desktop', label: 'Desktop', width: 1440, height: 900 },
+      ],
     },
   },
   collections: [Users, Media, Services, Projects, Testimonials, ContactSubmissions],

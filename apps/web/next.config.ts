@@ -27,6 +27,9 @@ const nextConfig: NextConfig = {
   // Workspace packages ship raw TS/TSX (see their package.json "exports"); Next
   // must transpile them rather than expect prebuilt JS.
   transpilePackages: ["@yan/ui", "@yan/shared"],
+  experimental: {
+    multiZoneDraftMode: true,
+  },
   ...(standalone
     ? {
         output: "standalone" as const,

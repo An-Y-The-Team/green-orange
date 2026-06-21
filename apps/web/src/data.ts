@@ -24,6 +24,14 @@ const SERVER_CMS_URL = process.env.CMS_INTERNAL_URL || CMS_URL;
 // How long (seconds) fetched CMS content stays cached before revalidation.
 const REVALIDATE_SECONDS = 300;
 
+// Server-only Payload API key used to read draft documents in preview. Payload
+// expects the format `users API-Key <key>`. Never expose this to the client.
+//
+// NOTE: this module is imported by client components (e.g. the contact form
+// reads CMS_URL), so it must NOT import `next/headers`. Draft Mode is read by the
+// server components that call the getters below; they pass a `draft` flag in.
+const PREVIEW_API_KEY = process.env.CMS_PREVIEW_API_KEY;
+
 // ---------------------------------------------------------------------------
 // Payload REST response shapes (only the fields we consume). Array fields come
 // back as `{ id, item }[]`; we flatten them to `string[]` to match the web
@@ -84,10 +92,23 @@ interface PayloadTestimonial {
 
 // Fetch JSON from the CMS, returning null on any failure (bad status, timeout,
 // network) so a CMS hiccup degrades the page rather than crashing it.
-async function fetchJson<T>(url: string): Promise<T | null> {
+async function fetchJson<T>(url: string, draft = false): Promise<T | null> {
   try {
     const res = await api.fetch(url, {
-      next: { revalidate: REVALIDATE_SECONDS },
+      // In preview: bypass the cache and authenticate so Payload returns drafts.
+      // Otherwise: use the shared ISR revalidate window.
+      ...(draft
+        ? {
+            cache: "no-store" as const,
+            ...(PREVIEW_API_KEY
+              ? {
+                  headers: {
+                    Authorization: `users API-Key ${PREVIEW_API_KEY}`,
+                  },
+                }
+              : {}),
+          }
+        : { next: { revalidate: REVALIDATE_SECONDS } }),
       // Never let an unreachable CMS hang a build/render; fail fast.
       signal: AbortSignal.timeout(8000),
     });
@@ -104,9 +125,10 @@ async function fetchJson<T>(url: string): Promise<T | null> {
 
 // Fetch a published collection from Payload, ordered by the `order` field.
 // Returns [] on failure so a CMS hiccup degrades the page rather than crashing.
-async function fetchCollection<T>(slug: string): Promise<T[]> {
+async function fetchCollection<T>(slug: string, draft = false): Promise<T[]> {
   const json = await fetchJson<PayloadList<T>>(
-    `${SERVER_CMS_URL}/api/${slug}?limit=100&depth=0&sort=order`
+    `${SERVER_CMS_URL}/api/${slug}?limit=100&depth=0&sort=order${draft ? "&draft=true" : ""}`,
+    draft
   );
   return json?.docs ?? [];
 }
@@ -172,18 +194,18 @@ function mapTestimonial(d: PayloadTestimonial): Testimonial {
 
 // Server-side data getters consumed by the page (Server Component) and passed
 // down to the interactive client sections as props.
-export async function getServices(): Promise<Service[]> {
-  const docs = await fetchCollection<PayloadService>("services");
+export async function getServices(draft = false): Promise<Service[]> {
+  const docs = await fetchCollection<PayloadService>("services", draft);
   return docs.map(mapService);
 }
 
-export async function getProjects(): Promise<Project[]> {
-  const docs = await fetchCollection<PayloadProject>("projects");
+export async function getProjects(draft = false): Promise<Project[]> {
+  const docs = await fetchCollection<PayloadProject>("projects", draft);
   return docs.map(mapProject);
 }
 
-export async function getTestimonials(): Promise<Testimonial[]> {
-  const docs = await fetchCollection<PayloadTestimonial>("testimonials");
+export async function getTestimonials(draft = false): Promise<Testimonial[]> {
+  const docs = await fetchCollection<PayloadTestimonial>("testimonials", draft);
   return docs.map(mapTestimonial);
 }
 
@@ -784,10 +806,11 @@ const orDefault = (
   fallback: string
 ): string => (value && value.trim() ? value : fallback);
 
-export async function getSiteSettings(): Promise<SiteSettings> {
+export async function getSiteSettings(draft = false): Promise<SiteSettings> {
   const d = DEFAULT_SETTINGS;
   const s = await fetchJson<PayloadSiteSettings>(
-    `${SERVER_CMS_URL}/api/globals/site-settings?depth=1`
+    `${SERVER_CMS_URL}/api/globals/site-settings?depth=1`,
+    draft // bypass cache in preview; no &draft=true — this global isn't versioned
   );
   if (!s) return d;
 
