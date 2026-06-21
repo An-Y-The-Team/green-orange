@@ -13,7 +13,10 @@
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "check-types": "tsc --noEmit",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
-    "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed.ts",
+    "build-schema": "bun scripts/build-schema.ts",
+    "setup-access": "bun scripts/setup-access.ts",
+    "seed": "bun seed/seed.ts",
+    "migrate-from-payload": "bun scripts/migrate-from-payload.ts",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start -p 3001"
   },
   "dependencies": {

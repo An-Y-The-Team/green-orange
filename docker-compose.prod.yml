@@ -1,7 +1,8 @@
 # Production stack for a single VPS. Pulls prebuilt images from GHCR.
 #   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 #
-# Image refs (WEB_IMAGE / CMS_IMAGE) and secrets come from .env.production.
+# App image refs (WEB_IMAGE / CRM_*_IMAGE) and secrets come from .env.production.
+# The CMS is the pinned official directus/directus image set directly below.
 name: green-orange
 
 services:
@@ -13,11 +14,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       # Extra databases created alongside ${POSTGRES_DB} (cms) on a FRESH volume:
-      # Authentik gets `authentik`, crm-api gets `crm`, both in this same
-      # container. NOTE: the init script only runs on first boot of an empty
-      # volume — on an EXISTING prod DB you must create each one by hand (see
-      # DEPLOY.md §6a Authentik / §6b CRM).
-      POSTGRES_MULTIPLE_DATABASES: authentik,crm
+      # Authentik gets `authentik`, crm-api gets `crm`, Directus gets `directus`,
+      # all in this same container. NOTE: the init script only runs on first boot
+      # of an empty volume — on an EXISTING prod DB you must create each one by
+      # hand (see DEPLOY.md §6a Authentik / §6b CRM / §9 Directus).
+      POSTGRES_MULTIPLE_DATABASES: authentik,crm,directus
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
@@ -29,27 +30,46 @@ services:
     networks: [internal]
     # Not published to the host — only reachable on the internal docker network.
 
+  # ── Directus CMS — official image (no CI build) ─────────────────────────────
+  # Bootstraps (create tables + admin) and applies the committed schema snapshot
+  # on startup. Roles/permissions/content are configured/seeded separately
+  # (see DEPLOY.md §9). Pin the tag; do not use `latest`.
   cms:
-    image: ${CMS_IMAGE}
+    image: directus/directus:12.0.2
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      KEY: ${DIRECTUS_KEY}
+      SECRET: ${DIRECTUS_SECRET}
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_PORT: '5432'
+      # Directus uses its own `directus` database (the old Payload `cms` DB is
+      # left intact for rollback). Created via POSTGRES_MULTIPLE_DATABASES above.
+      DB_DATABASE: ${DIRECTUS_DB_DATABASE}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      PUBLIC_URL: ${DIRECTUS_PUBLIC_URL}
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD}
       # Browser origins allowed to call the API (the web app's contact form).
-      CORS_ORIGINS: ${CORS_ORIGINS}
-      # Payload `serverURL` — makes uploaded media URLs absolute (public CMS origin).
-      CMS_PUBLIC_URL: ${CMS_PUBLIC_URL}
-      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL}
-      PAYLOAD_PREVIEW_SECRET: ${PAYLOAD_PREVIEW_SECRET}
-      # Uploads persist on the `media` volume across deploys.
-      MEDIA_DIR: /app/apps/cms/media
+      CORS_ENABLED: 'true'
+      CORS_ORIGIN: ${CORS_ORIGINS}
+      # Lets the public site be embedded in the Visual Editor iframe.
+      CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_ANCESTORS: "'self' https://${SITE_DOMAIN}"
+      WEBSOCKETS_ENABLED: 'true'
+    command: >
+      sh -c "npx directus bootstrap &&
+             (npx directus schema apply --yes /directus/snapshots/snapshot.yaml || echo 'no snapshot yet') &&
+             npx directus start"
     volumes:
-      - media:/app/apps/cms/media
+      # Uploads persist on the `media` volume across deploys.
+      - media:/directus/uploads
+      - ./apps/cms/snapshots:/directus/snapshots:ro
+      - ./apps/cms/extensions:/directus/extensions
     networks: [internal]
-    # The image entrypoint runs `payload migrate` before starting.
 
   web:
     image: ${WEB_IMAGE}
@@ -59,9 +79,10 @@ services:
       # SSR/ISR reads hit the CMS directly over the internal network (no TLS
       # hairpin). The browser uses NEXT_PUBLIC_CMS_URL, which is baked into the
       # image at build time by the GitHub Actions workflow.
-      CMS_INTERNAL_URL: http://cms:3001
-      PAYLOAD_PREVIEW_SECRET: ${PAYLOAD_PREVIEW_SECRET}
-      CMS_PREVIEW_API_KEY: ${CMS_PREVIEW_API_KEY}
+      CMS_INTERNAL_URL: http://cms:8055
+      # Server-only Directus credentials for the web app (Phase 3/4).
+      DIRECTUS_STATIC_TOKEN: ${DIRECTUS_STATIC_TOKEN}
+      DIRECTUS_PREVIEW_SECRET: ${DIRECTUS_PREVIEW_SECRET}
     networks: [internal]
 
   # ── CRM API — FastAPI (INTERNAL ONLY, never exposed) ────────────────────────

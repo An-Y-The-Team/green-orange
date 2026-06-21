@@ -5,6 +5,7 @@ This folder contains the **step-by-step execution plan** to replace Payload CMS 
 > ⚠️ **READ THIS FIRST — every phase depends on it.**
 >
 > Before writing ANY code in ANY phase, open and obey these files:
+>
 > - [`.claude/frontend-code-style.md`](../../.claude/frontend-code-style.md) — React/Next.js rules (strict typing, **no `any`**, enums not string-unions, named handlers, no props-drilling, etc.)
 > - [`.claude/backend-code-style.md`](../../.claude/backend-code-style.md) — Python/FastAPI rules (only relevant if you touch `apps/crm-api`; this migration normally does NOT).
 > - [`AGENTS.md`](../../AGENTS.md) — **Use Bun, never npm/yarn/pnpm.** Discourage `useEffect`. This Next.js has breaking changes — read `node_modules/next/dist/docs/` before writing Next code.
@@ -28,13 +29,15 @@ This folder contains the **step-by-step execution plan** to replace Payload CMS 
 
 Each phase has its own document. Do not start a phase until the previous one's "Definition of Done" checklist passes.
 
-| # | Document | What it does |
-|---|---|---|
-| 1 | [`phase-1-infrastructure.md`](./phase-1-infrastructure.md) | Make a blank Directus run locally and in prod (Docker, new DB, env vars, Caddy, CI). |
-| 2 | [`phase-2-data-model.md`](./phase-2-data-model.md) | Build all collections/fields/relations in the Directus Studio, then snapshot them to a committed YAML file. |
-| 3 | [`phase-3-roles-and-seed.md`](./phase-3-roles-and-seed.md) | Set up roles/permissions + a read-only API token, then seed all content with an SDK script. |
-| 4 | [`phase-4-frontend.md`](./phase-4-frontend.md) | Rewrite `apps/web` to fetch from Directus via the SDK and add the Visual Editor. |
-| 5 | [`phase-5-cleanup-and-docs.md`](./phase-5-cleanup-and-docs.md) | Delete the old Payload code/deps and update the deploy docs. |
+| #   | Document                                                       | What it does                                                                                                |
+| --- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | [`phase-1-infrastructure.md`](./phase-1-infrastructure.md)     | Make a blank Directus run locally and in prod (Docker, new DB, env vars, Caddy, CI).                        |
+| 2   | [`phase-2-data-model.md`](./phase-2-data-model.md)             | Build all collections/fields/relations in the Directus Studio, then snapshot them to a committed YAML file. |
+| 3   | [`phase-3-roles-and-seed.md`](./phase-3-roles-and-seed.md)     | Set up roles/permissions + a read-only API token, then seed all content with an SDK script.                 |
+| 4   | [`phase-4-frontend.md`](./phase-4-frontend.md)                 | Rewrite `apps/web` to fetch from Directus via the SDK and add the Visual Editor.                            |
+| 5   | [`phase-5-cleanup-and-docs.md`](./phase-5-cleanup-and-docs.md) | Delete the old Payload code/deps and update the deploy docs.                                                |
+
+> **Real prod content** is a separate concern from the phases above. `seed/seed.ts` only loads DEMO data. To carry the live, editor-edited Payload content (text + uploaded media) into Directus at cutover, follow [`prod-data-migration.md`](./prod-data-migration.md) (operator-run export → `migrate-from-payload.ts`). Run it during Phase 5 cutover, before retiring Payload.
 
 ## Glossary (so the steps are unambiguous)
 

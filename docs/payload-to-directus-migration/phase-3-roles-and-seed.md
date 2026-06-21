@@ -1,6 +1,7 @@
 # Phase 3 — Roles, permissions, API token, and content seed
 
 > ⚠️ **BEFORE YOU TOUCH ANYTHING, READ AND OBEY:**
+>
 > - [`.claude/frontend-code-style.md`](../../.claude/frontend-code-style.md) — the seed script is TypeScript; **no `any`**, use enums, object params, `async/await`, no `return await`.
 > - [`.claude/backend-code-style.md`](../../.claude/backend-code-style.md)
 > - [`AGENTS.md`](../../AGENTS.md) — **Use Bun / `bunx`, never npm/yarn/pnpm/npx.**
@@ -18,14 +19,31 @@
 
 > Roles/permissions/tokens are **NOT** in the schema snapshot. They must be configured per-environment. We configure them in the Studio (local now; the operator repeats on prod — see Phase 5).
 
+> 🛑 **CRITICAL — Directus 12 free-tier permission limit (discovered during execution).**
+> On an unlicensed Directus, **custom permission RULES are blocked** (`custom_permission_rules_enabled` is a restricted resource). That means you **cannot**:
+>
+> - add an **item filter** to a permission (e.g. `status = published`), nor
+> - restrict a permission to a **subset of fields**.
+>
+> Only **full-access** permissions (action + all fields, no filter) are allowed for free. Consequences for this migration:
+>
+> - **"Public sees only published" is NOT enforced at the permission layer.** Instead the live site applies `filter: { status: { _eq: 'published' } }` at **query time** in [`apps/web/src/data.ts`](../../apps/web/src/data.ts) (Phase 4). Drafts are technically reachable via the raw API, but they are not secret (marketing content) and never rendered on the site. Content Versioning still powers in-place draft preview.
+> - **Public `contact_submissions` create cannot be field-restricted**, so `status` is technically writable by the public. Harmless: the frontend never sends it and the schema default is `new`.
+>
+> **This was executed via scripts, not Studio clicks:**
+>
+> - [`apps/cms/scripts/setup-access.ts`](../../apps/cms/scripts/setup-access.ts) — Public policy (full-access reads + contact create), the Frontend service role + **static token**, and the Editor role/policy. Idempotent.
+> - [`apps/cms/seed/seed.ts`](../../apps/cms/seed/seed.ts) — content + singleton + O2M children, importing the remote images into the Directus file library.
+>   Run: `bun run setup-access` then `bun run seed` from `apps/cms` (with `DIRECTUS_PUBLIC_URL` / `DIRECTUS_ADMIN_EMAIL` / `DIRECTUS_ADMIN_PASSWORD` set). The Studio steps below remain a valid manual alternative **only if you have a license** that unlocks the item-filter on the read permissions; otherwise grant full-access read and rely on the query-time filter.
+
 ## Mapping from the old Payload access rules
 
-| Payload rule (old) | Directus equivalent (new) |
-|---|---|
-| `readPublishedOrAuth` (public sees `published`, auth sees all) | Public policy: read filtered to `status = published`; Editor/Admin: read all |
-| `isAuthenticated` (create/update content) | Editor role policy: full CRUD on content collections |
-| `isAdmin` (delete, manage users) | Admin role (Directus default Administrator) |
-| `isAdminOrSelf` (users see own profile) | Directus system users + roles handle this natively |
+| Payload rule (old)                                                 | Directus equivalent (new)                                                                    |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `readPublishedOrAuth` (public sees `published`, auth sees all)     | Public policy: read filtered to `status = published`; Editor/Admin: read all                 |
+| `isAuthenticated` (create/update content)                          | Editor role policy: full CRUD on content collections                                         |
+| `isAdmin` (delete, manage users)                                   | Admin role (Directus default Administrator)                                                  |
+| `isAdminOrSelf` (users see own profile)                            | Directus system users + roles handle this natively                                           |
 | `ContactSubmissions`: public create, staff read, status staff-only | Public policy: `create` on `contact_submissions`; field-level: deny public write to `status` |
 
 ## Step 1 — Configure the Public policy (read published only)
@@ -56,6 +74,7 @@ Add these permissions:
 **Settings → Roles → Create Role** → name `Editor`.
 
 Attach a policy (or add permissions directly) granting:
+
 - `services`, `projects`, `testimonials`: **Create, Read, Update** (Read = all items, including drafts). Leave **Delete** to Admin only if you want to mirror Payload (Payload restricted delete to admins).
 - `site_settings` and all `site_*` child collections: **Read, Update** (and Create/Delete on the child collections so editors can add/remove repeater rows).
 - `contact_submissions`: **Read, Update** (to manage leads), not Delete.
@@ -68,6 +87,7 @@ Attach a policy (or add permissions directly) granting:
 The web app does server-side reads of **published** content. Give it the **same access as Public** (read published), via a dedicated token. Two options — pick **Option A**:
 
 **Option A (recommended): a service user with the Public-equivalent access.**
+
 1. **Settings → Roles → Create Role** → name `Frontend (read published)`. Attach a policy identical to the Public policy's read permissions (read published `services`/`projects`/`testimonials`, read `site_settings` + children, read `directus_files`). No create/update/delete.
 2. **User Directory → Create User** → email `frontend@service.local`, assign the `Frontend (read published)` role.
 3. Open that user → **Token** field → **Generate Token** → copy it.
@@ -88,6 +108,7 @@ cd apps/cms && bun add -d @directus/sdk tsx dotenv
 ```
 
 Follow these rules from the style guide while writing the script:
+
 - **No `any`.** Type the SDK `Schema` and every record.
 - **Enums, not string unions** for `category`, `status`, `color`, `icon`, `accent`, `section_id`, fonts — define them in a small `constants.ts` next to the seed and reference them.
 - **Object parameters** for helper functions.
@@ -98,65 +119,72 @@ Script skeleton (fill in the real data and field lists):
 
 ```ts
 // apps/cms/seed/seed.ts
-import 'dotenv/config'
 import {
-  createDirectus,
-  rest,
   authentication,
-  readItems,
+  createDirectus,
   createItem,
+  readItems,
+  rest,
   updateItem,
   updateSingleton,
   uploadFiles,
-} from '@directus/sdk'
-import { Category, ServiceStatus } from './constants'
+} from "@directus/sdk";
+import "dotenv/config";
+
+import { Category, ServiceStatus } from "./constants";
 
 // 1. Define the Schema type for the SDK (mirror Phase 2 collections; NO `any`).
 interface Service {
-  id: string
-  slug: string
-  title: string
-  description: string
-  category: Category
-  duration: string
-  icon_name: string
-  popular: boolean
-  benefits: string[]
-  features: string[]
-  status: ServiceStatus
-  sort: number
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  category: Category;
+  duration: string;
+  icon_name: string;
+  popular: boolean;
+  benefits: string[];
+  features: string[];
+  status: ServiceStatus;
+  sort: number;
 }
 // ...Project, Testimonial, SiteSettings, child rows, etc.
 
 interface Schema {
-  services: Service[]
-  projects: Project[]
-  testimonials: Testimonial[]
-  site_settings: SiteSettings // singleton
+  services: Service[];
+  projects: Project[];
+  testimonials: Testimonial[];
+  site_settings: SiteSettings; // singleton
   // child collections...
 }
 
-const DIRECTUS_URL = process.env.DIRECTUS_PUBLIC_URL ?? 'http://localhost:8055'
+const DIRECTUS_URL = process.env.DIRECTUS_PUBLIC_URL ?? "http://localhost:8055";
 
-const client = createDirectus<Schema>(DIRECTUS_URL).with(rest()).with(authentication())
+const client = createDirectus<Schema>(DIRECTUS_URL)
+  .with(rest())
+  .with(authentication());
 
 // Upsert one service by its unique slug.
-const upsertService = async ({ service }: { service: Omit<Service, 'id'> }): Promise<void> => {
+const upsertService = async ({
+  service,
+}: {
+  service: Omit<Service, "id">;
+}): Promise<void> => {
   const existing = await client.request(
-    readItems('services', { filter: { slug: { _eq: service.slug } }, limit: 1 }),
-  )
+    readItems("services", { filter: { slug: { _eq: service.slug } }, limit: 1 })
+  );
   if (existing.length > 0) {
-    await client.request(updateItem('services', existing[0].id, service))
-    return
+    await client.request(updateItem("services", existing[0].id, service));
+    return;
   }
-  await client.request(createItem('services', service))
-}
+  await client.request(createItem("services", service));
+};
 
 const run = async (): Promise<void> => {
   await client.login({
-    email: process.env.DIRECTUS_ADMIN_EMAIL ?? '',
-    password: process.env.DIRECTUS_ADMIN_PASSWORD ?? '',
-  })
+    email: process.env.DIRECTUS_ADMIN_EMAIL ?? "",
+    password: process.env.DIRECTUS_ADMIN_PASSWORD ?? "",
+  });
 
   // SERVICES (copy the 6 from the old seed; set status: ServiceStatus.PUBLISHED, sort: index)
   // for each service: await upsertService({ service })
@@ -169,17 +197,17 @@ const run = async (): Promise<void> => {
   // SITE_SETTINGS singleton: await client.request(updateSingleton('site_settings', { ...flatFields }))
   // CHILD ROWS (nav_items, hero_headline_segments, stats, brand_values, process_steps, footer_quick_links):
   //   delete existing rows for the singleton, then create fresh ones with the correct `sort`.
-}
+};
 
 run()
   .then(() => {
-    console.log('Seed complete')
-    process.exit(0)
+    console.log("Seed complete");
+    process.exit(0);
   })
   .catch((error: unknown) => {
-    console.error('Seed failed:', error)
-    process.exit(1)
-  })
+    console.error("Seed failed:", error);
+    process.exit(1);
+  });
 ```
 
 > **Media note:** Payload's old `media` volume files are not Directus-compatible. Re-upload the source images via `uploadFiles()` in the seed. The dataset is tiny (a handful of project/testimonial images + hero/intro/og images). If the original image files are not in the repo, locate the source assets (check `apps/web/public` or the old seed's URLs) and upload those.
@@ -203,6 +231,7 @@ cd apps/cms && bun run seed
 ```
 
 Then verify:
+
 - In the Studio, `services`/`projects`/`testimonials` have the expected rows; `site_settings` is filled and its child collections have rows in the right order.
 - Public read respects status:
   ```bash

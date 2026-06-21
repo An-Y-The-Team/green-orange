@@ -1,6 +1,7 @@
 # Phase 5 — Remove Payload, finalize docs & deploy
 
 > ⚠️ **BEFORE YOU TOUCH ANYTHING, READ AND OBEY:**
+>
 > - [`.claude/frontend-code-style.md`](../../.claude/frontend-code-style.md)
 > - [`.claude/backend-code-style.md`](../../.claude/backend-code-style.md)
 > - [`AGENTS.md`](../../AGENTS.md) — **Use Bun. Production is behind a VPN/VPS — you cannot run prod commands from this machine; hand them to the operator.**
@@ -26,6 +27,7 @@ Delete the Payload source under `apps/cms/src` and its Payload-specific config/b
 - `apps/cms/next.config.ts` and any Next.js-specific files for the CMS
 
 **Keep:**
+
 - `apps/cms/snapshots/snapshot.yaml` (Phase 2)
 - `apps/cms/seed/` (Phase 3)
 - `apps/cms/extensions/` (empty, with `.gitkeep`)
@@ -56,6 +58,7 @@ grep -rIn --exclude-dir=node_modules --exclude-dir=.git -e "payload" -e "Payload
 ```
 
 Resolve every hit:
+
 - Env example files: remove `PAYLOAD_SECRET`, `PAYLOAD_PREVIEW_SECRET`, `CMS_PUBLIC_URL`, `WEB_PUBLIC_URL`, `CMS_PREVIEW_API_KEY` (done in Phase 1, double-check).
 - `apps/web`: ensure `@payloadcms/live-preview-react` is removed (`cd apps/web && bun remove @payloadcms/live-preview-react`) and no imports remain.
 - Any README/comment that says "Payload" should now say "Directus" or be removed.
@@ -71,6 +74,7 @@ Edit [`AGENTS.md`](../../AGENTS.md): the "Production access" section gives Paylo
 ## Step 5 — Update `DEPLOY.md`
 
 Edit [`DEPLOY.md`](../../DEPLOY.md). Update the CMS-related sections:
+
 - **CMS service**: now the official `directus/directus:<pinned>` image; no build step; `directus bootstrap` + `schema apply` run on container start.
 - **First-time prod DB**: operator creates the `directus` database once: `docker exec <postgres-container> psql -U $POSTGRES_USER -c "CREATE DATABASE directus;"` (the init script only fires on a fresh Postgres volume).
 - **First admin**: created from `DIRECTUS_ADMIN_EMAIL` / `DIRECTUS_ADMIN_PASSWORD`.
@@ -92,6 +96,7 @@ Fix anything the style guides flag (no `any`, enums, import order, etc.).
 ## Step 7 — Ship
 
 Per the repo's release flow ([`DEPLOY.md`](../../DEPLOY.md) §7 and the `.husky/pre-push` rule that blocks direct pushes to `main`):
+
 1. Open a PR (do not push to `main` directly).
 2. After merge, tag a release (`git tag vX.Y.Z && git push origin vX.Y.Z`) to trigger [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml).
 3. The pipeline builds `web`/`crm-web`/`crm-api` and pulls the official `directus/directus` image; the deploy job runs `docker compose ... pull && up -d`, and the Directus container bootstraps + applies the schema on start.

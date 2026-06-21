@@ -1,6 +1,7 @@
 # Phase 4 — Rewrite `apps/web` for Directus + add the Visual Editor
 
 > ⚠️ **BEFORE YOU WRITE ANY CODE, READ AND OBEY:**
+>
 > - [`.claude/frontend-code-style.md`](../../.claude/frontend-code-style.md) — **No `any`. Enums not string-unions. Named handlers (no logic in JSX). No props-drilling (use Context if 3+ levels). Object params. `async/await`. `safeJSONParse`. Use `api`/SDK, not raw `fetch`.**
 > - [`.claude/backend-code-style.md`](../../.claude/backend-code-style.md)
 > - [`AGENTS.md`](../../AGENTS.md) — **Use Bun. Discourage `useEffect`. Read `node_modules/next/dist/docs/` before writing Next code — this Next.js differs from your training data.**
@@ -18,6 +19,7 @@
 ## Step 0 — Understand the current frontend (read before editing)
 
 Read these so you know what you are changing:
+
 - [`apps/web/src/data.ts`](../../apps/web/src/data.ts) — current Payload fetchers (`fetchJson`, `fetchCollection`), the `Payload*` interfaces, and the mapping functions that produce the domain types `Service`/`Project`/`Testimonial`/`SiteSettings`.
 - [`apps/web/src/app/page.tsx`](../../apps/web/src/app/page.tsx) — the single-page composition; reads `draftMode().isEnabled`, passes data into section components, conditionally renders the live-preview component.
 - [`apps/web/src/types.ts`](../../apps/web/src/types.ts) — the **domain types** the components consume. **Keep these stable** — only the data-source mapping changes.
@@ -40,48 +42,58 @@ Create `apps/web/src/lib/directus.ts`. Define the **`Schema`** type (mirror the 
 
 ```ts
 // apps/web/src/lib/directus.ts
-import { createDirectus, rest, staticToken, readItems, readSingleton, withToken } from '@directus/sdk'
-import { Category, ContentStatus } from '@/constants/cms' // enums — see style guide "Use Enums"
+import {
+  createDirectus,
+  readItems,
+  readSingleton,
+  rest,
+  staticToken,
+  withToken,
+} from "@directus/sdk";
+
+import { Category, ContentStatus } from "@/constants/cms";
+
+// enums — see style guide "Use Enums"
 
 // ---- Schema (mirror Phase 2). One interface per collection. NO `any`. ----
 export interface DirectusFile {
-  id: string
-  filename_download: string
+  id: string;
+  filename_download: string;
 }
 export interface DirectusService {
-  id: string
-  slug: string
-  title: string
-  description: string
-  category: Category
-  duration: string
-  icon_name: string
-  popular: boolean
-  benefits: string[]
-  features: string[]
-  status: ContentStatus
-  sort: number | null
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  category: Category;
+  duration: string;
+  icon_name: string;
+  popular: boolean;
+  benefits: string[];
+  features: string[];
+  status: ContentStatus;
+  sort: number | null;
 }
 // ...DirectusProject, DirectusTestimonial, DirectusSiteSettings (flat fields + child arrays)
 
 export interface Schema {
-  services: DirectusService[]
-  projects: DirectusProject[]
-  testimonials: DirectusTestimonial[]
-  site_settings: DirectusSiteSettings // singleton
+  services: DirectusService[];
+  projects: DirectusProject[];
+  testimonials: DirectusTestimonial[];
+  site_settings: DirectusSiteSettings; // singleton
 }
 
-const DIRECTUS_URL = process.env.NEXT_PUBLIC_CMS_URL ?? 'http://localhost:8055'
+const DIRECTUS_URL = process.env.NEXT_PUBLIC_CMS_URL ?? "http://localhost:8055";
 
 // Server-only token. NEVER expose to the browser (no NEXT_PUBLIC_ prefix).
-const STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN ?? ''
+const STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN ?? "";
 
 export const directus = createDirectus<Schema>(DIRECTUS_URL)
   .with(rest())
-  .with(staticToken(STATIC_TOKEN))
+  .with(staticToken(STATIC_TOKEN));
 
-export { readItems, readSingleton, withToken }
-export const DIRECTUS_PUBLIC_URL = DIRECTUS_URL
+export { readItems, readSingleton, withToken };
+export const DIRECTUS_PUBLIC_URL = DIRECTUS_URL;
 ```
 
 Create `apps/web/src/constants/cms.ts` with the enums (per the style guide, never inline string unions):
@@ -89,13 +101,13 @@ Create `apps/web/src/constants/cms.ts` with the enums (per the style guide, neve
 ```ts
 // apps/web/src/constants/cms.ts
 export enum Category {
-  CLEANING = 'cleaning',
-  CONSTRUCTION = 'construction',
-  BOTH = 'both',
+  CLEANING = "cleaning",
+  CONSTRUCTION = "construction",
+  BOTH = "both",
 }
 export enum ContentStatus {
-  PUBLISHED = 'published',
-  DRAFT = 'draft',
+  PUBLISHED = "published",
+  DRAFT = "draft",
 }
 ```
 
@@ -105,13 +117,17 @@ Create `apps/web/src/lib/asset-url/asset-url.ts` (per the style guide: one folde
 
 ```ts
 // apps/web/src/lib/asset-url/asset-url.ts
-import { DIRECTUS_PUBLIC_URL } from '@/lib/directus'
+import { DIRECTUS_PUBLIC_URL } from "@/lib/directus";
 
 // Build a public asset URL from a Directus file id. Returns null when there is no file.
-export const assetUrl = ({ fileId }: { fileId: string | null | undefined }): string | null => {
-  if (!fileId) return null
-  return `${DIRECTUS_PUBLIC_URL}/assets/${fileId}`
-}
+export const assetUrl = ({
+  fileId,
+}: {
+  fileId: string | null | undefined;
+}): string | null => {
+  if (!fileId) return null;
+  return `${DIRECTUS_PUBLIC_URL}/assets/${fileId}`;
+};
 ```
 
 Add `apps/web/src/lib/asset-url/asset-url.test.ts` covering: a valid id, `null`, and `undefined`.
@@ -122,33 +138,37 @@ Rewrite [`apps/web/src/data.ts`](../../apps/web/src/data.ts):
 
 - **Delete** `fetchJson`, `fetchCollection`, and the Payload-specific URL/auth logic.
 - **Rename** the internal `Payload*` interfaces to the `Directus*` interfaces (now imported from `@/lib/directus`).
-- **Keep** the public domain types and the mapping functions' *output* shape identical, so the components don't change shape. Only the input source changes.
+- **Keep** the public domain types and the mapping functions' _output_ shape identical, so the components don't change shape. Only the input source changes.
 - Fetch with the SDK:
 
+> 🛑 **Free-tier visibility filter (REQUIRED).** Directus 12 (unlicensed) cannot enforce "public sees only published" at the permission layer (see Phase 3 note). So the **live (non-preview) reads MUST filter `status` themselves** — otherwise drafts would render on the public site. Always pass `filter: { status: { _eq: 'published' } }` for the live path; drop the filter only in preview/draft mode.
+
 ```ts
-// fetch published services, ordered by sort
+// LIVE site: must filter to published (permission layer can't, on free tier)
 const services = await directus.request(
-  readItems('services', {
-    sort: ['sort'],
+  readItems("services", {
+    filter: { status: { _eq: "published" } },
+    sort: ["sort"],
     limit: -1,
-    fields: ['*'], // or an explicit field list
-  }),
-)
+    fields: ["*"], // or an explicit field list
+  })
+);
+// (site_settings is a singleton with no status — read it directly, below.)
 
 // singleton + its O2M children (expand the relations you need)
 const settings = await directus.request(
-  readSingleton('site_settings', {
+  readSingleton("site_settings", {
     fields: [
-      '*',
-      'nav_items.*',
-      'footer_quick_links.*',
-      'hero_headline_segments.*',
-      'stats.*',
-      'brand_values.*',
-      'process_steps.*',
+      "*",
+      "nav_items.*",
+      "footer_quick_links.*",
+      "hero_headline_segments.*",
+      "stats.*",
+      "brand_values.*",
+      "process_steps.*",
     ],
-  }),
-)
+  })
+);
 ```
 
 - **Media mapping:** wherever the old code read `imageUrl` / `avatarUrl` strings, instead read the file id field (`image`, `avatar`, `og_image`, `hero_background_image`, `introduction_image`, `seo_og_image`, `testimonial_avatar`) and run it through `assetUrl({ fileId })`. The domain type still exposes a `string | null` URL — the source is now derived, not stored.
@@ -159,8 +179,11 @@ const settings = await directus.request(
     ```ts
     // draft read in preview mode
     const draft = await directus.request(
-      withToken(editorToken, readItems('services', { version: 'draft', limit: -1, sort: ['sort'] })),
-    )
+      withToken(
+        editorToken,
+        readItems("services", { version: "draft", limit: -1, sort: ["sort"] })
+      )
+    );
     ```
   - Thread an `isPreviewMode` boolean into the fetchers exactly like the old code did. The editor token in preview comes from the Studio session (the Visual Editor injects it); see Step 7.
 
@@ -180,34 +203,34 @@ Create `apps/web/src/lib/visual-editor/visual-editor.ts`:
 
 ```ts
 // apps/web/src/lib/visual-editor/visual-editor.ts
-import { apply, setAttr, remove } from '@directus/visual-editing'
+import { apply, remove, setAttr } from "@directus/visual-editing";
 
-let isApplied = false
+let isApplied = false;
 
 // Initialize the in-context Visual Editor overlay. Safe to call more than once.
 export const initializeVisualEditor = async ({
   directusUrl,
   onSaved,
 }: {
-  directusUrl: string
-  onSaved: () => void
+  directusUrl: string;
+  onSaved: () => void;
 }): Promise<void> => {
-  if (typeof window === 'undefined' || isApplied) return
+  if (typeof window === "undefined" || isApplied) return;
   try {
-    await apply({ directusUrl, onSaved: () => onSaved() })
-    isApplied = true
+    await apply({ directusUrl, onSaved: () => onSaved() });
+    isApplied = true;
   } catch (error: unknown) {
-    console.error('Failed to initialize Directus Visual Editor:', error)
+    console.error("Failed to initialize Directus Visual Editor:", error);
   }
-}
+};
 
 export const cleanupVisualEditor = (): void => {
-  if (typeof window === 'undefined' || !isApplied) return
-  remove()
-  isApplied = false
-}
+  if (typeof window === "undefined" || !isApplied) return;
+  remove();
+  isApplied = false;
+};
 
-export { setAttr }
+export { setAttr };
 ```
 
 ## Step 7 — Replace the Payload refresher with a Visual Editor initializer
@@ -217,31 +240,32 @@ Delete [`apps/web/src/components/live-preview/refresh-route-on-save.tsx`](../../
 > **AGENTS.md says discourage `useEffect`.** The Visual Editor must initialize once on the client after mount. Prefer a **callback-ref** that runs the init exactly once, instead of `useEffect`:
 
 ```tsx
-'use client'
+"use client";
 
-import { useRouter } from 'next/navigation'
-import { useCallback } from 'react'
-import { initializeVisualEditor } from '@/lib/visual-editor/visual-editor'
-import { DIRECTUS_PUBLIC_URL } from '@/lib/directus'
+import { useRouter } from "next/navigation";
+import { useCallback } from "react";
+
+import { DIRECTUS_PUBLIC_URL } from "@/lib/directus";
+import { initializeVisualEditor } from "@/lib/visual-editor/visual-editor";
 
 // Mounts an invisible node; its ref callback initializes the Visual Editor once on the client.
 // Rendered ONLY in preview/draft mode (see page.tsx).
 export function VisualEditorInit() {
-  const router = useRouter()
+  const router = useRouter();
 
   // Ref callback fires after the node is attached to the DOM (client-only), once.
   const initRef = useCallback(
     (node: HTMLSpanElement | null) => {
-      if (!node) return
+      if (!node) return;
       void initializeVisualEditor({
         directusUrl: DIRECTUS_PUBLIC_URL,
         onSaved: () => router.refresh(), // re-run server components to show the saved change
-      })
+      });
     },
-    [router],
-  )
+    [router]
+  );
 
-  return <span ref={initRef} hidden aria-hidden data-visual-editor-init />
+  return <span ref={initRef} hidden aria-hidden data-visual-editor-init />;
 }
 ```
 
@@ -254,12 +278,19 @@ In [`page.tsx`](../../apps/web/src/app/page.tsx): keep the existing `draftMode()
 In each section component, import `setAttr` from the visual-editor helper and add a `data-directus` attribute to the elements that map to a CMS field. The pattern:
 
 ```tsx
-import { setAttr } from '@/lib/visual-editor/visual-editor'
+import { setAttr } from "@/lib/visual-editor/visual-editor";
 
 // In JSX, on the element rendering `service.title`:
-<h3 data-directus={setAttr({ collection: 'services', item: service.id, fields: 'title', mode: 'popover' })}>
+<h3
+  data-directus={setAttr({
+    collection: "services",
+    item: service.id,
+    fields: "title",
+    mode: "popover",
+  })}
+>
   {service.title}
-</h3>
+</h3>;
 ```
 
 - `collection`: the Directus collection name (`services`, `projects`, `testimonials`, `site_settings`, or a child like `site_hero_segments`).
@@ -268,6 +299,7 @@ import { setAttr } from '@/lib/visual-editor/visual-editor'
 - `mode`: `'popover'` for short text, `'drawer'` for a record with many fields, `'modal'` for files/large content.
 
 Add attributes across:
+
 - **hero.tsx** — headline segments (`site_hero_segments` items), subheadline, CTAs, trust badge/strap, background image (all on `site_settings` or the segment children).
 - **services.tsx** — each service card's title/description/category/etc. (`services`, `item: service.id`).
 - **projects.tsx** — each project's fields and its flattened testimonial fields (`projects`, `item: project.id`).
@@ -281,6 +313,7 @@ Add attributes across:
 ## Step 9 — Adapt the preview route
 
 Keep [`apps/web/src/app/api/preview/route.ts`](../../apps/web/src/app/api/preview/route.ts):
+
 - Validate a shared secret from the query against `process.env.DIRECTUS_PREVIEW_SECRET`.
 - Call `draftMode().enable()`.
 - Redirect to a **same-site relative** path only (keep the existing safe-redirect guard).
@@ -311,6 +344,7 @@ turbo run dev    # per CLAUDE.md, start dev servers with turbo
 ```
 
 Verify each:
+
 - [ ] `http://localhost:3000` renders all sections from Directus content (hero, services, projects, testimonials, intro, footer).
 - [ ] Images load via `http://localhost:8055/assets/<id>` (check the Network tab).
 - [ ] Set a service to `draft` in the Studio → it disappears from the public site; in preview mode it reappears.

@@ -23,7 +23,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       # One container, a database per app, created on first boot by the init script.
-      POSTGRES_MULTIPLE_DATABASES: cms,crm,authentik
+      # `directus` is the new CMS DB (replaces Payload's `cms`, which is kept for rollback).
+      POSTGRES_MULTIPLE_DATABASES: cms,crm,authentik,directus
     ports:
       - '5432:5432'
     volumes:
@@ -35,27 +36,44 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Payload CMS (port 3001) — runs `payload migrate` on startup ─────────────
+  # ── Directus CMS (port 8055) — official image; bootstraps + applies the ──────
+  # committed schema snapshot on startup. No build step (config-as-code lives in
+  # apps/cms/snapshots + apps/cms/extensions).
   cms:
-    build:
-      context: .
-      dockerfile: apps/cms/Dockerfile
+    image: directus/directus:12.0.2
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://postgres:password@postgres:5432/cms
-      PAYLOAD_SECRET: local-dev-secret-change-me
-      CORS_ORIGINS: http://localhost:3000
-      CMS_PUBLIC_URL: http://localhost:3001
-      MEDIA_DIR: /app/apps/cms/media
-    env_file:
-      - apps/cms/.env
+      KEY: local-dev-directus-key-change-me
+      SECRET: local-dev-directus-secret-change-me
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_PORT: '5432'
+      DB_DATABASE: directus
+      DB_USER: postgres
+      DB_PASSWORD: password
+      PUBLIC_URL: http://localhost:8055
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin
+      CORS_ENABLED: 'true'
+      CORS_ORIGIN: http://localhost:3000,http://localhost:8055
+      # Lets the public site be embedded in an iframe (Visual Editor, Phase 4).
+      CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_ANCESTORS: "'self' http://localhost:3000"
+      WEBSOCKETS_ENABLED: 'true'
+    # bootstrap = create tables + admin (idempotent); schema apply = sync the data
+    # model from the committed snapshot (guarded until Phase 2 creates the file).
+    command: >
+      sh -c "npx directus bootstrap &&
+             (npx directus schema apply --yes /directus/snapshots/snapshot.yaml || echo 'no snapshot yet') &&
+             npx directus start"
     ports:
-      - '3001:3001'
+      - '8055:8055'
     volumes:
-      - media:/app/apps/cms/media
+      - media:/directus/uploads
+      - ./apps/cms/snapshots:/directus/snapshots:ro
+      - ./apps/cms/extensions:/directus/extensions
 
   # ── Public web/portfolio (port 3000) ───────────────────────────────────────
   web:
@@ -64,13 +82,13 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         # NEXT_PUBLIC_* is inlined into the client bundle at build time.
-        NEXT_PUBLIC_CMS_URL: http://localhost:3001
+        NEXT_PUBLIC_CMS_URL: http://localhost:8055
         NEXT_PUBLIC_SITE_URL: http://localhost:3000
     restart: unless-stopped
     depends_on: [cms]
     environment:
       # SSR/ISR reads hit the CMS directly over the docker network.
-      CMS_INTERNAL_URL: http://cms:3001
+      CMS_INTERNAL_URL: http://cms:8055
     env_file:
       - apps/web/.env
     ports:

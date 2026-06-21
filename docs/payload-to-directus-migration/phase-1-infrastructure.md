@@ -1,6 +1,7 @@
 # Phase 1 — Infrastructure: make a blank Directus run
 
 > ⚠️ **BEFORE YOU TOUCH ANYTHING, READ AND OBEY:**
+>
 > - [`.claude/frontend-code-style.md`](../../.claude/frontend-code-style.md)
 > - [`.claude/backend-code-style.md`](../../.claude/backend-code-style.md)
 > - [`AGENTS.md`](../../AGENTS.md) — **Use Bun, never npm/yarn/pnpm.**
@@ -10,6 +11,7 @@
 ## Goal of this phase
 
 After this phase, a **completely empty** Directus instance starts up:
+
 - locally with `docker compose ... up`,
 - and on the production VPS through the existing deploy pipeline,
 - using a **new, separate `directus` Postgres database** (the old `cms` database is left alone),
@@ -21,7 +23,7 @@ We are **not** creating any collections or content yet — that's Phase 2 and 3.
 ## Background facts you must know
 
 - Directus default HTTP port is **8055** (Payload used **3001**). The Caddy reverse proxy upstream must change.
-- The official image is `directus/directus`. **Pin an exact version tag** (do NOT use `latest`). Check the latest stable tag at https://hub.docker.com/r/directus/directus/tags — at time of writing the line is `11.x`. Use the exact number, e.g. `directus/directus:11.12.0`.
+- The official image is `directus/directus`. **Pin an exact version tag** (do NOT use `latest`). Check the latest stable tag at https://hub.docker.com/r/directus/directus/tags — this migration is pinned to **`directus/directus:12.0.2`** (the v12 line).
 - Directus needs **two random secrets**: `KEY` and `SECRET`. Generate each with `openssl rand -hex 32`.
 - Directus creates its first admin user from `ADMIN_EMAIL` + `ADMIN_PASSWORD` on first boot (via `directus bootstrap`).
 - Directus stores uploaded files in `/directus/uploads` inside the container.
@@ -34,9 +36,11 @@ The repo seeds Postgres databases on first boot with [`init-multiple-databases.s
 - Keep the existing databases exactly as they are. Do **not** delete or rename `cms`.
 
 > ⚠️ This script only runs when the Postgres data volume is **first** created. On an existing local volume the `directus` DB will NOT appear automatically. To force it locally, you may either (a) recreate the dev DB volume (`docker compose -f docker-compose.yml down -v` then `up` — **destroys local data, fine for dev**), or (b) create the DB by hand once:
+>
 > ```bash
 > docker exec -it green-orange-dev psql -U postgres -c "CREATE DATABASE directus;"
 > ```
+>
 > On production, the operator runs the equivalent `CREATE DATABASE directus;` inside the prod Postgres container **once** (see Phase 5 docs update). Per [`AGENTS.md`](../../AGENTS.md), you cannot reach prod from this machine — hand that command to the operator.
 
 ## Step 2 — Add Directus environment variables to the env templates
@@ -68,6 +72,7 @@ DIRECTUS_STATIC_TOKEN=replace-after-phase-3
 > Keep `CMS_DOMAIN`, `SITE_DOMAIN`, `ACME_EMAIL`, the `POSTGRES_*` vars, and `NEXT_PUBLIC_CMS_URL` / `NEXT_PUBLIC_SITE_URL` — they are still used.
 
 For `apps/web`, keep / set:
+
 - `NEXT_PUBLIC_CMS_URL` → now points at the Directus origin (`http://localhost:8055` dev, `https://${CMS_DOMAIN}` prod). The frontend builds asset URLs from this.
 - `DIRECTUS_STATIC_TOKEN` (server-only) → filled in after Phase 3.
 - A preview secret for the draft route, e.g. `DIRECTUS_PREVIEW_SECRET` (server-only) → reused by `apps/web/src/app/api/preview/route.ts` in Phase 4.
@@ -75,6 +80,7 @@ For `apps/web`, keep / set:
 ## Step 3 — Replace the `cms` service in the compose files
 
 There are three compose files. Edit the two that define an app-level `cms` service:
+
 - [`docker-compose.local.yml`](../../docker-compose.local.yml) (builds everything locally)
 - [`docker-compose.prod.yml`](../../docker-compose.prod.yml) (pulls prebuilt images on the VPS)
 
@@ -84,15 +90,15 @@ In **both** files, find the existing `cms:` service (it currently uses a built i
 
 ```yaml
 cms:
-  image: directus/directus:11.12.0   # PIN the real latest stable tag
+  image: directus/directus:12.0.2 # pinned v12 stable
   restart: unless-stopped
   depends_on:
     postgres:
       condition: service_healthy
   volumes:
-    - media:/directus/uploads                      # reuse the SAME volume Payload used for media
-    - ./apps/cms/snapshots:/directus/snapshots:ro  # data model as code (Phase 2 fills this)
-    - ./apps/cms/extensions:/directus/extensions    # empty for now
+    - media:/directus/uploads # reuse the SAME volume Payload used for media
+    - ./apps/cms/snapshots:/directus/snapshots:ro # data model as code (Phase 2 fills this)
+    - ./apps/cms/extensions:/directus/extensions # empty for now
   environment:
     KEY: ${DIRECTUS_KEY}
     SECRET: ${DIRECTUS_SECRET}
@@ -106,7 +112,7 @@ cms:
     ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL}
     ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD}
     CORS_ENABLED: "true"
-    CORS_ORIGIN: ${DIRECTUS_PUBLIC_URL}   # comma-separate to add the site origin too
+    CORS_ORIGIN: ${DIRECTUS_PUBLIC_URL} # comma-separate to add the site origin too
     WEBSOCKETS_ENABLED: "true"
     # Allow the Studio to embed the public site in an iframe for the Visual Editor (Phase 4):
     CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_ANCESTORS: "'self' ${DIRECTUS_PUBLIC_URL}"
@@ -116,6 +122,7 @@ cms:
 ```
 
 Notes:
+
 - In `docker-compose.prod.yml`, the site sits behind Caddy, so you usually do **not** publish `8055` to the host there — match how the old `cms` service handled ports (it likely had no public `ports:` and relied on Caddy). Keep that pattern: **no host port in prod**, host port only in `docker-compose.local.yml`.
 - The `media` volume name MUST match what Payload used (search the old compose files for the volume mounted at the Payload media dir). Reusing the name keeps the volume; the files inside are Payload-formatted and will be re-uploaded in Phase 3, so existing contents don't matter.
 - Set `CORS_ORIGIN` to include the **site** origin (`SITE_DOMAIN`) as well as the CMS origin, comma-separated, e.g. `https://${CMS_DOMAIN},https://${SITE_DOMAIN}`. In dev: `http://localhost:8055,http://localhost:3000`.
@@ -125,10 +132,10 @@ Notes:
 The official image's default command just starts the server. We need it to also run `directus bootstrap` (create tables + admin) and apply the committed schema snapshot before serving. Override the command in **both** compose files' `cms` service:
 
 ```yaml
-    command: >
-      sh -c "npx directus bootstrap &&
-             (npx directus schema apply --yes /directus/snapshots/snapshot.yaml || echo 'no snapshot yet') &&
-             npx directus start"
+command: >
+  sh -c "npx directus bootstrap &&
+         (npx directus schema apply --yes /directus/snapshots/snapshot.yaml || echo 'no snapshot yet') &&
+         npx directus start"
 ```
 
 - `directus bootstrap` is **idempotent** — safe to run on every boot. It creates DB tables on first run and the admin user from `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
@@ -152,6 +159,7 @@ Keep everything else (TLS, the 25 MB upload limit, the other domains) unchanged.
 Open [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml). The pipeline currently **builds and pushes a `cms` image** from `apps/cms/Dockerfile`. We no longer build the CMS — we pull the official image.
 
 Do all of the following:
+
 1. **Remove the `cms` entry** from the build matrix / the per-app build+push job (the step that builds `apps/cms/Dockerfile` and pushes `ghcr.io/.../green-orange-cms`).
 2. **Remove `apps/cms`** from the change-detection (`changes`) job paths so a CMS image is never expected.
 3. In the `deploy` job, ensure the `docker compose -f docker-compose.prod.yml --env-file .env.production pull && up -d` step remains — it now pulls the pinned `directus/directus` image automatically. Nothing else to add there.
