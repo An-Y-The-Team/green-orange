@@ -792,8 +792,8 @@ export const SiteSettings: GlobalConfig = {
                   label: { en: 'Headquarters Label', vi: 'Nhãn trụ sở chính' },
                   admin: {
                     description: {
-                      en: 'Label above the head-office address (e.g. "Trụ Sở Hà Nội:").',
-                      vi: 'Nhãn phía trên địa chỉ trụ sở chính (ví dụ: "Trụ Sở Hà Nội:").',
+                      en: 'Label above the head-office address (e.g. "Trụ sở chính:").',
+                      vi: 'Nhãn phía trên địa chỉ trụ sở chính (ví dụ: "Trụ sở chính:").',
                     },
                   },
                 },

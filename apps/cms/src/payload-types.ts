@@ -149,12 +149,12 @@ export interface User {
   loginAttempts?: number | null;
   lockUntil?: string | null;
   sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
+  | {
+    id: string;
+    createdAt?: string | null;
+    expiresAt: string;
+  }[]
+  | null;
   password?: string | null;
   collection: 'users';
 }
@@ -344,14 +344,14 @@ export interface PayloadKv {
   id: number;
   key: string;
   data:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  | {
+    [k: string]: unknown;
+  }
+  | unknown[]
+  | string
+  | number
+  | boolean
+  | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -360,30 +360,30 @@ export interface PayloadKv {
 export interface PayloadLockedDocument {
   id: number;
   document?:
-    | ({
-        relationTo: 'users';
-        value: number | User;
-      } | null)
-    | ({
-        relationTo: 'media';
-        value: number | Media;
-      } | null)
-    | ({
-        relationTo: 'services';
-        value: number | Service;
-      } | null)
-    | ({
-        relationTo: 'projects';
-        value: number | Project;
-      } | null)
-    | ({
-        relationTo: 'testimonials';
-        value: number | Testimonial;
-      } | null)
-    | ({
-        relationTo: 'contact-submissions';
-        value: number | ContactSubmission;
-      } | null);
+  | ({
+    relationTo: 'users';
+    value: number | User;
+  } | null)
+  | ({
+    relationTo: 'media';
+    value: number | Media;
+  } | null)
+  | ({
+    relationTo: 'services';
+    value: number | Service;
+  } | null)
+  | ({
+    relationTo: 'projects';
+    value: number | Project;
+  } | null)
+  | ({
+    relationTo: 'testimonials';
+    value: number | Testimonial;
+  } | null)
+  | ({
+    relationTo: 'contact-submissions';
+    value: number | ContactSubmission;
+  } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
@@ -404,14 +404,14 @@ export interface PayloadPreference {
   };
   key?: string | null;
   value?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  | {
+    [k: string]: unknown;
+  }
+  | unknown[]
+  | string
+  | number
+  | boolean
+  | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -442,12 +442,12 @@ export interface UsersSelect<T extends boolean = true> {
   loginAttempts?: T;
   lockUntil?: T;
   sessions?:
-    | T
-    | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
-      };
+  | T
+  | {
+    id?: T;
+    createdAt?: T;
+    expiresAt?: T;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -478,27 +478,27 @@ export interface ServicesSelect<T extends boolean = true> {
   category?: T;
   duration?: T;
   benefits?:
-    | T
-    | {
-        item?: T;
-        id?: T;
-      };
+  | T
+  | {
+    item?: T;
+    id?: T;
+  };
   features?:
-    | T
-    | {
-        item?: T;
-        id?: T;
-      };
+  | T
+  | {
+    item?: T;
+    id?: T;
+  };
   iconName?: T;
   popular?: T;
   order?: T;
   meta?:
-    | T
-    | {
-        title?: T;
-        description?: T;
-        image?: T;
-      };
+  | T
+  | {
+    title?: T;
+    description?: T;
+    image?: T;
+  };
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -520,29 +520,29 @@ export interface ProjectsSelect<T extends boolean = true> {
   image?: T;
   imageUrl?: T;
   tags?:
-    | T
-    | {
-        item?: T;
-        id?: T;
-      };
+  | T
+  | {
+    item?: T;
+    id?: T;
+  };
   testimonial?:
-    | T
-    | {
-        author?: T;
-        role?: T;
-        content?: T;
-        avatar?: T;
-        avatarUrl?: T;
-        rating?: T;
-      };
+  | T
+  | {
+    author?: T;
+    role?: T;
+    content?: T;
+    avatar?: T;
+    avatarUrl?: T;
+    rating?: T;
+  };
   order?: T;
   meta?:
-    | T
-    | {
-        title?: T;
-        description?: T;
-        image?: T;
-      };
+  | T
+  | {
+    title?: T;
+    description?: T;
+    image?: T;
+  };
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -692,15 +692,15 @@ export interface SiteSetting {
      * Links shown in the desktop nav and mobile drawer.
      */
     items?:
-      | {
-          label: string;
-          /**
-           * Page section this link scrolls to.
-           */
-          sectionId: 'hero' | 'introduction' | 'services' | 'projects' | 'testimonials' | 'contact';
-          id?: string | null;
-        }[]
-      | null;
+    | {
+      label: string;
+      /**
+       * Page section this link scrolls to.
+       */
+      sectionId: 'hero' | 'introduction' | 'services' | 'projects' | 'testimonials' | 'contact';
+      id?: string | null;
+    }[]
+    | null;
     /**
      * Desktop header button label.
      */
@@ -726,20 +726,20 @@ export interface SiteSetting {
      * The decorated multi-line headline, broken into colored pieces. The renderer will join segments with a space and respect "new line before".
      */
     headlineSegments?:
-      | {
-          text: string;
-          color: 'white' | 'emerald' | 'orange';
-          /**
-           * Render this segment in italic.
-           */
-          italic?: boolean | null;
-          /**
-           * Start a new line before this segment.
-           */
-          newLineBefore?: boolean | null;
-          id?: string | null;
-        }[]
-      | null;
+    | {
+      text: string;
+      color: 'white' | 'emerald' | 'orange';
+      /**
+       * Render this segment in italic.
+       */
+      italic?: boolean | null;
+      /**
+       * Start a new line before this segment.
+       */
+      newLineBefore?: boolean | null;
+      id?: string | null;
+    }[]
+    | null;
     /**
      * The paragraph under the main hero heading.
      */
@@ -748,11 +748,11 @@ export interface SiteSetting {
      * Selling points shown in the 2x2 grid inside the hero card.
      */
     benefits?:
-      | {
-          item: string;
-          id?: string | null;
-        }[]
-      | null;
+    | {
+      item: string;
+      id?: string | null;
+    }[]
+    | null;
     /**
      * Filled orange button.
      */
@@ -779,19 +779,19 @@ export interface SiteSetting {
    * Headline counters (e.g. "500+" projects delivered).
    */
   stats?:
-    | {
-        /**
-         * e.g. "500+"
-         */
-        value: string;
-        label: string;
-        /**
-         * Tailwind text-color class, e.g. "text-green-600".
-         */
-        color?: string | null;
-        id?: string | null;
-      }[]
-    | null;
+  | {
+    /**
+     * e.g. "500+"
+     */
+    value: string;
+    label: string;
+    /**
+     * Tailwind text-color class, e.g. "text-green-600".
+     */
+    color?: string | null;
+    id?: string | null;
+  }[]
+  | null;
   /**
    * Company introduction section: brand story, brand-color meanings, and the 5-step process.
    */
@@ -825,14 +825,14 @@ export interface SiteSetting {
      * The three brand colors and the meaning each represents. Recommend exactly 3 entries.
      */
     brandValues?:
-      | {
-          title: string;
-          description: string;
-          icon: 'Wrench' | 'ShieldCheck' | 'Trees';
-          accent: 'orange' | 'slate' | 'emerald';
-          id?: string | null;
-        }[]
-      | null;
+    | {
+      title: string;
+      description: string;
+      icon: 'Wrench' | 'ShieldCheck' | 'Trees';
+      accent: 'orange' | 'slate' | 'emerald';
+      id?: string | null;
+    }[]
+    | null;
     /**
      * Label above the process heading (e.g. "Khép kín & Hoàn hảo").
      */
@@ -843,16 +843,16 @@ export interface SiteSetting {
      * Service-delivery process steps. Recommend exactly 5 entries.
      */
     processSteps?:
-      | {
-          /**
-           * Two-digit string e.g. "01".
-           */
-          num: string;
-          title: string;
-          description: string;
-          id?: string | null;
-        }[]
-      | null;
+    | {
+      /**
+       * Two-digit string e.g. "01".
+       */
+      num: string;
+      title: string;
+      description: string;
+      id?: string | null;
+    }[]
+    | null;
   };
   /**
    * Footer copy, column headings, and quick links.
@@ -870,18 +870,18 @@ export interface SiteSetting {
      * Anchor links listed in the quick-links column.
      */
     quickLinks?:
-      | {
-          label: string;
-          sectionId: 'hero' | 'introduction' | 'services' | 'projects' | 'testimonials' | 'contact';
-          id?: string | null;
-        }[]
-      | null;
+    | {
+      label: string;
+      sectionId: 'hero' | 'introduction' | 'services' | 'projects' | 'testimonials' | 'contact';
+      id?: string | null;
+    }[]
+    | null;
     /**
      * Heading above the addresses column.
      */
     officesHeading?: string | null;
     /**
-     * Label above the head-office address (e.g. "Trụ Sở Hà Nội:").
+     * Label above the head-office address (e.g. "Trụ sở chính:").
      */
     headquartersLabel?: string | null;
     /**
@@ -929,148 +929,148 @@ export interface SiteSetting {
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
   company?:
-    | T
-    | {
-        name?: T;
-        shortName?: T;
-        founded?: T;
-        phone?: T;
-        email?: T;
-        address?: T;
-        branch?: T;
-        motto?: T;
-        certification?: T;
-      };
+  | T
+  | {
+    name?: T;
+    shortName?: T;
+    founded?: T;
+    phone?: T;
+    email?: T;
+    address?: T;
+    branch?: T;
+    motto?: T;
+    certification?: T;
+  };
   social?:
-    | T
-    | {
-        facebook?: T;
-        zalo?: T;
-        messenger?: T;
-      };
+  | T
+  | {
+    facebook?: T;
+    zalo?: T;
+    messenger?: T;
+  };
   branding?:
-    | T
-    | {
-        logoTextPrimary?: T;
-        logoTextSecondary?: T;
-        headerTagline?: T;
-        footerTagline?: T;
-      };
+  | T
+  | {
+    logoTextPrimary?: T;
+    logoTextSecondary?: T;
+    headerTagline?: T;
+    footerTagline?: T;
+  };
   navigation?:
+  | T
+  | {
+    items?:
     | T
     | {
-        items?:
-          | T
-          | {
-              label?: T;
-              sectionId?: T;
-              id?: T;
-            };
-        headerCtaLabel?: T;
-        mobileCtaLabel?: T;
-      };
+      label?: T;
+      sectionId?: T;
+      id?: T;
+    };
+    headerCtaLabel?: T;
+    mobileCtaLabel?: T;
+  };
   hero?:
+  | T
+  | {
+    backgroundImage?: T;
+    trustBadge?: T;
+    headlineSegments?:
     | T
     | {
-        backgroundImage?: T;
-        trustBadge?: T;
-        headlineSegments?:
-          | T
-          | {
-              text?: T;
-              color?: T;
-              italic?: T;
-              newLineBefore?: T;
-              id?: T;
-            };
-        subheadline?: T;
-        benefits?:
-          | T
-          | {
-              item?: T;
-              id?: T;
-            };
-        primaryCta?:
-          | T
-          | {
-              label?: T;
-              href?: T;
-            };
-        secondaryCta?:
-          | T
-          | {
-              label?: T;
-              href?: T;
-            };
-        trustStrap?: T;
-      };
+      text?: T;
+      color?: T;
+      italic?: T;
+      newLineBefore?: T;
+      id?: T;
+    };
+    subheadline?: T;
+    benefits?:
+    | T
+    | {
+      item?: T;
+      id?: T;
+    };
+    primaryCta?:
+    | T
+    | {
+      label?: T;
+      href?: T;
+    };
+    secondaryCta?:
+    | T
+    | {
+      label?: T;
+      href?: T;
+    };
+    trustStrap?: T;
+  };
   stats?:
-    | T
-    | {
-        value?: T;
-        label?: T;
-        color?: T;
-        id?: T;
-      };
+  | T
+  | {
+    value?: T;
+    label?: T;
+    color?: T;
+    id?: T;
+  };
   introduction?:
+  | T
+  | {
+    eyebrow?: T;
+    heading?: T;
+    narrative?: T;
+    image?: T;
+    mottoEyebrow?: T;
+    brandStoryHeading?: T;
+    brandStoryIntro?: T;
+    brandValues?:
     | T
     | {
-        eyebrow?: T;
-        heading?: T;
-        narrative?: T;
-        image?: T;
-        mottoEyebrow?: T;
-        brandStoryHeading?: T;
-        brandStoryIntro?: T;
-        brandValues?:
-          | T
-          | {
-              title?: T;
-              description?: T;
-              icon?: T;
-              accent?: T;
-              id?: T;
-            };
-        processEyebrow?: T;
-        processHeading?: T;
-        processIntro?: T;
-        processSteps?:
-          | T
-          | {
-              num?: T;
-              title?: T;
-              description?: T;
-              id?: T;
-            };
-      };
+      title?: T;
+      description?: T;
+      icon?: T;
+      accent?: T;
+      id?: T;
+    };
+    processEyebrow?: T;
+    processHeading?: T;
+    processIntro?: T;
+    processSteps?:
+    | T
+    | {
+      num?: T;
+      title?: T;
+      description?: T;
+      id?: T;
+    };
+  };
   footer?:
+  | T
+  | {
+    brandDescription?: T;
+    quickLinksHeading?: T;
+    quickLinks?:
     | T
     | {
-        brandDescription?: T;
-        quickLinksHeading?: T;
-        quickLinks?:
-          | T
-          | {
-              label?: T;
-              sectionId?: T;
-              id?: T;
-            };
-        officesHeading?: T;
-        headquartersLabel?: T;
-        branchLabel?: T;
-        supportHeading?: T;
-        hotlinePrefix?: T;
-        emailPrefix?: T;
-        copyrightSuffix?: T;
-        backToTopLabel?: T;
-      };
+      label?: T;
+      sectionId?: T;
+      id?: T;
+    };
+    officesHeading?: T;
+    headquartersLabel?: T;
+    branchLabel?: T;
+    supportHeading?: T;
+    hotlinePrefix?: T;
+    emailPrefix?: T;
+    copyrightSuffix?: T;
+    backToTopLabel?: T;
+  };
   seo?:
-    | T
-    | {
-        metaTitle?: T;
-        metaDescription?: T;
-        ogImage?: T;
-      };
+  | T
+  | {
+    metaTitle?: T;
+    metaDescription?: T;
+    ogImage?: T;
+  };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -1095,5 +1095,5 @@ export interface Auth {
 
 
 declare module 'payload' {
-  export interface GeneratedTypes extends Config {}
+  export interface GeneratedTypes extends Config { }
 }

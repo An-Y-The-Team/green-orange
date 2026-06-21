@@ -457,7 +457,7 @@ const SITE_SETTINGS = {
       { label: 'Yêu cầu khảo sát', sectionId: 'contact' },
     ],
     officesHeading: 'Hệ Thống Văn Phòng',
-    headquartersLabel: 'Trụ Sở Hà Nội:',
+    headquartersLabel: 'Trụ sở chính:',
     branchLabel: 'Chi Nhánh TP. HCM:',
     supportHeading: 'Hỗ Trợ Trực Tuyến',
     hotlinePrefix: 'Hotline:',

@@ -474,7 +474,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
       { label: "Yêu cầu khảo sát", sectionId: SectionId.CONTACT },
     ],
     officesHeading: "Hệ Thống Văn Phòng",
-    headquartersLabel: "Trụ Sở Hà Nội:",
+    headquartersLabel: "Trụ sở chính:",
     branchLabel: "Chi Nhánh TP. HCM:",
     supportHeading: "Hỗ Trợ Trực Tuyến",
     hotlinePrefix: "Hotline:",
