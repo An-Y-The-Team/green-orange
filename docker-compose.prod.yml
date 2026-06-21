@@ -42,6 +42,8 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS}
       # Payload `serverURL` — makes uploaded media URLs absolute (public CMS origin).
       CMS_PUBLIC_URL: ${CMS_PUBLIC_URL}
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL}
+      PAYLOAD_PREVIEW_SECRET: ${PAYLOAD_PREVIEW_SECRET}
       # Uploads persist on the `media` volume across deploys.
       MEDIA_DIR: /app/apps/cms/media
     volumes:
@@ -58,6 +60,8 @@ services:
       # hairpin). The browser uses NEXT_PUBLIC_CMS_URL, which is baked into the
       # image at build time by the GitHub Actions workflow.
       CMS_INTERNAL_URL: http://cms:3001
+      PAYLOAD_PREVIEW_SECRET: ${PAYLOAD_PREVIEW_SECRET}
+      CMS_PREVIEW_API_KEY: ${CMS_PREVIEW_API_KEY}
     networks: [internal]
 
   # ── CRM API — FastAPI (INTERNAL ONLY, never exposed) ────────────────────────
