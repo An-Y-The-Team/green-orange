@@ -243,7 +243,7 @@ open https://cms.example.com/admin   # follow the create-first-user prompt
 
 # (Optional) seed the demo content into production
 docker compose -f docker-compose.prod.yml --env-file .env.production exec cms \
-  /app/node_modules/.bin/payload run apps/cms/src/seed.ts   # path is relative to /app/apps/cms
+  /app/node_modules/.bin/payload run src/seed.ts   # path is relative to /app/apps/cms (the container WORKDIR)
 ```
 
 Verify:

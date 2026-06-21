@@ -5,6 +5,10 @@ import { isAdminOrSelf } from '../access/isAdminOrSelf'
 
 export const Users: CollectionConfig = {
   slug: 'users',
+  labels: {
+    singular: { en: 'User', vi: 'Người dùng' },
+    plural: { en: 'Users', vi: 'Người dùng' },
+  },
   admin: {
     useAsTitle: 'email',
     defaultColumns: ['email', 'role'],
@@ -36,9 +40,10 @@ export const Users: CollectionConfig = {
       type: 'select',
       required: true,
       defaultValue: 'editor',
+      label: { en: 'Role', vi: 'Vai trò' },
       options: [
-        { label: 'Admin', value: 'admin' },
-        { label: 'Editor', value: 'editor' },
+        { label: { en: 'Admin', vi: 'Quản trị viên' }, value: 'admin' },
+        { label: { en: 'Editor', vi: 'Biên tập viên' }, value: 'editor' },
       ],
       access: {
         // Only admins may CHANGE a role — prevents an editor escalating their
@@ -50,7 +55,10 @@ export const Users: CollectionConfig = {
         update: isAdminFieldAccess,
       },
       admin: {
-        description: 'Admins manage users, site settings, and deletions; editors manage content.',
+        description: {
+          en: 'Admins manage users, site settings, and deletions; editors manage content.',
+          vi: 'Quản trị viên quản lý người dùng, cài đặt trang và xóa dữ liệu; biên tập viên quản lý nội dung.',
+        },
       },
     },
   ],
