@@ -15,7 +15,7 @@ RUN turbo prune @yan-portf/web --docker
 FROM base AS builder
 # First install dependencies (as they change less often)
 COPY --from=pruner /app/out/json/ .
-RUN bun install --frozen-lockfile --no-verify
+RUN bun install --no-verify
 # Then copy source and build
 COPY --from=pruner /app/out/full/ .
 # NEXT_PUBLIC_* is inlined into the client bundle at build time, so the public

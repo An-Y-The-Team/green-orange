@@ -1,3 +1,4 @@
+import { draftMode } from "next/headers";
 import React, { Suspense } from "react";
 
 import ContactForm from "../components/contact-form/contact-form";
@@ -5,6 +6,7 @@ import Footer from "../components/footer/footer";
 import Header from "../components/header/header";
 import Hero from "../components/hero/hero";
 import Introduction from "../components/introduction/introduction";
+import { RefreshRouteOnSave } from "../components/live-preview/refresh-route-on-save";
 import Projects from "../components/projects/projects";
 import Services from "../components/services/services";
 import Testimonials from "../components/testimonials/testimonials";
@@ -57,13 +59,15 @@ function buildJsonLd(settings: SiteSettings, services: Service[]) {
 }
 
 export default async function Page() {
+  const { isEnabled: isPreviewMode } = await draftMode();
+
   // Fetch CMS content on the server, then hand it to the interactive client
   // sections as props (keeps those components free of data-fetching effects).
   const [services, projects, testimonials, settings] = await Promise.all([
-    getServices(),
-    getProjects(),
-    getTestimonials(),
-    getSiteSettings(),
+    getServices(isPreviewMode),
+    getProjects(isPreviewMode),
+    getTestimonials(isPreviewMode),
+    getSiteSettings(isPreviewMode),
   ]);
 
   const jsonLd = buildJsonLd(settings, services);
@@ -79,6 +83,8 @@ export default async function Page() {
         } as React.CSSProperties
       }
     >
+      {isPreviewMode && <RefreshRouteOnSave />}
+
       {/* schema.org structured data for rich search results */}
       <script
         type="application/ld+json"

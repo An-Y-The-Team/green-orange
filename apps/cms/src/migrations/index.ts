@@ -5,6 +5,7 @@ import * as migration_20260611_132520_switch_locale_to_vi from './20260611_13252
 import * as migration_20260621_120213_branding_nav_footer from './20260621_120213_branding_nav_footer';
 import * as migration_20260621_121512_hero_introduction from './20260621_121512_hero_introduction';
 import * as migration_20260621_135723_typography from './20260621_135723_typography';
+import * as migration_20260621_141919_live_preview_api_key from './20260621_141919_live_preview_api_key';
 
 export const migrations = [
   {
@@ -40,6 +41,11 @@ export const migrations = [
   {
     up: migration_20260621_135723_typography.up,
     down: migration_20260621_135723_typography.down,
-    name: '20260621_135723_typography'
+    name: '20260621_135723_typography',
+  },
+  {
+    up: migration_20260621_141919_live_preview_api_key.up,
+    down: migration_20260621_141919_live_preview_api_key.down,
+    name: '20260621_141919_live_preview_api_key'
   },
 ];

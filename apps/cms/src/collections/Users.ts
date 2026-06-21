@@ -13,7 +13,9 @@ export const Users: CollectionConfig = {
     useAsTitle: 'email',
     defaultColumns: ['email', 'role'],
   },
-  auth: true,
+  auth: {
+    useAPIKey: true,
+  },
   access: {
     // Admins manage everyone; editors can only see/edit their own profile.
     read: isAdminOrSelf,
