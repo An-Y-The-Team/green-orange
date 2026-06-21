@@ -281,6 +281,96 @@ export const SiteSettings: GlobalConfig = {
           ],
         },
         {
+          label: { en: 'Typography', vi: 'Kiểu chữ' },
+          fields: [
+            {
+              name: 'typography',
+              type: 'group',
+              label: { en: 'Font settings', vi: 'Cài đặt font' },
+              admin: {
+                description: {
+                  en: 'Font family for headings, the hero display headline, and body text. Changes apply site-wide on the next request.',
+                  vi: 'Phông chữ cho tiêu đề, dòng tiêu đề lớn ở khu vực Hero, và nội dung. Thay đổi áp dụng cho toàn site ở lần tải kế tiếp.',
+                },
+              },
+              fields: [
+                {
+                  name: 'headingFont',
+                  type: 'select',
+                  required: true,
+                  defaultValue: 'playfair-display',
+                  label: { en: 'Heading Font', vi: 'Phông tiêu đề' },
+                  admin: {
+                    description: {
+                      en: 'Applied to all section headings (h2/h3/h4) via the font-heading utility.',
+                      vi: 'Áp dụng cho tất cả tiêu đề mục (h2/h3/h4) qua tiện ích font-heading.',
+                    },
+                  },
+                  options: [
+                    {
+                      label: { en: 'Be Vietnam Pro (sans)', vi: 'Be Vietnam Pro (sans)' },
+                      value: 'be-vietnam-pro',
+                    },
+                    { label: { en: 'Manrope (sans)', vi: 'Manrope (sans)' }, value: 'manrope' },
+                    {
+                      label: { en: 'Playfair Display (serif)', vi: 'Playfair Display (serif)' },
+                      value: 'playfair-display',
+                    },
+                    { label: { en: 'Lora (serif)', vi: 'Lora (serif)' }, value: 'lora' },
+                  ],
+                },
+                {
+                  name: 'heroDisplayFont',
+                  type: 'select',
+                  required: true,
+                  defaultValue: 'lora',
+                  label: { en: 'Hero Display Font', vi: 'Phông Hero' },
+                  admin: {
+                    description: {
+                      en: 'Applied to the hero h1 + stat numbers via the font-serif utility. Should pair with the heading font.',
+                      vi: 'Áp dụng cho dòng tiêu đề h1 và các con số thống kê ở Hero, qua tiện ích font-serif.',
+                    },
+                  },
+                  options: [
+                    {
+                      label: { en: 'Playfair Display (serif)', vi: 'Playfair Display (serif)' },
+                      value: 'playfair-display',
+                    },
+                    { label: { en: 'Lora (serif)', vi: 'Lora (serif)' }, value: 'lora' },
+                    {
+                      label: { en: 'DM Serif Display (serif)', vi: 'DM Serif Display (serif)' },
+                      value: 'dm-serif-display',
+                    },
+                  ],
+                },
+                {
+                  name: 'bodyFont',
+                  type: 'select',
+                  required: true,
+                  defaultValue: 'lora',
+                  label: { en: 'Body Font', vi: 'Phông nội dung' },
+                  admin: {
+                    description: {
+                      en: 'Applied to paragraphs and UI labels via the font-sans utility. Be Vietnam Pro has the best Vietnamese diacritic rendering.',
+                      vi: 'Áp dụng cho đoạn văn và nhãn UI qua tiện ích font-sans. Be Vietnam Pro hiển thị dấu tiếng Việt tốt nhất.',
+                    },
+                  },
+                  options: [
+                    {
+                      label: { en: 'Be Vietnam Pro', vi: 'Be Vietnam Pro' },
+                      value: 'be-vietnam-pro',
+                    },
+                    { label: { en: 'Inter', vi: 'Inter' }, value: 'inter' },
+                    { label: { en: 'Lexend', vi: 'Lexend' }, value: 'lexend' },
+                    { label: { en: 'Nunito Sans', vi: 'Nunito Sans' }, value: 'nunito-sans' },
+                    { label: { en: 'Lora', vi: 'Lora' }, value: 'lora' },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
           label: { en: 'Hero', vi: 'Trang chủ' },
           fields: [
             {

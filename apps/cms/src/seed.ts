@@ -338,6 +338,11 @@ const SITE_SETTINGS = {
     headerTagline: 'Thi Công & Vệ Sinh',
     footerTagline: 'Xây dựng & Dọn sạch',
   },
+  typography: {
+    headingFont: 'playfair-display',
+    heroDisplayFont: 'lora',
+    bodyFont: 'lora',
+  },
   navigation: {
     items: [
       { label: 'Giới Thiệu', sectionId: 'introduction' },

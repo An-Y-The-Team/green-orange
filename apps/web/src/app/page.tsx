@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import React, { Suspense } from "react";
 
 import ContactForm from "../components/contact-form/contact-form";
 import Footer from "../components/footer/footer";
@@ -69,7 +69,16 @@ export default async function Page() {
   const jsonLd = buildJsonLd(settings, services);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white overflow-x-hidden antialiased font-sans">
+    <div
+      className="min-h-screen flex flex-col bg-white overflow-x-hidden antialiased font-sans"
+      style={
+        {
+          "--font-heading": `var(--font-${settings.typography.headingFont})`,
+          "--font-serif": `var(--font-${settings.typography.heroDisplayFont})`,
+          "--font-sans": `var(--font-${settings.typography.bodyFont})`,
+        } as React.CSSProperties
+      }
+    >
       {/* schema.org structured data for rich search results */}
       <script
         type="application/ld+json"

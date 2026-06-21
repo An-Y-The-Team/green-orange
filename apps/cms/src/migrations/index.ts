@@ -4,6 +4,7 @@ import * as migration_20260611_124647_drafts_versions_rbac from './20260611_1246
 import * as migration_20260611_132520_switch_locale_to_vi from './20260611_132520_switch_locale_to_vi';
 import * as migration_20260621_120213_branding_nav_footer from './20260621_120213_branding_nav_footer';
 import * as migration_20260621_121512_hero_introduction from './20260621_121512_hero_introduction';
+import * as migration_20260621_135723_typography from './20260621_135723_typography';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20260621_121512_hero_introduction.up,
     down: migration_20260621_121512_hero_introduction.down,
-    name: '20260621_121512_hero_introduction'
+    name: '20260621_121512_hero_introduction',
+  },
+  {
+    up: migration_20260621_135723_typography.up,
+    down: migration_20260621_135723_typography.down,
+    name: '20260621_135723_typography'
   },
 ];

@@ -711,6 +711,23 @@ export interface SiteSetting {
     mobileCtaLabel?: string | null;
   };
   /**
+   * Font family for headings, the hero display headline, and body text. Changes apply site-wide on the next request.
+   */
+  typography: {
+    /**
+     * Applied to all section headings (h2/h3/h4) via the font-heading utility.
+     */
+    headingFont: 'be-vietnam-pro' | 'manrope' | 'playfair-display' | 'lora';
+    /**
+     * Applied to the hero h1 + stat numbers via the font-serif utility. Should pair with the heading font.
+     */
+    heroDisplayFont: 'playfair-display' | 'lora' | 'dm-serif-display';
+    /**
+     * Applied to paragraphs and UI labels via the font-sans utility. Be Vietnam Pro has the best Vietnamese diacritic rendering.
+     */
+    bodyFont: 'be-vietnam-pro' | 'inter' | 'lexend' | 'nunito-sans' | 'lora';
+  };
+  /**
    * Landing hero section copy, headline, CTAs, and benefits.
    */
   hero?: {
@@ -1019,6 +1036,13 @@ export interface SiteSettingsSelect<T extends boolean = true> {
             };
         headerCtaLabel?: T;
         mobileCtaLabel?: T;
+      };
+  typography?:
+    | T
+    | {
+        headingFont?: T;
+        heroDisplayFont?: T;
+        bodyFont?: T;
       };
   hero?:
     | T

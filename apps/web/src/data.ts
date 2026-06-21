@@ -205,6 +205,22 @@ export interface SectionLink {
   sectionId: SectionId;
 }
 
+export type FontSlug =
+  | "be-vietnam-pro"
+  | "inter"
+  | "lexend"
+  | "nunito-sans"
+  | "manrope"
+  | "playfair-display"
+  | "lora"
+  | "dm-serif-display";
+
+export interface TypographySettings {
+  headingFont: FontSlug;
+  heroDisplayFont: FontSlug;
+  bodyFont: FontSlug;
+}
+
 export type HeadlineColor = "white" | "emerald" | "orange";
 
 export interface HeadlineSegment {
@@ -264,6 +280,7 @@ export interface SiteSettings {
     headerTagline: string;
     footerTagline: string;
   };
+  typography: TypographySettings;
   navigation: {
     items: SectionLink[];
     headerCtaLabel: string;
@@ -338,6 +355,11 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     logoTextSecondary: "Orange",
     headerTagline: "Thi Công & Vệ Sinh",
     footerTagline: "Xây dựng & Dọn sạch",
+  },
+  typography: {
+    headingFont: "playfair-display",
+    heroDisplayFont: "lora",
+    bodyFont: "lora",
   },
   navigation: {
     items: [
@@ -562,6 +584,11 @@ interface PayloadSiteSettings {
   company?: Partial<SiteSettings["company"]> | null;
   social?: Partial<SiteSettings["social"]> | null;
   branding?: Partial<SiteSettings["branding"]> | null;
+  typography?: {
+    headingFont?: string | null;
+    heroDisplayFont?: string | null;
+    bodyFont?: string | null;
+  } | null;
   navigation?: {
     items?: PayloadSectionLink[] | null;
     headerCtaLabel?: string | null;
@@ -638,6 +665,22 @@ const SECTION_IDS = new Set<string>(Object.values(SectionId));
 const HEADLINE_COLORS = new Set<string>(["white", "emerald", "orange"]);
 const BRAND_ICONS = new Set<string>(["Wrench", "ShieldCheck", "Trees"]);
 const BRAND_ACCENTS = new Set<string>(["orange", "slate", "emerald"]);
+
+const FONT_SLUGS = new Set<string>([
+  "be-vietnam-pro",
+  "inter",
+  "lexend",
+  "nunito-sans",
+  "manrope",
+  "playfair-display",
+  "lora",
+  "dm-serif-display",
+]);
+
+const pickFont = (
+  raw: string | null | undefined,
+  fallback: FontSlug
+): FontSlug => (raw && FONT_SLUGS.has(raw) ? (raw as FontSlug) : fallback);
 
 const resolveMediaUrl = (media: PayloadMedia, fallback: string): string => {
   if (media && typeof media === "object" && media.url) return media.url;
@@ -794,6 +837,17 @@ export async function getSiteSettings(): Promise<SiteSettings> {
         s.branding?.footerTagline,
         d.branding.footerTagline
       ),
+    },
+    typography: {
+      headingFont: pickFont(
+        s.typography?.headingFont,
+        d.typography.headingFont
+      ),
+      heroDisplayFont: pickFont(
+        s.typography?.heroDisplayFont,
+        d.typography.heroDisplayFont
+      ),
+      bodyFont: pickFont(s.typography?.bodyFont, d.typography.bodyFont),
     },
     navigation: {
       items: mapSectionLinks(s.navigation?.items, d.navigation.items),
