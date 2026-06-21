@@ -77,7 +77,7 @@ export default async function Page() {
       />
 
       {/* Header component containing the logo and active states */}
-      <Header />
+      <Header settings={settings} />
 
       {/* Main page body */}
       <main className="flex-grow">

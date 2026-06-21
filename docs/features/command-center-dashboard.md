@@ -10,11 +10,11 @@
 
 - **Spine is `Project` (Công Trình)**, not `Job`. Lifecycle `ProjectStage`:
   `yeu_cau → khao_sat → bao_gia → hop_dong → chuan_bi → thi_cong → nghiem_thu → quyet_toan → thanh_toan → dong`.
-  See [projects/types.ts](../../apps/crm-web/src/app/(dashboard)/projects/types.ts), [projects/enums.ts](../../apps/crm-web/src/app/(dashboard)/projects/enums.ts).
-- **Crew exists** ([crew/types.ts](../../apps/crm-web/src/app/(dashboard)/crew/types.ts)): `CrewMember` (name, phone, role, day_rate, status) and `Assignment` (`crew_id`, `project_code`, `role_on_site?`, `start_date?`) joined to a project by **`project_code`**. Reads via [crew/queries.ts](../../apps/crm-web/src/app/(dashboard)/crew/queries.ts) (`listCrew`, `listAssignments`).
-- **Receivables** ([receivables/types.ts](../../apps/crm-web/src/app/(dashboard)/receivables/types.ts)): `PaymentMilestone` with `status` (`chua_den_han | cho_thanh_toan | da_thu | qua_han`).
+  See [projects/types.ts](<../../apps/crm-web/src/app/(dashboard)/projects/types.ts>), [projects/enums.ts](<../../apps/crm-web/src/app/(dashboard)/projects/enums.ts>).
+- **Crew exists** ([crew/types.ts](<../../apps/crm-web/src/app/(dashboard)/crew/types.ts>)): `CrewMember` (name, phone, role, day_rate, status) and `Assignment` (`crew_id`, `project_code`, `role_on_site?`, `start_date?`) joined to a project by **`project_code`**. Reads via [crew/queries.ts](<../../apps/crm-web/src/app/(dashboard)/crew/queries.ts>) (`listCrew`, `listAssignments`).
+- **Receivables** ([receivables/types.ts](<../../apps/crm-web/src/app/(dashboard)/receivables/types.ts>)): `PaymentMilestone` with `status` (`chua_den_han | cho_thanh_toan | da_thu | qua_han`).
 - **Data seam**: every read is `API_URL ? apiFetchSafe(path, []) : mockArray` in a route's `queries.ts`; every mutation is a `"use server"` action using `apiSend` ([lib/http.ts](../../apps/crm-web/src/lib/http.ts)). Unset `CRM_API_URL` → mock; set → FastAPI.
-- **Pages are async Server Components.** Client behaviour lives in small `"use client"` island dialogs (see [crew-assign-dialog.tsx](../../apps/crm-web/src/app/(dashboard)/projects/[id]/components/crew-assign-dialog/crew-assign-dialog.tsx)). **No `useEffect`** (AGENTS.md).
+- **Pages are async Server Components.** Client behaviour lives in small `"use client"` island dialogs (see [crew-assign-dialog.tsx](<../../apps/crm-web/src/app/(dashboard)/projects/[id]/components/crew-assign-dialog/crew-assign-dialog.tsx>)). **No `useEffect`** (AGENTS.md).
 - **UI kit**: `@yan/ui` `Card`/`Badge`/`Table`/`Dialog`/`Button`. Labels + badge variants in [lib/labels.ts](../../apps/crm-web/src/lib/labels.ts); money via `formatVND`, dates via `formatDate`, rollups via `receivables()`/`projectActuals()` in [lib/format.ts](../../apps/crm-web/src/lib/format.ts). **Vietnamese-first.** Do **not** hardcode `bg-red-100` etc. — use semantic tokens/variants.
 
 ### Fields that do NOT exist (decisions)
@@ -22,16 +22,16 @@
 The original plan assumed `gateCode`, `equipmentList`, `locationContactPhone`,
 `zaloDispatchSent`, `scheduledDate`, and a `BLOCKED` status. Mapping:
 
-| Plan field | Decision |
-|---|---|
-| `scheduledDate` | use existing `start_date` / `end_date` |
-| `locationAddress` | use existing `address` |
-| `assignedCrew: string[]` | derive from `Assignment` → `CrewMember.name` via the join |
-| `locationContactPhone` | use the **assigned supervisor's** `phone` (crew `role = giam_sat`), not a new field |
-| `gateCode?` | **net-new optional** `gate_code?: string` on `Project` (snake_case) |
-| `equipmentList` | **net-new optional** `equipment_notes?: string[]` on `Project`; section skipped when empty (there is no equipment master entity) |
-| `zaloDispatchSent` | **net-new optional** `zalo_dispatch_sent?: boolean` on `Project` |
-| `BLOCKED` status | no such stage — the "needs attention" list is **derived** (see §3C), not a status |
+| Plan field               | Decision                                                                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `scheduledDate`          | use existing `start_date` / `end_date`                                                                                           |
+| `locationAddress`        | use existing `address`                                                                                                           |
+| `assignedCrew: string[]` | derive from `Assignment` → `CrewMember.name` via the join                                                                        |
+| `locationContactPhone`   | use the **assigned supervisor's** `phone` (crew `role = giam_sat`), not a new field                                              |
+| `gateCode?`              | **net-new optional** `gate_code?: string` on `Project` (snake_case)                                                              |
+| `equipmentList`          | **net-new optional** `equipment_notes?: string[]` on `Project`; section skipped when empty (there is no equipment master entity) |
+| `zaloDispatchSent`       | **net-new optional** `zalo_dispatch_sent?: boolean` on `Project`                                                                 |
+| `BLOCKED` status         | no such stage — the "needs attention" list is **derived** (see §3C), not a status                                                |
 
 These three optional `Project` fields are additive and backward-compatible.
 Seed a few in [data/mock/projects.ts](../../apps/crm-web/src/data/mock/projects.ts); add them to the FastAPI `Project` schema later (student exercise). Until then mock-mode "mark dispatched" won't persist across reload — same documented limitation as `assignCrew`.
@@ -51,13 +51,18 @@ New route, **separate** from the existing financial overview at `/dashboard`
 export default async function CommandCenterPage() {
   const [projects, assignments, crew, milestones, acceptances] =
     await Promise.all([
-      listProjects(),         // projects/queries
-      listAssignments(),      // crew/queries
-      listCrew(),             // crew/queries
-      listPaymentMilestones(),// receivables/queries
-      listAcceptances(),      // projects/queries
+      listProjects(), // projects/queries
+      listAssignments(), // crew/queries
+      listCrew(), // crew/queries
+      listPaymentMilestones(), // receivables/queries
+      listAcceptances(), // projects/queries
     ]);
-  const metrics = computeMetrics({ projects, assignments, milestones, acceptances });
+  const metrics = computeMetrics({
+    projects,
+    assignments,
+    milestones,
+    acceptances,
+  });
   // ...derive activeProjects / pending lists, render
 }
 ```
@@ -90,15 +95,16 @@ makes computable):
 
 ```ts
 interface CommandCenterMetrics {
-  unassigned_count: number;   // active projects (thi_cong|chuan_bi) with 0 assignments
-  crew_conflict_count: number;// crew_id assigned to >1 active project
-  paperwork_count: number;    // projects in stage = chuan_bi
-  collectable_count: number;  // milestones status in {cho_thanh_toan, qua_han}
-  outstanding: number;        // receivables(milestones).outstanding (VND)
+  unassigned_count: number; // active projects (thi_cong|chuan_bi) with 0 assignments
+  crew_conflict_count: number; // crew_id assigned to >1 active project
+  paperwork_count: number; // projects in stage = chuan_bi
+  collectable_count: number; // milestones status in {cho_thanh_toan, qua_han}
+  outstanding: number; // receivables(milestones).outstanding (VND)
 }
 ```
 
 Cards (urgency via **semantic tokens**, not raw palette):
+
 1. **Chưa phân công** — `unassigned_count`; `text-destructive` accent when `> 0`, else muted.
 2. **Trùng lịch nhân sự** — `crew_conflict_count`; `text-destructive` when `> 0`.
 3. **Chuẩn bị hồ sơ** — `paperwork_count`; `text-warning` (`warning` variant) when `> 0`.
@@ -124,15 +130,15 @@ problem signals into a small typed shape, then rendered as cards:
 
 ```ts
 type AttentionKind =
-  | "unassigned"     // active project, no crew
-  | "overdue"        // milestone status = qua_han
-  | "acceptance"     // acceptance status = co_van_de
-  | "delayed";       // project schedule_outcome = delayed
+  | "unassigned" // active project, no crew
+  | "overdue" // milestone status = qua_han
+  | "acceptance" // acceptance status = co_van_de
+  | "delayed"; // project schedule_outcome = delayed
 interface AttentionItem {
   kind: AttentionKind;
   project_code: string;
-  title: string;     // project name
-  detail: string;    // e.g. "Quá hạn 12.500.000 ₫", "Nghiệm thu có vấn đề"
+  title: string; // project name
+  detail: string; // e.g. "Quá hạn 12.500.000 ₫", "Nghiệm thu có vấn đề"
 }
 ```
 
@@ -142,7 +148,7 @@ interface AttentionItem {
 
 ### D. ZaloDispatchDialog (client island) + generator
 
-`"use client"`, same shape as [crew-assign-dialog.tsx](../../apps/crm-web/src/app/(dashboard)/projects/[id]/components/crew-assign-dialog/crew-assign-dialog.tsx):
+`"use client"`, same shape as [crew-assign-dialog.tsx](<../../apps/crm-web/src/app/(dashboard)/projects/[id]/components/crew-assign-dialog/crew-assign-dialog.tsx>):
 controlled `Dialog`, `useState`, **no `useEffect`**. It is purely client-side
 (clipboard) — no server action needed for copy. Optionally a tiny
 `markDispatched` server action (`apiSend(/projects/{id}, "PATCH", {zalo_dispatch_sent:true})`)
@@ -155,7 +161,9 @@ export function buildZaloDispatch(
   crewOnSite: CrewMember[]
 ): string {
   const supervisor = crewOnSite.find((c) => c.role === CrewRole.GIAM_SAT);
-  const lines = crewOnSite.map((c) => `- ${c.name} (${crewRole[c.role]}) ${c.phone}`);
+  const lines = crewOnSite.map(
+    (c) => `- ${c.name} (${crewRole[c.role]}) ${c.phone}`
+  );
   const equip = project.equipment_notes?.map((e) => `- ${e}`).join("\n");
   return [
     `📋 LỊCH TRÌNH THI CÔNG (${formatDate(project.start_date)})`,
@@ -170,7 +178,9 @@ export function buildZaloDispatch(
     equip ? `\n🛠️ Thiết bị cần chuẩn bị:\n${equip}` : "",
     "",
     "⚠️ Nhớ chụp hình Zalo báo cáo nhé!",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 ```
 

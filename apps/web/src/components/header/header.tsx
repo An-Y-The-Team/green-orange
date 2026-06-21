@@ -6,13 +6,18 @@ import { useState } from "react";
 
 import { buttonVariants } from "@yan/ui/components/button";
 
+import { SectionId } from "@/constants/section";
 import { useScrollSpy } from "@/hooks/use-scroll-spy/use-scroll-spy";
 
-import { NAV_ITEMS, SCROLL_SPY_SECTIONS } from "./constants";
+import { SiteSettings } from "../../data";
 
-export default function Header() {
+export default function Header({ settings }: { settings: SiteSettings }) {
   const [isOpen, setIsOpen] = useState(false);
-  const { activeSection, isScrolled } = useScrollSpy(SCROLL_SPY_SECTIONS);
+  const { branding, navigation } = settings;
+  // Track only the sections that actually appear in the nav, so the active
+  // highlight stays consistent with the rendered links.
+  const sectionIds = navigation.items.map((item) => item.sectionId);
+  const { activeSection, isScrolled } = useScrollSpy(sectionIds);
 
   // Close the mobile drawer after the user taps a navigation link.
   const handleNavClick = () => {
@@ -33,7 +38,7 @@ export default function Header() {
           {/* Logo with Green & Orange identity */}
           <Link
             id="logo-container"
-            href="#hero"
+            href={`#${SectionId.HERO}`}
             onClick={handleNavClick}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
@@ -45,11 +50,15 @@ export default function Header() {
             </div>
             <div>
               <span className="text-xl font-black tracking-tight text-slate-800 flex items-center gap-1 leading-none">
-                <span className="text-emerald-700">Green</span>
-                <span className="text-orange-500">Orange</span>
+                <span className="text-emerald-700">
+                  {branding.logoTextPrimary}
+                </span>
+                <span className="text-orange-500">
+                  {branding.logoTextSecondary}
+                </span>
               </span>
               <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 leading-none mt-1">
-                Thi Công & Vệ Sinh
+                {branding.headerTagline}
               </span>
             </div>
           </Link>
@@ -59,14 +68,14 @@ export default function Header() {
             className="hidden md:flex items-center gap-1"
             id="desktop-navbar"
           >
-            {NAV_ITEMS.map((item) => (
+            {navigation.items.map((item) => (
               <Link
-                key={item.id}
-                id={`nav-${item.id}`}
-                href={`#${item.id}`}
+                key={item.sectionId}
+                id={`nav-${item.sectionId}`}
+                href={`#${item.sectionId}`}
                 onClick={handleNavClick}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg transition-transform duration-200 active:scale-95 ${
-                  activeSection === item.id
+                  activeSection === item.sectionId
                     ? "bg-slate-900 text-white"
                     : isScrolled
                       ? "text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/50"
@@ -82,14 +91,14 @@ export default function Header() {
           <div className="hidden md:flex items-center gap-3">
             <Link
               id="header-cta-btn"
-              href="#contact"
+              href={`#${SectionId.CONTACT}`}
               onClick={handleNavClick}
               className={
                 buttonVariants({ variant: "default" }) +
                 " bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-lg shadow-sm hover:shadow-md hover:translate-y-[-1px] transition-all"
               }
             >
-              Đặt lịch khảo sát
+              {navigation.headerCtaLabel}
             </Link>
           </div>
 
@@ -113,13 +122,13 @@ export default function Header() {
           id="mobile-drawer"
           className="md:hidden fixed top-[60px] left-0 right-0 bg-white border-t border-gray-100 shadow-2xl py-4 px-6 flex flex-col gap-3 animate-in fade-in slide-in-from-top duration-200"
         >
-          {NAV_ITEMS.map((item) => (
+          {navigation.items.map((item) => (
             <Link
-              key={item.id}
-              href={`#${item.id}`}
+              key={item.sectionId}
+              href={`#${item.sectionId}`}
               onClick={handleNavClick}
               className={`w-full text-left py-3 px-4 rounded-xl text-base font-bold transition-all ${
-                activeSection === item.id
+                activeSection === item.sectionId
                   ? "bg-emerald-600 text-white"
                   : "text-slate-700 hover:bg-gray-100"
               }`}
@@ -129,14 +138,14 @@ export default function Header() {
           ))}
           <div className="border-t pt-4 mt-2">
             <Link
-              href="#contact"
+              href={`#${SectionId.CONTACT}`}
               onClick={handleNavClick}
               className={
                 buttonVariants({ variant: "default" }) +
                 " w-full py-3.5 bg-orange-500 hover:bg-orange-600 font-bold rounded-xl shadow-md cursor-pointer text-center text-white flex items-center justify-center gap-2 text-sm transform hover:scale-105 active:scale-95 transition-all duration-300"
               }
             >
-              Yêu cầu khảo sát miễn phí
+              {navigation.mobileCtaLabel}
             </Link>
           </div>
         </div>

@@ -315,6 +315,76 @@ const TESTIMONIALS: SourceTestimonial[] = [
   },
 ]
 
+// Defaults for the SiteSettings global. Mirror apps/web/src/data.ts
+// DEFAULT_SETTINGS so a fresh CMS produces the same chrome the web app falls
+// back to. Editors can then tweak any field individually in the admin UI.
+const SITE_SETTINGS = {
+  company: {
+    name: 'CÔNG TY TNHH GREENORANGE - GIẢI PHÁP THI CÔNG & VỆ SINH DOANH NGHIỆP',
+    shortName: 'GreenOrange Services',
+    founded: '2019',
+    phone: '',
+    email: 'contact@greenorange.vn',
+    address: 'Tầng 5, Tòa Nhà Sông Đà, Phạm Hùng, Mỹ Đình, Nam Từ Liêm, Hà Nội',
+    branch: 'Chi nhánh Nam Bộ: 145 Điện Biên Phủ, Phường Đa Kao, Quận 1, TP. Hồ Chí Minh',
+    motto: 'Sạch sẽ từ gốc - Đẹp đẽ từ khâu dựng xây - Đồng hành tin cậy cùng doanh nghiệp Việt',
+    certification:
+      'Chứng nhận Hệ thống Quản lý Chất lượng ISO 9001:2015 & Đạt tiêu chuẩn Vệ sinh Môi trường Xanh Eco-Safe.',
+  },
+  social: { facebook: '', zalo: '', messenger: '' },
+  branding: {
+    logoTextPrimary: 'Green',
+    logoTextSecondary: 'Orange',
+    headerTagline: 'Thi Công & Vệ Sinh',
+    footerTagline: 'Xây dựng & Dọn sạch',
+  },
+  navigation: {
+    items: [
+      { label: 'Giới Thiệu', sectionId: 'introduction' },
+      { label: 'Dịch Vụ', sectionId: 'services' },
+      { label: 'Dự Án Đã Làm', sectionId: 'projects' },
+      { label: 'Đánh Giá', sectionId: 'testimonials' },
+      { label: 'Liên Hệ', sectionId: 'contact' },
+    ],
+    headerCtaLabel: 'Đặt lịch khảo sát',
+    mobileCtaLabel: 'Yêu cầu khảo sát miễn phí',
+  },
+  hero: {
+    subheadline:
+      'Hợp tác toàn diện 2-trong-1 thiết kế, cải tạo trần vách, ánh sáng rọi, mặt dựng Alu cho chuỗi showroom toàn quốc. Kết hợp gói dọn dẹp vệ sinh sâu bóc bụi mịn sơn bả trước giờ cắt băng bàn giao, giúp bạn sở hữu cửa hiệu sang trọng, sạch bóng tươm tất nhanh chóng nhất.',
+  },
+  stats: [
+    { value: '500+', label: 'Cửa hàng & Văn phòng Đã Bàn Giao', color: 'text-green-600' },
+    { value: '120+', label: 'Dự án Thi Công Cải Tạo Trọn Gói', color: 'text-orange-600' },
+    { value: '99.4%', label: 'Khách Hàng Đánh Giá Hài Lòng 5★', color: 'text-green-600' },
+    { value: '35+', label: 'Trang thiết bị & Hóa chất Đạt Chuẩn', color: 'text-orange-600' },
+  ],
+  footer: {
+    brandDescription:
+      'Đơn vị trọn gói uy tín hàng đầu cung cấp dịch vụ cải tạo, lắp đặt ánh sáng nội thất và vệ sinh bàn giao cho chuỗi retail, văn phòng và các thương hiệu cao cấp tại Việt Nam.',
+    quickLinksHeading: 'Đường Dẫn Nhanh',
+    quickLinks: [
+      { label: 'Về chúng tôi', sectionId: 'introduction' },
+      { label: 'Giải pháp dịch vụ', sectionId: 'services' },
+      { label: 'Dự án tiêu biểu', sectionId: 'projects' },
+      { label: 'Phản hồi khách hàng', sectionId: 'testimonials' },
+      { label: 'Yêu cầu khảo sát', sectionId: 'contact' },
+    ],
+    officesHeading: 'Hệ Thống Văn Phòng',
+    headquartersLabel: 'Trụ Sở Hà Nội:',
+    branchLabel: 'Chi Nhánh TP. HCM:',
+    supportHeading: 'Hỗ Trợ Trực Tuyến',
+    hotlinePrefix: 'Hotline:',
+    emailPrefix: 'Email:',
+    copyrightSuffix: 'Tất cả các quyền được bảo lưu.',
+    backToTopLabel: 'Về đầu trang',
+  },
+  seo: {
+    metaTitle: 'GreenOrange - Dịch vụ Thi công, Cải tạo & Vệ sinh Cửa hàng Chuyên nghiệp',
+    metaDescription: 'Dịch vụ Thi công, Cải tạo & Vệ sinh Cửa hàng Chuyên nghiệp',
+  },
+}
+
 const seed = async () => {
   const payload = await getPayload({ config })
 
@@ -407,6 +477,14 @@ const seed = async () => {
       }),
     )
   }
+
+  // Seed the SiteSettings global so a fresh CMS comes up with the same copy
+  // the web app falls back to. `updateGlobal` is upsert-by-design.
+  await payload.updateGlobal({
+    slug: 'site-settings',
+    data: SITE_SETTINGS as never,
+  })
+  payload.logger.info('Seed: site-settings global updated.')
 
   payload.logger.info(`Seed complete: ${created} created, ${updated} updated.`)
   process.exit(0)

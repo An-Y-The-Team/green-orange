@@ -53,26 +53,26 @@ comes back empty and assignments never persist. This task builds the missing API
 
 ### Crew — match the `CrewMember` type
 
-| Field        | Type        | Notes                                                            |
-| ------------ | ----------- | --------------------------------------------------------------- |
-| `id`         | int         | server-assigned                                                 |
-| `name`       | str         | index it, like `customers`                                      |
-| `phone`      | str         |                                                                 |
+| Field        | Type        | Notes                                                             |
+| ------------ | ----------- | ----------------------------------------------------------------- |
+| `id`         | int         | server-assigned                                                   |
+| `name`       | str         | index it, like `customers`                                        |
+| `phone`      | str         |                                                                   |
 | `role`       | str         | `"tho_chinh" \| "tho_phu" \| "ve_sinh" \| "giam_sat" \| "lai_xe"` |
-| `day_rate`   | int         | ngày công, VND                                                  |
-| `status`     | str         | `"dang_lam" \| "tam_nghi" \| "nghi_viec"`                        |
-| `note`       | str \| None | optional free text                                              |
-| `created_at` | date        | default today (like `customers`)                                |
+| `day_rate`   | int         | ngày công, VND                                                    |
+| `status`     | str         | `"dang_lam" \| "tam_nghi" \| "nghi_viec"`                         |
+| `note`       | str \| None | optional free text                                                |
+| `created_at` | date        | default today (like `customers`)                                  |
 
 ### Assignment — match the `Assignment` type
 
-| Field          | Type        | Notes                                                     |
-| -------------- | ----------- | --------------------------------------------------------- |
-| `id`           | int         | server-assigned                                           |
-| `crew_id`      | int         | FK → `crew.id` (no cascade); index it                     |
-| `project_code` | str         | parent project's `code` — index it (string link, like #08) |
-| `role_on_site` | str \| None | optional, e.g. "Tổ trưởng ca sáng"                        |
-| `start_date`   | date \| None | optional                                                  |
+| Field          | Type         | Notes                                                      |
+| -------------- | ------------ | ---------------------------------------------------------- |
+| `id`           | int          | server-assigned                                            |
+| `crew_id`      | int          | FK → `crew.id` (no cascade); index it                      |
+| `project_code` | str          | parent project's `code` — index it (string link, like #08) |
+| `role_on_site` | str \| None  | optional, e.g. "Tổ trưởng ca sáng"                         |
+| `start_date`   | date \| None | optional                                                   |
 
 ## Task
 
