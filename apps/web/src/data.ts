@@ -235,6 +235,12 @@ export interface ProcessStep {
   description: string;
 }
 
+export interface SectionHeading {
+  eyebrow: string;
+  heading: string;
+  description: string;
+}
+
 export interface SiteSettings {
   company: {
     name: string;
@@ -288,6 +294,9 @@ export interface SiteSettings {
     processIntro: string;
     processSteps: ProcessStep[];
   };
+  servicesSection: SectionHeading;
+  projectsSection: SectionHeading;
+  testimonialsSection: SectionHeading;
   footer: {
     brandDescription: string;
     quickLinksHeading: string;
@@ -462,6 +471,24 @@ export const DEFAULT_SETTINGS: SiteSettings = {
       },
     ],
   },
+  servicesSection: {
+    eyebrow: "Danh Mục Giải Pháp",
+    heading: "Dịch Vụ Thi Công & Vệ Sinh Chuyên Sâu",
+    description:
+      "Hợp tác toàn diện giúp tối ưu chi phí, rút ngắn thời gian vàng trước khai trương. Chọn một hoặc kết hợp trọn gói để tận hưởng chiết khấu ưu đãi dành riêng cho doanh nghiệp hội viên.",
+  },
+  projectsSection: {
+    eyebrow: "Hồ Sơ Năng Lực Real",
+    heading: "Dự Án Đã Bàn Giao Thành Công",
+    description:
+      "Chúng tôi tự hào đồng hành cùng các thương hiệu lớn tại Hà Nội và TP. Hồ Chí Minh trong sứ mệnh làm đẹp cửa hiệu kinh doanh và cam kết độ an toàn sạch bóng 100% trước khai trương.",
+  },
+  testimonialsSection: {
+    eyebrow: "Ý Kiến Đối Tác",
+    heading: "Đánh Giá Từ Khách Hàng Đã Trải Nghiệm",
+    description:
+      "Họ nói gì về năng lực thi công và cam kết sạch của chúng tôi? Sự hài lòng của các chủ thương hiệu là phần thưởng danh giá nhất.",
+  },
   footer: {
     brandDescription:
       "Đơn vị trọn gói uy tín hàng đầu cung cấp dịch vụ cải tạo, lắp đặt ánh sáng nội thất và vệ sinh bàn giao cho chuỗi retail, văn phòng và các thương hiệu cao cấp tại Việt Nam.",
@@ -564,6 +591,21 @@ interface PayloadSiteSettings {
     processHeading?: string | null;
     processIntro?: string | null;
     processSteps?: PayloadProcessStep[] | null;
+  } | null;
+  servicesSection?: {
+    eyebrow?: string | null;
+    heading?: string | null;
+    description?: string | null;
+  } | null;
+  projectsSection?: {
+    eyebrow?: string | null;
+    heading?: string | null;
+    description?: string | null;
+  } | null;
+  testimonialsSection?: {
+    eyebrow?: string | null;
+    heading?: string | null;
+    description?: string | null;
   } | null;
   footer?: {
     brandDescription?: string | null;
@@ -817,6 +859,36 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       processSteps: mapProcessSteps(
         s.introduction?.processSteps,
         d.introduction.processSteps
+      ),
+    },
+    servicesSection: {
+      eyebrow: orDefault(s.servicesSection?.eyebrow, d.servicesSection.eyebrow),
+      heading: orDefault(s.servicesSection?.heading, d.servicesSection.heading),
+      description: orDefault(
+        s.servicesSection?.description,
+        d.servicesSection.description
+      ),
+    },
+    projectsSection: {
+      eyebrow: orDefault(s.projectsSection?.eyebrow, d.projectsSection.eyebrow),
+      heading: orDefault(s.projectsSection?.heading, d.projectsSection.heading),
+      description: orDefault(
+        s.projectsSection?.description,
+        d.projectsSection.description
+      ),
+    },
+    testimonialsSection: {
+      eyebrow: orDefault(
+        s.testimonialsSection?.eyebrow,
+        d.testimonialsSection.eyebrow
+      ),
+      heading: orDefault(
+        s.testimonialsSection?.heading,
+        d.testimonialsSection.heading
+      ),
+      description: orDefault(
+        s.testimonialsSection?.description,
+        d.testimonialsSection.description
       ),
     },
     footer: {

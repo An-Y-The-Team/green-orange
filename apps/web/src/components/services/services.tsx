@@ -16,6 +16,7 @@ import {
 
 import { Category, CategoryFilter } from "@/constants/category";
 
+import type { SiteSettings } from "../../data";
 import { Service } from "../../types";
 import {
   FALLBACK_SERVICE_ICON,
@@ -23,7 +24,13 @@ import {
   SERVICE_FILTER_TABS,
 } from "./constants";
 
-export default function Services({ services }: { services: Service[] }) {
+export default function Services({
+  services,
+  settings,
+}: {
+  services: Service[];
+  settings: SiteSettings;
+}) {
   const [filter, setFilter] = useState<CategoryFilter>(CategoryFilter.ALL);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
@@ -39,16 +46,14 @@ export default function Services({ services }: { services: Service[] }) {
         {/* Section Title */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-sm font-black text-orange-500 uppercase tracking-widest bg-orange-50 px-3.5 py-1 rounded-full">
-            Danh Mục Giải Pháp
+            {settings.servicesSection.eyebrow}
           </span>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4">
-            Dịch Vụ Thi Công & Vệ Sinh Chuyên Sâu
+            {settings.servicesSection.heading}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
           <p className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed">
-            Hợp tác toàn diện giúp tối ưu chi phí, rút ngắn thời gian vàng trước
-            khai trương. Chọn một hoặc kết hợp trọn gói để tận hưởng chiết khấu
-            ưu đãi dành riêng cho doanh nghiệp hội viên.
+            {settings.servicesSection.description}
           </p>
         </div>
 

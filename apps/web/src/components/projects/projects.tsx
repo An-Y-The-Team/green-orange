@@ -15,10 +15,17 @@ import {
 
 import { Category, CategoryFilter } from "@/constants/category";
 
+import type { SiteSettings } from "../../data";
 import { Project } from "../../types";
 import { PROJECT_FILTER_TABS } from "./constants";
 
-export default function Projects({ projects }: { projects: Project[] }) {
+export default function Projects({
+  projects,
+  settings,
+}: {
+  projects: Project[];
+  settings: SiteSettings;
+}) {
   const [filter, setFilter] = useState<CategoryFilter>(CategoryFilter.ALL);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
@@ -33,16 +40,14 @@ export default function Projects({ projects }: { projects: Project[] }) {
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full">
-            Hồ Sơ Năng Lực Real
+            {settings.projectsSection.eyebrow}
           </span>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4">
-            Dự Án Đã Bàn Giao Thành Công
+            {settings.projectsSection.heading}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
           <p className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed">
-            Chúng tôi tự hào đồng hành cùng các thương hiệu lớn tại Hà Nội và
-            TP. Hồ Chí Minh trong sứ mệnh làm đẹp cửa hiệu kinh doanh và cam kết
-            độ an toàn sạch bóng 100% trước khai trương.
+            {settings.projectsSection.description}
           </p>
         </div>
 

@@ -88,13 +88,13 @@ export default async function Page() {
         <Introduction settings={settings} />
 
         {/* Service grid catalog */}
-        <Services services={services} />
+        <Services services={services} settings={settings} />
 
         {/* Finished projects history case-study gallery */}
-        <Projects projects={projects} />
+        <Projects projects={projects} settings={settings} />
 
         {/* Professional customer ratings, testimonials layout */}
-        <Testimonials testimonials={testimonials} />
+        <Testimonials testimonials={testimonials} settings={settings} />
 
         {/* Interactive feedback submission with automated fields fill-in and LocalStorage inbox */}
         <Suspense

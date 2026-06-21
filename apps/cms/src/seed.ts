@@ -445,6 +445,24 @@ const SITE_SETTINGS = {
       },
     ],
   },
+  servicesSection: {
+    eyebrow: 'Danh Mục Giải Pháp',
+    heading: 'Dịch Vụ Thi Công & Vệ Sinh Chuyên Sâu',
+    description:
+      'Hợp tác toàn diện giúp tối ưu chi phí, rút ngắn thời gian vàng trước khai trương. Chọn một hoặc kết hợp trọn gói để tận hưởng chiết khấu ưu đãi dành riêng cho doanh nghiệp hội viên.',
+  },
+  projectsSection: {
+    eyebrow: 'Hồ Sơ Năng Lực Real',
+    heading: 'Dự Án Đã Bàn Giao Thành Công',
+    description:
+      'Chúng tôi tự hào đồng hành cùng các thương hiệu lớn tại Hà Nội và TP. Hồ Chí Minh trong sứ mệnh làm đẹp cửa hiệu kinh doanh và cam kết độ an toàn sạch bóng 100% trước khai trương.',
+  },
+  testimonialsSection: {
+    eyebrow: 'Ý Kiến Đối Tác',
+    heading: 'Đánh Giá Từ Khách Hàng Đã Trải Nghiệm',
+    description:
+      'Họ nói gì về năng lực thi công và cam kết sạch của chúng tôi? Sự hài lòng của các chủ thương hiệu là phần thưởng danh giá nhất.',
+  },
   footer: {
     brandDescription:
       'Đơn vị trọn gói uy tín hàng đầu cung cấp dịch vụ cải tạo, lắp đặt ánh sáng nội thất và vệ sinh bàn giao cho chuỗi retail, văn phòng và các thương hiệu cao cấp tại Việt Nam.',

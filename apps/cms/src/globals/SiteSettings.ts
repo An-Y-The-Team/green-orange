@@ -713,6 +713,163 @@ export const SiteSettings: GlobalConfig = {
             },
           ],
         },
+        // ── Services Section ─────────────────────────────────────
+        {
+          label: { en: 'Services', vi: 'Dịch vụ' },
+          fields: [
+            {
+              name: 'servicesSection',
+              type: 'group',
+              label: { en: 'Services Section', vi: 'Phần dịch vụ' },
+              admin: {
+                description: {
+                  en: 'Section heading copy for the Services catalog.',
+                  vi: 'Nội dung tiêu đề phần Dịch vụ.',
+                },
+              },
+              fields: [
+                {
+                  name: 'eyebrow',
+                  type: 'text',
+                  label: { en: 'Eyebrow', vi: 'Tiêu đề phụ' },
+                  admin: {
+                    description: {
+                      en: 'Small badge label above the heading (e.g. "Danh Mục Giải Pháp").',
+                      vi: 'Nhãn nhỏ phía trên tiêu đề (ví dụ: "Danh Mục Giải Pháp").',
+                    },
+                  },
+                },
+                {
+                  name: 'heading',
+                  type: 'text',
+                  label: { en: 'Heading', vi: 'Tiêu đề' },
+                  admin: {
+                    description: {
+                      en: 'Main section heading (e.g. "Dịch Vụ Thi Công & Vệ Sinh Chuyên Sâu").',
+                      vi: 'Tiêu đề chính (ví dụ: "Dịch Vụ Thi Công & Vệ Sinh Chuyên Sâu").',
+                    },
+                  },
+                },
+                {
+                  name: 'description',
+                  type: 'textarea',
+                  label: { en: 'Description', vi: 'Mô tả' },
+                  admin: {
+                    description: {
+                      en: 'Paragraph under the heading describing the service offering.',
+                      vi: 'Đoạn văn dưới tiêu đề mô tả dịch vụ.',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        // ── Projects Section ─────────────────────────────────────
+        {
+          label: { en: 'Projects', vi: 'Dự án' },
+          fields: [
+            {
+              name: 'projectsSection',
+              type: 'group',
+              label: { en: 'Projects Section', vi: 'Phần dự án' },
+              admin: {
+                description: {
+                  en: 'Section heading copy for the Projects gallery.',
+                  vi: 'Nội dung tiêu đề phần Dự án.',
+                },
+              },
+              fields: [
+                {
+                  name: 'eyebrow',
+                  type: 'text',
+                  label: { en: 'Eyebrow', vi: 'Tiêu đề phụ' },
+                  admin: {
+                    description: {
+                      en: 'Small badge label above the heading (e.g. "Hồ Sơ Năng Lực Real").',
+                      vi: 'Nhãn nhỏ phía trên tiêu đề (ví dụ: "Hồ Sơ Năng Lực Real").',
+                    },
+                  },
+                },
+                {
+                  name: 'heading',
+                  type: 'text',
+                  label: { en: 'Heading', vi: 'Tiêu đề' },
+                  admin: {
+                    description: {
+                      en: 'Main section heading (e.g. "Dự Án Đã Bàn Giao Thành Công").',
+                      vi: 'Tiêu đề chính (ví dụ: "Dự Án Đã Bàn Giao Thành Công").',
+                    },
+                  },
+                },
+                {
+                  name: 'description',
+                  type: 'textarea',
+                  label: { en: 'Description', vi: 'Mô tả' },
+                  admin: {
+                    description: {
+                      en: 'Paragraph under the heading describing the projects portfolio.',
+                      vi: 'Đoạn văn dưới tiêu đề mô tả danh mục dự án.',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        // ── Testimonials Section ─────────────────────────────────
+        {
+          label: { en: 'Testimonials', vi: 'Đánh giá' },
+          fields: [
+            {
+              name: 'testimonialsSection',
+              type: 'group',
+              label: { en: 'Testimonials Section', vi: 'Phần đánh giá' },
+              admin: {
+                description: {
+                  en: 'Section heading copy for the Testimonials section.',
+                  vi: 'Nội dung tiêu đề phần Đánh giá.',
+                },
+              },
+              fields: [
+                {
+                  name: 'eyebrow',
+                  type: 'text',
+                  label: { en: 'Eyebrow', vi: 'Tiêu đề phụ' },
+                  admin: {
+                    description: {
+                      en: 'Small badge label above the heading (e.g. "Ý Kiến Đối Tác").',
+                      vi: 'Nhãn nhỏ phía trên tiêu đề (ví dụ: "Ý Kiến Đối Tác").',
+                    },
+                  },
+                },
+                {
+                  name: 'heading',
+                  type: 'text',
+                  label: { en: 'Heading', vi: 'Tiêu đề' },
+                  admin: {
+                    description: {
+                      en: 'Main section heading (e.g. "Đánh Giá Từ Khách Hàng Đã Trải Nghiệm").',
+                      vi: 'Tiêu đề chính (ví dụ: "Đánh Giá Từ Khách Hàng Đã Trải Nghiệm").',
+                    },
+                  },
+                },
+                {
+                  name: 'description',
+                  type: 'textarea',
+                  label: { en: 'Description', vi: 'Mô tả' },
+                  admin: {
+                    description: {
+                      en: 'Paragraph under the heading describing customer feedback.',
+                      vi: 'Đoạn văn dưới tiêu đề mô tả phản hồi khách hàng.',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        // ── Footer ─────────────────────────────────────────────
         {
           label: { en: 'Footer', vi: 'Chân trang' },
           fields: [

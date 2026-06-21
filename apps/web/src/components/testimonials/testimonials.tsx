@@ -8,13 +8,16 @@ import { Button } from "@yan/ui/components/button";
 
 import { Category, CategoryFilter } from "@/constants/category";
 
+import type { SiteSettings } from "../../data";
 import { Testimonial } from "../../types";
 import { TESTIMONIAL_FILTER_TABS } from "./constants";
 
 export default function Testimonials({
   testimonials,
+  settings,
 }: {
   testimonials: Testimonial[];
+  settings: SiteSettings;
 }) {
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>(
     CategoryFilter.ALL
@@ -35,15 +38,14 @@ export default function Testimonials({
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full">
-            Ý Kiến Đối Tác
+            {settings.testimonialsSection.eyebrow}
           </span>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4">
-            Đánh Giá Từ Khách Hàng Đã Trải Nghiệm
+            {settings.testimonialsSection.heading}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
           <p className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed">
-            Họ nói gì về năng lực thi công và cam kết sạch của chúng tôi? Sự hài
-            lòng của các chủ thương hiệu là phần thưởng danh giá nhất.
+            {settings.testimonialsSection.description}
           </p>
         </div>
 
