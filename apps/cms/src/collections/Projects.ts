@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { isAdmin } from '../access/isAdmin'
+import { isAuthenticated } from '../access/isAuthenticated'
 import { readPublishedOrAuth } from '../access/readPublishedOrAuth'
 import { resolveMediaUrl } from '../hooks/resolveMediaUrl'
 
@@ -17,6 +18,9 @@ export const Projects: CollectionConfig = {
   },
   access: {
     read: readPublishedOrAuth,
+    readVersions: readPublishedOrAuth,
+    create: isAuthenticated,
+    update: isAuthenticated,
     delete: isAdmin,
   },
   versions: { drafts: true },

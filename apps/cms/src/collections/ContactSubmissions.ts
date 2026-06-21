@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { isAdmin } from '../access/isAdmin'
+import { isAuthenticated } from '../access/isAuthenticated'
 
 // Write target for the web contact form. Public can CREATE (submit the form);
 // authenticated staff (editors + admins) read/update leads; only admins delete.
@@ -13,9 +14,11 @@ export const ContactSubmissions: CollectionConfig = {
     plural: { en: 'Contact Submissions', vi: 'Yêu cầu liên hệ' },
   },
   access: {
-    // Public website can submit the form; read/update fall back to Payload's
-    // authenticated-user default. Deleting leads is restricted to admins.
+    // Public website can submit the form; read/update require authenticated users (staff).
+    // Deleting leads is restricted to admins.
+    read: isAuthenticated,
     create: () => true,
+    update: isAuthenticated,
     delete: isAdmin,
   },
   admin: {

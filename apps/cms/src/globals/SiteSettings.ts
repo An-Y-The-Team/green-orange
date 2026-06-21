@@ -1,7 +1,6 @@
 import type { GlobalConfig } from 'payload'
 
-import { isAdmin } from '../access/isAdmin'
-
+import { isAuthenticated } from '../access/isAuthenticated'
 // Editable site-wide content the business owner controls without a code deploy:
 // company contact details, headline stats, hero copy, branding text, nav links,
 // footer columns, and SEO defaults. The web app reads this via
@@ -28,7 +27,7 @@ export const SiteSettings: GlobalConfig = {
   label: { en: 'Site Settings', vi: 'Cài đặt trang' },
   access: {
     read: () => true,
-    update: isAdmin,
+    update: isAuthenticated,
   },
   admin: {
     group: { en: 'Settings', vi: 'Cài đặt' },
