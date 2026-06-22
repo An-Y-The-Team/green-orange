@@ -14,6 +14,7 @@ import {
 } from "@yan/ui/components/dialog";
 
 import { Category, CategoryFilter } from "@/constants/category";
+import { renderLines } from "@/lib/text-lines";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import type { SiteSettings } from "../../data";
@@ -58,7 +59,7 @@ export default function Projects({
               fields: "projects_section_heading",
             })}
           >
-            {settings.projectsSection.heading}
+            {renderLines(settings.projectsSection.heading)}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
           <p
@@ -69,7 +70,7 @@ export default function Projects({
               fields: "projects_section_description",
             })}
           >
-            {settings.projectsSection.description}
+            {renderLines(settings.projectsSection.description)}
           </p>
         </div>
 

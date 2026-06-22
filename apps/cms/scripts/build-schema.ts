@@ -62,7 +62,8 @@ const tolerant = async (fn: () => Promise<unknown>, label: string): Promise<void
     const message = error instanceof Error ? error.message : String(error)
     const code = (error as Error & { code?: string }).code ?? ''
     const exists =
-      code === 'RECORD_NOT_UNIQUE' || /already exists|has to be unique|duplicate/i.test(message)
+      code === 'RECORD_NOT_UNIQUE' ||
+      /already exists|has to be unique|duplicate|already has an associated/i.test(message)
     if (exists) {
       console.log(`  • ${label} (already exists, skipped)`)
       return
@@ -171,6 +172,13 @@ const addField = async (collection: string, def: FieldDef): Promise<void> =>
 const addFields = async (collection: string, defs: FieldDef[]): Promise<void> => {
   for (const def of defs) await addField(collection, def)
 }
+
+// Patch an existing field's meta (interface, options, etc.) — safe to re-run.
+const patchField = async (collection: string, field: string, meta: Record<string, unknown>): Promise<void> =>
+  tolerant(
+    () => api('PATCH', `/fields/${collection}/${field}`, { meta }),
+    `patch ${collection}.${field}`,
+  )
 
 // File (uuid → directus_files M2O).
 const addFileField = async (
@@ -377,26 +385,26 @@ const main = async (): Promise<void> => {
   // Introduction scalars
   await addFields('site_settings', [
     str('introduction_eyebrow'),
-    str('introduction_heading'),
+    str('introduction_heading', { multiline: true }),
     str('introduction_narrative', { multiline: true }),
   ])
   await addFileField('site_settings', 'introduction_image')
   await addFields('site_settings', [
     str('introduction_motto_eyebrow'),
-    str('introduction_brand_story_heading'),
+    str('introduction_brand_story_heading', { multiline: true }),
     str('introduction_brand_story_intro', { multiline: true }),
     str('introduction_process_eyebrow'),
-    str('introduction_process_heading'),
+    str('introduction_process_heading', { multiline: true }),
     str('introduction_process_intro', { multiline: true }),
     // Section copy
     str('services_section_eyebrow'),
-    str('services_section_heading'),
+    str('services_section_heading', { multiline: true }),
     str('services_section_description', { multiline: true }),
     str('projects_section_eyebrow'),
-    str('projects_section_heading'),
+    str('projects_section_heading', { multiline: true }),
     str('projects_section_description', { multiline: true }),
     str('testimonials_section_eyebrow'),
-    str('testimonials_section_heading'),
+    str('testimonials_section_heading', { multiline: true }),
     str('testimonials_section_description', { multiline: true }),
     // Footer scalars
     str('footer_brand_description', { multiline: true }),
@@ -443,6 +451,23 @@ const main = async (): Promise<void> => {
     str('title'),
     str('description', { multiline: true }),
   ])
+
+  // ── Patch existing heading fields to multiline ───────────────────────────────
+  // addField skips already-existing fields, so any field created before this
+  // change was made with interface=input. Patch them to input-multiline so
+  // editors can enter newlines in Directus without re-creating the columns.
+  console.log('patching heading fields → input-multiline')
+  const MULTILINE_META = { interface: 'input-multiline', special: null }
+  for (const field of [
+    'introduction_heading',
+    'introduction_brand_story_heading',
+    'introduction_process_heading',
+    'services_section_heading',
+    'projects_section_heading',
+    'testimonials_section_heading',
+  ]) {
+    await patchField('site_settings', field, MULTILINE_META)
+  }
 
   console.log('\nDone. Data model built.')
 }

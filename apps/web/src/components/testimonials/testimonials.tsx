@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@yan/ui/components/button";
 
 import { Category, CategoryFilter } from "@/constants/category";
+import { renderLines } from "@/lib/text-lines";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import type { SiteSettings } from "../../data";
@@ -56,7 +57,7 @@ export default function Testimonials({
               fields: "testimonials_section_heading",
             })}
           >
-            {settings.testimonialsSection.heading}
+            {renderLines(settings.testimonialsSection.heading)}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
           <p
@@ -67,7 +68,7 @@ export default function Testimonials({
               fields: "testimonials_section_description",
             })}
           >
-            {settings.testimonialsSection.description}
+            {renderLines(settings.testimonialsSection.description)}
           </p>
         </div>
 

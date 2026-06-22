@@ -1,6 +1,7 @@
 import { type LucideIcon, ShieldCheck, Trees, Wrench } from "lucide-react";
 import Image from "next/image";
 
+import { renderLines } from "@/lib/text-lines";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import { BrandValueAccent, BrandValueIcon, SiteSettings } from "../../data";
@@ -69,7 +70,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
               fields: "introduction_heading",
             })}
           >
-            {introduction.heading}
+            {renderLines(introduction.heading)}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
           <p
@@ -81,7 +82,9 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
               mode: "modal",
             })}
           >
-            {introduction.narrative.replace("{founded}", company.founded)}
+            {renderLines(
+              introduction.narrative.replace("{founded}", company.founded)
+            )}
           </p>
         </div>
 
@@ -112,10 +115,10 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
 
           <div className="lg:col-span-7 space-y-6">
             <h3 className="text-3xl md:text-4xl font-black font-heading text-slate-800 tracking-tight">
-              {introduction.brandStoryHeading}
+              {renderLines(introduction.brandStoryHeading)}
             </h3>
             <p className="text-slate-500 text-sm md:text-base leading-relaxed">
-              {introduction.brandStoryIntro}
+              {renderLines(introduction.brandStoryIntro)}
             </p>
 
             <div className="space-y-5">
@@ -201,7 +204,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                 fields: "introduction_process_heading",
               })}
             >
-              {introduction.processHeading}
+              {renderLines(introduction.processHeading)}
             </h3>
             <p
               className="text-slate-300 text-base md:text-lg"
@@ -211,7 +214,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                 fields: "introduction_process_intro",
               })}
             >
-              {introduction.processIntro}
+              {renderLines(introduction.processIntro)}
             </p>
           </div>
 

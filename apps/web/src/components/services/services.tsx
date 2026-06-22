@@ -15,6 +15,7 @@ import {
 } from "@yan/ui/components/dialog";
 
 import { Category, CategoryFilter } from "@/constants/category";
+import { renderLines } from "@/lib/text-lines";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import type { SiteSettings } from "../../data";
@@ -64,7 +65,7 @@ export default function Services({
               fields: "services_section_heading",
             })}
           >
-            {settings.servicesSection.heading}
+            {renderLines(settings.servicesSection.heading)}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
           <p
@@ -75,7 +76,7 @@ export default function Services({
               fields: "services_section_description",
             })}
           >
-            {settings.servicesSection.description}
+            {renderLines(settings.servicesSection.description)}
           </p>
         </div>
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { buttonVariants } from "@yan/ui/components/button";
 
+import { renderLines } from "@/lib/text-lines";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import { HeadlineColor, SiteSettings } from "../../data";
@@ -93,7 +94,7 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
               fields: "hero_subheadline",
             })}
           >
-            {hero.subheadline}
+            {renderLines(hero.subheadline)}
           </p>
 
           {/* Dynamic Core Benefits Grid (2x2) inside centered panel */}
