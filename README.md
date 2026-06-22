@@ -7,7 +7,7 @@ This is a full-stack monorepo for **GreenOrange Services** (Vệ Sinh & Thi Côn
 This project uses **Turborepo** to manage multiple applications in a single repository:
 
 - `apps/web`: The Next.js 16 frontend landing page and portfolio. Built with React Server Components, Tailwind CSS, and standard UI components.
-- `apps/cms`: The Payload CMS backend, providing a headless content management interface to manage services, projects, and testimonials.
+- `apps/cms`: The **Directus** CMS backend (official Docker image + config-as-code in this folder), providing a headless content management interface — with a free, open-source Visual Editor — to manage services, projects, and testimonials.
 - `apps/crm-web`: A Next.js 16 CRM dashboard. Runs on built-in mock data by default; switches to live data when pointed at `crm-api`.
 - `apps/crm-api`: A FastAPI + SQLModel backend. `customers` is fully worked; `contacts`/`leads`/`deals`/`tasks` are exercises for students to implement.
 - `packages/ui` (`@yan/ui`): Shared shadcn + Tailwind v4 UI primitives consumed by both `web` and `crm-web`.
@@ -63,16 +63,16 @@ Build the images and start the whole stack (Postgres + CMS + web + crm-api + crm
 docker compose -f docker-compose.local.yml up --build
 ```
 
-Add `-d` to run detached. The CMS and crm-api apply their database migrations
-automatically on startup. Once it's up:
+Add `-d` to run detached. Directus bootstraps + applies its schema, and crm-api
+applies its database migrations, automatically on startup. Once it's up:
 
-| Service    | URL                           | Notes                                    |
-| ---------- | ----------------------------- | ---------------------------------------- |
-| `web`      | <http://localhost:3000>       | Public landing page / portfolio          |
-| `cms`      | <http://localhost:3001/admin> | Payload admin (create the first user)    |
-| `crm-web`  | <http://localhost:3002>       | CRM dashboard — **mock data** by default |
-| `crm-api`  | <http://localhost:8000/docs>  | FastAPI Swagger UI (`admin` / `admin`)   |
-| `postgres` | `localhost:5432`              | `cms`, `crm`, `authentik` databases      |
+| Service    | URL                          | Notes                                            |
+| ---------- | ---------------------------- | ------------------------------------------------ |
+| `web`      | <http://localhost:3000>      | Public landing page / portfolio                  |
+| `cms`      | <http://localhost:8055>      | Directus Studio (login with the bootstrap admin) |
+| `crm-web`  | <http://localhost:3002>      | CRM dashboard — **mock data** by default         |
+| `crm-api`  | <http://localhost:8000/docs> | FastAPI Swagger UI (`admin` / `admin`)           |
+| `postgres` | `localhost:5432`             | `directus`, `cms`, `crm`, `authentik` databases  |
 
 Stop it with `Ctrl-C` (or `docker compose -f docker-compose.local.yml down` if
 detached). Add `-v` to `down` to also wipe the Postgres + media volumes.
@@ -250,7 +250,7 @@ From the root directory, you can run the following commands:
 ## 🎨 Tech Stack
 
 - **Framework**: Next.js 16 (App Router)
-- **CMS**: Payload CMS
+- **CMS**: Directus (self-hosted, official image)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Monorepo**: Turborepo

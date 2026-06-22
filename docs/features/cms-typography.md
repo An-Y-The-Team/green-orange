@@ -1,5 +1,12 @@
 # Plan: CMS-driven typography (3 selects, 8 fonts)
 
+> ⚠️ **HISTORICAL — backend changed.** The typography feature still exists, but
+> this plan targets the **removed Payload backend** (`payload.config.ts`,
+> `payload migrate`, `PayloadSiteSettings`). The fields now live on the **Directus
+> `site_settings` singleton** and are read via the Directus SDK in
+> `apps/web/src/data.ts`. Use this only for the design rationale; for the current
+> data model see [`../payload-to-directus-migration/`](../payload-to-directus-migration/).
+
 > **Audience**: a fresh agent picking this up cold. Assume nothing.
 > **Outcome**: the business owner can change the heading, hero-display, and body
 > fonts from the Payload admin UI without a deploy, choosing from a curated list

@@ -4,7 +4,8 @@
 
 // Base URL of the decoupled Directus CMS. Public: the browser loads media from
 // `${CMS_URL}/assets/<id>` and the contact form POSTs here.
-export const CMS_URL = process.env.NEXT_PUBLIC_CMS_URL || "http://localhost:8055";
+export const CMS_URL =
+  process.env.NEXT_PUBLIC_CMS_URL || "http://localhost:8055";
 
 // Public origin of this web app. Used for canonical URLs, Open Graph, sitemap,
 // robots, and JSON-LD.

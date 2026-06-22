@@ -1,5 +1,13 @@
 # Feature plan: Payload Live Preview against the web front-end
 
+> ⚠️ **HISTORICAL — SUPERSEDED.** This documents the **Payload-era** Live Preview
+> (`RefreshRouteOnSave` + a Payload API key), which no longer exists. The CMS has
+> migrated to **Directus**, and in-context editing is now the open-source
+> **Directus Visual Editor** (`@directus/visual-editing`). For the current setup
+> see [`../payload-to-directus-migration/`](../payload-to-directus-migration/)
+> (Phase 4 + `STATUS-AND-DEPLOYMENT.md`). Kept only for historical context — do
+> **not** follow the Payload steps below.
+
 > **Audience:** an implementing agent. Follow the steps **in order**. Do not
 > improvise an alternative architecture — the approach below is chosen deliberately
 > for this **decoupled** setup. Read the "Why this approach" section once, then

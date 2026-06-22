@@ -12,11 +12,13 @@ import {
 import Link from "next/link";
 
 import { SectionId } from "@/constants/section";
+import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import { SiteSettings } from "../../data";
 
 export default function Footer({ settings }: { settings: SiteSettings }) {
   const { company, social, branding, footer } = settings;
+  const sid = settings.cmsId;
   const socials: Array<{
     href: string;
     label: string;
@@ -67,7 +69,14 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
               </div>
             </Link>
 
-            <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-semibold">
+            <p
+              className="text-slate-400 text-xs md:text-sm leading-relaxed font-semibold"
+              data-directus={editAttr({
+                collection: "site_settings",
+                item: sid,
+                fields: "footer_brand_description",
+              })}
+            >
               {footer.brandDescription}
             </p>
 
@@ -99,6 +108,11 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                 <li key={link.sectionId}>
                   <Link
                     href={`#${link.sectionId}`}
+                    data-directus={editAttr({
+                      collection: "site_footer_links",
+                      item: link.id,
+                      fields: ["label", "section_id"],
+                    })}
                     className="hover:text-emerald-400 hover:underline cursor-pointer transition-colors"
                   >
                     {link.label}

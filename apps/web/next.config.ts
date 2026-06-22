@@ -47,6 +47,23 @@ const nextConfig: NextConfig = {
       cmsRemotePattern,
     ],
   },
+  // Allow the Directus Studio to embed the site in an iframe for the Visual
+  // Editor. Must list the CMS origin in `frame-ancestors`; otherwise the
+  // browser blocks the framed preview. Mirrors the CMS-side CSP
+  // (CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_ANCESTORS).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: `frame-ancestors 'self' ${cmsUrl}`,
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

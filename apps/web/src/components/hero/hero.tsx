@@ -4,6 +4,8 @@ import Link from "next/link";
 
 import { buttonVariants } from "@yan/ui/components/button";
 
+import { editAttr } from "@/lib/visual-editor/edit-attr";
+
 import { HeadlineColor, SiteSettings } from "../../data";
 
 // Static map keeps Tailwind classes greppable for the JIT compiler. Never
@@ -18,6 +20,7 @@ const HEADLINE_COLOR_CLASS: Record<HeadlineColor, string> = {
 
 export default function Hero({ settings }: { settings: SiteSettings }) {
   const { stats, hero } = settings;
+  const sid = settings.cmsId;
   return (
     <section
       id="hero"
@@ -50,16 +53,30 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
           {/* Trust badge with glowing element */}
           <div className="inline-flex items-center gap-2 py-2 px-4 bg-white/10 border border-white/15 shadow-sm rounded-full text-emerald-300 text-sm font-bold mb-8 animate-fade-in">
             <ShieldCheck className="size-5 text-emerald-400" />
-            <span className="tracking-wide">{hero.trustBadge}</span>
+            <span
+              className="tracking-wide"
+              data-directus={editAttr({
+                collection: "site_settings",
+                item: sid,
+                fields: "hero_trust_badge",
+              })}
+            >
+              {hero.trustBadge}
+            </span>
           </div>
 
           {/* 3. Luxury Headings using Serif font — joined from CMS segments */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif text-white tracking-normal leading-tight mb-8 max-w-4xl">
             {hero.headlineSegments.map((seg, idx) => (
-              <span key={idx}>
+              <span key={seg.id ?? idx}>
                 {seg.newLineBefore && idx > 0 ? <br /> : idx > 0 ? " " : null}
                 <span
                   className={`${HEADLINE_COLOR_CLASS[seg.color]} ${seg.italic ? "italic" : ""}`}
+                  data-directus={editAttr({
+                    collection: "site_hero_segments",
+                    item: seg.id,
+                    fields: ["text", "color", "italic", "new_line_before"],
+                  })}
                 >
                   {seg.text}
                 </span>
@@ -68,12 +85,27 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
           </h1>
 
           {/* Subtext description conforming to core business details */}
-          <p className="text-slate-200 text-base md:text-lg lg:text-xl font-normal max-w-3xl leading-relaxed mb-10">
+          <p
+            className="text-slate-200 text-base md:text-lg lg:text-xl font-normal max-w-3xl leading-relaxed mb-10"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: "hero_subheadline",
+            })}
+          >
             {hero.subheadline}
           </p>
 
           {/* Dynamic Core Benefits Grid (2x2) inside centered panel */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-10 mb-10 text-left border-t border-b border-white/10 py-8 w-full max-w-3xl">
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-10 mb-10 text-left border-t border-b border-white/10 py-8 w-full max-w-3xl"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: "hero_benefits",
+              mode: "drawer",
+            })}
+          >
             {hero.benefits.map((value, idx) => (
               <div key={idx} className="flex items-center gap-3">
                 <div className="flex items-center justify-center size-6 bg-emerald-500/20 border border-emerald-500/40 rounded-full text-emerald-400">
@@ -96,7 +128,15 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
                 " w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-5 rounded-2xl text-base shadow-xl shadow-orange-500/20 hover:shadow-orange-500/45 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
               }
             >
-              {hero.primaryCta.label}{" "}
+              <span
+                data-directus={editAttr({
+                  collection: "site_settings",
+                  item: sid,
+                  fields: ["hero_primary_cta_label", "hero_primary_cta_href"],
+                })}
+              >
+                {hero.primaryCta.label}
+              </span>{" "}
               <ArrowRight className="size-5 animate-bounce-horizontal" />
             </Link>
             <Link
@@ -107,13 +147,31 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
                 " w-full sm:w-auto border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold px-8 py-5 rounded-2xl text-base shadow-sm hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
               }
             >
-              {hero.secondaryCta.label}{" "}
+              <span
+                data-directus={editAttr({
+                  collection: "site_settings",
+                  item: sid,
+                  fields: [
+                    "hero_secondary_cta_label",
+                    "hero_secondary_cta_href",
+                  ],
+                })}
+              >
+                {hero.secondaryCta.label}
+              </span>{" "}
               <Sparkles className="size-5 text-orange-400" />
             </Link>
           </div>
 
           {/* Mini trust label */}
-          <span className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-8">
+          <span
+            className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-8"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: "hero_trust_strap",
+            })}
+          >
             {hero.trustStrap}
           </span>
         </div>
@@ -123,8 +181,14 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
             {stats.map((stat, idx) => (
               <div
-                key={idx}
+                key={stat.id ?? idx}
                 className={`flex flex-col items-center justify-center text-center ${idx > 1 ? "pt-4 lg:pt-0" : ""} ${idx === 1 ? "pt-0 lg:pt-0" : ""}`}
+                data-directus={editAttr({
+                  collection: "site_stats",
+                  item: stat.id,
+                  fields: ["value", "label", "color"],
+                  mode: "drawer",
+                })}
               >
                 <span className="text-2xl md:text-3xl font-serif font-black text-white mb-1">
                   {stat.value}

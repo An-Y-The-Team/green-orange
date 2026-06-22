@@ -1,228 +1,159 @@
-import { api } from "@yan/shared/api";
+import { ContentStatus } from "@/constants/cms";
+import { assetUrl } from "@/lib/asset-url/asset-url";
+import {
+  type DirectusBrandValue,
+  type DirectusHeroSegment,
+  type DirectusProcessStep,
+  type DirectusProject,
+  type DirectusSectionLink,
+  type DirectusService,
+  type DirectusSiteSettings,
+  type DirectusStat,
+  type DirectusTestimonial,
+  directusClient,
+  readItems,
+  readSingleton,
+} from "@/lib/directus";
 
 import { SectionId } from "./constants/section";
 import { Project, Service, Testimonial } from "./types";
 
-// Base URL of the decoupled Payload CMS. Public so the client-side contact form
-// can POST to it as well; falls back to the local dev CMS port.
-// `||` (not `??`) so an empty-string build arg also falls back instead of
-// producing an invalid base URL.
-export const CMS_URL =
-  process.env.NEXT_PUBLIC_CMS_URL || "http://localhost:3001";
+// Public origins live in their own SDK-free module so client components can
+// import them without pulling the Directus SDK into the client bundle.
+export { CMS_URL, SITE_URL } from "@/lib/cms-url";
 
-// Public origin of this web app. Used for canonical URLs, Open Graph, the
-// sitemap, robots, and JSON-LD. Defaults to the local dev server.
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+// Live (non-preview) reads filter to published; the Directus free tier can't
+// enforce this at the permission layer, so we do it at query time. Preview/draft
+// mode drops the filter so editors see drafts in the iframe.
+const publishedFilter = (draft: boolean) =>
+  draft ? {} : { status: { _eq: ContentStatus.PUBLISHED } };
 
-// Server-only base URL for SSR reads. In production set this to the CMS's
-// internal container address (e.g. http://cms:3001) so server fetches go direct
-// over the docker network instead of hairpinning out through the public domain
-// + TLS. Falls back to the public URL when unset (local dev).
-const SERVER_CMS_URL = process.env.CMS_INTERNAL_URL || CMS_URL;
-
-// How long (seconds) fetched CMS content stays cached before revalidation.
-const REVALIDATE_SECONDS = 300;
-
-// Server-only Payload API key used to read draft documents in preview. Payload
-// expects the format `users API-Key <key>`. Never expose this to the client.
-//
-// NOTE: this module is imported by client components (e.g. the contact form
-// reads CMS_URL), so it must NOT import `next/headers`. Draft Mode is read by the
-// server components that call the getters below; they pass a `draft` flag in.
-const PREVIEW_API_KEY = process.env.CMS_PREVIEW_API_KEY;
-
-// ---------------------------------------------------------------------------
-// Payload REST response shapes (only the fields we consume). Array fields come
-// back as `{ id, item }[]`; we flatten them to `string[]` to match the web
-// types. `slug` is the stable id the UI relies on (formerly the static `id`).
-// ---------------------------------------------------------------------------
-
-interface PayloadList<T> {
-  docs: T[];
-}
-
-interface ArrayItem {
-  item: string;
-}
-
-interface PayloadService {
-  slug: string;
-  title: string;
-  description: string;
-  category: "cleaning" | "construction";
-  duration: string;
-  benefits: ArrayItem[];
-  features: ArrayItem[];
-  iconName: string;
-  popular?: boolean | null;
-}
-
-interface PayloadProject {
-  slug: string;
-  title: string;
-  client: string;
-  category: "cleaning" | "construction";
-  location: string;
-  area: string;
-  completionTime: string;
-  description: string;
-  achievement: string;
-  imageUrl: string;
-  tags: ArrayItem[];
-  testimonial?: {
-    author?: string | null;
-    role?: string | null;
-    content?: string | null;
-    avatarUrl?: string | null;
-    rating?: number | null;
-  } | null;
-}
-
-interface PayloadTestimonial {
-  slug: string;
-  author: string;
-  role: string;
-  company: string;
-  content: string;
-  rating: number;
-  avatarUrl: string;
-  category: "cleaning" | "construction" | "both";
-}
-
-// Fetch JSON from the CMS, returning null on any failure (bad status, timeout,
-// network) so a CMS hiccup degrades the page rather than crashing it.
-async function fetchJson<T>(url: string, draft = false): Promise<T | null> {
-  try {
-    const res = await api.fetch(url, {
-      // In preview: bypass the cache and authenticate so Payload returns drafts.
-      // Otherwise: use the shared ISR revalidate window.
-      ...(draft
-        ? {
-            cache: "no-store" as const,
-            ...(PREVIEW_API_KEY
-              ? {
-                  headers: {
-                    Authorization: `users API-Key ${PREVIEW_API_KEY}`,
-                  },
-                }
-              : {}),
-          }
-        : { next: { revalidate: REVALIDATE_SECONDS } }),
-      // Never let an unreachable CMS hang a build/render; fail fast.
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) {
-      console.error(`CMS fetch failed for "${url}": ${res.status}`);
-      return null;
-    }
-    return (await res.json()) as T;
-  } catch (err) {
-    console.error(`CMS fetch error for "${url}":`, err);
-    return null;
-  }
-}
-
-// Fetch a published collection from Payload, ordered by the `order` field.
-// Returns [] on failure so a CMS hiccup degrades the page rather than crashing.
-async function fetchCollection<T>(slug: string, draft = false): Promise<T[]> {
-  const json = await fetchJson<PayloadList<T>>(
-    `${SERVER_CMS_URL}/api/${slug}?limit=100&depth=0&sort=order${draft ? "&draft=true" : ""}`,
-    draft
-  );
-  return json?.docs ?? [];
-}
-
-const flatten = (items: ArrayItem[] | undefined): string[] =>
-  (items ?? []).map((i) => i.item);
-
-function mapService(d: PayloadService): Service {
+function mapService(d: DirectusService): Service {
   return {
     id: d.slug,
+    cmsId: d.id,
     title: d.title,
     description: d.description,
     category: d.category as Service["category"],
     duration: d.duration,
-    benefits: flatten(d.benefits),
-    features: flatten(d.features),
-    iconName: d.iconName,
+    benefits: d.benefits ?? [],
+    features: d.features ?? [],
+    iconName: d.icon_name,
     popular: d.popular ?? undefined,
   };
 }
 
-function mapProject(d: PayloadProject): Project {
-  const t = d.testimonial;
+function mapProject(d: DirectusProject): Project {
   return {
     id: d.slug,
+    cmsId: d.id,
     title: d.title,
     client: d.client,
     category: d.category as Project["category"],
     location: d.location,
     area: d.area,
-    completionTime: d.completionTime,
+    completionTime: d.completion_time,
     description: d.description,
     achievement: d.achievement,
-    imageUrl: d.imageUrl,
-    tags: flatten(d.tags),
-    // The CMS group always returns an object; treat it as a real testimonial
-    // only when an author is present.
-    testimonial:
-      t && t.author
-        ? {
-            author: t.author,
-            role: t.role ?? "",
-            content: t.content ?? "",
-            avatarUrl: t.avatarUrl ?? undefined,
-            rating: t.rating ?? 0,
-          }
-        : undefined,
+    imageUrl: assetUrl({ fileId: d.image }) ?? "",
+    tags: d.tags ?? [],
+    // Treat the flattened testimonial as real only when an author is present.
+    testimonial: d.testimonial_author
+      ? {
+          author: d.testimonial_author,
+          role: d.testimonial_role ?? "",
+          content: d.testimonial_content ?? "",
+          avatarUrl: assetUrl({ fileId: d.testimonial_avatar }) ?? undefined,
+          rating: d.testimonial_rating ?? 0,
+        }
+      : undefined,
   };
 }
 
-function mapTestimonial(d: PayloadTestimonial): Testimonial {
+function mapTestimonial(d: DirectusTestimonial): Testimonial {
   return {
     id: d.slug,
+    cmsId: d.id,
     author: d.author,
     role: d.role,
     company: d.company,
     content: d.content,
     rating: d.rating,
-    avatarUrl: d.avatarUrl,
+    avatarUrl: assetUrl({ fileId: d.avatar }) ?? "",
     category: d.category as Testimonial["category"],
   };
 }
 
 // Server-side data getters consumed by the page (Server Component) and passed
-// down to the interactive client sections as props.
+// down to the interactive client sections as props. Each degrades to [] on any
+// failure so a CMS hiccup never crashes the render.
 export async function getServices(draft = false): Promise<Service[]> {
-  const docs = await fetchCollection<PayloadService>("services", draft);
-  return docs.map(mapService);
+  try {
+    const docs = await directusClient(draft).request(
+      readItems("services", {
+        filter: publishedFilter(draft),
+        sort: ["sort"],
+        limit: -1,
+        fields: ["*"],
+      })
+    );
+    return docs.map(mapService);
+  } catch (err) {
+    console.error("CMS fetch error for services:", err);
+    return [];
+  }
 }
 
 export async function getProjects(draft = false): Promise<Project[]> {
-  const docs = await fetchCollection<PayloadProject>("projects", draft);
-  return docs.map(mapProject);
+  try {
+    const docs = await directusClient(draft).request(
+      readItems("projects", {
+        filter: publishedFilter(draft),
+        sort: ["sort"],
+        limit: -1,
+        fields: ["*"],
+      })
+    );
+    return docs.map(mapProject);
+  } catch (err) {
+    console.error("CMS fetch error for projects:", err);
+    return [];
+  }
 }
 
 export async function getTestimonials(draft = false): Promise<Testimonial[]> {
-  const docs = await fetchCollection<PayloadTestimonial>("testimonials", draft);
-  return docs.map(mapTestimonial);
+  try {
+    const docs = await directusClient(draft).request(
+      readItems("testimonials", {
+        filter: publishedFilter(draft),
+        sort: ["sort"],
+        limit: -1,
+        fields: ["*"],
+      })
+    );
+    return docs.map(mapTestimonial);
+  } catch (err) {
+    console.error("CMS fetch error for testimonials:", err);
+    return [];
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Site-wide settings: company info, headline stats, hero copy, SEO defaults.
-// Editable from the Payload `site-settings` global; the hardcoded values below
-// are the fallback used if the global is empty or the CMS is unreachable, so
+// Editable from the Directus `site_settings` singleton; the hardcoded values
+// below are the fallback used if it is empty or the CMS is unreachable, so
 // the page never renders blank (same "degrade, don't crash" approach as above).
 // ---------------------------------------------------------------------------
 
 export interface Stat {
+  id?: number;
   value: string;
   label: string;
   color: string;
 }
 
 export interface SectionLink {
+  id?: number;
   label: string;
   sectionId: SectionId;
 }
@@ -246,6 +177,7 @@ export interface TypographySettings {
 export type HeadlineColor = "white" | "emerald" | "orange";
 
 export interface HeadlineSegment {
+  id?: number;
   text: string;
   color: HeadlineColor;
   italic: boolean;
@@ -261,6 +193,7 @@ export type BrandValueIcon = "Wrench" | "ShieldCheck" | "Trees";
 export type BrandValueAccent = "orange" | "slate" | "emerald";
 
 export interface BrandValue {
+  id?: number;
   title: string;
   description: string;
   icon: BrandValueIcon;
@@ -268,6 +201,7 @@ export interface BrandValue {
 }
 
 export interface ProcessStep {
+  id?: number;
   num: string;
   title: string;
   description: string;
@@ -280,6 +214,8 @@ export interface SectionHeading {
 }
 
 export interface SiteSettings {
+  /** Directus singleton id — used by the Visual Editor (setAttr `item`). */
+  cmsId?: number;
   company: {
     name: string;
     shortName: string;
@@ -567,123 +503,10 @@ export const DEFAULT_SETTINGS: SiteSettings = {
 export const STATS = DEFAULT_SETTINGS.stats;
 export const COMPANY_INFO = DEFAULT_SETTINGS.company;
 
-// Shape of the Payload `site-settings` global (only the fields we consume).
-interface PayloadSectionLink {
-  label?: string | null;
-  sectionId?: string | null;
-}
-
-// Uploaded media comes back as `{ url, ... }` at depth=1 or as an id number at
-// depth=0. We always fetch at depth=1, so a string `url` is what we expect.
-type PayloadMedia = { url?: string | null } | number | null | undefined;
-
-interface PayloadHeadlineSegment {
-  text?: string | null;
-  color?: string | null;
-  italic?: boolean | null;
-  newLineBefore?: boolean | null;
-}
-
-interface PayloadBrandValue {
-  title?: string | null;
-  description?: string | null;
-  icon?: string | null;
-  accent?: string | null;
-}
-
-interface PayloadProcessStep {
-  num?: string | null;
-  title?: string | null;
-  description?: string | null;
-}
-
-interface PayloadCta {
-  label?: string | null;
-  href?: string | null;
-}
-
-interface PayloadSiteSettings {
-  company?: Partial<SiteSettings["company"]> | null;
-  social?: Partial<SiteSettings["social"]> | null;
-  branding?: Partial<SiteSettings["branding"]> | null;
-  typography?: {
-    headingFont?: string | null;
-    heroDisplayFont?: string | null;
-    bodyFont?: string | null;
-  } | null;
-  navigation?: {
-    items?: PayloadSectionLink[] | null;
-    headerCtaLabel?: string | null;
-    mobileCtaLabel?: string | null;
-  } | null;
-  hero?: {
-    backgroundImage?: PayloadMedia;
-    trustBadge?: string | null;
-    headlineSegments?: PayloadHeadlineSegment[] | null;
-    subheadline?: string | null;
-    benefits?: Array<{ item?: string | null }> | null;
-    primaryCta?: PayloadCta | null;
-    secondaryCta?: PayloadCta | null;
-    trustStrap?: string | null;
-  } | null;
-  stats?: Array<Partial<Stat>> | null;
-  introduction?: {
-    eyebrow?: string | null;
-    heading?: string | null;
-    narrative?: string | null;
-    image?: PayloadMedia;
-    mottoEyebrow?: string | null;
-    brandStoryHeading?: string | null;
-    brandStoryIntro?: string | null;
-    brandValues?: PayloadBrandValue[] | null;
-    processEyebrow?: string | null;
-    processHeading?: string | null;
-    processIntro?: string | null;
-    processSteps?: PayloadProcessStep[] | null;
-  } | null;
-  servicesSection?: {
-    eyebrow?: string | null;
-    heading?: string | null;
-    description?: string | null;
-  } | null;
-  projectsSection?: {
-    eyebrow?: string | null;
-    heading?: string | null;
-    description?: string | null;
-  } | null;
-  testimonialsSection?: {
-    eyebrow?: string | null;
-    heading?: string | null;
-    description?: string | null;
-  } | null;
-  footer?: {
-    brandDescription?: string | null;
-    quickLinksHeading?: string | null;
-    quickLinks?: PayloadSectionLink[] | null;
-    officesHeading?: string | null;
-    headquartersLabel?: string | null;
-    branchLabel?: string | null;
-    supportHeading?: string | null;
-    hotlinePrefix?: string | null;
-    emailPrefix?: string | null;
-    copyrightSuffix?: string | null;
-    backToTopLabel?: string | null;
-  } | null;
-  seo?: {
-    metaTitle?: string | null;
-    metaDescription?: string | null;
-    ogImage?: { url?: string | null } | number | null;
-  } | null;
-}
-
-// `SectionId` is a closed enum; the CMS select uses the same string values, so
-// any value the CMS returns is either a valid SectionId or unknown. Drop links
-// with an unknown id so we never render dead anchors.
+// `SectionId` is a closed enum; drop links whose id isn't a known section so we
+// never render dead anchors. The other whitelists keep the union types honest
+// and Tailwind classes referenced statically.
 const SECTION_IDS = new Set<string>(Object.values(SectionId));
-
-// Whitelists for CMS enum strings → web TS unions. Anything outside the
-// whitelist is treated as "missing" so the default applies, which keeps
-// Tailwind classes referenced statically and the union types honest.
 const HEADLINE_COLORS = new Set<string>(["white", "emerald", "orange"]);
 const BRAND_ICONS = new Set<string>(["Wrench", "ShieldCheck", "Trees"]);
 const BRAND_ACCENTS = new Set<string>(["orange", "slate", "emerald"]);
@@ -704,47 +527,74 @@ const pickFont = (
   fallback: FontSlug
 ): FontSlug => (raw && FONT_SLUGS.has(raw) ? (raw as FontSlug) : fallback);
 
-const resolveMediaUrl = (media: PayloadMedia, fallback: string): string => {
-  if (media && typeof media === "object" && media.url) return media.url;
-  return fallback;
-};
+// Replace empty/missing values with the default, so a partially-filled
+// singleton still renders a complete page.
+const orDefault = (
+  value: string | null | undefined,
+  fallback: string
+): string => (value && value.trim() ? value : fallback);
 
-const mapHeadlineSegments = (
-  raw: PayloadHeadlineSegment[] | null | undefined,
-  fallback: HeadlineSegment[]
-): HeadlineSegment[] => {
+const mapSectionLinks = (
+  raw: DirectusSectionLink[] | null | undefined,
+  fallback: SectionLink[]
+): SectionLink[] => {
   const mapped = (raw ?? [])
-    .filter((s): s is { text: string; color: string } =>
-      Boolean(s.text && s.color && HEADLINE_COLORS.has(s.color))
+    .filter(
+      (l): l is DirectusSectionLink & { label: string; section_id: string } =>
+        Boolean(l.label && l.section_id && SECTION_IDS.has(l.section_id))
     )
-    .map((s) => ({
-      text: s.text,
-      color: s.color as HeadlineColor,
-      italic: Boolean((s as PayloadHeadlineSegment).italic),
-      newLineBefore: Boolean((s as PayloadHeadlineSegment).newLineBefore),
+    .map((l) => ({
+      id: l.id,
+      label: l.label,
+      sectionId: l.section_id as SectionId,
     }));
   return mapped.length ? mapped : fallback;
 };
 
-const mapBenefits = (
-  raw: Array<{ item?: string | null }> | null | undefined,
-  fallback: string[]
-): string[] => {
-  const items = (raw ?? [])
-    .map((b) => b.item?.trim() ?? "")
-    .filter((s) => s.length > 0);
-  return items.length ? items : fallback;
+const mapHeadlineSegments = (
+  raw: DirectusHeroSegment[] | null | undefined,
+  fallback: HeadlineSegment[]
+): HeadlineSegment[] => {
+  const mapped = (raw ?? [])
+    .filter((s): s is DirectusHeroSegment & { text: string; color: string } =>
+      Boolean(s.text && s.color && HEADLINE_COLORS.has(s.color))
+    )
+    .map((s) => ({
+      id: s.id,
+      text: s.text,
+      color: s.color as HeadlineColor,
+      italic: Boolean(s.italic),
+      newLineBefore: Boolean(s.new_line_before),
+    }));
+  return mapped.length ? mapped : fallback;
+};
+
+const mapStats = (
+  raw: DirectusStat[] | null | undefined,
+  fallback: Stat[]
+): Stat[] => {
+  const mapped = (raw ?? [])
+    .filter((x): x is DirectusStat & { value: string; label: string } =>
+      Boolean(x.value && x.label)
+    )
+    .map((x) => ({
+      id: x.id,
+      value: x.value,
+      label: x.label,
+      color: x.color || "text-green-600",
+    }));
+  return mapped.length ? mapped : fallback;
 };
 
 const mapBrandValues = (
-  raw: PayloadBrandValue[] | null | undefined,
+  raw: DirectusBrandValue[] | null | undefined,
   fallback: BrandValue[]
 ): BrandValue[] => {
   const mapped = (raw ?? [])
     .filter(
       (
         v
-      ): v is {
+      ): v is DirectusBrandValue & {
         title: string;
         description: string;
         icon: string;
@@ -760,6 +610,7 @@ const mapBrandValues = (
         )
     )
     .map((v) => ({
+      id: v.id,
       title: v.title,
       description: v.description,
       icon: v.icon as BrandValueIcon,
@@ -769,243 +620,240 @@ const mapBrandValues = (
 };
 
 const mapProcessSteps = (
-  raw: PayloadProcessStep[] | null | undefined,
+  raw: DirectusProcessStep[] | null | undefined,
   fallback: ProcessStep[]
 ): ProcessStep[] => {
   const mapped = (raw ?? [])
-    .filter((s): s is { num: string; title: string; description: string } =>
-      Boolean(s.num && s.title && s.description)
+    .filter(
+      (
+        s
+      ): s is DirectusProcessStep & {
+        num: string;
+        title: string;
+        description: string;
+      } => Boolean(s.num && s.title && s.description)
     )
-    .map((s) => ({ num: s.num, title: s.title, description: s.description }));
+    .map((s) => ({
+      id: s.id,
+      num: s.num,
+      title: s.title,
+      description: s.description,
+    }));
   return mapped.length ? mapped : fallback;
 };
-
-const mapCta = (
-  raw: PayloadCta | null | undefined,
-  fallback: CtaButton
-): CtaButton => ({
-  label: orDefault(raw?.label, fallback.label),
-  href: orDefault(raw?.href, fallback.href),
-});
-const mapSectionLinks = (
-  raw: PayloadSectionLink[] | null | undefined,
-  fallback: SectionLink[]
-): SectionLink[] => {
-  const mapped = (raw ?? [])
-    .filter((l): l is { label: string; sectionId: string } =>
-      Boolean(l.label && l.sectionId && SECTION_IDS.has(l.sectionId))
-    )
-    .map((l) => ({ label: l.label, sectionId: l.sectionId as SectionId }));
-  return mapped.length ? mapped : fallback;
-};
-
-// Replace empty/missing values with the default, so partially-filled globals
-// still render a complete page.
-const orDefault = (
-  value: string | null | undefined,
-  fallback: string
-): string => (value && value.trim() ? value : fallback);
 
 export async function getSiteSettings(draft = false): Promise<SiteSettings> {
   const d = DEFAULT_SETTINGS;
-  const s = await fetchJson<PayloadSiteSettings>(
-    `${SERVER_CMS_URL}/api/globals/site-settings?depth=1`,
-    draft // bypass cache in preview; no &draft=true — this global isn't versioned
-  );
+  let s: DirectusSiteSettings | null = null;
+  try {
+    s = await directusClient(draft).request(
+      readSingleton("site_settings", {
+        fields: [
+          "*",
+          { nav_items: ["*"] },
+          { footer_quick_links: ["*"] },
+          { hero_headline_segments: ["*"] },
+          { stats: ["*"] },
+          { brand_values: ["*"] },
+          { process_steps: ["*"] },
+        ],
+      })
+    );
+  } catch (err) {
+    console.error("CMS fetch error for site-settings:", err);
+    return d;
+  }
   if (!s) return d;
 
-  const ogImage = resolveMediaUrl(s.seo?.ogImage, "");
-  const stats = (s.stats ?? [])
-    .filter((x): x is Stat => Boolean(x.value && x.label))
-    .map((x) => ({
-      value: x.value!,
-      label: x.label!,
-      color: x.color || "text-green-600",
-    }));
+  const heroBenefits = s.hero_benefits ?? [];
 
   return {
+    cmsId: s.id,
     company: {
-      name: orDefault(s.company?.name, d.company.name),
-      shortName: orDefault(s.company?.shortName, d.company.shortName),
-      founded: orDefault(s.company?.founded, d.company.founded),
-      phone: orDefault(s.company?.phone, d.company.phone),
-      email: orDefault(s.company?.email, d.company.email),
-      address: orDefault(s.company?.address, d.company.address),
-      branch: orDefault(s.company?.branch, d.company.branch),
-      motto: orDefault(s.company?.motto, d.company.motto),
+      name: orDefault(s.company_name, d.company.name),
+      shortName: orDefault(s.company_short_name, d.company.shortName),
+      founded: orDefault(s.company_founded, d.company.founded),
+      phone: orDefault(s.company_phone, d.company.phone),
+      email: orDefault(s.company_email, d.company.email),
+      address: orDefault(s.company_address, d.company.address),
+      branch: orDefault(s.company_branch, d.company.branch),
+      motto: orDefault(s.company_motto, d.company.motto),
       certification: orDefault(
-        s.company?.certification,
+        s.company_certification,
         d.company.certification
       ),
     },
     social: {
-      facebook: orDefault(s.social?.facebook, d.social.facebook),
-      zalo: orDefault(s.social?.zalo, d.social.zalo),
-      messenger: orDefault(s.social?.messenger, d.social.messenger),
+      facebook: orDefault(s.social_facebook, d.social.facebook),
+      zalo: orDefault(s.social_zalo, d.social.zalo),
+      messenger: orDefault(s.social_messenger, d.social.messenger),
     },
     branding: {
       logoTextPrimary: orDefault(
-        s.branding?.logoTextPrimary,
+        s.branding_logo_text_primary,
         d.branding.logoTextPrimary
       ),
       logoTextSecondary: orDefault(
-        s.branding?.logoTextSecondary,
+        s.branding_logo_text_secondary,
         d.branding.logoTextSecondary
       ),
       headerTagline: orDefault(
-        s.branding?.headerTagline,
+        s.branding_header_tagline,
         d.branding.headerTagline
       ),
       footerTagline: orDefault(
-        s.branding?.footerTagline,
+        s.branding_footer_tagline,
         d.branding.footerTagline
       ),
     },
     typography: {
       headingFont: pickFont(
-        s.typography?.headingFont,
+        s.typography_heading_font,
         d.typography.headingFont
       ),
       heroDisplayFont: pickFont(
-        s.typography?.heroDisplayFont,
+        s.typography_hero_display_font,
         d.typography.heroDisplayFont
       ),
-      bodyFont: pickFont(s.typography?.bodyFont, d.typography.bodyFont),
+      bodyFont: pickFont(s.typography_body_font, d.typography.bodyFont),
     },
     navigation: {
-      items: mapSectionLinks(s.navigation?.items, d.navigation.items),
+      items: mapSectionLinks(s.nav_items, d.navigation.items),
       headerCtaLabel: orDefault(
-        s.navigation?.headerCtaLabel,
+        s.navigation_header_cta_label,
         d.navigation.headerCtaLabel
       ),
       mobileCtaLabel: orDefault(
-        s.navigation?.mobileCtaLabel,
+        s.navigation_mobile_cta_label,
         d.navigation.mobileCtaLabel
       ),
     },
     hero: {
-      backgroundImageUrl: resolveMediaUrl(
-        s.hero?.backgroundImage,
-        d.hero.backgroundImageUrl
-      ),
-      trustBadge: orDefault(s.hero?.trustBadge, d.hero.trustBadge),
+      backgroundImageUrl:
+        assetUrl({ fileId: s.hero_background_image }) ??
+        d.hero.backgroundImageUrl,
+      trustBadge: orDefault(s.hero_trust_badge, d.hero.trustBadge),
       headlineSegments: mapHeadlineSegments(
-        s.hero?.headlineSegments,
+        s.hero_headline_segments,
         d.hero.headlineSegments
       ),
-      subheadline: orDefault(s.hero?.subheadline, d.hero.subheadline),
-      benefits: mapBenefits(s.hero?.benefits, d.hero.benefits),
-      primaryCta: mapCta(s.hero?.primaryCta, d.hero.primaryCta),
-      secondaryCta: mapCta(s.hero?.secondaryCta, d.hero.secondaryCta),
-      trustStrap: orDefault(s.hero?.trustStrap, d.hero.trustStrap),
+      subheadline: orDefault(s.hero_subheadline, d.hero.subheadline),
+      benefits: heroBenefits.length ? heroBenefits : d.hero.benefits,
+      primaryCta: {
+        label: orDefault(s.hero_primary_cta_label, d.hero.primaryCta.label),
+        href: orDefault(s.hero_primary_cta_href, d.hero.primaryCta.href),
+      },
+      secondaryCta: {
+        label: orDefault(s.hero_secondary_cta_label, d.hero.secondaryCta.label),
+        href: orDefault(s.hero_secondary_cta_href, d.hero.secondaryCta.href),
+      },
+      trustStrap: orDefault(s.hero_trust_strap, d.hero.trustStrap),
     },
-    stats: stats.length ? stats : d.stats,
+    stats: mapStats(s.stats, d.stats),
     introduction: {
-      eyebrow: orDefault(s.introduction?.eyebrow, d.introduction.eyebrow),
-      heading: orDefault(s.introduction?.heading, d.introduction.heading),
-      narrative: orDefault(s.introduction?.narrative, d.introduction.narrative),
-      imageUrl: resolveMediaUrl(s.introduction?.image, d.introduction.imageUrl),
+      eyebrow: orDefault(s.introduction_eyebrow, d.introduction.eyebrow),
+      heading: orDefault(s.introduction_heading, d.introduction.heading),
+      narrative: orDefault(s.introduction_narrative, d.introduction.narrative),
+      imageUrl:
+        assetUrl({ fileId: s.introduction_image }) ?? d.introduction.imageUrl,
       mottoEyebrow: orDefault(
-        s.introduction?.mottoEyebrow,
+        s.introduction_motto_eyebrow,
         d.introduction.mottoEyebrow
       ),
       brandStoryHeading: orDefault(
-        s.introduction?.brandStoryHeading,
+        s.introduction_brand_story_heading,
         d.introduction.brandStoryHeading
       ),
       brandStoryIntro: orDefault(
-        s.introduction?.brandStoryIntro,
+        s.introduction_brand_story_intro,
         d.introduction.brandStoryIntro
       ),
-      brandValues: mapBrandValues(
-        s.introduction?.brandValues,
-        d.introduction.brandValues
-      ),
+      brandValues: mapBrandValues(s.brand_values, d.introduction.brandValues),
       processEyebrow: orDefault(
-        s.introduction?.processEyebrow,
+        s.introduction_process_eyebrow,
         d.introduction.processEyebrow
       ),
       processHeading: orDefault(
-        s.introduction?.processHeading,
+        s.introduction_process_heading,
         d.introduction.processHeading
       ),
       processIntro: orDefault(
-        s.introduction?.processIntro,
+        s.introduction_process_intro,
         d.introduction.processIntro
       ),
       processSteps: mapProcessSteps(
-        s.introduction?.processSteps,
+        s.process_steps,
         d.introduction.processSteps
       ),
     },
     servicesSection: {
-      eyebrow: orDefault(s.servicesSection?.eyebrow, d.servicesSection.eyebrow),
-      heading: orDefault(s.servicesSection?.heading, d.servicesSection.heading),
+      eyebrow: orDefault(s.services_section_eyebrow, d.servicesSection.eyebrow),
+      heading: orDefault(s.services_section_heading, d.servicesSection.heading),
       description: orDefault(
-        s.servicesSection?.description,
+        s.services_section_description,
         d.servicesSection.description
       ),
     },
     projectsSection: {
-      eyebrow: orDefault(s.projectsSection?.eyebrow, d.projectsSection.eyebrow),
-      heading: orDefault(s.projectsSection?.heading, d.projectsSection.heading),
+      eyebrow: orDefault(s.projects_section_eyebrow, d.projectsSection.eyebrow),
+      heading: orDefault(s.projects_section_heading, d.projectsSection.heading),
       description: orDefault(
-        s.projectsSection?.description,
+        s.projects_section_description,
         d.projectsSection.description
       ),
     },
     testimonialsSection: {
       eyebrow: orDefault(
-        s.testimonialsSection?.eyebrow,
+        s.testimonials_section_eyebrow,
         d.testimonialsSection.eyebrow
       ),
       heading: orDefault(
-        s.testimonialsSection?.heading,
+        s.testimonials_section_heading,
         d.testimonialsSection.heading
       ),
       description: orDefault(
-        s.testimonialsSection?.description,
+        s.testimonials_section_description,
         d.testimonialsSection.description
       ),
     },
     footer: {
       brandDescription: orDefault(
-        s.footer?.brandDescription,
+        s.footer_brand_description,
         d.footer.brandDescription
       ),
       quickLinksHeading: orDefault(
-        s.footer?.quickLinksHeading,
+        s.footer_quick_links_heading,
         d.footer.quickLinksHeading
       ),
-      quickLinks: mapSectionLinks(s.footer?.quickLinks, d.footer.quickLinks),
+      quickLinks: mapSectionLinks(s.footer_quick_links, d.footer.quickLinks),
       officesHeading: orDefault(
-        s.footer?.officesHeading,
+        s.footer_offices_heading,
         d.footer.officesHeading
       ),
       headquartersLabel: orDefault(
-        s.footer?.headquartersLabel,
+        s.footer_headquarters_label,
         d.footer.headquartersLabel
       ),
-      branchLabel: orDefault(s.footer?.branchLabel, d.footer.branchLabel),
+      branchLabel: orDefault(s.footer_branch_label, d.footer.branchLabel),
       supportHeading: orDefault(
-        s.footer?.supportHeading,
+        s.footer_support_heading,
         d.footer.supportHeading
       ),
-      hotlinePrefix: orDefault(s.footer?.hotlinePrefix, d.footer.hotlinePrefix),
-      emailPrefix: orDefault(s.footer?.emailPrefix, d.footer.emailPrefix),
+      hotlinePrefix: orDefault(s.footer_hotline_prefix, d.footer.hotlinePrefix),
+      emailPrefix: orDefault(s.footer_email_prefix, d.footer.emailPrefix),
       copyrightSuffix: orDefault(
-        s.footer?.copyrightSuffix,
+        s.footer_copyright_suffix,
         d.footer.copyrightSuffix
       ),
       backToTopLabel: orDefault(
-        s.footer?.backToTopLabel,
+        s.footer_back_to_top_label,
         d.footer.backToTopLabel
       ),
     },
     seo: {
-      metaTitle: orDefault(s.seo?.metaTitle, d.seo.metaTitle),
-      metaDescription: orDefault(s.seo?.metaDescription, d.seo.metaDescription),
-      ogImageUrl: ogImage || d.seo.ogImageUrl,
+      metaTitle: orDefault(s.seo_meta_title, d.seo.metaTitle),
+      metaDescription: orDefault(s.seo_meta_description, d.seo.metaDescription),
+      ogImageUrl: assetUrl({ fileId: s.seo_og_image }) ?? d.seo.ogImageUrl,
     },
   };
 }

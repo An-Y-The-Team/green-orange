@@ -37,6 +37,8 @@ Each phase has its own document. Do not start a phase until the previous one's "
 | 4   | [`phase-4-frontend.md`](./phase-4-frontend.md)                 | Rewrite `apps/web` to fetch from Directus via the SDK and add the Visual Editor.                            |
 | 5   | [`phase-5-cleanup-and-docs.md`](./phase-5-cleanup-and-docs.md) | Delete the old Payload code/deps and update the deploy docs.                                                |
 
+> **Current status + the operator's deploy steps** live in [`STATUS-AND-DEPLOYMENT.md`](./STATUS-AND-DEPLOYMENT.md) — start there to see what's done and what to run on prod.
+
 > **Real prod content** is a separate concern from the phases above. `seed/seed.ts` only loads DEMO data. To carry the live, editor-edited Payload content (text + uploaded media) into Directus at cutover, follow [`prod-data-migration.md`](./prod-data-migration.md) (operator-run export → `migrate-from-payload.ts`). Run it during Phase 5 cutover, before retiring Payload.
 
 ## Glossary (so the steps are unambiguous)

@@ -1,6 +1,8 @@
 import { type LucideIcon, ShieldCheck, Trees, Wrench } from "lucide-react";
 import Image from "next/image";
 
+import { editAttr } from "@/lib/visual-editor/edit-attr";
+
 import { BrandValueAccent, BrandValueIcon, SiteSettings } from "../../data";
 
 // Static maps keep Tailwind classes greppable for the JIT compiler and let the
@@ -43,19 +45,42 @@ const ACCENT_DOT_CLASS: Record<BrandValueAccent, string> = {
 
 export default function Introduction({ settings }: { settings: SiteSettings }) {
   const { company, introduction } = settings;
+  const sid = settings.cmsId;
   return (
     <section id="introduction" className="py-16 md:py-24 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full">
+          <span
+            className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: "introduction_eyebrow",
+            })}
+          >
             {introduction.eyebrow}
           </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4">
+          <h2
+            className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: "introduction_heading",
+            })}
+          >
             {introduction.heading}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
-          <p className="text-slate-500 font-medium mt-6 text-base md:text-lg">
+          <p
+            className="text-slate-500 font-medium mt-6 text-base md:text-lg"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: "introduction_narrative",
+              mode: "modal",
+            })}
+          >
             {introduction.narrative.replace("{founded}", company.founded)}
           </p>
         </div>
@@ -99,8 +124,14 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                 const tri = ACCENT_TRI_COLORS[v.accent];
                 return (
                   <div
-                    key={idx}
+                    key={v.id ?? idx}
                     className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl border border-gray-100 bg-linear-to-r from-gray-50/50 to-white hover:border-gray-200 transition-all shadow-xs hover:shadow-md"
+                    data-directus={editAttr({
+                      collection: "site_brand_values",
+                      item: v.id,
+                      fields: ["title", "description", "icon", "accent"],
+                      mode: "drawer",
+                    })}
                   >
                     {/* The 3-Isosceles Equilateral Triangles rotating module */}
                     <div className="relative flex items-center justify-center size-20 shrink-0 select-none">
@@ -162,10 +193,24 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
             <span className="text-sm font-black text-orange-400 uppercase tracking-widest bg-orange-400/15 px-4 py-1.5 rounded-full inline-block scale-110 mb-2">
               {introduction.processEyebrow}
             </span>
-            <h3 className="text-3xl md:text-4xl font-black font-heading tracking-tight mt-3 mb-4 text-white">
+            <h3
+              className="text-3xl md:text-4xl font-black font-heading tracking-tight mt-3 mb-4 text-white"
+              data-directus={editAttr({
+                collection: "site_settings",
+                item: sid,
+                fields: "introduction_process_heading",
+              })}
+            >
               {introduction.processHeading}
             </h3>
-            <p className="text-slate-300 text-base md:text-lg">
+            <p
+              className="text-slate-300 text-base md:text-lg"
+              data-directus={editAttr({
+                collection: "site_settings",
+                item: sid,
+                fields: "introduction_process_intro",
+              })}
+            >
               {introduction.processIntro}
             </p>
           </div>
@@ -173,8 +218,14 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 relative z-10">
             {introduction.processSteps.map((step, idx) => (
               <div
-                key={idx}
+                key={step.id ?? idx}
                 className="relative bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 hover:border-white/20 transition-all flex flex-col items-start text-left"
+                data-directus={editAttr({
+                  collection: "site_process_steps",
+                  item: step.id,
+                  fields: ["num", "title", "description"],
+                  mode: "drawer",
+                })}
               >
                 <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-orange-400 to-emerald-400 leading-none mb-3 transform hover:scale-110 transition-transform">
                   {step.num}

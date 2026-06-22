@@ -8,12 +8,14 @@ import { buttonVariants } from "@yan/ui/components/button";
 
 import { SectionId } from "@/constants/section";
 import { useScrollSpy } from "@/hooks/use-scroll-spy/use-scroll-spy";
+import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import { SiteSettings } from "../../data";
 
 export default function Header({ settings }: { settings: SiteSettings }) {
   const [isOpen, setIsOpen] = useState(false);
   const { branding, navigation } = settings;
+  const sid = settings.cmsId;
   // Track only the sections that actually appear in the nav, so the active
   // highlight stays consistent with the rendered links.
   const sectionIds = navigation.items.map((item) => item.sectionId);
@@ -48,7 +50,18 @@ export default function Header({ settings }: { settings: SiteSettings }) {
                 <Wrench className="size-4.5 text-orange-500" />
               </div>
             </div>
-            <div>
+            <div
+              data-directus={editAttr({
+                collection: "site_settings",
+                item: sid,
+                fields: [
+                  "branding_logo_text_primary",
+                  "branding_logo_text_secondary",
+                  "branding_header_tagline",
+                ],
+                mode: "popover",
+              })}
+            >
               <span className="text-xl font-black tracking-tight text-slate-800 flex items-center gap-1 leading-none">
                 <span className="text-emerald-700">
                   {branding.logoTextPrimary}
@@ -74,6 +87,11 @@ export default function Header({ settings }: { settings: SiteSettings }) {
                 id={`nav-${item.sectionId}`}
                 href={`#${item.sectionId}`}
                 onClick={handleNavClick}
+                data-directus={editAttr({
+                  collection: "site_nav_items",
+                  item: item.id,
+                  fields: ["label", "section_id"],
+                })}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg transition-transform duration-200 active:scale-95 ${
                   activeSection === item.sectionId
                     ? "bg-slate-900 text-white"
@@ -97,6 +115,11 @@ export default function Header({ settings }: { settings: SiteSettings }) {
                 buttonVariants({ variant: "default" }) +
                 " bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-lg shadow-sm hover:shadow-md hover:translate-y-[-1px] transition-all"
               }
+              data-directus={editAttr({
+                collection: "site_settings",
+                item: sid,
+                fields: "navigation_header_cta_label",
+              })}
             >
               {navigation.headerCtaLabel}
             </Link>
@@ -144,6 +167,11 @@ export default function Header({ settings }: { settings: SiteSettings }) {
                 buttonVariants({ variant: "default" }) +
                 " w-full py-3.5 bg-orange-500 hover:bg-orange-600 font-bold rounded-xl shadow-md cursor-pointer text-center text-white flex items-center justify-center gap-2 text-sm transform hover:scale-105 active:scale-95 transition-all duration-300"
               }
+              data-directus={editAttr({
+                collection: "site_settings",
+                item: sid,
+                fields: "navigation_mobile_cta_label",
+              })}
             >
               {navigation.mobileCtaLabel}
             </Link>

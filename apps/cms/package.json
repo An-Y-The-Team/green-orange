@@ -1,50 +1,18 @@
 {
   "name": "@yan-portf/cms",
   "version": "1.0.0",
-  "description": "Payload CMS backend",
+  "description": "Directus config-as-code (schema snapshot + SDK setup/seed scripts). Directus itself runs from the official image — this package builds nothing.",
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev -p 3001",
-    "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev -p 3001",
-    "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
-    "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
-    "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
-    "check-types": "tsc --noEmit",
-    "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "build-schema": "bun scripts/build-schema.ts",
     "setup-access": "bun scripts/setup-access.ts",
     "seed": "bun seed/seed.ts",
     "migrate-from-payload": "bun scripts/migrate-from-payload.ts",
-    "start": "cross-env NODE_OPTIONS=--no-deprecation next start -p 3001"
-  },
-  "dependencies": {
-    "@payloadcms/db-postgres": "latest",
-    "@payloadcms/next": "latest",
-    "@payloadcms/plugin-seo": "^3.85.1",
-    "@payloadcms/richtext-lexical": "latest",
-    "@payloadcms/translations": "^3.85.1",
-    "@payloadcms/ui": "latest",
-    "cross-env": "10.1.0",
-    "dotenv": "16.4.7",
-    "graphql": "^16.8.1",
-    "next": "^16.2.7",
-    "payload": "latest",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "sharp": "0.33.5"
+    "check-types": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "^22.5.4",
-    "@types/react": "19.2.17",
-    "@types/react-dom": "19.2.3",
-    "eslint": "^9.16.0",
-    "eslint-config-next": "16.2.7",
-    "eslint-config-prettier": "9.1.0",
-    "eslint-plugin-prettier": "5.1.3",
-    "prettier": "^3.4.2",
-    "tsx": "4.22.4",
+    "@types/bun": "^1.1.0",
     "typescript": "5.7.2"
   }
 }

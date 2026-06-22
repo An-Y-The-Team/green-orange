@@ -14,6 +14,7 @@ import {
 } from "@yan/ui/components/dialog";
 
 import { Category, CategoryFilter } from "@/constants/category";
+import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import type { SiteSettings } from "../../data";
 import { Project } from "../../types";
@@ -39,14 +40,35 @@ export default function Projects({
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full">
+          <span
+            className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "projects_section_eyebrow",
+            })}
+          >
             {settings.projectsSection.eyebrow}
           </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4">
+          <h2
+            className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "projects_section_heading",
+            })}
+          >
             {settings.projectsSection.heading}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
-          <p className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed">
+          <p
+            className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "projects_section_description",
+            })}
+          >
             {settings.projectsSection.description}
           </p>
         </div>
@@ -81,6 +103,21 @@ export default function Projects({
               <div
                 key={proj.id}
                 onClick={() => setSelectedProject(proj)}
+                data-directus={editAttr({
+                  collection: "projects",
+                  item: proj.cmsId,
+                  fields: [
+                    "title",
+                    "client",
+                    "location",
+                    "area",
+                    "completion_time",
+                    "description",
+                    "achievement",
+                    "tags",
+                  ],
+                  mode: "drawer",
+                })}
                 className="group relative bg-slate-50 border border-gray-100/50 rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:shadow-2xl hover:translate-y-[-10px] hover:border-orange-400"
               >
                 {/* Product/Construction Shot */}

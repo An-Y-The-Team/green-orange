@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@yan/ui/components/button";
 
 import { Category, CategoryFilter } from "@/constants/category";
+import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import type { SiteSettings } from "../../data";
 import { Testimonial } from "../../types";
@@ -37,14 +38,35 @@ export default function Testimonials({
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full">
+          <span
+            className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "testimonials_section_eyebrow",
+            })}
+          >
             {settings.testimonialsSection.eyebrow}
           </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4">
+          <h2
+            className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "testimonials_section_heading",
+            })}
+          >
             {settings.testimonialsSection.heading}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
-          <p className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed">
+          <p
+            className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "testimonials_section_description",
+            })}
+          >
             {settings.testimonialsSection.description}
           </p>
         </div>
@@ -71,6 +93,12 @@ export default function Testimonials({
           {filteredReviews.map((testi) => (
             <div
               key={testi.id}
+              data-directus={editAttr({
+                collection: "testimonials",
+                item: testi.cmsId,
+                fields: ["content", "author", "role", "company", "rating"],
+                mode: "drawer",
+              })}
               className="bg-white rounded-3xl border border-gray-100 p-8 flex flex-col items-start text-left shadow-xs transition-all duration-500 hover:shadow-2xl hover:translate-y-[-10px] hover:border-emerald-300 relative group"
             >
               {/* Decorative Quotes Icon */}

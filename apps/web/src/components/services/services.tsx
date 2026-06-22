@@ -15,6 +15,7 @@ import {
 } from "@yan/ui/components/dialog";
 
 import { Category, CategoryFilter } from "@/constants/category";
+import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import type { SiteSettings } from "../../data";
 import { Service } from "../../types";
@@ -45,14 +46,35 @@ export default function Services({
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         {/* Section Title */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-sm font-black text-orange-500 uppercase tracking-widest bg-orange-50 px-3.5 py-1 rounded-full">
+          <span
+            className="text-sm font-black text-orange-500 uppercase tracking-widest bg-orange-50 px-3.5 py-1 rounded-full"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "services_section_eyebrow",
+            })}
+          >
             {settings.servicesSection.eyebrow}
           </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4">
+          <h2
+            className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "services_section_heading",
+            })}
+          >
             {settings.servicesSection.heading}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
-          <p className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed">
+          <p
+            className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "services_section_description",
+            })}
+          >
             {settings.servicesSection.description}
           </p>
         </div>
@@ -109,12 +131,27 @@ export default function Services({
                 </div>
 
                 {/* Service Title */}
-                <h3 className="text-2xl font-black font-heading text-slate-800 mb-3 group-hover:text-emerald-700 transition-colors leading-tight">
+                <h3
+                  className="text-2xl font-black font-heading text-slate-800 mb-3 group-hover:text-emerald-700 transition-colors leading-tight"
+                  data-directus={editAttr({
+                    collection: "services",
+                    item: service.cmsId,
+                    fields: "title",
+                  })}
+                >
                   {service.title}
                 </h3>
 
                 {/* Short Desc */}
-                <p className="text-slate-500 text-base leading-relaxed mb-6 flex-grow">
+                <p
+                  className="text-slate-500 text-base leading-relaxed mb-6 flex-grow"
+                  data-directus={editAttr({
+                    collection: "services",
+                    item: service.cmsId,
+                    fields: "description",
+                    mode: "modal",
+                  })}
+                >
                   {service.description}
                 </p>
 
