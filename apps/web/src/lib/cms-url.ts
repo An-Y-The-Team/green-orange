@@ -1,6 +1,7 @@
 // Public origins, kept in their own SDK-free module so client components (e.g.
 // the contact form) can import CMS_URL without pulling the Directus SDK into the
 // client bundle. `||` (not `??`) so an empty-string build arg also falls back.
+// NEXT_PUBLIC_CMS_URL must be set as a GitHub Actions variable before building.
 
 // Base URL of the decoupled Directus CMS. Public: the browser loads media from
 // `${CMS_URL}/assets/<id>` and the contact form POSTs here.
