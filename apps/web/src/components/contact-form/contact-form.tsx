@@ -11,8 +11,8 @@ import { Textarea } from "@yan/ui/components/textarea";
 
 import { Category, isCategory } from "@/constants/category";
 import { SubmissionStatus } from "@/constants/submission-status";
+import { CMS_URL } from "@/lib/cms-url";
 
-import { CMS_URL } from "../../data";
 import { ContactSubmission, Service } from "../../types";
 import {
   SEARCH_PARAM,
@@ -108,21 +108,22 @@ export default function ContactForm({ services }: { services: Service[] }) {
       return;
     }
 
-    // Persist the lead to the Payload CMS. Optional fields are omitted when
-    // blank so the CMS doesn't reject an empty email against its format check.
+    // Persist the lead to Directus (public create on `contact_submissions`).
+    // snake_case field names; optional fields omitted when blank. `status`
+    // defaults to `new` server-side and is never sent from the client.
     const payload: Record<string, unknown> = {
-      fullName,
+      full_name: fullName,
       phone,
-      serviceCategory,
+      service_category: serviceCategory,
     };
     if (email) payload.email = email;
-    if (companyName) payload.companyName = companyName;
+    if (companyName) payload.company_name = companyName;
     if (address) payload.address = address;
-    if (serviceId) payload.serviceId = serviceId;
+    if (serviceId) payload.service_id = serviceId;
     if (message) payload.message = message;
 
     try {
-      const res = await fetch(`${CMS_URL}/api/contact-submissions`, {
+      const res = await fetch(`${CMS_URL}/items/contact_submissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

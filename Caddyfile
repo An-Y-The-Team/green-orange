@@ -11,14 +11,15 @@ http://{$SITE_DOMAIN}:3000, http://www.{$SITE_DOMAIN}:3000 {
 	reverse_proxy web:3000
 }
 
-# Payload CMS (admin + REST/GraphQL API)
-http://{$CMS_DOMAIN}:3001 {
+# Directus CMS (Studio + REST/GraphQL API). Edge port stays :8055 (external
+# contract behind Pangolin).
+http://{$CMS_DOMAIN}:8055 {
 	log
 	# Allow media uploads through the admin panel.
 	request_body {
 		max_size 25MB
 	}
-	reverse_proxy cms:3001
+	reverse_proxy cms:8055
 }
 
 # CRM dashboard (Next.js). crm-api is NOT proxied here — it stays internal-only.

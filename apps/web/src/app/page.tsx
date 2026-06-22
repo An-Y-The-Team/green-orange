@@ -6,7 +6,7 @@ import Footer from "../components/footer/footer";
 import Header from "../components/header/header";
 import Hero from "../components/hero/hero";
 import Introduction from "../components/introduction/introduction";
-import { RefreshRouteOnSave } from "../components/live-preview/refresh-route-on-save";
+import { VisualEditorInit } from "../components/live-preview/visual-editor-init";
 import Projects from "../components/projects/projects";
 import Services from "../components/services/services";
 import Testimonials from "../components/testimonials/testimonials";
@@ -83,7 +83,7 @@ export default async function Page() {
         } as React.CSSProperties
       }
     >
-      {isPreviewMode && <RefreshRouteOnSave />}
+      {isPreviewMode && <VisualEditorInit />}
 
       {/* schema.org structured data for rich search results */}
       <script

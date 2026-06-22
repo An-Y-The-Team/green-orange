@@ -17,7 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       web_build: ${{ steps.f.outputs.web_build }}
-      cms_build: ${{ steps.f.outputs.cms_build }}
       crm-web_build: ${{ steps.f.outputs['crm-web_build'] }}
       crm-api_build: ${{ steps.f.outputs['crm-api_build'] }}
       prev_tag: ${{ steps.f.outputs.prev_tag }}
@@ -32,7 +31,6 @@ jobs:
           if [ -z "$PREV_TAG" ]; then
             echo "No previous tag — building all apps."
             echo "web_build=true" >> "$GITHUB_OUTPUT"
-            echo "cms_build=true" >> "$GITHUB_OUTPUT"
             echo "crm-web_build=true" >> "$GITHUB_OUTPUT"
             echo "crm-api_build=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -44,9 +42,7 @@ jobs:
           changed apps/web packages package.json bun.lock turbo.json \
             && echo "web_build=true" >> "$GITHUB_OUTPUT" \
             || echo "web_build=false" >> "$GITHUB_OUTPUT"
-          changed apps/cms packages package.json bun.lock turbo.json \
-            && echo "cms_build=true" >> "$GITHUB_OUTPUT" \
-            || echo "cms_build=false" >> "$GITHUB_OUTPUT"
+          # CMS is the official directus/directus image — never built here.
           changed apps/crm-web packages package.json bun.lock turbo.json \
             && echo "crm-web_build=true" >> "$GITHUB_OUTPUT" \
             || echo "crm-web_build=false" >> "$GITHUB_OUTPUT"
@@ -67,9 +63,6 @@ jobs:
         include:
           - app: web
             dockerfile: apps/web/Dockerfile
-            context: .
-          - app: cms
-            dockerfile: apps/cms/Dockerfile
             context: .
           - app: crm-web
             dockerfile: apps/crm-web/Dockerfile
@@ -224,7 +217,7 @@ jobs:
           git fetch origin --tags --prune --force
           git reset --hard "refs/tags/${TAG}"
           sed -i "s|^WEB_IMAGE=.*|WEB_IMAGE=ghcr.io/${REPO}-web:${TAG}|" .env.production
-          sed -i "s|^CMS_IMAGE=.*|CMS_IMAGE=ghcr.io/${REPO}-cms:${TAG}|" .env.production
+          # CMS is the pinned official directus/directus image — not a per-release build.
           sed -i "s|^CRM_WEB_IMAGE=.*|CRM_WEB_IMAGE=ghcr.io/${REPO}-crm-web:${TAG}|" .env.production
           sed -i "s|^CRM_API_IMAGE=.*|CRM_API_IMAGE=ghcr.io/${REPO}-crm-api:${TAG}|" .env.production
           docker compose -f docker-compose.prod.yml --env-file .env.production pull

@@ -1,21 +1,24 @@
 # Deployment — Self-hosted VPS (Docker Compose + GitHub Actions)
 
-Build images on **GitHub Actions**, push to **GHCR** (private), and **SSH-deploy**
-to a single VPS running everything in Docker Compose: Postgres + CMS + web behind
-**Caddy** with automatic Let's Encrypt TLS.
+Build the app images on **GitHub Actions**, push to **GHCR** (private), and
+**SSH-deploy** to a single VPS running everything in Docker Compose: Postgres +
+CMS + web behind **Caddy** with automatic Let's Encrypt TLS. The CMS is
+**Directus**, pulled from its **official image** (we don't build a CMS image).
 
 ```bash
-push tag vX.Y.Z ─► GitHub Actions ─► build web+cms (amd64) ─► GHCR
+push tag vX.Y.Z ─► GitHub Actions ─► build web+crm (amd64) ─► GHCR
                                                                 │
                           SSH ◄──── deploy job ────────────────┘
-                          git pull · compose pull · up -d · (cms runs migrate)
+            git pull · compose pull (incl. directus/directus) · up -d
+            (cms container runs `directus bootstrap` + `schema apply` on start)
 
 VPS:  caddy(443) ─► web:3000           ┌ Postgres (internal, volume: pgdata)
-                 └► cms:3001 ──────────┘ uploads (volume: media)
+                 └► cms:8055 ──────────┘ uploads (volume: media → /directus/uploads)
       (auto-HTTPS; certs persist in volume: caddy_data)
 ```
 
-The VPS never builds — it only pulls finished images, so a small (1–2 GB) box is fine.
+The VPS never builds — it only pulls finished images (the app images from GHCR
+and the official `directus/directus`), so a small (1–2 GB) box is fine.
 
 ---
 
@@ -24,7 +27,7 @@ The VPS never builds — it only pulls finished images, so a small (1–2 GB) bo
 - A VPS (Ubuntu 22.04+, **amd64**) with a public IP.
 - A domain. Two DNS **A** records pointing at the VPS IP:
   - `example.com` (and `www.example.com`) → site
-  - `cms.example.com` → Payload admin/API
+  - `cms.example.com` → Directus Studio/API
 - Docker Engine + Compose plugin on the VPS.
 - This repo pushed to GitHub.
 
@@ -33,9 +36,10 @@ The VPS never builds — it only pulls finished images, so a small (1–2 GB) bo
 > network. CI therefore joins that network (Olm client) before deploying. See
 > §2a.
 >
-> Repo: `An-Y-The-Team/green-orange` → images publish to
-> `ghcr.io/an-y-the-team/green-orange-{web,cms}`. Replace `example.com` throughout
-> with your real domain.
+> Repo: `An-Y-The-Team/green-orange` → app images publish to
+> `ghcr.io/an-y-the-team/green-orange-{web,crm-web,crm-api}`. The CMS is **not**
+> built here — it's the official `directus/directus` image pulled at deploy.
+> Replace `example.com` throughout with your real domain.
 
 ---
 
@@ -181,9 +185,11 @@ cd /root/green-orange
 
 # Production env
 cp .env.production.example .env.production
-# Edit it: set a strong POSTGRES_PASSWORD, a fresh PAYLOAD_SECRET
-#   (openssl rand -hex 32), CORS_ORIGINS, and the Caddy domains
-#   (SITE_DOMAIN / CMS_DOMAIN / ACME_EMAIL).
+# Edit it: set a strong POSTGRES_PASSWORD; fresh DIRECTUS_KEY + DIRECTUS_SECRET +
+#   DIRECTUS_PREVIEW_SECRET (each `openssl rand -hex 32`); DIRECTUS_ADMIN_EMAIL /
+#   DIRECTUS_ADMIN_PASSWORD (first admin); DIRECTUS_PUBLIC_URL (https://cms.<domain>);
+#   CORS_ORIGINS; and the Caddy domains (SITE_DOMAIN / CMS_DOMAIN / ACME_EMAIL).
+#   Leave DIRECTUS_STATIC_TOKEN blank for now — you fill it in §6 after setup-access.
 nano .env.production
 
 # Log in to GHCR so the VPS can PULL the private images. Authenticate with YOUR
@@ -225,32 +231,82 @@ GitHub builds both images, pushes to GHCR, and SSHes in to deploy.
 
 ```bash
 # After at least one successful build job has pushed images to GHCR:
-# set WEB_IMAGE / CMS_IMAGE in .env.production to that tag, then:
+# set WEB_IMAGE / CRM_WEB_IMAGE / CRM_API_IMAGE in .env.production to that tag.
+# (There is no CMS_IMAGE — the cms service pins the official directus/directus image.)
 docker compose -f docker-compose.prod.yml --env-file .env.production pull
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 ```
 
-The CMS container runs `payload migrate` automatically on startup, creating the
-schema on a fresh database.
+> **One-time: create the `directus` database.** The Postgres init script only
+> creates databases on a **fresh** volume. On an existing prod volume, create it
+> by hand once **before** the CMS starts (the legacy Payload `cms` DB is left
+> intact for rollback):
+>
+> ```bash
+> docker compose -f docker-compose.prod.yml --env-file .env.production \
+>   exec postgres psql -U "$POSTGRES_USER" -c "CREATE DATABASE directus;"
+> ```
+
+On start the CMS container runs `directus bootstrap` (creates the tables + the
+admin user from `DIRECTUS_ADMIN_EMAIL` / `DIRECTUS_ADMIN_PASSWORD`) and
+`directus schema apply` (creates all collections from the committed
+`apps/cms/snapshots/snapshot.yaml`) — both idempotent.
 
 ---
 
 ## 6. Post-deploy
 
 ```bash
-# Create the first admin user
-open https://cms.example.com/admin   # follow the create-first-user prompt
+# 1. Log in to the Studio (admin was created by `directus bootstrap`).
+open https://cms.example.com        # login: DIRECTUS_ADMIN_EMAIL / DIRECTUS_ADMIN_PASSWORD
 
-# (Optional) seed the demo content into production
-docker compose -f docker-compose.prod.yml --env-file .env.production exec cms \
-  /app/node_modules/.bin/payload run src/seed.ts   # path is relative to /app/apps/cms (the container WORKDIR)
+# 2. Set up access control + mint the web app's read token.
+#    Run from apps/cms on the authorized machine (it just needs to reach the prod CMS):
+cd apps/cms
+DIRECTUS_PUBLIC_URL=https://cms.example.com \
+DIRECTUS_ADMIN_EMAIL=<admin> DIRECTUS_ADMIN_PASSWORD=<pw> \
+bun run setup-access                 # prints DIRECTUS_STATIC_TOKEN=...
+
+# 3. Put the printed token into .env.production (DIRECTUS_STATIC_TOKEN=...) and
+#    re-apply so the web service picks it up:
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d web
+
+# 4a. Carry the REAL Payload content over (cutover) — while old Payload still runs:
+#     see docs/payload-to-directus-migration/prod-data-migration.md, then
+#     PAYLOAD_EXPORT_DIR=... bun run migrate-from-payload
+# 4b. …or just load DEMO content instead:
+DIRECTUS_PUBLIC_URL=https://cms.example.com \
+DIRECTUS_ADMIN_EMAIL=<admin> DIRECTUS_ADMIN_PASSWORD=<pw> \
+bun run seed
 ```
+
+> The web app's published reads fall back to **anonymous** access (the Public
+> policy allows it), so the site works even before the static token is set — the
+> token just gives it an explicit credential and unlocks draft/preview reads.
+
+Then enable the **Visual Editor** in the Studio (two parts):
+
+1. **Settings → Settings → Modules** → toggle **Visual Editor** on (it then shows
+   in the left module bar).
+2. **Settings → Visual Editor** → add the **preview entry URL** so the page loads
+   in Next draft mode (the edit overlays only mount in preview):
+
+   ```text
+   https://example.com/api/preview?secret=<DIRECTUS_PREVIEW_SECRET>&redirect=/
+   ```
+
+Both CSP directions are already wired: the site lists the Studio origin in its
+`frame-ancestors` (`apps/web/next.config.ts`), and Directus lists the site origin
+in `CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_SRC` (the `cms` service), so the
+Studio can embed the site. `CACHE_AUTO_PURGE=true` makes saved edits show up
+immediately.
 
 Verify:
 
 - `https://example.com` loads (see note on first-render below).
-- `https://cms.example.com/admin` logs in over HTTPS.
-- Submitting the contact form creates a row under **Leads → Contact Submissions**.
+- `https://cms.example.com` logs in over HTTPS.
+- Submitting the contact form creates a `contact_submissions` row (visible in the Studio).
+- Editing an element inside the Studio's Visual Editor iframe saves and the preview refreshes.
 
 > **Rendering note:** the homepage is `force-dynamic`, so it renders at request
 > time reading the CMS over the internal network (`CMS_INTERNAL_URL`). Content is
@@ -331,8 +387,9 @@ client id/secret) to paste into crm-api/crm-web env **when you deploy the CRM ap
 [`docs/authentik-oidc-milestone.md`](docs/authentik-oidc-milestone.md).
 
 > **Network note:** Caddy publishes `9000` for `auth.` the same way it publishes
-> `3000`/`3001` for the site/CMS (HTTP on a custom port, fronted by the Pangolin/Newt
-> edge that terminates TLS). No `ufw` change beyond what the site already needs.
+> the site (`3000`) and CMS (`8055`) — HTTP on a custom port, fronted by the
+> Pangolin/Newt edge that terminates TLS. No `ufw` change beyond what the site
+> already needs.
 >
 > Two edge gotchas that both look like "Authentik is healthy but the login page
 > won't load" (the UI shell renders, then shows _"The request failed and the
@@ -448,17 +505,23 @@ git tag v1.1.0 && git push origin v1.1.0
 > previous one. An app whose dir + shared root files (`package.json`, `bun.lock`,
 > `turbo.json`) are unchanged is **not rebuilt** — its previous image is re-tagged
 > to the new release via `docker buildx imagetools` (registry-side, seconds). So
-> a CMS-only change won't rebuild the web image, and vice-versa. (If the previous
-> image is missing, it falls back to a full build.)
+> a web-only change won't rebuild the CRM images, and vice-versa. (If the previous
+> image is missing, it falls back to a full build.) The CMS is never built — its
+> pinned `directus/directus` image is just pulled on deploy.
 
 **Rollback** — redeploy a previous tag by re-running that release's workflow
 (Actions → select run → Re-run), or on the VPS:
 
 ```bash
 sed -i 's|^WEB_IMAGE=.*|WEB_IMAGE=ghcr.io/an-y-the-team/green-orange-web:v1.0.0|' .env.production
-sed -i 's|^CMS_IMAGE=.*|CMS_IMAGE=ghcr.io/an-y-the-team/green-orange-cms:v1.0.0|' .env.production
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 ```
+
+> **Rolling back across the Payload → Directus cutover** is different from an
+> ordinary image rollback: redeploy the **pre-migration tag**, whose compose still
+> references the Payload CMS image + the legacy `cms` database (left intact). The
+> `directus` database and its uploads volume are untouched, so you can roll
+> forward again later.
 
 ---
 
@@ -466,41 +529,51 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 
 ```bash
 # Postgres — nightly dump per database (add to deploy user's crontab).
-# `pg_dumpall` is simplest if you'd rather grab cms + authentik in one shot.
+# Directus content now lives in the `directus` DB (NOT the old Payload `cms`).
+# `pg_dumpall` is simplest if you'd rather grab directus + authentik in one shot.
 0 3 * * * docker compose -f /root/green-orange/docker-compose.prod.yml --env-file /root/green-orange/.env.production \
-  exec -T postgres pg_dump -U postgres cms | gzip > /root/backups/cms-$(date +\%F).sql.gz
+  exec -T postgres pg_dump -U postgres directus | gzip > /root/backups/directus-$(date +\%F).sql.gz
 5 3 * * * docker compose -f /root/green-orange/docker-compose.prod.yml --env-file /root/green-orange/.env.production \
   exec -T postgres pg_dump -U postgres authentik | gzip > /root/backups/authentik-$(date +\%F).sql.gz
 
-# Media uploads live in the `media` named volume — back it up too:
+# Uploaded files live in the `media` named volume (mounted at /directus/uploads) —
+# back it up too:
 docker run --rm -v green-orange_media:/data -v /root/backups:/backup alpine \
   tar czf /backup/media-$(date +%F).tar.gz -C /data .
 ```
 
-Restore: `gunzip -c dump.sql.gz | docker compose ... exec -T postgres psql -U postgres cms`.
+Restore: `gunzip -c dump.sql.gz | docker compose ... exec -T postgres psql -U postgres directus`.
 
 ---
 
-## 9. Schema changes (migrations)
+## 9. Schema changes (data model)
 
-When you change a Payload collection:
+The Directus data model is committed as a snapshot at
+`apps/cms/snapshots/snapshot.yaml` and re-applied on every container start. When
+you change the model, update that snapshot and commit it:
 
 ```bash
-# locally, against your dev DB
-bun run --cwd apps/cms payload migrate:create <name>
-git add apps/cms/src/migrations && git commit
+# locally, against your dev Directus (collections edited in Studio or via build-schema)
+docker exec <local-cms-container> npx directus schema snapshot --yes /directus/snapshots/snapshot.yaml
+git add apps/cms/snapshots/snapshot.yaml && git commit
 ```
 
-The new migration ships in the next image and runs automatically on deploy.
+On the next deploy the CMS container runs `directus schema apply` against the
+committed snapshot automatically (idempotent — a no-op when nothing changed).
+
+> **Note:** `schema apply` covers collections/fields/relations only — **not**
+> roles, permissions, or content. Access changes go through `apps/cms` →
+> `bun run setup-access` (see §6); content through `bun run seed`.
 
 ---
 
 ## Notes / optional hardening
 
-- **`serverURL`:** not set in `payload.config.ts`; Payload uses relative URLs,
-  which work behind Caddy. Set one via env if you need absolute media/admin URLs.
+- **`PUBLIC_URL`:** Directus needs `DIRECTUS_PUBLIC_URL=https://cms.<domain>` set
+  (it builds absolute asset/admin URLs and OAuth redirects from it). It's wired in
+  `.env.production` and passed to the container in `docker-compose.prod.yml`.
 - **Machine user:** instead of a personal PAT on the VPS, use a dedicated GitHub
   machine user with read-only package access.
 - **Postgres is internal-only** (no published port); keep it that way.
-- Both `next.config.ts` pin `turbopack.root` to the monorepo root, so builds are
-  unaffected by stray lockfiles.
+- `apps/web/next.config.ts` pins `turbopack.root` to the monorepo root, so builds
+  are unaffected by stray lockfiles.

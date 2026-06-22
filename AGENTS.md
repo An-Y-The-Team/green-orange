@@ -34,8 +34,12 @@ Discourage the usage of useEffect anywhere in the application
 
 Production (databases, services) is **not reachable from a developer's local machine**. The prod network sits behind a VPS that is only accessible over the VPN, and the VPN can only be joined from a specific authorized machine. This means:
 
-- **Do not attempt to run scripts, migrations, or seeds against prod from this machine** — connections will fail. Hand the commands to the operator to run from the authorized machine instead.
-- Run DB-affecting commands (`payload migrate`, `payload run src/seed.ts`, `pg_dump`, etc.) **on the VPS**, ideally inside the running container (e.g. `docker exec <cms-container> ...`) where `DATABASE_URL` / `PAYLOAD_SECRET` are already set — this avoids copying prod secrets around.
+- **Do not attempt to run scripts, schema applies, or seeds against prod from this machine** — connections will fail. Hand the commands to the operator to run from the authorized machine instead.
+- The CMS is **Directus** (official image; config-as-code in `apps/cms`). Run DB/schema-affecting commands **on the VPS**, ideally inside the running Directus container where `DB_*` / `KEY` / `SECRET` are already set — this avoids copying prod secrets around. Typical ones:
+  - **Apply the data model**: `docker exec <cms-container> npx directus schema apply --yes /directus/snapshots/snapshot.yaml` (also runs automatically on container start).
+  - **Bootstrap / first admin**: handled by `directus bootstrap` on container start (from `ADMIN_EMAIL` / `ADMIN_PASSWORD`).
+  - **Access control + seed**: from `apps/cms`, run `bun run setup-access` then `bun run seed` (or `bun run migrate-from-payload` for the real cutover content) pointed at the prod Directus URL with admin creds — the operator runs these from the authorized machine.
+  - **Backups**: `docker exec <postgres-container> pg_dump -U "$POSTGRES_USER" directus > directus-$(date +%F).sql` (the `directus` DB, plus the uploads volume).
 
 ---
 

@@ -3,6 +3,8 @@ import { SubmissionStatus } from "@/constants/submission-status";
 
 export interface Service {
   id: string;
+  /** Directus primary key — used by the Visual Editor (setAttr `item`). */
+  cmsId?: number;
   title: string;
   description: string;
   category: Category.CLEANING | Category.CONSTRUCTION;
@@ -15,6 +17,8 @@ export interface Service {
 
 export interface Project {
   id: string;
+  /** Directus primary key — used by the Visual Editor (setAttr `item`). */
+  cmsId?: number;
   title: string;
   client: string;
   category: Category.CLEANING | Category.CONSTRUCTION;
@@ -36,6 +40,8 @@ export interface Project {
 
 export interface Testimonial {
   id: string;
+  /** Directus primary key — used by the Visual Editor (setAttr `item`). */
+  cmsId?: number;
   author: string;
   role: string;
   company: string;

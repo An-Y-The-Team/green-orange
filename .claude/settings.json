@@ -109,7 +109,9 @@
       "Bash(jobs -p)",
       "Bash(xargs -r kill)",
       "Bash(bun \"/private/tmp/claude-501/-Users-thienydo-antigravity-yan-portf/db23a5f0-a4f8-42fc-beb2-1483f1fc1c6d/scratchpad/mock-enums.mjs\")",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "WebFetch(domain:github.com)",
+      "Bash(echo \"dev started, pid $!\")"
     ],
     "additionalDirectories": [
       "/tmp",
