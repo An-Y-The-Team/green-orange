@@ -10,9 +10,9 @@
 # production container images locally (migrations, standalone Next servers, etc.).
 #
 # Pinned project name so container/volume names don't depend on the checkout
-# folder. NOTE: this uses its OWN Postgres volume — it does not share data with
-# the `docker compose up postgres` dev workflow, and both bind host port 5432, so
-# run one or the other (not both at once).
+# folder. NOTE: this uses its OWN Postgres volume — it does NOT share data with
+# the everyday-dev stack (`docker compose up` → green-orange-dev: postgres +
+# Directus). Both bind host port 5432, so run one or the other, not both at once.
 name: green-orange-local
 
 services:
@@ -59,8 +59,12 @@ services:
       ADMIN_PASSWORD: admin
       CORS_ENABLED: 'true'
       CORS_ORIGIN: http://localhost:3000,http://localhost:8055
-      # Lets the public site be embedded in an iframe (Visual Editor, Phase 4).
-      CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_ANCESTORS: "'self' http://localhost:3000"
+      # Lets the Studio's Visual Editor embed the public site in an iframe
+      # (frame-src = sources Directus may load; the site allows being framed via
+      # its own frame-ancestors header).
+      CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_SRC: "'self' http://localhost:3000"
+      # Purge the API cache on writes so Visual Editor saves show up immediately.
+      CACHE_AUTO_PURGE: 'true'
       WEBSOCKETS_ENABLED: 'true'
     # bootstrap = create tables + admin (idempotent); schema apply = sync the data
     # model from the committed snapshot (guarded until Phase 2 creates the file).

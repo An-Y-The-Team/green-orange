@@ -32,16 +32,35 @@ This project uses [Bun](https://bun.sh/) as its package manager and script runne
 
 ### Running Development Servers
 
-To start both the Web frontend and the CMS backend concurrently, run:
+The CMS is **Directus** (an official Docker image), so it does **not** run under
+Turbo. Everyday dev is two commands — start the infra (Postgres + Directus) in
+Docker, then run the front-end apps on the host with hot reload:
 
 ```bash
+# 1. Postgres + Directus (CMS) — the green-orange-dev stack
+docker compose up -d
+
+# 2. Web + CRM on the host (Turbo skips the CMS — it's already in Docker)
 bun run dev
 ```
 
-This uses Turborepo to start the development servers:
+| Service           | URL                     | Notes                                        |
+| ----------------- | ----------------------- | -------------------------------------------- |
+| **Web App**       | <http://localhost:3000> | hot reload via Turbo                         |
+| **CMS (Studio)**  | <http://localhost:8055> | Directus — login `admin@example.com`/`admin` |
+| **CRM dashboard** | <http://localhost:3002> | mock data by default                         |
 
-- **Web App**: <http://localhost:3000>
-- **CMS Admin**: <http://localhost:3001>
+> **First boot only** — once Directus is up, load access control + demo content
+> (from `apps/cms`, against the running instance):
+>
+> ```bash
+> cd apps/cms
+> bun run setup-access   # prints DIRECTUS_STATIC_TOKEN= → paste into apps/web/.env
+> bun run seed           # idempotent demo services/projects/testimonials
+> ```
+>
+> Published reads work anonymously even without the token; it's needed for
+> draft/preview. See [`apps/cms/README.md`](apps/cms/README.md) for the details.
 
 ## 🐳 Running the full stack in Docker (locally)
 

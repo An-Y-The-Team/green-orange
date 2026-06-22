@@ -11,9 +11,9 @@ http://{$SITE_DOMAIN}:3000, http://www.{$SITE_DOMAIN}:3000 {
 	reverse_proxy web:3000
 }
 
-# Directus CMS (Studio + REST/GraphQL API). Edge port stays :3001 (external
-# contract behind Pangolin); only the upstream container port changed to 8055.
-http://{$CMS_DOMAIN}:3001 {
+# Directus CMS (Studio + REST/GraphQL API). Edge port stays :8055 (external
+# contract behind Pangolin).
+http://{$CMS_DOMAIN}:8055 {
 	log
 	# Allow media uploads through the admin panel.
 	request_body {

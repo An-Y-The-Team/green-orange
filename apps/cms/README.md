@@ -29,19 +29,27 @@ Runs on **<http://localhost:8055>** in development (the web app is on `:3000`).
 
 ## Run Directus locally
 
-Directus and its Postgres `directus` database come up via the repo-root compose file:
+Directus and its Postgres `directus` database come up via the repo-root **dev**
+compose file (`docker-compose.yml`) — the same stack you run alongside
+`turbo run dev`:
 
 ```bash
 # from the repo root
-docker compose -f docker-compose.local.yml up -d postgres cms
+docker compose up -d        # postgres + Directus (cms)
 ```
 
 On start the container runs `directus bootstrap` (creates tables + the admin user
-from `ADMIN_EMAIL`/`ADMIN_PASSWORD`) and `directus schema apply` (re-applies
-`snapshots/snapshot.yaml`). Open <http://localhost:8055> and log in.
+from `ADMIN_EMAIL`/`ADMIN_PASSWORD` → `admin@example.com` / `admin`) and
+`directus schema apply` (re-applies `snapshots/snapshot.yaml`). Open
+<http://localhost:8055> and log in.
 
 > The Postgres init script only creates databases on a **fresh** volume. On an
 > existing volume, create the `directus` database by hand once (see `DEPLOY.md`).
+>
+> `docker-compose.local.yml` (`green-orange-local`) also defines a `cms` service,
+> but it's an **isolated full-container build** with its own Postgres volume — use
+> it only for prod-image smoke tests, not everyday dev (and never both at once —
+> they share host port 5432).
 
 ## Environment
 
@@ -72,7 +80,7 @@ Edit the model in Studio (or via `build-schema`), then snapshot it from inside t
 running container so the committed YAML stays the source of truth:
 
 ```bash
-docker exec <cms-container> npx directus schema snapshot --yes /directus/snapshots/snapshot.yaml
+docker exec green-orange-dev-cms-1 npx directus schema snapshot --yes /directus/snapshots/snapshot.yaml
 ```
 
 Commit the updated `snapshots/snapshot.yaml`. On the next deploy the container

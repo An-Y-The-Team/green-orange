@@ -114,7 +114,16 @@ bun run migrate-from-payload
 
 ### 7. Enable the Visual Editor
 
-In the Studio: **Settings → Visual Editor** → add the site origin `https://dichvuyan.com` as an allowed URL pointing at the preview route. The site's CSP already allows the Studio origin (`frame-ancestors`).
+Two parts in the Studio:
+
+1. **Settings → Settings → Modules** → toggle **Visual Editor** on (then it appears in the left module bar).
+2. **Settings → Visual Editor** → add the **preview entry URL** (it must enter Next draft mode — the edit overlays only mount in preview):
+
+   ```text
+   https://dichvuyan.com/api/preview?secret=<DIRECTUS_PREVIEW_SECRET>&redirect=/
+   ```
+
+Both CSP directions are wired in code: the site allows the Studio to frame it (`frame-ancestors` in `apps/web/next.config.ts`) **and** Directus allows embedding the site (`CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_SRC` on the `cms` service — **not** `FRAME_ANCESTORS`, which is the wrong direction). `CACHE_AUTO_PURGE=true` makes saves refresh immediately.
 
 ### 8. Verify, then retire Payload
 

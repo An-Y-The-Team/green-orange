@@ -284,9 +284,22 @@ bun run seed
 > policy allows it), so the site works even before the static token is set — the
 > token just gives it an explicit credential and unlocks draft/preview reads.
 
-Then enable the **Visual Editor**: in the Studio go to **Settings → Visual
-Editor** and add the site origin (`https://example.com`) as an allowed URL. The
-site's CSP already lists the Studio origin in `frame-ancestors`.
+Then enable the **Visual Editor** in the Studio (two parts):
+
+1. **Settings → Settings → Modules** → toggle **Visual Editor** on (it then shows
+   in the left module bar).
+2. **Settings → Visual Editor** → add the **preview entry URL** so the page loads
+   in Next draft mode (the edit overlays only mount in preview):
+
+   ```text
+   https://example.com/api/preview?secret=<DIRECTUS_PREVIEW_SECRET>&redirect=/
+   ```
+
+Both CSP directions are already wired: the site lists the Studio origin in its
+`frame-ancestors` (`apps/web/next.config.ts`), and Directus lists the site origin
+in `CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_SRC` (the `cms` service), so the
+Studio can embed the site. `CACHE_AUTO_PURGE=true` makes saved edits show up
+immediately.
 
 Verify:
 

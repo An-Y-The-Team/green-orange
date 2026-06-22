@@ -13,9 +13,9 @@ const dirname = path.dirname(__filename);
 const standalone = process.env.NEXT_OUTPUT_STANDALONE === "1";
 
 // Allow <Image> to load media uploaded to the CMS. Derived from the public CMS
-// URL so it works across local dev (http://localhost:3001) and prod
+// URL so it works across local dev (http://localhost:8055) and prod
 // (https://cms.example.com) without hardcoding the host.
-const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL || "http://localhost:3001";
+const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL || "http://localhost:8055";
 const cms = new URL(cmsUrl);
 const cmsRemotePattern = {
   protocol: cms.protocol.replace(":", "") as "http" | "https",

@@ -1,6 +1,22 @@
-# Local dev Postgres for the monorepo. One container hosts a database per app via
-# the init script: `cms`, `crm`, and `authentik` (the opt-in IdP in
-# docker-compose.authentik.yml connects here instead of running its own Postgres).
+# Local dev infrastructure for the monorepo: Postgres + the Directus CMS. This is
+# what you run alongside `turbo run dev` (which serves web/crm on the host with hot
+# reload but does NOT start the CMS — Directus is the official Docker image, so it
+# lives here):
+#
+#   docker compose up -d      # postgres + Directus (CMS)
+#   turbo run dev             # web :3000 + crm on the host
+#
+# One Postgres container hosts a database per app via the init script:
+# `directus` (the live CMS DB), `crm`, `authentik`, and `cms` (the LEGACY Payload
+# DB, kept only for rollback — no longer used). The opt-in IdP in
+# docker-compose.authentik.yml attaches to this project's `green-orange-net` and
+# reuses the `authentik` DB here.
+#
+# This is the everyday-dev stack and owns your real local dataset. It is SEPARATE
+# from docker-compose.local.yml (`green-orange-local`), which is an isolated
+# full-container build for prod-image smoke tests with its OWN Postgres volume —
+# the two bind the same host port 5432, so run one or the other, not both.
+#
 # `name` is pinned so the Compose project — and therefore the container/volume
 # names — never depends on the checkout folder (local "yan-portf" vs prod
 # "green-orange").
@@ -25,8 +41,55 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Directus CMS (port 8055) — official image; bootstraps + applies the ──────
+  # committed schema snapshot on startup. No build step (config-as-code lives in
+  # apps/cms/snapshots + apps/cms/extensions). `turbo run dev` does NOT start this
+  # — run it here. After first boot, load access + demo content from apps/cms:
+  #   bun run setup-access   (prints DIRECTUS_STATIC_TOKEN → apps/web/.env)
+  #   bun run seed
+  cms:
+    image: directus/directus:12.0.2
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KEY: local-dev-directus-key-change-me
+      SECRET: local-dev-directus-secret-change-me
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_PORT: '5432'
+      DB_DATABASE: directus
+      DB_USER: postgres
+      DB_PASSWORD: password
+      PUBLIC_URL: http://localhost:8055
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin
+      CORS_ENABLED: 'true'
+      CORS_ORIGIN: http://localhost:3000,http://localhost:8055
+      # Lets the Studio's Visual Editor embed the public site in an iframe
+      # (frame-src = sources Directus may load; this is the direction that matters
+      # — the site allows being framed via its own frame-ancestors header).
+      CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_SRC: "'self' http://localhost:3000"
+      # Purge the API cache on writes so Visual Editor saves show up immediately.
+      CACHE_AUTO_PURGE: 'true'
+      WEBSOCKETS_ENABLED: 'true'
+    # bootstrap = create tables + admin (idempotent); schema apply = sync the data
+    # model from the committed snapshot.
+    command: >
+      sh -c "npx directus bootstrap &&
+             (npx directus schema apply --yes /directus/snapshots/snapshot.yaml || echo 'no snapshot yet') &&
+             npx directus start"
+    ports:
+      - '8055:8055'
+    volumes:
+      - media:/directus/uploads
+      - ./apps/cms/snapshots:/directus/snapshots:ro
+      - ./apps/cms/extensions:/directus/extensions
+
 volumes:
   pgdata:
+  media:
 
 # Explicit, stable network name so the opt-in Authentik stack can join it as an
 # external network and reach this Postgres by the service alias `postgres`.

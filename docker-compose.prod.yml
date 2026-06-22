@@ -57,8 +57,12 @@ services:
       # Browser origins allowed to call the API (the web app's contact form).
       CORS_ENABLED: 'true'
       CORS_ORIGIN: ${CORS_ORIGINS}
-      # Lets the public site be embedded in the Visual Editor iframe.
-      CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_ANCESTORS: "'self' https://${SITE_DOMAIN}"
+      # Lets the Studio's Visual Editor embed the public site in an iframe
+      # (frame-src = sources Directus may load; this is the direction that matters
+      # — the site allows being framed via its own frame-ancestors header).
+      CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_SRC: "'self' https://${SITE_DOMAIN}"
+      # Purge the API cache on writes so Visual Editor saves show up immediately.
+      CACHE_AUTO_PURGE: 'true'
       WEBSOCKETS_ENABLED: 'true'
     command: >
       sh -c "npx directus bootstrap &&
