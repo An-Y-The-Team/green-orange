@@ -12,7 +12,9 @@ import { Textarea } from "@yan/ui/components/textarea";
 import { Category, isCategory } from "@/constants/category";
 import { SubmissionStatus } from "@/constants/submission-status";
 import { CMS_URL } from "@/lib/cms-url";
+import { editAttr } from "@/lib/visual-editor/edit-attr";
 
+import type { SiteSettings } from "../../data";
 import { ContactSubmission, Service } from "../../types";
 import {
   SEARCH_PARAM,
@@ -35,7 +37,13 @@ function readStoredSubmissions(): ContactSubmission[] {
   }
 }
 
-export default function ContactForm({ services }: { services: Service[] }) {
+export default function ContactForm({
+  services,
+  settings,
+}: {
+  services: Service[];
+  settings: SiteSettings;
+}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -197,17 +205,36 @@ export default function ContactForm({ services }: { services: Service[] }) {
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-sm font-black text-orange-500 uppercase tracking-widest bg-orange-50 px-3.5 py-1 rounded-full">
-            Liên Hệ Đăng Ký
+          <span
+            className="text-sm font-black text-orange-500 uppercase tracking-widest bg-orange-50 px-3.5 py-1 rounded-full"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "contact_section_eyebrow",
+            })}
+          >
+            {settings.contactSection.eyebrow}
           </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4">
-            Đăng Ký Khảo Sát & Tư Vấn Miễn Phí
+          <h2
+            className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "contact_section_heading",
+            })}
+          >
+            {settings.contactSection.heading}
           </h2>
           <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
-          <p className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed">
-            Chỉ với 1 phút điền thông tin, chúng tôi sẽ cử kỹ sư chuyên môn đến
-            khảo sát đo đạc thực tế hoàn toàn miễn phí. Cam kết bảo mật thông
-            tin tối đa.
+          <p
+            className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: settings.cmsId,
+              fields: "contact_section_description",
+            })}
+          >
+            {settings.contactSection.description}
           </p>
         </div>
 
@@ -218,13 +245,25 @@ export default function ContactForm({ services }: { services: Service[] }) {
               <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4.5 mb-6 text-left flex gap-3 animate-in fade-in slide-in-from-top duration-300">
                 <ClipboardCheck className="size-5 shrink-0 text-emerald-600 mt-0.5" />
                 <div>
-                  <h4 className="font-extrabold text-sm mb-1">
-                    Gửi yêu cầu thành công!
+                  <h4
+                    className="font-extrabold text-sm mb-1"
+                    data-directus={editAttr({
+                      collection: "site_settings",
+                      item: settings.cmsId,
+                      fields: "contact_section_success_heading",
+                    })}
+                  >
+                    {settings.contactSection.successHeading}
                   </h4>
-                  <p className="text-xs">
-                    Đơn của bạn đã được chuyển đến phòng dự án GreenOrange.
-                    Chuyên viên kỹ sư sẽ liên hệ với bạn qua điện thoại trong
-                    vòng **15 phút** tới.
+                  <p
+                    className="text-xs"
+                    data-directus={editAttr({
+                      collection: "site_settings",
+                      item: settings.cmsId,
+                      fields: "contact_section_success_body",
+                    })}
+                  >
+                    {settings.contactSection.successBody}
                   </p>
                 </div>
               </div>
@@ -409,9 +448,14 @@ export default function ContactForm({ services }: { services: Service[] }) {
                 id="contact-form-submit"
                 type="submit"
                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-base md:text-lg rounded-xl py-4.5 cursor-pointer shadow-md flex items-center justify-center gap-2 transform hover:scale-[1.03] transition-all active:scale-95 duration-250"
+                data-directus={editAttr({
+                  collection: "site_settings",
+                  item: settings.cmsId,
+                  fields: "contact_section_cta_label",
+                })}
               >
                 <Send className="size-4" />
-                Gửi Đăng Ký Khảo Sát Ngay (Miễn Phí)
+                {settings.contactSection.ctaLabel}
               </Button>
             </form>
           </div>

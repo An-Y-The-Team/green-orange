@@ -174,7 +174,11 @@ const addFields = async (collection: string, defs: FieldDef[]): Promise<void> =>
 }
 
 // Patch an existing field's meta (interface, options, etc.) — safe to re-run.
-const patchField = async (collection: string, field: string, meta: Record<string, unknown>): Promise<void> =>
+const patchField = async (
+  collection: string,
+  field: string,
+  meta: Record<string, unknown>,
+): Promise<void> =>
   tolerant(
     () => api('PATCH', `/fields/${collection}/${field}`, { meta }),
     `patch ${collection}.${field}`,

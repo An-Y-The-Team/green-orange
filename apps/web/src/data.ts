@@ -213,6 +213,12 @@ export interface SectionHeading {
   description: string;
 }
 
+export interface ContactSectionContent extends SectionHeading {
+  successHeading: string;
+  successBody: string;
+  ctaLabel: string;
+}
+
 export interface SiteSettings {
   /** Directus singleton id — used by the Visual Editor (setAttr `item`). */
   cmsId?: number;
@@ -272,6 +278,7 @@ export interface SiteSettings {
   servicesSection: SectionHeading;
   projectsSection: SectionHeading;
   testimonialsSection: SectionHeading;
+  contactSection: ContactSectionContent;
   footer: {
     brandDescription: string;
     quickLinksHeading: string;
@@ -468,6 +475,16 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     heading: "Đánh Giá Từ Khách Hàng Đã Trải Nghiệm",
     description:
       "Họ nói gì về năng lực thi công và cam kết sạch của chúng tôi? Sự hài lòng của các chủ thương hiệu là phần thưởng danh giá nhất.",
+  },
+  contactSection: {
+    eyebrow: "Liên Hệ Đăng Ký",
+    heading: "Đăng Ký Khảo Sát & Tư Vấn Miễn Phí",
+    description:
+      "Chỉ với 1 phút điền thông tin, chúng tôi sẽ cử kỹ sư chuyên môn đến khảo sát đo đạc thực tế hoàn toàn miễn phí. Cam kết bảo mật thông tin tối đa.",
+    successHeading: "Gửi yêu cầu thành công!",
+    successBody:
+      "Đơn của bạn đã được chuyển đến phòng dự án GreenOrange. Chuyên viên kỹ sư sẽ liên hệ với bạn qua điện thoại trong vòng 15 phút tới.",
+    ctaLabel: "Gửi Đăng Ký Khảo Sát Ngay (Miễn Phí)",
   },
   footer: {
     brandDescription:
@@ -814,6 +831,26 @@ export async function getSiteSettings(draft = false): Promise<SiteSettings> {
       description: orDefault(
         s.testimonials_section_description,
         d.testimonialsSection.description
+      ),
+    },
+    contactSection: {
+      eyebrow: orDefault(s.contact_section_eyebrow, d.contactSection.eyebrow),
+      heading: orDefault(s.contact_section_heading, d.contactSection.heading),
+      description: orDefault(
+        s.contact_section_description,
+        d.contactSection.description
+      ),
+      successHeading: orDefault(
+        s.contact_section_success_heading,
+        d.contactSection.successHeading
+      ),
+      successBody: orDefault(
+        s.contact_section_success_body,
+        d.contactSection.successBody
+      ),
+      ctaLabel: orDefault(
+        s.contact_section_cta_label,
+        d.contactSection.ctaLabel
       ),
     },
     footer: {

@@ -119,7 +119,7 @@ export default async function Page() {
             </div>
           }
         >
-          <ContactForm services={services} />
+          <ContactForm services={services} settings={settings} />
         </Suspense>
       </main>
 
