@@ -160,6 +160,14 @@ export interface DirectusSiteSettings {
   footer_email_prefix: string | null;
   footer_copyright_suffix: string | null;
   footer_back_to_top_label: string | null;
+  contact_form_label_full_name: string | null;
+  contact_form_label_phone: string | null;
+  contact_form_label_email: string | null;
+  contact_form_label_company: string | null;
+  contact_form_label_address: string | null;
+  contact_form_label_service_group: string | null;
+  contact_form_label_service_select: string | null;
+  contact_form_label_message: string | null;
   contact_section_eyebrow: string | null;
   contact_section_heading: string | null;
   contact_section_description: string | null;

@@ -276,8 +276,14 @@ export default function ContactForm({
                   <Label
                     htmlFor="fullname"
                     className="text-slate-700 font-extrabold text-xs mb-2 block"
+                    data-directus={editAttr({
+                      collection: "site_settings",
+                      item: settings.cmsId,
+                      fields: "contact_form_label_full_name",
+                    })}
                   >
-                    Họ và Tên Khách Hàng <span className="text-red-500">*</span>
+                    {settings.contactSection.labelFullName}{" "}
+                    <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     required
@@ -295,8 +301,13 @@ export default function ContactForm({
                   <Label
                     htmlFor="phone"
                     className="text-slate-700 font-extrabold text-xs mb-2 block"
+                    data-directus={editAttr({
+                      collection: "site_settings",
+                      item: settings.cmsId,
+                      fields: "contact_form_label_phone",
+                    })}
                   >
-                    Số Điện Thoại Liên Hệ{" "}
+                    {settings.contactSection.labelPhone}{" "}
                     <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -317,8 +328,13 @@ export default function ContactForm({
                   <Label
                     htmlFor="email"
                     className="text-slate-700 font-extrabold text-xs mb-2 block"
+                    data-directus={editAttr({
+                      collection: "site_settings",
+                      item: settings.cmsId,
+                      fields: "contact_form_label_email",
+                    })}
                   >
-                    Địa Chỉ Email
+                    {settings.contactSection.labelEmail}
                   </Label>
                   <Input
                     id="email"
@@ -335,8 +351,13 @@ export default function ContactForm({
                   <Label
                     htmlFor="company"
                     className="text-slate-700 font-extrabold text-xs mb-2 block"
+                    data-directus={editAttr({
+                      collection: "site_settings",
+                      item: settings.cmsId,
+                      fields: "contact_form_label_company",
+                    })}
                   >
-                    Tên Doanh Nghiệp / Thương Hiệu
+                    {settings.contactSection.labelCompany}
                   </Label>
                   <Input
                     id="company"
@@ -354,8 +375,13 @@ export default function ContactForm({
                 <Label
                   htmlFor="address"
                   className="text-slate-700 font-extrabold text-xs mb-2 block"
+                  data-directus={editAttr({
+                    collection: "site_settings",
+                    item: settings.cmsId,
+                    fields: "contact_form_label_address",
+                  })}
                 >
-                  Địa Chỉ Mặt Bằng / Công Trình Cần Khảo Sát
+                  {settings.contactSection.labelAddress}
                 </Label>
                 <Input
                   id="address"
@@ -369,8 +395,15 @@ export default function ContactForm({
 
               {/* Service group toggler */}
               <div>
-                <Label className="text-slate-700 font-extrabold text-xs mb-3 block">
-                  Nhóm Dịch Vụ Cần Đăng Ký
+                <Label
+                  className="text-slate-700 font-extrabold text-xs mb-3 block"
+                  data-directus={editAttr({
+                    collection: "site_settings",
+                    item: settings.cmsId,
+                    fields: "contact_form_label_service_group",
+                  })}
+                >
+                  {settings.contactSection.labelServiceGroup}
                 </Label>
                 <div className="grid grid-cols-3 gap-3">
                   {SERVICE_CATEGORY_OPTIONS.map((cat) => {
@@ -401,8 +434,13 @@ export default function ContactForm({
                 <Label
                   htmlFor="service-select"
                   className="text-slate-700 font-extrabold text-xs mb-2 block"
+                  data-directus={editAttr({
+                    collection: "site_settings",
+                    item: settings.cmsId,
+                    fields: "contact_form_label_service_select",
+                  })}
                 >
-                  Chọn Gói Dịch Vụ Cụ Thể (Bắt buộc)
+                  {settings.contactSection.labelServiceSelect}
                 </Label>
                 <select
                   id="service-select"
@@ -430,9 +468,13 @@ export default function ContactForm({
                 <Label
                   htmlFor="message"
                   className="text-slate-700 font-extrabold text-xs mb-2 block"
+                  data-directus={editAttr({
+                    collection: "site_settings",
+                    item: settings.cmsId,
+                    fields: "contact_form_label_message",
+                  })}
                 >
-                  Mô Tả Yêu Cầu Chi Tiết (Kích thước mặt bằng, tình trạng hiện
-                  tại, thời gian bàn giao mong muốn)
+                  {settings.contactSection.labelMessage}
                 </Label>
                 <Textarea
                   id="message"

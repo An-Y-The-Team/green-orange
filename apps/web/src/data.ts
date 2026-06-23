@@ -217,6 +217,14 @@ export interface ContactSectionContent extends SectionHeading {
   successHeading: string;
   successBody: string;
   ctaLabel: string;
+  labelFullName: string;
+  labelPhone: string;
+  labelEmail: string;
+  labelCompany: string;
+  labelAddress: string;
+  labelServiceGroup: string;
+  labelServiceSelect: string;
+  labelMessage: string;
 }
 
 export interface SiteSettings {
@@ -485,6 +493,15 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     successBody:
       "Đơn của bạn đã được chuyển đến phòng dự án GreenOrange. Chuyên viên kỹ sư sẽ liên hệ với bạn qua điện thoại trong vòng 15 phút tới.",
     ctaLabel: "Gửi Đăng Ký Khảo Sát Ngay (Miễn Phí)",
+    labelFullName: "Họ và Tên Khách Hàng",
+    labelPhone: "Số Điện Thoại Liên Hệ",
+    labelEmail: "Địa Chỉ Email",
+    labelCompany: "Tên Doanh Nghiệp / Thương Hiệu",
+    labelAddress: "Địa Chỉ Mặt Bằng / Công Trình Cần Khảo Sát",
+    labelServiceGroup: "Nhóm Dịch Vụ Cần Đăng Ký",
+    labelServiceSelect: "Chọn Gói Dịch Vụ Cụ Thể (Bắt buộc)",
+    labelMessage:
+      "Mô Tả Yêu Cầu Chi Tiết (Kích thước mặt bằng, tình trạng hiện tại, thời gian bàn giao mong muốn)",
   },
   footer: {
     brandDescription:
@@ -851,6 +868,38 @@ export async function getSiteSettings(draft = false): Promise<SiteSettings> {
       ctaLabel: orDefault(
         s.contact_section_cta_label,
         d.contactSection.ctaLabel
+      ),
+      labelFullName: orDefault(
+        s.contact_form_label_full_name,
+        d.contactSection.labelFullName
+      ),
+      labelPhone: orDefault(
+        s.contact_form_label_phone,
+        d.contactSection.labelPhone
+      ),
+      labelEmail: orDefault(
+        s.contact_form_label_email,
+        d.contactSection.labelEmail
+      ),
+      labelCompany: orDefault(
+        s.contact_form_label_company,
+        d.contactSection.labelCompany
+      ),
+      labelAddress: orDefault(
+        s.contact_form_label_address,
+        d.contactSection.labelAddress
+      ),
+      labelServiceGroup: orDefault(
+        s.contact_form_label_service_group,
+        d.contactSection.labelServiceGroup
+      ),
+      labelServiceSelect: orDefault(
+        s.contact_form_label_service_select,
+        d.contactSection.labelServiceSelect
+      ),
+      labelMessage: orDefault(
+        s.contact_form_label_message,
+        d.contactSection.labelMessage
       ),
     },
     footer: {
