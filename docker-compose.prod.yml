@@ -204,18 +204,10 @@ services:
       - authentik_certs:/certs
       - authentik_templates:/templates
     networks: [internal]
-
-  dozzle:
-    image: amir20/dozzle:latest
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks: [internal]
-
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
-    depends_on: [web, cms, crm-web, authentik-server, dozzle]
+    depends_on: [web, cms, crm-web, authentik-server]
     ports:
       - '3000:3000'
       - '3001:3001'

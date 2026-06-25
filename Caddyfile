@@ -7,14 +7,12 @@
 
 # Public marketing site
 http://{$SITE_DOMAIN}:3000, http://www.{$SITE_DOMAIN}:3000 {
-	log
 	reverse_proxy web:3000
 }
 
 # Directus CMS (Studio + REST/GraphQL API). Edge port stays :8055 (external
 # contract behind Pangolin).
 http://{$CMS_DOMAIN}:8055 {
-	log
 	# Allow media uploads through the admin panel.
 	request_body {
 		max_size 25MB
@@ -27,7 +25,6 @@ http://{$CMS_DOMAIN}:8055 {
 # edge, so Caddy sees plain HTTP. Without this, Auth.js builds its OAuth callback
 # (and cookies) for http://, and the Authentik redirect round-trip breaks.
 http://{$CRM_DOMAIN}:3002 {
-	log
 	reverse_proxy crm-web:3002 {
 		header_up X-Forwarded-Proto https
 	}
@@ -40,15 +37,7 @@ http://{$CRM_DOMAIN}:3002 {
 # https://) then blocks the SPA's own API fetch ("interceptors" error). Force
 # the real outside scheme so Authentik generates https:// URLs + CSP.
 http://{$AUTH_DOMAIN}:9000 {
-	log
 	reverse_proxy authentik-server:9000 {
 		header_up X-Forwarded-Proto https
 	}
-}
-
-# Dozzle (real-time Docker log viewer).
-# Fronted by Pangolin zero-trust network.
-http://{$LOGS_DOMAIN}:8080 {
-	log
-	reverse_proxy dozzle:8080
 }

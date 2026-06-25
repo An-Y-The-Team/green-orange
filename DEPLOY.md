@@ -465,16 +465,6 @@ internal network).
 
 ---
 
-## 6c. Interactive Logs (Dozzle)
-
-The stack includes **Dozzle**, a real-time web-based Docker log viewer. It gives you a UI to view and search container logs without SSH-ing into the VPS.
-
-**1. DNS** — add an A record `logs.example.com` (or whatever domain you want) → the VPS IP.
-**2. Env** — in `.env.production`, set `LOGS_DOMAIN`.
-**3. Secure with Pangolin** — just like the CRM dashboard, you **must** front Dozzle with a public Pangolin resource on port `8080`. Dozzle has no built-in auth in this stack, it relies entirely on Pangolin's zero-trust network for access control. Only authorized users should be able to access the logs dashboard.
-
----
-
 ## 7. Ongoing deploys
 
 Just cut a new tag. The repo uses `vX.Y.Z` tags, and pushing one triggers the
