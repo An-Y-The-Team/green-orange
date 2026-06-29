@@ -5,32 +5,32 @@ Contact import in app/models/__init__.py. Match the crm-web `Contact` type:
 name, email, phone, title, company.
 """
 
-# from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel
 #
 #
-# class ContactBase(SQLModel):
-#     name: str = Field(index=True)
-#     email: str
-#     phone: str
-#     title: str
-#     company: str
+class ContactBase(SQLModel):
+     name: str = Field(index=True)
+     email: str
+     phone: str
+     title: str
+     company: str
 #
 #
-# class Contact(ContactBase, table=True):
-#     id: int | None = Field(default=None, primary_key=True)
+class Contact(ContactBase, table=True):
+     id: int | None = Field(default=None, primary_key=True)
 #
 #
-# class ContactCreate(ContactBase):
-#     pass
+class ContactCreate(ContactBase):
+     pass
 #
 #
-# class ContactPublic(ContactBase):
-#     id: int
+class ContactPublic(ContactBase):
+     id: int
 #
 #
-# class ContactUpdate(SQLModel):
-#     name: str | None = None
-#     email: str | None = None
-#     phone: str | None = None
-#     title: str | None = None
-#     company: str | None = None
+class ContactUpdate(SQLModel):
+     name: str | None = None
+     email: str | None = None
+     phone: str | None = None
+     title: str | None = None
+     company: str | None = None
