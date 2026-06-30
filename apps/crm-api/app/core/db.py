@@ -9,9 +9,7 @@ from app.core.config import settings
 # SQLite (handy for quick local experiments / tests) needs check_same_thread off
 # because FastAPI runs sync routes in a threadpool. Ignored for Postgres.
 _connect_args = (
-    {"check_same_thread": False}
-    if settings.database_url.startswith("sqlite")
-    else {}
+    {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
 )
 engine = create_engine(settings.database_url, echo=False, connect_args=_connect_args)
 

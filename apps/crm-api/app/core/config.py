@@ -7,9 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # Postgres `crm` database provisioned by the repo's docker-compose.yml.
-    database_url: str = (
-        "postgresql+psycopg://postgres:password@localhost:5432/crm"
-    )
+    database_url: str = "postgresql+psycopg://postgres:password@localhost:5432/crm"
 
     # --- Local JWT auth (teaching default) ---------------------------------
     # Generate a real secret with:  openssl rand -hex 32

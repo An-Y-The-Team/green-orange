@@ -30,9 +30,7 @@ def list_customers(
 
 
 @router.get("/{customer_id}", response_model=CustomerPublic)
-def get_customer(
-    customer_id: int, session: SessionDep, _user: CurrentUser
-) -> Customer:
+def get_customer(customer_id: int, session: SessionDep, _user: CurrentUser) -> Customer:
     customer = session.get(Customer, customer_id)
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -68,9 +66,7 @@ def update_customer(
 
 
 @router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_customer(
-    customer_id: int, session: SessionDep, _user: CurrentUser
-) -> None:
+def delete_customer(customer_id: int, session: SessionDep, _user: CurrentUser) -> None:
     customer = session.get(Customer, customer_id)
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
