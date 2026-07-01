@@ -14,9 +14,9 @@ import { HeadlineColor, SiteSettings } from "../../data";
 const HEADLINE_COLOR_CLASS: Record<HeadlineColor, string> = {
   white: "text-white",
   emerald:
-    "text-linear bg-linear-to-r from-emerald-400 to-emerald-500 bg-clip-text text-transparent",
+    "text-linear bg-linear-to-r from-brand-primary-400 to-brand-primary-500 bg-clip-text text-transparent",
   orange:
-    "text-linear bg-linear-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent",
+    "text-linear bg-linear-to-r from-brand-secondary-400 to-brand-secondary-500 bg-clip-text text-transparent",
 };
 
 export default function Hero({ settings }: { settings: SiteSettings }) {
@@ -38,22 +38,22 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
         />
         {/* Subtle overlays to create intense contrast and premium style */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-slate-950/30" />
-        <div className="absolute inset-0 bg-linear-to-r from-emerald-950/20 via-transparent to-orange-950/20" />
+        <div className="absolute inset-0 bg-linear-to-r from-brand-primary-950/20 via-transparent to-brand-secondary-950/20" />
       </div>
 
       {/* Decorative floating blurred lights behind content for supreme depth perception */}
-      <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-emerald-500/25 rounded-full blur-3xl z-0 animate-float-ambient" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/15 rounded-full blur-3xl z-0 animate-float-ambient-alt" />
+      <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-brand-primary-500/25 rounded-full blur-3xl z-0 animate-float-ambient" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-brand-secondary-500/15 rounded-full blur-3xl z-0 animate-float-ambient-alt" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 w-full flex flex-col items-center">
         {/* 2. Concentrated centered box, custom premium styling, dark background, 75% opacity */}
         <div
           id="hero-main-card"
-          className="w-full max-w-5xl mx-auto bg-slate-950/75 backdrop-blur-md border border-white/10 rounded-3xl p-10 md:p-14 lg:p-16 text-center flex flex-col items-center shadow-2xl transition-all duration-500 hover:border-emerald-500/30 transform hover:scale-[1.01]"
+          className="w-full max-w-5xl mx-auto bg-slate-950/75 backdrop-blur-md border border-white/10 rounded-3xl p-10 md:p-14 lg:p-16 text-center flex flex-col items-center shadow-2xl transition-all duration-500 hover:border-brand-primary-500/30 transform hover:scale-[1.01]"
         >
           {/* Trust badge with glowing element */}
-          <div className="inline-flex items-center gap-2 py-2 px-4 bg-white/10 border border-white/15 shadow-sm rounded-full text-emerald-300 text-sm font-bold mb-8 animate-fade-in">
-            <ShieldCheck className="size-5 text-emerald-400" />
+          <div className="inline-flex items-center gap-2 py-2 px-4 bg-white/10 border border-white/15 shadow-sm rounded-full text-brand-primary-300 text-sm font-bold mb-8 animate-fade-in">
+            <ShieldCheck className="size-5 text-brand-primary-400" />
             <span
               className="tracking-wide"
               data-directus={editAttr({
@@ -109,7 +109,7 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
           >
             {hero.benefits.map((value, idx) => (
               <div key={idx} className="flex items-center gap-3">
-                <div className="flex items-center justify-center size-6 bg-emerald-500/20 border border-emerald-500/40 rounded-full text-emerald-400">
+                <div className="flex items-center justify-center size-6 bg-brand-primary-500/20 border border-brand-primary-500/40 rounded-full text-brand-primary-400">
                   <Check className="size-4" />
                 </div>
                 <span className="text-slate-200 text-sm md:text-base font-medium">
@@ -126,7 +126,7 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
               href={hero.primaryCta.href}
               className={
                 buttonVariants({ variant: "default" }) +
-                " w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-5 rounded-2xl text-base shadow-xl shadow-orange-500/20 hover:shadow-orange-500/45 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
+                " w-full sm:w-auto bg-brand-secondary-500 hover:bg-brand-secondary-600 text-white font-bold px-8 py-5 rounded-2xl text-base shadow-xl shadow-brand-secondary-500/20 hover:shadow-brand-secondary-500/45 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
               }
             >
               <span
@@ -160,7 +160,7 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
               >
                 {hero.secondaryCta.label}
               </span>{" "}
-              <Sparkles className="size-5 text-orange-400" />
+              <Sparkles className="size-5 text-brand-secondary-400" />
             </Link>
           </div>
 

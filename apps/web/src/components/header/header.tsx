@@ -44,10 +44,10 @@ export default function Header({ settings }: { settings: SiteSettings }) {
             onClick={handleNavClick}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="relative flex items-center justify-center size-10 rounded-xl bg-linear-to-br from-emerald-500 via-white to-orange-400 p-[2px] shadow-sm transition-transform duration-300 group-hover:scale-105">
+            <div className="relative flex items-center justify-center size-10 rounded-xl bg-linear-to-br from-brand-primary-500 via-white to-brand-secondary-400 p-[2px] shadow-sm transition-transform duration-300 group-hover:scale-105">
               <div className="flex items-center justify-center w-full h-full bg-white rounded-[10px] gap-[1px]">
-                <Sparkles className="size-4.5 text-emerald-600 animate-pulse" />
-                <Wrench className="size-4.5 text-orange-500" />
+                <Sparkles className="size-4.5 text-brand-primary-600 animate-pulse" />
+                <Wrench className="size-4.5 text-brand-secondary-500" />
               </div>
             </div>
             <div
@@ -63,10 +63,10 @@ export default function Header({ settings }: { settings: SiteSettings }) {
               })}
             >
               <span className="text-xl font-black tracking-tight text-slate-800 flex items-center gap-1 leading-none">
-                <span className="text-emerald-700">
+                <span className="text-brand-primary-700">
                   {branding.logoTextPrimary}
                 </span>
-                <span className="text-orange-500">
+                <span className="text-brand-secondary-500">
                   {branding.logoTextSecondary}
                 </span>
               </span>
@@ -96,8 +96,8 @@ export default function Header({ settings }: { settings: SiteSettings }) {
                   activeSection === item.sectionId
                     ? "bg-slate-900 text-white"
                     : isScrolled
-                      ? "text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/50"
-                      : "text-slate-800 hover:text-emerald-800 hover:bg-white/80"
+                      ? "text-slate-600 hover:text-brand-primary-700 hover:bg-brand-primary-50/50"
+                      : "text-slate-800 hover:text-brand-primary-800 hover:bg-white/80"
                 }`}
               >
                 {item.label}
@@ -113,7 +113,7 @@ export default function Header({ settings }: { settings: SiteSettings }) {
               onClick={handleNavClick}
               className={
                 buttonVariants({ variant: "default" }) +
-                " bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-lg shadow-sm hover:shadow-md hover:translate-y-[-1px] transition-all"
+                " bg-brand-secondary-500 hover:bg-brand-secondary-600 text-white font-bold px-4 py-2 rounded-lg shadow-sm hover:shadow-md hover:translate-y-[-1px] transition-all"
               }
               data-directus={editAttr({
                 collection: "site_settings",
@@ -152,7 +152,7 @@ export default function Header({ settings }: { settings: SiteSettings }) {
               onClick={handleNavClick}
               className={`w-full text-left py-3 px-4 rounded-xl text-base font-bold transition-all ${
                 activeSection === item.sectionId
-                  ? "bg-emerald-600 text-white"
+                  ? "bg-brand-primary-600 text-white"
                   : "text-slate-700 hover:bg-gray-100"
               }`}
             >
@@ -165,7 +165,7 @@ export default function Header({ settings }: { settings: SiteSettings }) {
               onClick={handleNavClick}
               className={
                 buttonVariants({ variant: "default" }) +
-                " w-full py-3.5 bg-orange-500 hover:bg-orange-600 font-bold rounded-xl shadow-md cursor-pointer text-center text-white flex items-center justify-center gap-2 text-sm transform hover:scale-105 active:scale-95 transition-all duration-300"
+                " w-full py-3.5 bg-brand-secondary-500 hover:bg-brand-secondary-600 font-bold rounded-xl shadow-md cursor-pointer text-center text-white flex items-center justify-center gap-2 text-sm transform hover:scale-105 active:scale-95 transition-all duration-300"
               }
               data-directus={editAttr({
                 collection: "site_settings",

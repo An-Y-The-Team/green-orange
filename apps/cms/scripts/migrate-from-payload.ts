@@ -315,6 +315,7 @@ const main = async (): Promise<void> => {
     typography_heading_font: typography.headingFont,
     typography_hero_display_font: typography.heroDisplayFont,
     typography_body_font: typography.bodyFont,
+    color_theme: 'green-orange',
     hero_background_image: await importImage(mediaUrl(hero.backgroundImage)),
     hero_trust_badge: hero.trustBadge,
     hero_subheadline: hero.subheadline,

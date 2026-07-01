@@ -366,6 +366,7 @@ const SITE_SETTINGS = {
     heroDisplayFont: 'lora',
     bodyFont: 'lora',
   },
+  colorTheme: 'green-orange',
   navigation: {
     items: [
       { label: 'Giới Thiệu', sectionId: 'introduction' },
@@ -674,6 +675,7 @@ const main = async (): Promise<void> => {
     typography_heading_font: s.typography.headingFont,
     typography_hero_display_font: s.typography.heroDisplayFont,
     typography_body_font: s.typography.bodyFont,
+    color_theme: s.colorTheme,
     hero_trust_badge: s.hero.trustBadge,
     hero_subheadline: s.hero.subheadline,
     hero_benefits: s.hero.benefits.map((b) => b.item),
