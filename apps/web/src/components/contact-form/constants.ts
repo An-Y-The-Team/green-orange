@@ -23,13 +23,13 @@ export const SERVICE_CATEGORY_OPTIONS: ServiceCategoryOption[] = [
     id: Category.CLEANING,
     label: "Vệ Sinh",
     icon: Sparkle,
-    color: "text-emerald-600",
+    color: "text-brand-primary-600",
   },
   {
     id: Category.CONSTRUCTION,
     label: "Thi Công",
     icon: Wrench,
-    color: "text-orange-500",
+    color: "text-brand-secondary-500",
   },
   {
     id: Category.BOTH,

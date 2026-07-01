@@ -122,6 +122,7 @@ export interface DirectusSiteSettings {
   typography_heading_font: string | null;
   typography_hero_display_font: string | null;
   typography_body_font: string | null;
+  color_theme: string | null;
   hero_background_image: string | null;
   hero_trust_badge: string | null;
   hero_subheadline: string | null;

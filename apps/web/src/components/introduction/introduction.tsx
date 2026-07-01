@@ -22,9 +22,9 @@ interface TriColors {
 
 const ACCENT_TRI_COLORS: Record<BrandValueAccent, TriColors> = {
   orange: {
-    left: "fill-orange-500 stroke-orange-600",
-    right: "fill-orange-100 stroke-orange-200",
-    bottom: "fill-orange-300 stroke-orange-400",
+    left: "fill-brand-secondary-500 stroke-brand-secondary-600",
+    right: "fill-brand-secondary-100 stroke-brand-secondary-200",
+    bottom: "fill-brand-secondary-300 stroke-brand-secondary-400",
   },
   slate: {
     left: "fill-slate-400 stroke-slate-550",
@@ -32,16 +32,16 @@ const ACCENT_TRI_COLORS: Record<BrandValueAccent, TriColors> = {
     bottom: "fill-slate-300 stroke-slate-400",
   },
   emerald: {
-    left: "fill-emerald-620 stroke-emerald-700",
-    right: "fill-emerald-100 stroke-emerald-200",
-    bottom: "fill-emerald-350 stroke-emerald-400",
+    left: "fill-brand-primary-600 stroke-brand-primary-700",
+    right: "fill-brand-primary-100 stroke-brand-primary-200",
+    bottom: "fill-brand-primary-300 stroke-brand-primary-400",
   },
 };
 
 const ACCENT_DOT_CLASS: Record<BrandValueAccent, string> = {
-  orange: "bg-orange-500",
+  orange: "bg-brand-secondary-500",
   slate: "bg-slate-400",
-  emerald: "bg-emerald-500",
+  emerald: "bg-brand-primary-500",
 };
 
 export default function Introduction({ settings }: { settings: SiteSettings }) {
@@ -53,7 +53,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span
-            className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full"
+            className="text-sm font-black text-brand-primary-600 uppercase tracking-widest bg-brand-primary-50 px-3.5 py-1 rounded-full"
             data-directus={editAttr({
               collection: "site_settings",
               item: sid,
@@ -72,7 +72,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
           >
             {renderLines(introduction.heading)}
           </h2>
-          <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
+          <div className="h-1.5 w-24 bg-gradient-to-r from-brand-primary-500 to-brand-secondary-500 mx-auto rounded-full" />
           <p
             className="text-slate-500 font-medium mt-6 text-base md:text-lg"
             data-directus={editAttr({
@@ -99,11 +99,11 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                 unoptimized
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 via-emerald-950/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-primary-950/80 via-brand-primary-950/20 to-transparent" />
 
               {/* Dynamic stats banner on top of image */}
               <div className="absolute bottom-6 left-6 right-6 text-white text-left">
-                <span className="block text-xs font-bold text-orange-400 uppercase tracking-widest mb-1">
+                <span className="block text-xs font-bold text-brand-secondary-400 uppercase tracking-widest mb-1">
                   {introduction.mottoEyebrow}
                 </span>
                 <span className="text-lg md:text-xl font-bold italic leading-tight">
@@ -189,11 +189,11 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
 
         {/* 5 step delivery process */}
         <div className="mt-16 bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl p-8 md:p-12 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/20 rounded-full blur-3xl -z-0 animate-float-ambient" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-orange-500/20 rounded-full blur-3xl -z-0 animate-float-ambient-alt" />
+          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-primary-500/20 rounded-full blur-3xl -z-0 animate-float-ambient" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-brand-secondary-500/20 rounded-full blur-3xl -z-0 animate-float-ambient-alt" />
 
           <div className="max-w-3xl mx-auto text-center mb-12 relative z-10">
-            <span className="text-sm font-black text-orange-400 uppercase tracking-widest bg-orange-400/15 px-4 py-1.5 rounded-full inline-block scale-110 mb-2">
+            <span className="text-sm font-black text-brand-secondary-400 uppercase tracking-widest bg-brand-secondary-400/15 px-4 py-1.5 rounded-full inline-block scale-110 mb-2">
               {introduction.processEyebrow}
             </span>
             <h3
@@ -230,7 +230,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                   mode: "drawer",
                 })}
               >
-                <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-orange-400 to-emerald-400 leading-none mb-3 transform hover:scale-110 transition-transform">
+                <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-brand-secondary-400 to-brand-primary-400 leading-none mb-3 transform hover:scale-110 transition-transform">
                   {step.num}
                 </div>
                 <h4 className="text-base font-black mb-2 text-white leading-snug">
@@ -240,7 +240,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                   {step.description}
                 </p>
                 {idx < introduction.processSteps.length - 1 && (
-                  <div className="hidden lg:block absolute top-[40px] -right-[15%] w-[30%] h-[1px] bg-gradient-to-r from-orange-400/40 to-emerald-400/40 z-20 pointer-events-none" />
+                  <div className="hidden lg:block absolute top-[40px] -right-[15%] w-[30%] h-[1px] bg-gradient-to-r from-brand-secondary-400/40 to-brand-primary-400/40 z-20 pointer-events-none" />
                 )}
               </div>
             ))}

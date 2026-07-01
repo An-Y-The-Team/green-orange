@@ -40,7 +40,7 @@ export default function Testimonials({
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span
-            className="text-sm font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3.5 py-1 rounded-full"
+            className="text-sm font-black text-brand-primary-600 uppercase tracking-widest bg-brand-primary-50 px-3.5 py-1 rounded-full"
             data-directus={editAttr({
               collection: "site_settings",
               item: settings.cmsId,
@@ -59,7 +59,7 @@ export default function Testimonials({
           >
             {renderLines(settings.testimonialsSection.heading)}
           </h2>
-          <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
+          <div className="h-1.5 w-24 bg-gradient-to-r from-brand-primary-500 to-brand-secondary-500 mx-auto rounded-full" />
           <p
             className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed"
             data-directus={editAttr({
@@ -100,10 +100,10 @@ export default function Testimonials({
                 fields: ["content", "author", "role", "company", "rating"],
                 mode: "drawer",
               })}
-              className="bg-white rounded-3xl border border-gray-100 p-8 flex flex-col items-start text-left shadow-xs transition-all duration-500 hover:shadow-2xl hover:translate-y-[-10px] hover:border-emerald-300 relative group"
+              className="bg-white rounded-3xl border border-gray-100 p-8 flex flex-col items-start text-left shadow-xs transition-all duration-500 hover:shadow-2xl hover:translate-y-[-10px] hover:border-brand-primary-300 relative group"
             >
               {/* Decorative Quotes Icon */}
-              <Quote className="absolute right-6 bottom-6 size-12 text-slate-100/70 group-hover:text-emerald-50 pointer-events-none transition-colors" />
+              <Quote className="absolute right-6 bottom-6 size-12 text-slate-100/70 group-hover:text-brand-primary-50 pointer-events-none transition-colors" />
 
               {/* Stars Row */}
               <div className="flex gap-0.5 mb-5">
@@ -123,7 +123,7 @@ export default function Testimonials({
               {/* Reviewer Meta info */}
               <div className="flex items-center gap-3.5 border-t w-full pt-5 z-10">
                 {/* Avatar frame */}
-                <div className="size-11 rounded-full overflow-hidden bg-slate-100 border border-emerald-100">
+                <div className="size-11 rounded-full overflow-hidden bg-slate-100 border border-brand-primary-100">
                   <Image
                     src={testi.avatarUrl}
                     alt={testi.author}
@@ -137,16 +137,16 @@ export default function Testimonials({
                 <div className="text-left">
                   <span className="block text-base font-black font-heading text-slate-800 leading-none mb-1.5 flex items-center gap-1">
                     {testi.author}
-                    <TicketCheck className="size-4 text-emerald-600 fill-emerald-100" />
+                    <TicketCheck className="size-4 text-brand-primary-600 fill-brand-primary-100" />
                   </span>
                   <span className="block text-xs text-slate-400 font-bold mb-0.5">
                     {testi.role}
                   </span>
                   <span
                     id="company-affiliation"
-                    className="inline-flex items-center gap-1 text-xs font-black text-emerald-800"
+                    className="inline-flex items-center gap-1 text-xs font-black text-brand-primary-800"
                   >
-                    <Building2 className="size-3 text-emerald-600" />
+                    <Building2 className="size-3 text-brand-primary-600" />
                     {testi.company}
                   </span>
                 </div>
@@ -158,7 +158,7 @@ export default function Testimonials({
         {/* Brand guarantee banner */}
         <div className="mt-16 bg-white border border-gray-100 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4 text-left">
-            <span className="flex items-center justify-center p-3.5 bg-emerald-50 text-emerald-700 font-bold rounded-2xl">
+            <span className="flex items-center justify-center p-3.5 bg-brand-primary-50 text-brand-primary-700 font-bold rounded-2xl">
               100%
             </span>
             <div>
@@ -172,7 +172,7 @@ export default function Testimonials({
               </p>
             </div>
           </div>
-          <span className="text-sm font-bold bg-orange-50 text-orange-600 border border-orange-100 py-2 px-4 rounded-lg whitespace-nowrap">
+          <span className="text-sm font-bold bg-brand-secondary-50 text-brand-secondary-600 border border-brand-secondary-100 py-2 px-4 rounded-lg whitespace-nowrap">
             Áp dụng toàn quốc
           </span>
         </div>

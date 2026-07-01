@@ -48,7 +48,7 @@ export default function Services({
         {/* Section Title */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span
-            className="text-sm font-black text-orange-500 uppercase tracking-widest bg-orange-50 px-3.5 py-1 rounded-full"
+            className="text-sm font-black text-brand-secondary-500 uppercase tracking-widest bg-brand-secondary-50 px-3.5 py-1 rounded-full"
             data-directus={editAttr({
               collection: "site_settings",
               item: settings.cmsId,
@@ -67,7 +67,7 @@ export default function Services({
           >
             {renderLines(settings.servicesSection.heading)}
           </h2>
-          <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
+          <div className="h-1.5 w-24 bg-gradient-to-r from-brand-primary-500 to-brand-secondary-500 mx-auto rounded-full" />
           <p
             className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed"
             data-directus={editAttr({
@@ -91,7 +91,7 @@ export default function Services({
               onClick={() => setFilter(btn.id)}
               className={`px-7 py-3.5 rounded-2xl font-black text-base transition-all duration-300 shadow-md active:scale-95 cursor-pointer transform hover:scale-108 hover:shadow-lg ${
                 filter === btn.id
-                  ? "bg-emerald-600 text-white shadow-emerald-600/20"
+                  ? "bg-brand-primary-600 text-white shadow-brand-primary-600/20"
                   : "bg-white text-slate-700 hover:text-slate-900 border border-gray-200"
               }`}
             >
@@ -111,11 +111,11 @@ export default function Services({
               <div
                 key={service.id}
                 id={`card-${service.id}`}
-                className="group relative bg-white rounded-3xl border border-gray-100 p-8 flex flex-col items-start text-left shadow-xs transition-all duration-500 hover:shadow-2xl hover:translate-y-[-10px] hover:border-emerald-400"
+                className="group relative bg-white rounded-3xl border border-gray-100 p-8 flex flex-col items-start text-left shadow-xs transition-all duration-500 hover:shadow-2xl hover:translate-y-[-10px] hover:border-brand-primary-400"
               >
                 {/* Popular Badge */}
                 {service.popular && (
-                  <span className="absolute -top-3 right-6 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold text-xs uppercase tracking-widest px-4 py-1.5 rounded-full shadow-md scale-110 md:scale-115">
+                  <span className="absolute -top-3 right-6 bg-gradient-to-r from-brand-secondary-500 to-amber-500 text-white font-extrabold text-xs uppercase tracking-widest px-4 py-1.5 rounded-full shadow-md scale-110 md:scale-115">
                     Phổ Biến Nhất
                   </span>
                 )}
@@ -124,8 +124,8 @@ export default function Services({
                 <div
                   className={`p-3 rounded-2xl mb-6 transition-colors duration-300 ${
                     isCleaning
-                      ? "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100"
-                      : "bg-orange-50 text-orange-500 group-hover:bg-orange-100"
+                      ? "bg-brand-primary-50 text-brand-primary-600 group-hover:bg-brand-primary-100"
+                      : "bg-brand-secondary-50 text-brand-secondary-500 group-hover:bg-brand-secondary-100"
                   }`}
                 >
                   <IconComponent className="size-8 shrink-0" />
@@ -133,7 +133,7 @@ export default function Services({
 
                 {/* Service Title */}
                 <h3
-                  className="text-2xl font-black font-heading text-slate-800 mb-3 group-hover:text-emerald-700 transition-colors leading-tight"
+                  className="text-2xl font-black font-heading text-slate-800 mb-3 group-hover:text-brand-primary-700 transition-colors leading-tight"
                   data-directus={editAttr({
                     collection: "services",
                     item: service.cmsId,
@@ -167,7 +167,7 @@ export default function Services({
                       className="flex items-center gap-2.5 text-sm"
                     >
                       <div
-                        className={`p-0.5 rounded-full ${isCleaning ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-600"}`}
+                        className={`p-0.5 rounded-full ${isCleaning ? "bg-brand-primary-100 text-brand-primary-700" : "bg-brand-secondary-100 text-brand-secondary-600"}`}
                       >
                         <CheckCircle className="size-3.5" />
                       </div>
@@ -182,7 +182,7 @@ export default function Services({
                 <div className="flex items-center justify-between w-full mt-auto pt-4 border-t border-slate-100">
                   <button
                     onClick={() => setSelectedService(service)}
-                    className="text-slate-600 hover:text-emerald-700 font-black text-base flex items-center gap-1.5 cursor-pointer transition-all duration-300 transform hover:scale-110"
+                    className="text-slate-600 hover:text-brand-primary-700 font-black text-base flex items-center gap-1.5 cursor-pointer transition-all duration-300 transform hover:scale-110"
                   >
                     Xem chi tiết →
                   </button>
@@ -192,8 +192,8 @@ export default function Services({
                       buttonVariants({ variant: "default" }) +
                       ` font-black text-sm h-11 px-6 rounded-xl cursor-pointer transition-all duration-300 transform hover:scale-110 hover:shadow-lg active:scale-95 ${
                         isCleaning
-                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/10"
-                          : "bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/10"
+                          ? "bg-brand-primary-600 hover:bg-brand-primary-700 text-white shadow-brand-primary-600/10"
+                          : "bg-brand-secondary-500 hover:bg-brand-secondary-600 text-white shadow-brand-secondary-500/10"
                       }`
                     }
                     onClick={() => setSelectedService(null)}
@@ -217,8 +217,8 @@ export default function Services({
                 <span
                   className={`text-[10px] uppercase tracking-widest font-black px-2.5 py-1 rounded-full w-fit ${
                     selectedService.category === Category.CLEANING
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-orange-50 text-orange-600"
+                      ? "bg-brand-primary-50 text-brand-primary-700"
+                      : "bg-brand-secondary-50 text-brand-secondary-600"
                   }`}
                 >
                   Dịch vụ{" "}
@@ -242,7 +242,7 @@ export default function Services({
                 <div className="space-y-2.5">
                   {selectedService.benefits.map((benefit, idx) => (
                     <div key={idx} className="flex gap-2.5 items-start">
-                      <div className="p-0.5 bg-emerald-100 text-emerald-700 rounded-full mt-0.5">
+                      <div className="p-0.5 bg-brand-primary-100 text-brand-primary-700 rounded-full mt-0.5">
                         <CheckCircle className="size-4 shrink-0" />
                       </div>
                       <p className="text-slate-600 text-xs md:text-sm leading-relaxed font-semibold">
@@ -274,7 +274,7 @@ export default function Services({
                   href={`/?serviceId=${selectedService.id}&category=${selectedService.category}#contact`}
                   className={
                     buttonVariants({ variant: "default" }) +
-                    " w-full sm:w-auto h-9 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center justify-center rounded-md"
+                    " w-full sm:w-auto h-9 bg-brand-secondary-500 hover:bg-brand-secondary-600 text-white font-bold text-xs flex items-center justify-center rounded-md"
                   }
                   onClick={() => setSelectedService(null)}
                 >

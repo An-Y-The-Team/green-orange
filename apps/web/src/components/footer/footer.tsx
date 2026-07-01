@@ -38,7 +38,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
   );
   return (
     <footer className="bg-slate-900 text-slate-300 pt-16 pb-8 border-t border-slate-800 relative">
-      <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-emerald-500/50 via-white/10 to-orange-500/50" />
+      <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-brand-primary-500/50 via-white/10 to-brand-secondary-500/50" />
 
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12 mb-12">
@@ -48,18 +48,18 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
               href={`#${SectionId.HERO}`}
               className="flex items-center gap-2.5 cursor-pointer"
             >
-              <div className="flex items-center justify-center size-9 rounded-lg bg-linear-to-br from-emerald-500 via-white to-orange-400 p-[1.5px] shadow-sm">
+              <div className="flex items-center justify-center size-9 rounded-lg bg-linear-to-br from-brand-primary-500 via-white to-brand-secondary-400 p-[1.5px] shadow-sm">
                 <div className="flex items-center justify-center w-full h-full bg-slate-900 rounded-[7px] gap-[1px]">
-                  <Sparkles className="size-4 text-emerald-400 animate-pulse" />
-                  <Wrench className="size-4 text-orange-400" />
+                  <Sparkles className="size-4 text-brand-primary-400 animate-pulse" />
+                  <Wrench className="size-4 text-brand-secondary-400" />
                 </div>
               </div>
               <div>
                 <span className="text-lg font-black tracking-tight text-white flex items-center gap-1 leading-none">
-                  <span className="text-emerald-400">
+                  <span className="text-brand-primary-400">
                     {branding.logoTextPrimary}
                   </span>
-                  <span className="text-orange-400">
+                  <span className="text-brand-secondary-400">
                     {branding.logoTextSecondary}
                   </span>
                 </span>
@@ -113,7 +113,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                       item: link.id,
                       fields: ["label", "section_id"],
                     })}
-                    className="hover:text-emerald-400 hover:underline cursor-pointer transition-colors"
+                    className="hover:text-brand-primary-400 hover:underline cursor-pointer transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -129,7 +129,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
             </h4>
             <div className="space-y-3.5 text-xs font-semibold text-slate-400 leading-relaxed">
               <div className="flex gap-2.5 items-start">
-                <MapPin className="size-4 text-orange-400 shrink-0 mt-0.5" />
+                <MapPin className="size-4 text-brand-secondary-400 shrink-0 mt-0.5" />
                 <p>
                   <span className="text-white font-bold block mb-0.5 text-[11px]">
                     {footer.headquartersLabel}
@@ -138,7 +138,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                 </p>
               </div>
               <div className="flex gap-2.5 items-start">
-                <MapPin className="size-4 text-emerald-400 shrink-0 mt-0.5" />
+                <MapPin className="size-4 text-brand-primary-400 shrink-0 mt-0.5" />
                 <p>
                   <span className="text-white font-bold block mb-0.5 text-[11px]">
                     {footer.branchLabel}
@@ -157,10 +157,10 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
             <div className="pt-2 space-y-3.5 text-xs font-semibold">
               {company.phone && (
                 <div className="flex items-center gap-2.5">
-                  <Phone className="size-4 text-orange-400" />
+                  <Phone className="size-4 text-brand-secondary-400" />
                   <a
                     href={`tel:${company.phone.replace(/\s+/g, "")}`}
-                    className="hover:text-orange-400 transition-colors text-slate-300"
+                    className="hover:text-brand-secondary-400 transition-colors text-slate-300"
                   >
                     {footer.hotlinePrefix} {company.phone}
                   </a>
@@ -168,10 +168,10 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
               )}
               {company.email && (
                 <div className="flex items-center gap-2.5">
-                  <Mail className="size-4 text-emerald-400" />
+                  <Mail className="size-4 text-brand-primary-400" />
                   <a
                     href={`mailto:${company.email}`}
-                    className="hover:text-emerald-400 transition-colors text-slate-300"
+                    className="hover:text-brand-primary-400 transition-colors text-slate-300"
                   >
                     {footer.emailPrefix} {company.email}
                   </a>
@@ -192,7 +192,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
             href={`#${SectionId.HERO}`}
             className="flex items-center gap-1 hover:text-white cursor-pointer mt-4 md:mt-0"
           >
-            <ArrowUpCircle className="size-4 text-emerald-400" />
+            <ArrowUpCircle className="size-4 text-brand-primary-400" />
             {footer.backToTopLabel}
           </Link>
         </div>

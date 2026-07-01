@@ -1,6 +1,8 @@
 import { draftMode } from "next/headers";
 import React, { Suspense } from "react";
 
+import { themeCssVars } from "@/lib/color-themes";
+
 import ContactForm from "../components/contact-form/contact-form";
 import Footer from "../components/footer/footer";
 import Header from "../components/header/header";
@@ -80,6 +82,7 @@ export default async function Page() {
           "--font-heading": `var(--font-${settings.typography.headingFont})`,
           "--font-serif": `var(--font-${settings.typography.heroDisplayFont})`,
           "--font-sans": `var(--font-${settings.typography.bodyFont})`,
+          ...themeCssVars(settings.colorTheme.theme),
         } as React.CSSProperties
       }
     >

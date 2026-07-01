@@ -2,12 +2,66 @@
 @import "@fontsource-variable/geist";
 
 /* Shared theme tokens (colors, radii, Tailwind + shadcn setup) live in
-   @yan/ui/styles.css. Only the portfolio's serif typography and ambient
-   animations stay app-local. */
+   @yan/ui/styles.css. Only the portfolio's serif typography, brand color
+   variables, and ambient animations stay app-local. */
+
+/* Default brand color scale (green-orange theme = emerald + orange).
+   Overridden at runtime by an inline style on the root div in page.tsx
+   based on the CMS color_theme setting. Values mirror Tailwind's theme.css. */
+:root {
+  --brand-primary-50: oklch(97.9% 0.021 166.113);
+  --brand-primary-100: oklch(95% 0.052 163.051);
+  --brand-primary-200: oklch(90.5% 0.093 164.15);
+  --brand-primary-300: oklch(84.5% 0.143 164.978);
+  --brand-primary-400: oklch(76.5% 0.177 163.223);
+  --brand-primary-500: oklch(69.6% 0.17 162.48);
+  --brand-primary-600: oklch(59.6% 0.145 163.225);
+  --brand-primary-700: oklch(50.8% 0.118 165.612);
+  --brand-primary-800: oklch(43.2% 0.095 166.913);
+  --brand-primary-900: oklch(37.8% 0.077 168.94);
+  --brand-primary-950: oklch(26.2% 0.051 172.552);
+  --brand-secondary-50: oklch(98% 0.016 73.684);
+  --brand-secondary-100: oklch(95.4% 0.038 75.164);
+  --brand-secondary-200: oklch(90.1% 0.076 70.697);
+  --brand-secondary-300: oklch(83.7% 0.128 66.29);
+  --brand-secondary-400: oklch(75% 0.183 55.934);
+  --brand-secondary-500: oklch(70.5% 0.213 47.604);
+  --brand-secondary-600: oklch(64.6% 0.222 41.116);
+  --brand-secondary-700: oklch(55.3% 0.195 38.402);
+  --brand-secondary-800: oklch(47% 0.157 37.304);
+  --brand-secondary-900: oklch(40.8% 0.123 38.172);
+  --brand-secondary-950: oklch(26.6% 0.079 36.259);
+}
+
+/* Map CSS variables to Tailwind utilities (v4 @theme inline pattern).
+   This generates bg-brand-primary-500, text-brand-secondary-600,
+   from-brand-primary-400, shadow-brand-primary-600/20, etc. */
 @theme inline {
   --font-heading: var(--font-playfair-display), Georgia, serif;
   --font-serif: var(--font-lora), Georgia, serif;
   --font-sans: var(--font-lora), Georgia, serif;
+  --color-brand-primary-50: var(--brand-primary-50);
+  --color-brand-primary-100: var(--brand-primary-100);
+  --color-brand-primary-200: var(--brand-primary-200);
+  --color-brand-primary-300: var(--brand-primary-300);
+  --color-brand-primary-400: var(--brand-primary-400);
+  --color-brand-primary-500: var(--brand-primary-500);
+  --color-brand-primary-600: var(--brand-primary-600);
+  --color-brand-primary-700: var(--brand-primary-700);
+  --color-brand-primary-800: var(--brand-primary-800);
+  --color-brand-primary-900: var(--brand-primary-900);
+  --color-brand-primary-950: var(--brand-primary-950);
+  --color-brand-secondary-50: var(--brand-secondary-50);
+  --color-brand-secondary-100: var(--brand-secondary-100);
+  --color-brand-secondary-200: var(--brand-secondary-200);
+  --color-brand-secondary-300: var(--brand-secondary-300);
+  --color-brand-secondary-400: var(--brand-secondary-400);
+  --color-brand-secondary-500: var(--brand-secondary-500);
+  --color-brand-secondary-600: var(--brand-secondary-600);
+  --color-brand-secondary-700: var(--brand-secondary-700);
+  --color-brand-secondary-800: var(--brand-secondary-800);
+  --color-brand-secondary-900: var(--brand-secondary-900);
+  --color-brand-secondary-950: var(--brand-secondary-950);
 }
 
 @layer base {

@@ -1,5 +1,6 @@
 import { ContentStatus } from "@/constants/cms";
 import { assetUrl } from "@/lib/asset-url/asset-url";
+import { COLOR_THEME_SLUGS, type ColorThemeSlug } from "@/lib/color-themes";
 import {
   type DirectusBrandValue,
   type DirectusHeroSegment,
@@ -174,6 +175,10 @@ export interface TypographySettings {
   bodyFont: FontSlug;
 }
 
+export interface ColorThemeSettings {
+  theme: ColorThemeSlug;
+}
+
 export type HeadlineColor = "white" | "emerald" | "orange";
 
 export interface HeadlineSegment {
@@ -253,6 +258,7 @@ export interface SiteSettings {
     footerTagline: string;
   };
   typography: TypographySettings;
+  colorTheme: ColorThemeSettings;
   navigation: {
     items: SectionLink[];
     headerCtaLabel: string;
@@ -334,6 +340,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     heroDisplayFont: "lora",
     bodyFont: "lora",
   },
+  colorTheme: {
+    theme: "green-orange",
+  },
   navigation: {
     items: [
       { label: "Giới Thiệu", sectionId: SectionId.INTRODUCTION },
@@ -377,22 +386,22 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     {
       value: "500+",
       label: "Cửa hàng & Văn phòng Đã Bàn Giao",
-      color: "text-green-600",
+      color: "text-brand-primary-600",
     },
     {
       value: "120+",
       label: "Dự án Thi Công Cải Tạo Trọn Gói",
-      color: "text-orange-600",
+      color: "text-brand-secondary-600",
     },
     {
       value: "99.4%",
       label: "Khách Hàng Đánh Giá Hài Lòng 5★",
-      color: "text-green-600",
+      color: "text-brand-primary-600",
     },
     {
       value: "35+",
       label: "Trang thiết bị & Hóa chất Đạt Chuẩn",
-      color: "text-orange-600",
+      color: "text-brand-secondary-600",
     },
   ],
   introduction: {
@@ -561,6 +570,12 @@ const pickFont = (
   fallback: FontSlug
 ): FontSlug => (raw && FONT_SLUGS.has(raw) ? (raw as FontSlug) : fallback);
 
+const pickColorTheme = (
+  raw: string | null | undefined,
+  fallback: ColorThemeSlug
+): ColorThemeSlug =>
+  raw && COLOR_THEME_SLUGS.has(raw) ? (raw as ColorThemeSlug) : fallback;
+
 // Replace empty/missing values with the default, so a partially-filled
 // singleton still renders a complete page.
 const orDefault = (
@@ -615,7 +630,7 @@ const mapStats = (
       id: x.id,
       value: x.value,
       label: x.label,
-      color: x.color || "text-green-600",
+      color: x.color || "text-brand-primary-600",
     }));
   return mapped.length ? mapped : fallback;
 };
@@ -750,6 +765,9 @@ export async function getSiteSettings(draft = false): Promise<SiteSettings> {
         d.typography.heroDisplayFont
       ),
       bodyFont: pickFont(s.typography_body_font, d.typography.bodyFont),
+    },
+    colorTheme: {
+      theme: pickColorTheme(s.color_theme, d.colorTheme.theme),
     },
     navigation: {
       items: mapSectionLinks(s.nav_items, d.navigation.items),

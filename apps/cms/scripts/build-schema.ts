@@ -372,7 +372,9 @@ const main = async (): Promise<void> => {
     // Typography
     dropdown('typography_heading_font', ['be-vietnam-pro', 'manrope', 'playfair-display', 'lora']),
     dropdown('typography_hero_display_font', ['playfair-display', 'lora', 'dm-serif-display']),
-    dropdown('typography_body_font', ['be-vietnam-pro', 'inter', 'lexend', 'nunito-sans', 'lora']),
+        dropdown('typography_body_font', ['be-vietnam-pro', 'inter', 'lexend', 'nunito-sans', 'lora']),
+    // Color theme
+    dropdown('color_theme', ['green-orange', 'ocean', 'royal', 'crimson', 'forest']),
   ])
   // Hero scalars
   await addFileField('site_settings', 'hero_background_image')

@@ -206,7 +206,7 @@ export default function ContactForm({
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span
-            className="text-sm font-black text-orange-500 uppercase tracking-widest bg-orange-50 px-3.5 py-1 rounded-full"
+            className="text-sm font-black text-brand-secondary-500 uppercase tracking-widest bg-brand-secondary-50 px-3.5 py-1 rounded-full"
             data-directus={editAttr({
               collection: "site_settings",
               item: settings.cmsId,
@@ -225,7 +225,7 @@ export default function ContactForm({
           >
             {settings.contactSection.heading}
           </h2>
-          <div className="h-1.5 w-24 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full" />
+          <div className="h-1.5 w-24 bg-gradient-to-r from-brand-primary-500 to-brand-secondary-500 mx-auto rounded-full" />
           <p
             className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed"
             data-directus={editAttr({
@@ -242,8 +242,8 @@ export default function ContactForm({
           {/* Grid: Form inputs block (7 cols) */}
           <div className="lg:col-span-7 bg-slate-50 p-6 md:p-8 rounded-3xl border border-gray-100 shadow-xs relative">
             {isSubmittedSuccessfully && (
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4.5 mb-6 text-left flex gap-3 animate-in fade-in slide-in-from-top duration-300">
-                <ClipboardCheck className="size-5 shrink-0 text-emerald-600 mt-0.5" />
+              <div className="bg-brand-primary-50 border border-brand-primary-200 text-brand-primary-800 rounded-2xl p-4.5 mb-6 text-left flex gap-3 animate-in fade-in slide-in-from-top duration-300">
+                <ClipboardCheck className="size-5 shrink-0 text-brand-primary-600 mt-0.5" />
                 <div>
                   <h4
                     className="font-extrabold text-sm mb-1"
@@ -292,7 +292,7 @@ export default function ContactForm({
                     placeholder="Nguyễn Văn A"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="bg-white border-gray-200 focus:border-emerald-500 rounded-xl font-semibold h-10 w-full"
+                    className="bg-white border-gray-200 focus:border-brand-primary-500 rounded-xl font-semibold h-10 w-full"
                   />
                 </div>
 
@@ -317,7 +317,7 @@ export default function ContactForm({
                     placeholder="0988 123 456"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="bg-white border-gray-200 focus:border-emerald-500 rounded-xl font-semibold h-10 w-full"
+                    className="bg-white border-gray-200 focus:border-brand-primary-500 rounded-xl font-semibold h-10 w-full"
                   />
                 </div>
               </div>
@@ -342,7 +342,7 @@ export default function ContactForm({
                     placeholder="nguyenvana@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="bg-white border-gray-200 focus:border-emerald-500 rounded-xl font-semibold h-10 w-full"
+                    className="bg-white border-gray-200 focus:border-brand-primary-500 rounded-xl font-semibold h-10 w-full"
                   />
                 </div>
 
@@ -365,7 +365,7 @@ export default function ContactForm({
                     placeholder="Highlands, Highlands, EcoBeauty..."
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    className="bg-white border-gray-200 focus:border-emerald-500 rounded-xl font-semibold h-10 w-full"
+                    className="bg-white border-gray-200 focus:border-brand-primary-500 rounded-xl font-semibold h-10 w-full"
                   />
                 </div>
               </div>
@@ -389,7 +389,7 @@ export default function ContactForm({
                   placeholder="Số 123, Đường Nguyễn Huệ, Quận 1, TP. HCM"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="bg-white border-gray-200 focus:border-emerald-500 rounded-xl font-semibold h-10 w-full"
+                  className="bg-white border-gray-200 focus:border-brand-primary-500 rounded-xl font-semibold h-10 w-full"
                 />
               </div>
 
@@ -415,7 +415,7 @@ export default function ContactForm({
                         onClick={() => handleSelectCategory(cat.id)}
                         className={`py-3 px-2 rounded-xl text-xs font-extrabold border transition-all cursor-pointer text-center flex flex-col items-center gap-1.5 ${
                           serviceCategory === cat.id
-                            ? "bg-emerald-600 border-emerald-600 text-white shadow-xs"
+                            ? "bg-brand-primary-600 border-brand-primary-600 text-white shadow-xs"
                             : "bg-white border-gray-200 text-slate-600 hover:border-gray-300"
                         }`}
                       >
@@ -446,7 +446,7 @@ export default function ContactForm({
                   id="service-select"
                   value={serviceId}
                   onChange={(e) => setServiceId(e.target.value)}
-                  className="w-full bg-white border border-gray-200 focus:border-emerald-500 focus:outline-none rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 h-10"
+                  className="w-full bg-white border border-gray-200 focus:border-brand-primary-500 focus:outline-none rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 h-10"
                 >
                   <option value="">
                     -- Vui lòng chọn gói dịch vụ cần hỗ trợ --
@@ -481,7 +481,7 @@ export default function ContactForm({
                   placeholder="Ví dụ: Cần vệ sinh gấp 150m2 sàn gỗ và kính mặt tiền shop quần áo tại Hoàn Kiếm, bàn giao trước 20/06 để khai trương..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="bg-white border-gray-200 focus:border-emerald-500 rounded-xl font-semibold min-h-[100px] w-full"
+                  className="bg-white border-gray-200 focus:border-brand-primary-500 rounded-xl font-semibold min-h-[100px] w-full"
                 />
               </div>
 
@@ -489,7 +489,7 @@ export default function ContactForm({
               <Button
                 id="contact-form-submit"
                 type="submit"
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-base md:text-lg rounded-xl py-4.5 cursor-pointer shadow-md flex items-center justify-center gap-2 transform hover:scale-[1.03] transition-all active:scale-95 duration-250"
+                className="w-full bg-brand-secondary-500 hover:bg-brand-secondary-600 text-white font-black text-base md:text-lg rounded-xl py-4.5 cursor-pointer shadow-md flex items-center justify-center gap-2 transform hover:scale-[1.03] transition-all active:scale-95 duration-250"
                 data-directus={editAttr({
                   collection: "site_settings",
                   item: settings.cmsId,
@@ -535,7 +535,7 @@ export default function ContactForm({
                     return (
                       <div
                         key={sub.id}
-                        className="bg-white border rounded-xl p-3.5 shadow-2xs border-l-4 border-l-emerald-600 animate-in slide-in-from-bottom duration-300"
+                        className="bg-white border rounded-xl p-3.5 shadow-2xs border-l-4 border-l-brand-primary-600 animate-in slide-in-from-bottom duration-300"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <span className="text-xs font-extrabold text-slate-800 truncate max-w-[120px]">
@@ -557,8 +557,8 @@ export default function ContactForm({
                           <span className="text-slate-450 font-bold">
                             Trạng thái:
                           </span>
-                          <span className="flex items-center gap-1 font-bold text-emerald-700 uppercase tracking-wider text-[9px]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                          <span className="flex items-center gap-1 font-bold text-brand-primary-700 uppercase tracking-wider text-[9px]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-brand-primary-500 animate-ping" />
                             Mới tiếp nhận / Đang sắp xếp thợ
                           </span>
                         </div>
