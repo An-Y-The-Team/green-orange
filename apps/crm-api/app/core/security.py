@@ -63,9 +63,9 @@ def _get_jwks_client() -> PyJWKClient:
         discovery_url = (
             settings.oidc_issuer.rstrip("/") + "/.well-known/openid-configuration"
         )
-        jwks_uri = httpx.get(discovery_url, timeout=10).raise_for_status().json()[
-            "jwks_uri"
-        ]
+        jwks_uri = (
+            httpx.get(discovery_url, timeout=10).raise_for_status().json()["jwks_uri"]
+        )
         _jwks_client = PyJWKClient(jwks_uri)
     return _jwks_client
 

@@ -49,7 +49,9 @@ def get_contact(contact_id: int, session: SessionDep, _user: CurrentUser) -> Con
 
 
 @router.post("", response_model=ContactPublic, status_code=status.HTTP_201_CREATED)
-def create_contact(payload: ContactCreate, session: SessionDep, _user: CurrentUser) -> Contact:
+def create_contact(
+    payload: ContactCreate, session: SessionDep, _user: CurrentUser
+) -> Contact:
     contact = Contact.model_validate(payload)
     session.add(contact)
     session.commit()
