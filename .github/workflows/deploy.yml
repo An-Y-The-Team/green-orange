@@ -129,19 +129,44 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Deploy to VPS
+    name: Trigger Dockhand deploy
     needs: build
     runs-on: ubuntu-latest
-    # SSH is private (Pangolin network only). We join the tunnel, wait for the
-    # relay path, then SSH in — all in one step so the tunnel stays alive.
-    env:
-      SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_USER: ${{ secrets.VPS_USER }}
-      VPS_PORT: ${{ secrets.VPS_PORT || 22 }}
-      VPS_PATH: ${{ secrets.VPS_PATH }}
+    permissions:
+      contents: write # push the image-tag bump to the `release` branch
     steps:
-      - name: Connect to Pangolin and deploy
+      # Check out AT THE TAG so the release branch mirrors the released commit
+      # exactly. The bump commit lands on top of it.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      # Pin the three app image refs to this release, then fast-forward the
+      # `release` branch to <tagged commit> + this bump. Dockhand's git stack
+      # tracks `release`, so this is what it pulls and deploys. The CMS is the
+      # pinned official directus/directus image (no per-release build), so it's
+      # not touched here.
+      - name: Bump image tags and update the release branch
+        run: |
+          set -euo pipefail
+          REPO=$(echo "${{ github.repository }}" | tr 'A-Z' 'a-z')
+          TAG="${{ github.ref_name }}"
+          sed -i "s|^WEB_IMAGE=.*|WEB_IMAGE=ghcr.io/${REPO}-web:${TAG}|"         deploy/deploy.env
+          sed -i "s|^CRM_WEB_IMAGE=.*|CRM_WEB_IMAGE=ghcr.io/${REPO}-crm-web:${TAG}|" deploy/deploy.env
+          sed -i "s|^CRM_API_IMAGE=.*|CRM_API_IMAGE=ghcr.io/${REPO}-crm-api:${TAG}|" deploy/deploy.env
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add deploy/deploy.env
+          git commit -m "chore(deploy): ${TAG}"
+          # release is CI-owned; force so it always equals the released commit + bump.
+          git push --force origin HEAD:release
+
+      # The webhook that tells Dockhand to git-pull `release` and redeploy lives
+      # on the VPS, which is only reachable over the Pangolin tunnel — so join it
+      # first, then curl. DOCKHAND_WEBHOOK_URL is the full secret-bearing URL
+      # (Dockhand's tunnel-internal host:port), from Dockhand's stack webhook page.
+      - name: Connect to Pangolin and trigger Dockhand
         run: |
           set -euo pipefail
 
@@ -174,54 +199,12 @@ jobs:
           done
           sleep 3   # let the relay stabilise
 
-          # ── 5. Resolve VPS address ───────────────────────────────────────
-          RESOLVED_IP="${{ secrets.VPS_PANGOLIN_IP }}"
-          if [ -n "$RESOLVED_IP" ]; then
-            echo "Using VPS_PANGOLIN_IP=$RESOLVED_IP"
-          else
-            echo "Resolving $VPS_HOST via DNS…"
-            for i in $(seq 1 15); do
-              RESOLVED_IP=$(getent hosts "$VPS_HOST" 2>/dev/null | awk '{print $1}' | head -1) || true
-              [ -n "$RESOLVED_IP" ] && break
-              sleep 2
-            done
-            [ -n "$RESOLVED_IP" ] \
-              || { echo "Could not resolve $VPS_HOST. Set VPS_PANGOLIN_IP secret."; cat /tmp/pangolin.log; exit 1; }
-          fi
-
-          # ── 6. Wait for SSH ──────────────────────────────────────────────
-          echo "Waiting for SSH at $RESOLVED_IP:$VPS_PORT…"
-          for i in $(seq 1 15); do nc -z -w 2 "$RESOLVED_IP" "$VPS_PORT" && break; sleep 2; done
-          nc -z -w 2 "$RESOLVED_IP" "$VPS_PORT" \
-            || { echo "SSH unreachable at $RESOLVED_IP:$VPS_PORT"; cat /tmp/pangolin.log; exit 1; }
-
-          # ── 7. Deploy ────────────────────────────────────────────────────
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-
-          REPO=$(echo "${{ github.repository }}" | tr 'A-Z' 'a-z')
-          TAG="${{ github.ref_name }}"
-
-          echo "Deploying $TAG → $RESOLVED_IP ($VPS_HOST)…"
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
-            -p "$VPS_PORT" "${VPS_USER}@${RESOLVED_IP}" \
-            "REPO='$REPO' TAG='$TAG' VPS_PATH='$VPS_PATH' bash -se" <<'REMOTE'
-          set -e
-          cd "$VPS_PATH"
-          # Deploy target mirrors the released commit exactly. Force-sync to the
-          # tag instead of `git pull --ff-only` so local drift on the VPS (e.g. an
-          # untracked file that later becomes tracked upstream) can't wedge the
-          # deploy. `reset --hard` only rewrites tracked paths, so gitignored
-          # runtime files like .env.production and docker volumes are untouched.
-          git fetch origin --tags --prune --force
-          git reset --hard "refs/tags/${TAG}"
-          sed -i "s|^WEB_IMAGE=.*|WEB_IMAGE=ghcr.io/${REPO}-web:${TAG}|" .env.production
-          # CMS is the pinned official directus/directus image — not a per-release build.
-          sed -i "s|^CRM_WEB_IMAGE=.*|CRM_WEB_IMAGE=ghcr.io/${REPO}-crm-web:${TAG}|" .env.production
-          sed -i "s|^CRM_API_IMAGE=.*|CRM_API_IMAGE=ghcr.io/${REPO}-crm-api:${TAG}|" .env.production
-          docker compose -f docker-compose.prod.yml --env-file .env.production pull
-          docker compose -f docker-compose.prod.yml --env-file .env.production up -d
-          docker image prune -f
-          REMOTE
+          # ── 5. Trigger the deploy ────────────────────────────────────────
+          # Dockhand pulls `release` (already pushed above) and redeploys. Retry
+          # so a still-stabilising tunnel doesn't fail the release.
+          echo "Triggering Dockhand webhook…"
+          curl -fsS -X POST "${{ secrets.DOCKHAND_WEBHOOK_URL }}" \
+            --retry 8 --retry-all-errors --retry-connrefused --max-time 90 \
+            || { echo "Webhook call failed:"; cat /tmp/pangolin.log; exit 1; }
+          echo "Dockhand deploy triggered for ${{ github.ref_name }}."
 
