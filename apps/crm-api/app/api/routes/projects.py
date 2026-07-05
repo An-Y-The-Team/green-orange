@@ -39,7 +39,6 @@ def get_project(project_id: int, session: SessionDep, _user: CurrentUser) -> Pro
 def create_project(
     payload: ProjectCreate, session: SessionDep, _user: CurrentUser
 ) -> Project:
-    print("Creating project with payload:", payload)
     project = Project.model_validate(payload)
     session.add(project)
     session.commit()
