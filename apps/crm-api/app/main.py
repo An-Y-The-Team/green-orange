@@ -9,18 +9,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, contacts, customers, deals, leads, tasks
+from app.api.routes import auth, contacts, customers, deals, leads, projects, tasks
 from app.core.config import settings
-from app.core.db import init_db
-from app.seed import seed_initial_data
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # Teaching convenience: create tables + seed demo data on startup. In
     # production, run Alembic migrations instead (see alembic/) and drop these.
-    init_db()
-    seed_initial_data()
     yield
 
 
@@ -42,6 +38,7 @@ app.include_router(contacts.router)
 app.include_router(leads.router)
 app.include_router(deals.router)
 app.include_router(tasks.router)
+app.include_router(projects.router)
 
 
 @app.get("/health", tags=["meta"])
