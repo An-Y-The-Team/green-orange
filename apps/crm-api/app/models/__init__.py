@@ -11,5 +11,7 @@ from app.models.user import User
 # from app.models.lead import Lead         # TODO (exercise)
 # from app.models.deal import Deal         # TODO (exercise)
 # from app.models.task import Task         # TODO (exercise)
+from app.models.project import Project
+from app.models.user import User
 
-__all__ = ["Customer", "User", "Contact"]
+__all__ = ["Customer", "User", "Contact", "Project"]
