@@ -24,7 +24,6 @@ def list_projects(
     offset: int = 0,
     limit: int = Query(default=100, le=100),
 ) -> list[Project]:
-    print(f"Listing projects with offset={offset}, limit={limit}")
     return list(session.exec(select(Project).offset(offset).limit(limit)).all())
 
 
