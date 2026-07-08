@@ -6,10 +6,10 @@ Create Date: 2026-07-01 12:20:54.359274
 """
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 import sqlmodel
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '5daf8d41f06b'
