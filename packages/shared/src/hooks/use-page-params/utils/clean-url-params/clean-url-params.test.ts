@@ -7,12 +7,16 @@ const obj = (p: URLSearchParams) => Object.fromEntries(p.entries());
 
 describe("cleanUrlParams", () => {
   it("drops empty / nullish values", () => {
-    const result = cleanUrlParams(params({ keep: "x" }), {
-      a: "",
-      b: undefined,
-      c: null as unknown as string,
-      keep: "x",
-    }, {} as Record<string, string>);
+    const result = cleanUrlParams(
+      params({ keep: "x" }),
+      {
+        a: "",
+        b: undefined,
+        c: null as unknown as string,
+        keep: "x",
+      },
+      {} as Record<string, string>
+    );
     expect(obj(result)).toEqual({ keep: "x" });
   });
 
