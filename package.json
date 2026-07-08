@@ -1,5 +1,5 @@
 {
-  "name": "yan-portf-monorepo",
+  "name": "yan",
   "private": true,
   "scripts": {
     "build": "turbo run build",

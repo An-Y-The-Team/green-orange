@@ -1,24 +1,51 @@
-# Deployment — Self-hosted VPS (Docker Compose + GitHub Actions)
+# Deployment — Self-hosted VPS (Docker Compose + GitHub Actions + Dockhand)
 
-Build the app images on **GitHub Actions**, push to **GHCR** (private), and
-**SSH-deploy** to a single VPS running everything in Docker Compose: Postgres +
-CMS + web behind **Caddy** with automatic Let's Encrypt TLS. The CMS is
-**Directus**, pulled from its **official image** (we don't build a CMS image).
+Build the app images on **GitHub Actions**, push to **GHCR** (private), then
+trigger **Dockhand** (the Docker management UI on the VPS) to pull and deploy the
+stack via Docker Compose: Postgres + CMS + web behind **Caddy** with automatic
+Let's Encrypt TLS. The CMS is **Directus**, pulled from its **official image** (we
+don't build a CMS image). **Dockhand is the deployer** — GitHub Actions builds and
+signals; it no longer SSHes in or runs `compose` itself.
 
 ```bash
 push tag vX.Y.Z ─► GitHub Actions ─► build web+crm (amd64) ─► GHCR
-                                                                │
-                          SSH ◄──── deploy job ────────────────┘
-            git pull · compose pull (incl. directus/directus) · up -d
-            (cms container runs `directus bootstrap` + `schema apply` on start)
+                                          │
+              bump deploy/deploy.env image tags ─► push `release` branch
+                                          │
+              join Pangolin tunnel ─► POST Dockhand webhook ──┐
+                                                              ▼
+VPS: Dockhand git-pulls `release`, reads deploy/deploy.env (+ its own secret
+     store), runs `docker compose up -d` (cms bootstraps + schema-applies on start)
 
-VPS:  caddy(443) ─► web:3000           ┌ Postgres (internal, volume: pgdata)
+     caddy(443) ─► web:3000           ┌ Postgres (internal, volume: pgdata)
                  └► cms:8055 ──────────┘ uploads (volume: media → /directus/uploads)
-      (auto-HTTPS; certs persist in volume: caddy_data)
+     (auto-HTTPS; certs persist in volume: caddy_data)
 ```
 
 The VPS never builds — it only pulls finished images (the app images from GHCR
 and the official `directus/directus`), so a small (1–2 GB) box is fine.
+
+## Env split: `deploy/deploy.env` (tracked) vs Dockhand secret store
+
+The prod stack's config is split by sensitivity:
+
+- **Non-secret config** (image tags, domains, public URLs, `AUTHENTIK_TAG`, admin
+  email) lives in the **tracked `deploy/deploy.env`**. Edit it on GitHub or in
+  Dockhand. CI rewrites the three `*_IMAGE` lines on each release.
+- **Secrets** (`POSTGRES_PASSWORD`, `DIRECTUS_KEY`/`SECRET`/`ADMIN_PASSWORD`/
+  `STATIC_TOKEN`/`PREVIEW_SECRET`, `CRM_AUTH_SECRET`, `CRM_OIDC_CLIENT_SECRET`,
+  `AUTHENTIK_SECRET_KEY`/`BOOTSTRAP_PASSWORD`/`BOOTSTRAP_TOKEN`) live **only in
+  Dockhand's secret store** — injected via shell env at deploy time, never written
+  to disk or git. Set these once in the Dockhand stack's env editor.
+
+Dockhand's git stack reads `deploy/deploy.env` as the compose env-file (lowest
+precedence), then layers its stored vars/secrets on top. Keep each var in a single
+home to avoid a stored value silently shadowing the file.
+
+> **Legacy note:** the old flow kept everything in a gitignored `.env.production`
+> on the VPS that the SSH deploy `sed`-edited. That file is no longer used by the
+> pipeline; migrate its values into `deploy/deploy.env` (non-secret) and Dockhand
+> (secret).
 
 ---
 
@@ -49,17 +76,18 @@ and the official `directus/directus`), so a small (1–2 GB) box is fine.
 
 Secrets:
 
-| Name                | Value                                                                                        |
-| ------------------- | -------------------------------------------------------------------------------------------- |
-| `VPS_HOST`          | The VPS's **Pangolin** resource alias, e.g. `ssh.newt-01` (NOT the public IP)                |
-| `VPS_USER`          | deploy user (e.g. `root`)                                                                    |
-| `VPS_SSH_KEY`       | private key whose public half is in the VPS user's `~/.ssh/authorized_keys`                  |
-| `VPS_PORT`          | SSH port (optional, defaults to 22)                                                          |
-| `VPS_PATH`          | repo path on the VPS, e.g. `/root/green-orange`                                              |
-| `PANGOLIN_ID`       | Pangolin client ID (used by `pangolin up --id`)                                              |
-| `PANGOLIN_SECRET`   | Pangolin client secret (`pangolin up --secret`)                                              |
-| `PANGOLIN_ENDPOINT` | Pangolin control URL, e.g. `https://prp.hdc-cloud.org`                                       |
-| `VPS_PANGOLIN_IP`   | The VPS resource's **Pangolin tunnel IP** (e.g. `100.96.144.8`). See §2a for how to find it. |
+| Name                   | Value                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| `DOCKHAND_WEBHOOK_URL` | Full secret-bearing webhook URL of the Dockhand `green-orange` git stack, using its **tunnel-internal** host:port (reached over Pangolin). |
+| `PANGOLIN_ID`          | Pangolin client ID (used by `pangolin up --id`)                                        |
+| `PANGOLIN_SECRET`      | Pangolin client secret (`pangolin up --secret`)                                        |
+| `PANGOLIN_ENDPOINT`    | Pangolin control URL, e.g. `https://prp.hdc-cloud.org`                                 |
+
+> **No SSH secrets.** The deploy job no longer SSHes in, so `VPS_HOST`,
+> `VPS_USER`, `VPS_SSH_KEY`, `VPS_PORT`, `VPS_PATH`, and `VPS_PANGOLIN_IP` are no
+> longer used by the pipeline (it joins Pangolin only to reach the webhook, not to
+> SSH). You can delete them once the Dockhand flow is confirmed working. §2a and
+> §3's "CI deploy SSH key" steps below are likewise legacy.
 
 Variables:
 
@@ -71,54 +99,40 @@ GHCR push uses the built-in `GITHUB_TOKEN` — no extra token needed for the bui
 
 ---
 
-## 2a. Pangolin access for CI (private SSH)
+## 2a. Pangolin access for CI (private Dockhand webhook)
 
-The VPS's SSH isn't public, so the deploy job joins the Pangolin network with the
-`pangolin` client before connecting — the same command you run locally:
+Nothing management-related on the VPS is public — Dockhand's webhook, like SSH,
+is only reachable over the **Pangolin** network. So the deploy job joins the
+tunnel with the `pangolin` client before it can `curl` the webhook — the same
+command you run locally:
 
 ```bash
 pangolin up --id <CLIENT_ID> --secret <CLIENT_SECRET> --endpoint https://prp.hdc-cloud.org
 ```
 
-In Pangolin: the VPS is a **Site** (Newt agent) and its SSH is exposed as a
-client-resource reachable at the alias **`ssh.newt-01`** (port 22). Register a
-**Client** for CI to get the id/secret, then set the GitHub secrets:
+In Pangolin: the VPS is a **Site** (Newt agent). Expose **Dockhand's HTTP port**
+as a client-resource (the same way SSH used to be), so it's reachable at a stable
+tunnel address. Register a **Client** for CI to get the id/secret, then set the
+GitHub secrets:
 
 - `PANGOLIN_ID`, `PANGOLIN_SECRET`, `PANGOLIN_ENDPOINT` (`https://prp.hdc-cloud.org`)
-- `VPS_HOST` = `ssh.newt-01`, `VPS_PORT` = `22`
+- `DOCKHAND_WEBHOOK_URL` — the stack's webhook URL built on that tunnel-internal
+  address (see §5), e.g. `http://<dockhand-tunnel-host>:<port>/api/git/stacks/<id>/webhook?...`
 
-### Finding `VPS_PANGOLIN_IP`
-
-The Pangolin Olm CLI's DNS proxy does not reliably resolve resource aliases in
-headless/CI environments. The workflow bypasses DNS by SSHing directly to the
-resource's **tunnel IP** (`VPS_PANGOLIN_IP`). To find it, check the Newt agent
-logs on the VPS:
-
-```bash
-sudo journalctl -u newt --no-pager -n 50 | grep 'original:'
-# Example output:
-#   TCP Forwarder: Using rewritten destination 127.0.0.1 (original: 100.96.144.8)
-#                                                          ^^^^^^^^^^^^^^^^
-# VPS_PANGOLIN_IP = 100.96.144.8
-```
-
-Set this as the `VPS_PANGOLIN_IP` GitHub secret.
-
-The workflow's **"Connect to Pangolin and deploy"** step (one step):
+The workflow's **"Connect to Pangolin and trigger Dockhand"** step:
 
 1. Installs the CLI (`get-cli.sh`).
 2. `sudo pangolin up … --override-dns --attach &` — foreground mode, backgrounded
    with output redirected to a log. `--attach` keeps logging to the file (the
    default daemonize mode fails without a TTY).
-3. Waits for `WireGuard device created` in that log.
-4. Uses `VPS_PANGOLIN_IP` to SSH directly through the WireGuard tunnel (no DNS).
-   Falls back to alias resolution via `getent hosts` if `VPS_PANGOLIN_IP` is unset.
+3. Waits for `WireGuard device created`, then for the relay path.
+4. `curl -X POST "$DOCKHAND_WEBHOOK_URL"` through the tunnel (with retries).
 
-Everything is one step so the tunnel stays up for the whole deploy.
+The tunnel only needs to stay up long enough for the one webhook call.
 
-> ⚠️ Rotate the client secret if it has ever been shared in plaintext. If
-> `VPS_PANGOLIN_IP` changes (rare — check after Pangolin server upgrades or
-> resource re-creation), update the secret.
+> ⚠️ Rotate the Pangolin client secret if it has ever been shared in plaintext.
+> The webhook URL is itself a secret (it embeds a token) — treat it like a
+> credential and regenerate it in Dockhand if leaked.
 
 ---
 
@@ -140,66 +154,29 @@ ufw allow 80 && ufw allow 443 && ufw enable
 #   ufw allow from <PANGOLIN_SUBNET> to any port 22
 ```
 
-### CI deploy SSH key
+### Dockhand + GHCR access
 
-**On your LOCAL machine** (not the VPS), generate a dedicated key pair for CI
-(no passphrase so the runner can use it non-interactively):
+The deployer on the VPS is **Dockhand** (a Docker management UI). It clones the
+repo, reads `deploy/deploy.env` + its own secret store, and runs `compose` against
+the host Docker daemon — so there is **no CI SSH key and no hand-cloned repo** to
+set up. Ensure on the VPS:
 
-```bash
-ssh-keygen -t ed25519 -C "green-orange-ci" -f ./deploy_key -N ""
-# → deploy_key       (PRIVATE — goes into the GitHub secret VPS_SSH_KEY)
-# → deploy_key.pub   (PUBLIC  — goes onto the VPS, below)
+1. **Dockhand is running** and reachable over the Pangolin tunnel (expose its port
+   as a client-resource — see §2a). Keep it **off** the public internet.
+2. **GHCR pull credentials** so Dockhand can pull the private app images. Either
+   add the registry in Dockhand's registry settings, or `docker login` on the host
+   (Dockhand uses the host daemon) with a GitHub username in the `An-Y-The-Team`
+   org + a fine-grained PAT (or classic with **`read:packages` only**):
 
-cat ./deploy_key.pub             # copy this whole line for the next step
-```
+   ```bash
+   echo "<YOUR_GHCR_PAT>" | docker login ghcr.io -u <your-github-username> --password-stdin
+   ```
 
-Install the **public** key for the `deploy` user **on the VPS** (run as root via
-your Pangolin tunnel or the provider console). The `>>` creates the file if it
-doesn't exist, so do it in this order:
-
-```bash
-mkdir -p /home/deploy/.ssh && chmod 700 /home/deploy/.ssh
-echo "ssh-ed25519 AAAA...paste deploy_key.pub here... green-orange-ci" \
-  >> /home/deploy/.ssh/authorized_keys
-chmod 600 /home/deploy/.ssh/authorized_keys
-chown -R deploy:deploy /home/deploy/.ssh
-```
-
-Then put the **private** key into the repo secret (back on your local machine):
-
-```bash
-pbcopy < ./deploy_key            # macOS — copies the whole key incl. BEGIN/END
-# Paste it as the value of the GitHub secret  VPS_SSH_KEY, then:
-rm ./deploy_key                  # delete the local private key
-```
-
-> Private key → GitHub secret `VPS_SSH_KEY`. Public key → VPS
-> `~/.ssh/authorized_keys`. (Reversing these is the most common mistake.)
-
-As the `deploy` user:
-
-```bash
-sudo mkdir -p /root/green-orange && sudo chown deploy:deploy /root/green-orange
-git clone https://github.com/An-Y-The-Team/green-orange.git /root/green-orange
-cd /root/green-orange
-
-# Production env
-cp .env.production.example .env.production
-# Edit it: set a strong POSTGRES_PASSWORD; fresh DIRECTUS_KEY + DIRECTUS_SECRET +
-#   DIRECTUS_PREVIEW_SECRET (each `openssl rand -hex 32`); DIRECTUS_ADMIN_EMAIL /
-#   DIRECTUS_ADMIN_PASSWORD (first admin); DIRECTUS_PUBLIC_URL (https://cms.<domain>);
-#   CORS_ORIGINS; and the Caddy domains (SITE_DOMAIN / CMS_DOMAIN / ACME_EMAIL).
-#   Leave DIRECTUS_STATIC_TOKEN blank for now — you fill it in §6 after setup-access.
-nano .env.production
-
-# Log in to GHCR so the VPS can PULL the private images. Authenticate with YOUR
-# personal GitHub username (a member of the An-Y-The-Team org) + a fine-grained
-# PAT (or classic with read:packages ONLY) that can read the org's packages.
-echo "<YOUR_GHCR_PAT>" | docker login ghcr.io -u <your-github-username> --password-stdin
-```
-
-There are **no proxy config files to edit** — Caddy reads `SITE_DOMAIN`,
-`CMS_DOMAIN`, and `ACME_EMAIL` from the environment via the `Caddyfile`.
+The stack's env is **not** a `.env.production` file anymore — non-secret config
+lives in the tracked `deploy/deploy.env`, secrets in Dockhand's secret store (see
+"Env split" above and the §5 setup). There are **no proxy config files to edit** —
+Caddy reads `SITE_DOMAIN`, `CMS_DOMAIN`, and `ACME_EMAIL` from the environment via
+the `Caddyfile`.
 
 ---
 
@@ -217,25 +194,37 @@ run, point `ACME_EMAIL` at a real address and watch `docker compose logs caddy`.
 
 ## 5. First deploy
 
-Two options:
+One-time Dockhand setup, then cut a release.
 
-**A. Cut a release (recommended)** — this triggers the full pipeline:
+**A. Register the stack in Dockhand (once):**
+
+1. In Dockhand, create a **git stack** pointing at this repo:
+   - branch **`release`**, compose path **`docker-compose.prod.yml`**,
+     env-file path **`deploy/deploy.env`**, stack name **`green-orange`** (must
+     match the pinned `name:` in the compose file so Dockhand adopts the same
+     project rather than starting a parallel one).
+2. In the stack's env editor, add every **secret** from the list in
+   "Env split" above (mark them secret). Non-secrets already come from
+   `deploy/deploy.env`.
+3. Enable the stack **webhook**, copy its full URL, and save it as the GitHub
+   Actions secret **`DOCKHAND_WEBHOOK_URL`** (use Dockhand's tunnel-internal
+   host:port, since the deploy job reaches it over Pangolin).
+
+**B. Cut a release** — this triggers the full pipeline:
 
 ```bash
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
-GitHub builds both images, pushes to GHCR, and SSHes in to deploy.
+GitHub builds the images, pushes to GHCR, bumps the image tags in
+`deploy/deploy.env`, force-updates the `release` branch, then joins the Pangolin
+tunnel and POSTs the Dockhand webhook. Dockhand pulls `release` and runs
+`docker compose up -d`.
 
-**B. Manual first deploy on the VPS** (e.g. to have images present before TLS):
-
-```bash
-# After at least one successful build job has pushed images to GHCR:
-# set WEB_IMAGE / CRM_WEB_IMAGE / CRM_API_IMAGE in .env.production to that tag.
-# (There is no CMS_IMAGE — the cms service pins the official directus/directus image.)
-docker compose -f docker-compose.prod.yml --env-file .env.production pull
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d
-```
+> **Manual first deploy** (e.g. to have images present before TLS): once at least
+> one build job has pushed images to GHCR, trigger a deploy straight from
+> Dockhand (the stack's **Deploy**/**Pull & redeploy** action) — no SSH or hand-run
+> `compose` needed.
 
 > **One-time: create the `directus` database.** The Postgres init script only
 > creates databases on a **fresh** volume. On an existing prod volume, create it
@@ -243,8 +232,11 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 > intact for rollback):
 >
 > ```bash
-> docker compose -f docker-compose.prod.yml --env-file .env.production \
->   exec postgres psql -U "$POSTGRES_USER" -c "CREATE DATABASE directus;"
+> # Address the postgres container directly (no env-file needed; local socket =
+> # trust auth). Match it by compose service label so the command works whatever
+> # the project name is (green-orange vs a folder-derived yan-portf).
+> PG=$(docker ps -qf label=com.docker.compose.service=postgres)
+> docker exec "$PG" psql -U postgres -c "CREATE DATABASE directus;"
 > ```
 
 On start the CMS container runs `directus bootstrap` (creates the tables + the
@@ -267,9 +259,9 @@ DIRECTUS_PUBLIC_URL=https://cms.example.com \
 DIRECTUS_ADMIN_EMAIL=<admin> DIRECTUS_ADMIN_PASSWORD=<pw> \
 bun run setup-access                 # prints DIRECTUS_STATIC_TOKEN=...
 
-# 3. Put the printed token into .env.production (DIRECTUS_STATIC_TOKEN=...) and
-#    re-apply so the web service picks it up:
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d web
+# 3. Put the printed token into Dockhand as the DIRECTUS_STATIC_TOKEN secret,
+#    then redeploy the stack from Dockhand so the web service picks it up.
+#    (DIRECTUS_STATIC_TOKEN is a secret — it does NOT go in deploy/deploy.env.)
 
 # 4a. Carry the REAL Payload content over (cutover) — while old Payload still runs:
 #     see docs/payload-to-directus-migration/prod-data-migration.md, then
@@ -320,49 +312,43 @@ Verify:
 Authentik runs **in this same stack** (services `authentik-server`, `authentik-worker`,
 `authentik-redis`) against an `authentik` database in the existing postgres
 container, and is published by Caddy at `AUTH_DOMAIN`. It's the OIDC login for the
-CRM. The image is the public `ghcr.io/goauthentik/server` — no CI build, the deploy
-job's `compose pull` fetches it like any other image.
+CRM. The image is the public `ghcr.io/goauthentik/server` — no CI build; Dockhand
+pulls it on deploy like any other image.
 
 **1. DNS** — add an A record `auth.example.com` → the VPS IP (same as the others).
 
-**2. Env** — in `.env.production`, set `AUTH_DOMAIN`, a fresh `AUTHENTIK_SECRET_KEY`
-(`openssl rand -base64 60`), an `AUTHENTIK_BOOTSTRAP_PASSWORD` (the akadmin
-password), and an `AUTHENTIK_BOOTSTRAP_TOKEN` (`openssl rand -hex 32`). Authentik
-reuses `POSTGRES_USER`/`POSTGRES_PASSWORD` for its DB connection.
+**2. Env** — set `AUTH_DOMAIN` in `deploy/deploy.env` (non-secret). In **Dockhand's
+secret store** add `AUTHENTIK_SECRET_KEY` (`openssl rand -base64 60`),
+`AUTHENTIK_BOOTSTRAP_PASSWORD` (the akadmin password), and `AUTHENTIK_BOOTSTRAP_TOKEN`
+(`openssl rand -hex 32`). Authentik reuses `POSTGRES_USER`/`POSTGRES_PASSWORD` for
+its DB connection.
 
 **3. Create the `authentik` database** — the multi-DB init script only runs on a
 **fresh** postgres volume. Your prod DB already exists, so create it once by hand
 (idempotent — safe to re-run):
 
 ```bash
-cd "$VPS_PATH"   # e.g. /root/green-orange
-# Run psql AS the postgres superuser. Inside the container, local socket
-# connections use `trust` auth, so `-U postgres` needs no password and no env
-# vars at all — the command is fully self-contained.
-docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+# Address the postgres container directly. Local socket connections use `trust`
+# auth, so `-U postgres` needs no password and no env-file — fully self-contained.
+# Match by compose service label (works whatever the project name is).
+PG=$(docker ps -qf label=com.docker.compose.service=postgres)
+docker exec "$PG" \
   psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='authentik'" \
   | grep -q 1 || \
-docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+docker exec "$PG" \
   psql -U postgres -c "CREATE DATABASE authentik"
 ```
 
-> ⚠️ **Never `source` / `set -a; . ./.env.production` before running compose.** Two
-> footguns compound: (1) if any value uses `$(...)` (e.g. a `PASSWORD=$(openssl …)`
-> placeholder), sourcing **executes** it, silently producing a throwaway value; and
-> (2) shell environment variables **override** `--env-file` during compose's `${VAR}`
-> interpolation — so that poisoned value gets injected into the containers instead of
-> the file's real one. This is exactly what broke Postgres auth during the initial
-> Authentik bring-up. Let compose read `--env-file` itself; use `-U postgres` for psql.
+> Using `docker exec` against the container (not `docker compose … --env-file`)
+> sidesteps the old footgun where a sourced `.env.production` or a stray shell var
+> would override compose's `${VAR}` interpolation and poison Postgres auth. The env
+> now lives in Dockhand, and `-U postgres` on the local socket needs no creds at all.
 
 (On a brand-new VPS with an empty volume, skip this — the init script creates it.)
 
-**4. Bring the stack up** — the next tagged release deploys Authentik automatically.
-To do it immediately on the VPS:
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production pull
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d
-```
+**4. Bring the stack up** — the next tagged release deploys Authentik automatically
+via Dockhand. To do it immediately, trigger a **redeploy from Dockhand** (or POST
+its webhook); Dockhand pulls the images and runs `compose up -d`.
 
 Authentik applies its own schema migrations on first start, and the
 `AUTHENTIK_BOOTSTRAP_*` values create the `akadmin` superuser + an API token on the
@@ -417,8 +403,8 @@ The CRM dashboard (`crm-web`, Next.js) is published by Caddy at `CRM_DOMAIN`
 (`quanly.dichvuyan.com`). Its backend (`crm-api`, FastAPI) is **internal-only** —
 it has no `ports:` block and no Caddy route, so it's reachable solely on the
 docker network. crm-web calls it server-side at `http://crm-api:8000`; the
-browser never does. Both images are built + pushed by CI (`crm-web`, `crm-api`)
-and pinned by the deploy job alongside `web`/`cms`.
+browser never does. Both images are built + pushed by CI (`crm-web`, `crm-api`);
+CI pins them in `deploy/deploy.env` alongside `web`, and Dockhand deploys them.
 
 **1. DNS** — add an A record `quanly.dichvuyan.com` → the VPS IP, and (like the
 others) front it with a **public** Pangolin resource on port `3002`.
@@ -428,20 +414,20 @@ the database itself must exist first. As with `authentik` (§6a), the multi-DB i
 script only runs on a **fresh** volume, so create it once by hand (idempotent):
 
 ```bash
-cd "$VPS_PATH"   # e.g. /root/green-orange
-docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+PG=$(docker ps -qf label=com.docker.compose.service=postgres)
+docker exec "$PG" \
   psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='crm'" \
   | grep -q 1 || \
-docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+docker exec "$PG" \
   psql -U postgres -c "CREATE DATABASE crm"
 ```
 
-(Brand-new VPS with an empty volume: skip — the init script creates it. The same
-`source ./.env.production` footgun called out in §6a applies here too.)
+(Brand-new VPS with an empty volume: skip — the init script creates it.)
 
-**3. Env** — in `.env.production`, set `CRM_DOMAIN`, a fresh `CRM_AUTH_SECRET`
-(`openssl rand -hex 32`, the Auth.js session secret), and the OIDC client
-`CRM_OIDC_CLIENT_ID` / `CRM_OIDC_CLIENT_SECRET`. The client id/secret come from the
+**3. Env** — set `CRM_DOMAIN` and `CRM_OIDC_CLIENT_ID` in `deploy/deploy.env`
+(non-secret); in **Dockhand's secret store** add `CRM_AUTH_SECRET`
+(`openssl rand -hex 32`, the Auth.js session secret) and `CRM_OIDC_CLIENT_SECRET`.
+The client id/secret come from the
 prod `crm` Authentik app registered in §6a step 5 — the **same** client id is used
 twice: as crm-web's provider id (`AUTH_AUTHENTIK_ID`) and as crm-api's token
 audience (`OIDC_AUDIENCE`). The issuer is derived from `AUTH_DOMAIN` in
@@ -452,8 +438,8 @@ audience (`OIDC_AUDIENCE`). The issuer is derived from `AUTH_DOMAIN` in
 with a placeholder, re-run the setup script (§6a step 5) with
 `CRM_REDIRECT_URIS=https://quanly.dichvuyan.com/api/auth/callback/authentik`.
 
-**5. Bring up** — the next tagged release deploys both apps automatically (`compose
-pull` + `up -d`). Confirm `https://quanly.dichvuyan.com` redirects to Authentik
+**5. Bring up** — the next tagged release deploys both apps automatically (Dockhand
+pulls + `up -d`). Confirm `https://quanly.dichvuyan.com` redirects to Authentik
 login, and after sign-in the dashboard's data loads (crm-api answering over the
 internal network).
 
@@ -468,9 +454,9 @@ internal network).
 ## 7. Ongoing deploys
 
 Just cut a new tag. The repo uses `vX.Y.Z` tags, and pushing one triggers the
-full build → deploy pipeline. Use the helper script so you never have to look up
-the last tag — it reads the latest `vX.Y.Z`, bumps the requested part (resetting
-lower parts to 0), then tags and pushes:
+full build → bump `release` → trigger-Dockhand pipeline. Use the helper script so
+you never have to look up the last tag — it reads the latest `vX.Y.Z`, bumps the
+requested part (resetting lower parts to 0), then tags and pushes:
 
 ```bash
 bun run release:fix       # 0.5.8 -> 0.5.9   patch  (bug fix)
@@ -499,13 +485,14 @@ git tag v1.1.0 && git push origin v1.1.0
 > image is missing, it falls back to a full build.) The CMS is never built — its
 > pinned `directus/directus` image is just pulled on deploy.
 
-**Rollback** — redeploy a previous tag by re-running that release's workflow
-(Actions → select run → Re-run), or on the VPS:
+**Rollback** — three ways, pick by urgency:
 
-```bash
-sed -i 's|^WEB_IMAGE=.*|WEB_IMAGE=ghcr.io/an-y-the-team/green-orange-web:v1.0.0|' .env.production
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d
-```
+- **Re-run a previous release's workflow** (Actions → select run → Re-run) — it
+  re-points `release` at that tag's images and re-triggers Dockhand.
+- **In Dockhand**, edit the stack's `*_IMAGE` env to the older `vX.Y.Z` and
+  redeploy (a hot override; note the next release re-force-pushes `release`).
+- **Point the `release` branch** back at an older release commit and hit the
+  webhook (or Dockhand's redeploy).
 
 > **Rolling back across the Payload → Directus cutover** is different from an
 > ordinary image rollback: redeploy the **pre-migration tag**, whose compose still
@@ -517,22 +504,32 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 
 ## 8. Backups
 
+Address the postgres container directly (`docker exec`), so backups don't depend
+on a compose env-file (Dockhand owns the env now, not `.env.production`). Local
+socket connections use `trust` auth, so `-U postgres` needs no password. Match the
+container/volume by compose **label** rather than a hardcoded name, so it works
+whatever the project is named (`green-orange` vs a folder-derived `yan-portf`).
+
 ```bash
-# Postgres — nightly dump per database (add to deploy user's crontab).
-# Directus content now lives in the `directus` DB (NOT the old Payload `cms`).
-# `pg_dumpall` is simplest if you'd rather grab directus + authentik in one shot.
-0 3 * * * docker compose -f /root/green-orange/docker-compose.prod.yml --env-file /root/green-orange/.env.production \
-  exec -T postgres pg_dump -U postgres directus | gzip > /root/backups/directus-$(date +\%F).sql.gz
-5 3 * * * docker compose -f /root/green-orange/docker-compose.prod.yml --env-file /root/green-orange/.env.production \
-  exec -T postgres pg_dump -U postgres authentik | gzip > /root/backups/authentik-$(date +\%F).sql.gz
+# Postgres — nightly dump per database (add to the deploy user's crontab).
+# Directus content lives in the `directus` DB; the CRM in `crm`.
+# `pg_dumpall` is simplest if you'd rather grab everything in one shot.
+0 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres directus  | gzip > /root/backups/directus-$(date +\%F).sql.gz
+5 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres authentik | gzip > /root/backups/authentik-$(date +\%F).sql.gz
+8 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres crm       | gzip > /root/backups/crm-$(date +\%F).sql.gz
 
 # Uploaded files live in the `media` named volume (mounted at /directus/uploads) —
-# back it up too:
-docker run --rm -v green-orange_media:/data -v /root/backups:/backup alpine \
+# back it up too. Resolve the volume by label (name is <project>_media):
+VOL=$(docker volume ls -qf label=com.docker.compose.volume=media)
+docker run --rm -v "$VOL":/data -v /root/backups:/backup alpine \
   tar czf /backup/media-$(date +%F).tar.gz -C /data .
 ```
 
-Restore: `gunzip -c dump.sql.gz | docker compose ... exec -T postgres psql -U postgres directus`.
+Restore: `gunzip -c dump.sql.gz | docker exec -i "$(docker ps -qf label=com.docker.compose.service=postgres)" psql -U postgres directus`.
+
+> These labels are set by Compose on every container/volume it creates, so they
+> hold regardless of the project name. Sanity-check with `docker ps` /
+> `docker volume ls` if a match comes back empty.
 
 ---
 
@@ -560,8 +557,8 @@ committed snapshot automatically (idempotent — a no-op when nothing changed).
 ## Notes / optional hardening
 
 - **`PUBLIC_URL`:** Directus needs `DIRECTUS_PUBLIC_URL=https://cms.<domain>` set
-  (it builds absolute asset/admin URLs and OAuth redirects from it). It's wired in
-  `.env.production` and passed to the container in `docker-compose.prod.yml`.
+  (it builds absolute asset/admin URLs and OAuth redirects from it). It's set in
+  `deploy/deploy.env` and passed to the container in `docker-compose.prod.yml`.
 - **Machine user:** instead of a personal PAT on the VPS, use a dedicated GitHub
   machine user with read-only package access.
 - **Postgres is internal-only** (no published port); keep it that way.
