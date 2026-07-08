@@ -36,13 +36,10 @@ jobs:
       - name: Format check
         run: bunx prettier --check "**/*.{js,ts,tsx,md}"
 
-      # crm-api's lint/check-types shell out to uv/ruff — excluded here and
-      # covered by the `python` job instead.
-      - name: Lint & type-check
-        run: bunx turbo run lint check-types --filter='!@yan/crm-api'
-
-      - name: Test
-        run: bunx vitest run
+      # crm-api's tasks shell out to uv/ruff/pytest — excluded here and covered
+      # by the `python` job instead (this runner has no uv).
+      - name: Lint, type-check & test
+        run: bunx turbo run lint check-types test --filter='!@yan/crm-api'
 
   python:
     name: Python (crm-api · ruff · pytest)
