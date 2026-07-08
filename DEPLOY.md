@@ -76,12 +76,12 @@ home to avoid a stored value silently shadowing the file.
 
 Secrets:
 
-| Name                   | Value                                                                                  |
-| ---------------------- | -------------------------------------------------------------------------------------- |
+| Name                   | Value                                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `DOCKHAND_WEBHOOK_URL` | Full secret-bearing webhook URL of the Dockhand `green-orange` git stack, using its **tunnel-internal** host:port (reached over Pangolin). |
-| `PANGOLIN_ID`          | Pangolin client ID (used by `pangolin up --id`)                                        |
-| `PANGOLIN_SECRET`      | Pangolin client secret (`pangolin up --secret`)                                        |
-| `PANGOLIN_ENDPOINT`    | Pangolin control URL, e.g. `https://prp.hdc-cloud.org`                                 |
+| `PANGOLIN_ID`          | Pangolin client ID (used by `pangolin up --id`)                                                                                            |
+| `PANGOLIN_SECRET`      | Pangolin client secret (`pangolin up --secret`)                                                                                            |
+| `PANGOLIN_ENDPOINT`    | Pangolin control URL, e.g. `https://prp.hdc-cloud.org`                                                                                     |
 
 > **No SSH secrets.** The deploy job no longer SSHes in, so `VPS_HOST`,
 > `VPS_USER`, `VPS_SSH_KEY`, `VPS_PORT`, `VPS_PATH`, and `VPS_PANGOLIN_IP` are no
@@ -117,7 +117,17 @@ GitHub secrets:
 
 - `PANGOLIN_ID`, `PANGOLIN_SECRET`, `PANGOLIN_ENDPOINT` (`https://prp.hdc-cloud.org`)
 - `DOCKHAND_WEBHOOK_URL` — the stack's webhook URL built on that tunnel-internal
-  address (see §5), e.g. `http://<dockhand-tunnel-host>:<port>/api/git/stacks/<id>/webhook?...`
+  address (see §5), e.g. `http://<dockhand-tunnel-ip>:<port>/api/git/stacks/<id>/webhook`
+
+> **Make it a Private Resource in Host mode** (TCP, Dockhand's port — e.g. `4444`),
+> not HTTP mode. HTTP mode needs tunnel DNS, which is unreliable in headless CI (it
+> times out). Host mode is reached at the resource's own **tunnel IP**, and each
+> resource gets its **own** IP — the SSH resource's IP is _not_ Dockhand's. Use the
+> IP, not the alias, in the URL. Find it from a tunnel-connected machine:
+> `route get <alias>` (macOS) / `getent hosts <alias>` (Linux).
+>
+> ⚠️ The `/api/git/stacks/<id>/` **id changes if you delete and re-add the stack** —
+> a stale id returns `404`. Re-copy the webhook URL from Dockhand after any re-add.
 
 The workflow's **"Connect to Pangolin and trigger Dockhand"** step:
 
@@ -163,14 +173,20 @@ set up. Ensure on the VPS:
 
 1. **Dockhand is running** and reachable over the Pangolin tunnel (expose its port
    as a client-resource — see §2a). Keep it **off** the public internet.
-2. **GHCR pull credentials** so Dockhand can pull the private app images. Either
-   add the registry in Dockhand's registry settings, or `docker login` on the host
-   (Dockhand uses the host daemon) with a GitHub username in the `An-Y-The-Team`
-   org + a fine-grained PAT (or classic with **`read:packages` only**):
+2. **GHCR pull credentials** so Dockhand can pull the private app images. Use a
+   **classic PAT with `read:packages`** — a _fine-grained_ token can't grant org
+   `Packages: read` unless it's resource-owned by the org (repo Contents access is
+   not enough, and that's the one that authenticates the git clone, not the pull).
+   Add it via **Dockhand's registry credentials** (`ghcr.io` / your GitHub login /
+   the PAT). Note a plain host `docker login` does **not** reach Dockhand — Dockhand
+   pulls with its **own** client creds over the socket, so if you must use the CLI,
+   log in **inside the container** (leaves the host's own creds untouched):
 
    ```bash
-   echo "<YOUR_GHCR_PAT>" | docker login ghcr.io -u <your-github-username> --password-stdin
+   docker exec dockhand sh -c 'echo "<CLASSIC_PAT>" | docker login ghcr.io -u <github-login> --password-stdin'
    ```
+
+   (GitHub org SSO? Authorize the classic PAT for the org first.)
 
 The stack's env is **not** a `.env.production` file anymore — non-secret config
 lives in the tracked `deploy/deploy.env`, secrets in Dockhand's secret store (see
@@ -206,9 +222,12 @@ One-time Dockhand setup, then cut a release.
 2. In the stack's env editor, add every **secret** from the list in
    "Env split" above (mark them secret). Non-secrets already come from
    `deploy/deploy.env`.
-3. Enable the stack **webhook**, copy its full URL, and save it as the GitHub
-   Actions secret **`DOCKHAND_WEBHOOK_URL`** (use Dockhand's tunnel-internal
-   host:port, since the deploy job reaches it over Pangolin).
+3. Add the **GHCR registry credential** (classic `read:packages` PAT — see §3) so
+   Dockhand can pull the private images.
+4. Enable the stack **webhook**, copy its full URL, and save it as the GitHub
+   Actions secret **`DOCKHAND_WEBHOOK_URL`** (swap the host for Dockhand's
+   tunnel-internal IP:port — see §2a). Re-copy it after any delete/re-add of the
+   stack: the `/api/git/stacks/<id>/` id changes and a stale id `404`s.
 
 **B. Cut a release** — this triggers the full pipeline:
 

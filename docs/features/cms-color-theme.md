@@ -26,13 +26,13 @@ font-roster approach.
 
 ## Color theme roster (locked)
 
-| Slug | Primary (was emerald) | Secondary (was orange) |
-|------|-----------------------|------------------------|
-| `green-orange` *(default)* | emerald | orange |
-| `ocean` | blue | sky |
-| `royal` | violet | fuchsia |
-| `crimson` | rose | red |
-| `forest` | teal | indigo |
+| Slug                       | Primary (was emerald) | Secondary (was orange) |
+| -------------------------- | --------------------- | ---------------------- |
+| `green-orange` _(default)_ | emerald               | orange                 |
+| `ocean`                    | blue                  | sky                    |
+| `royal`                    | violet                | fuchsia                |
+| `crimson`                  | rose                  | red                    |
+| `forest`                   | teal                  | indigo                 |
 
 The `green-orange` preset reproduces Tailwind's emerald + orange oklch
 values byte-for-byte (copied from `node_modules/tailwindcss/theme.css`) so
@@ -58,9 +58,11 @@ CSS Variable Definition → @theme inline Mapping → Tailwind Utility Class
 ## Files changed
 
 ### New
+
 - `apps/web/src/lib/color-themes.ts` — theme registry + `themeCssVars()` helper
 
 ### Web frontend
+
 - `apps/web/src/app/globals.css` — `:root` brand vars + `@theme inline` mappings
 - `apps/web/src/app/page.tsx` — spread `themeCssVars()` into root div style
 - `apps/web/src/lib/directus.ts` — `color_theme` field on `DirectusSiteSettings`
@@ -70,6 +72,7 @@ CSS Variable Definition → @theme inline Mapping → Tailwind Utility Class
   `brand-primary-*`, `orange-*` → `brand-secondary-*`
 
 ### CMS
+
 - `apps/cms/scripts/build-schema.ts` — `color_theme` dropdown on `site_settings`
 - `apps/cms/seed/seed.ts` — `colorTheme: 'green-orange'` default + field mapping
 - `apps/cms/scripts/migrate-from-payload.ts` — `color_theme: 'green-orange'`
@@ -86,9 +89,9 @@ path applies. After deploy, re-snapshot on the VPS:
 ## Out of scope
 
 - Per-element color tags (`HeadlineColor`, `BrandValueAccent`) still use
-  literal hue names (`emerald`, `orange`, `slate`). Their *class maps*
+  literal hue names (`emerald`, `orange`, `slate`). Their _class maps_
   now reference `brand-primary-*` / `brand-secondary-*` utilities, so they
-  track the active theme visually, but the Directus field *choices* still
+  track the active theme visually, but the Directus field _choices_ still
   say "emerald"/"orange". Renaming those to role-based ("primary"/
   "secondary"/"neutral") is a follow-up PR — it changes existing data.
 - Raw hex color inputs. Presets only, for v1.
