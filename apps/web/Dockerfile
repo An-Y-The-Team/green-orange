@@ -9,7 +9,7 @@ WORKDIR /app
 FROM base AS pruner
 RUN bun install -g turbo@^2
 COPY . .
-RUN turbo prune @yan-portf/web --docker
+RUN turbo prune @yan/web --docker
 
 # --- Builder: install deps then build (single stage to preserve symlinks) ---
 FROM base AS builder
@@ -28,7 +28,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Opt in to standalone output + monorepo tracing for the production build only
 # (next.config keeps these off in dev to avoid a Turbopack scan hang).
 ENV NEXT_OUTPUT_STANDALONE=1
-RUN bunx turbo run build --filter=@yan-portf/web
+RUN bunx turbo run build --filter=@yan/web
 
 # --- Runtime: minimal Node image running the standalone server -------------
 FROM node:22-bookworm-slim AS runner

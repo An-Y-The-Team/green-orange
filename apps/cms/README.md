@@ -1,4 +1,4 @@
-# @yan-portf/cms — Directus config-as-code
+# @yan/cms — Directus config-as-code
 
 The headless content backend for GreenOrange Services. Manages services, projects,
 testimonials, site settings, and captures contact-form leads.

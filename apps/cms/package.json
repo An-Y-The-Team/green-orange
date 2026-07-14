@@ -1,5 +1,5 @@
 {
-  "name": "@yan-portf/cms",
+  "name": "@yan/cms",
   "version": "1.0.0",
   "description": "Directus config-as-code (schema snapshot + SDK setup/seed scripts). Directus itself runs from the official image — this package builds nothing.",
   "license": "MIT",

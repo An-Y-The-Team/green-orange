@@ -20,7 +20,16 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Yan CRM API", version="0.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="Yan CRM API",
+    version="0.0.0",
+    lifespan=lifespan,
+    # Keep the /docs "Authorize" token in the browser across reloads so you
+    # don't have to re-enter admin/admin every time you refresh the page.
+    # Swagger UI defaults persistAuthorization to false (token is in-memory
+    # only and lost on refresh). Pure docs/dev convenience — no API change.
+    swagger_ui_parameters={"persistAuthorization": True},
+)
 
 app.add_middleware(
     CORSMiddleware,

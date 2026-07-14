@@ -514,9 +514,9 @@ preload at build time, not request time. This is a known limitation.
 In order, from repo root:
 
 ```bash
-turbo run lint --filter=@yan-portf/web --filter=@yan-portf/cms
-turbo run check-types --filter=@yan-portf/web --filter=@yan-portf/cms
-turbo run build --filter=@yan-portf/web --filter=@yan-portf/cms
+turbo run lint --filter=@yan/web --filter=@yan/cms
+turbo run check-types --filter=@yan/web --filter=@yan/cms
+turbo run build --filter=@yan/web --filter=@yan/cms
 ```
 
 All three must pass before commit. The web build will download font files from
@@ -616,7 +616,7 @@ edits.
       points the three role variables at `var(--font-<slug>)`.
 - [ ] `page.tsx`: inline `style` on root div re-maps the three role variables
       based on active settings.
-- [ ] Lint + check-types + build pass for both `@yan-portf/web` and
-      `@yan-portf/cms`.
+- [ ] Lint + check-types + build pass for both `@yan/web` and
+      `@yan/cms`.
 - [ ] Manual verification per § 9 done.
 - [ ] DEPLOY.md needs no edit (standard deploy path applies).

@@ -1,0 +1,63 @@
+name: CI
+
+# Quality gate for pull requests: lint, type-check, format, and tests.
+# Public repo → Actions minutes are free/unlimited, so cost isn't the constraint.
+# We optimise wall-clock instead: JS and Python run as parallel jobs (each
+# installs only its own toolchain), and superseded runs on the same PR are
+# cancelled below.
+on:
+  pull_request:
+
+# A new push to a PR cancels the still-running check for the previous push.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  js:
+    name: JS (lint · types · format · test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14 # version that generated bun.lock; the text lockfile needs Bun >=1.2
+
+      # Cache Bun's global module cache (keyed on the lockfile) to speed installs.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - run: bun install --frozen-lockfile
+
+      - name: Format check
+        run: bunx prettier --check "**/*.{js,ts,tsx,md}"
+
+      # crm-api's tasks shell out to uv/ruff/pytest — excluded here and covered
+      # by the `python` job instead (this runner has no uv).
+      - name: Lint, type-check & test
+        run: bunx turbo run lint check-types test --filter='!@yan/crm-api'
+
+  python:
+    name: Python (crm-api · ruff · pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/crm-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true # cache the uv download/dependency cache
+
+      - run: uv sync
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Test
+        run: uv run pytest -q
