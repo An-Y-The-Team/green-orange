@@ -37,8 +37,13 @@ def client_fixture(session: Session):
     app.dependency_overrides.clear()
 
 
-def test_project_accepts_legacy_string_values():
-    from app.models.project import Project
+def test_project_accepts_valid_enum_string_values():
+    from app.models.project import (
+        Project,
+        ProjectStage,
+        ProjectType,
+        ScheduleOutcome,
+    )
 
     project = Project.model_validate(
         {
@@ -46,10 +51,10 @@ def test_project_accepts_legacy_string_values():
             "name": "Legacy Project",
             "description": "Legacy description",
             "customer": "Legacy Co",
-            "type": "Residential",
+            "type": "ve_sinh",
             "address": "123 Legacy St",
-            "stage": "planning",
-            "schedule_outcome": "On track",
+            "stage": "yeu_cau",
+            "schedule_outcome": "on_time",
             "start_date": "2026-01-01T00:00:00",
             "end_date": "2026-12-31T00:00:00",
             "manager": "Jane Doe",
@@ -60,9 +65,9 @@ def test_project_accepts_legacy_string_values():
     )
 
     assert project.description == "Legacy description"
-    assert project.type == "Residential"
-    assert project.stage == "planning"
-    assert project.schedule_outcome == "On track"
+    assert project.type == ProjectType.VE_SINH
+    assert project.stage == ProjectStage.YEU_CAU
+    assert project.schedule_outcome == ScheduleOutcome.ON_TIME
 
 
 def test_project_crud_roundtrip(client: TestClient):
@@ -96,10 +101,10 @@ def test_project_crud_roundtrip(client: TestClient):
 
     res = client.patch(
         f"/projects/{project_id}",
-        json={"stage": "in_progress"},
+        json={"stage": "thi_cong"},
     )
     assert res.status_code == 200
-    assert res.json()["stage"] == "in_progress"
+    assert res.json()["stage"] == "thi_cong"
 
     res = client.delete(f"/projects/{project_id}")
     assert res.status_code == 204
