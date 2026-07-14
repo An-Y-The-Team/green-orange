@@ -15,8 +15,8 @@ from app.core.config import settings
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    # Teaching convenience: create tables + seed demo data on startup. In
-    # production, run Alembic migrations instead (see alembic/) and drop these.
+    # No startup work is performed here; run Alembic migrations separately in 
+    #production.
     yield
 
 
