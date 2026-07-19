@@ -1,6 +1,6 @@
 """Tasks — STUDENT EXERCISE (skeleton).
 
-Implement CRUD mirroring app/api/routes/customers.py.
+Implement CRUD mirroring app/api/routes/clients.py.
 Model fields (match the crm-web `Task` type): title, due_date, status
 ("todo"|"in_progress"|"done"), priority ("low"|"medium"|"high"), assignee.
 See app/api/routes/contacts.py for the step-by-step checklist.

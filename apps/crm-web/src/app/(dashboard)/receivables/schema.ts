@@ -7,7 +7,7 @@ import { MilestoneType } from "./enums";
 export const milestoneSchema = z.object({
   contract_code: z.string().min(1, "Vui lòng nhập mã hợp đồng"),
   project_code: z.string().min(1, "Vui lòng nhập mã công trình"),
-  customer: z.string().min(1, "Vui lòng nhập khách hàng"),
+  client: z.string().min(1, "Vui lòng nhập khách hàng"),
   name: z.string().min(1, "Nhập tên đợt"),
   type: z.nativeEnum(MilestoneType),
   due_amount: z.coerce.number().min(0, "Số tiền không hợp lệ"),

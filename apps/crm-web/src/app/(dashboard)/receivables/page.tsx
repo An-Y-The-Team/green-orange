@@ -74,7 +74,7 @@ export default async function ReceivablesPage() {
                     {m.contract_code}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {m.customer}
+                    {m.client}
                   </TableCell>
                   <TableCell>
                     <span className="flex items-center gap-1.5">

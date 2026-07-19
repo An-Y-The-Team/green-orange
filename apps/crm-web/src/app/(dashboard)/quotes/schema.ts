@@ -7,7 +7,7 @@ import { QuoteType } from "./enums";
 // array validated per row.
 export const quoteSchema = z.object({
   title: z.string().min(3, "Tiêu đề phải có ít nhất 3 ký tự"),
-  customer: z.string().min(1, "Vui lòng nhập khách hàng"),
+  client: z.string().min(1, "Vui lòng nhập khách hàng"),
   project_code: z.string().min(1, "Vui lòng nhập mã công trình"),
   type: z.nativeEnum(QuoteType),
   issue_date: z.string().min(1, "Chọn ngày lập"),

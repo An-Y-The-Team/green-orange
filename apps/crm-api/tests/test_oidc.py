@@ -37,7 +37,7 @@ def test_oidc_provisions_user_on_first_login(session: Session, monkeypatch):
         stmt = select(User).where(User.username == "alice@authentik")
         assert session.exec(stmt).first() is None  # not provisioned yet
 
-        res = client.get("/customers", headers={"Authorization": "Bearer dummy"})
+        res = client.get("/clients", headers={"Authorization": "Bearer dummy"})
         assert res.status_code == 200  # token accepted
 
         assert session.exec(stmt).first() is not None  # provisioned on first login
@@ -51,7 +51,7 @@ def test_oidc_rejects_invalid_token(session: Session, monkeypatch):
     app.dependency_overrides[get_session] = lambda: session
     client = TestClient(app)
     try:
-        res = client.get("/customers", headers={"Authorization": "Bearer bad"})
+        res = client.get("/clients", headers={"Authorization": "Bearer bad"})
         assert res.status_code == 401
     finally:
         app.dependency_overrides.clear()

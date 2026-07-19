@@ -1,4 +1,4 @@
-"""Worked test for the customers resource.
+"""Worked test for the clients resource.
 
 Uses an in-memory SQLite DB and overrides the session + auth dependencies, so it
 runs without Postgres and without a real login (per the SQLModel testing docs).
@@ -40,10 +40,10 @@ def client_fixture(session: Session):
     app.dependency_overrides.clear()
 
 
-def test_customer_crud_roundtrip(client: TestClient):
+def test_client_crud_roundtrip(client: TestClient):
     # create
     res = client.post(
-        "/customers",
+        "/clients",
         json={
             "name": "Test Co",
             "email": "test@co.vn",
@@ -55,22 +55,22 @@ def test_customer_crud_roundtrip(client: TestClient):
     assert res.status_code == 201
     created = res.json()
     assert created["id"] is not None
-    customer_id = created["id"]
+    client_id = created["id"]
 
     # list
-    res = client.get("/customers")
+    res = client.get("/clients")
     assert res.status_code == 200
     assert len(res.json()) == 1
 
     # update
-    res = client.patch(f"/customers/{customer_id}", json={"status": "active"})
+    res = client.patch(f"/clients/{client_id}", json={"status": "active"})
     assert res.status_code == 200
     assert res.json()["status"] == "active"
 
     # delete
-    res = client.delete(f"/customers/{customer_id}")
+    res = client.delete(f"/clients/{client_id}")
     assert res.status_code == 204
 
     # gone
-    res = client.get(f"/customers/{customer_id}")
+    res = client.get(f"/clients/{client_id}")
     assert res.status_code == 404

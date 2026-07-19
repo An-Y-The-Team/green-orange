@@ -70,7 +70,7 @@ export default async function ContractsPage() {
                 </TableCell>
                 <TableCell>{contract.title}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {contract.customer}
+                  {contract.client}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDate(contract.signed_date)}

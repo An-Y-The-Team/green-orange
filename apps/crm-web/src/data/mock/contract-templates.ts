@@ -17,15 +17,15 @@ export const contractTemplates: ContractTemplate[] = [
     body: doc(
       p(t("Hôm nay, ngày "), mf("signed_date"), t(", hai bên gồm có:")),
       h2(t("BÊN A (Khách hàng)")),
-      p(mf("customer")),
-      p(t("Địa chỉ: "), mf("customer_address")),
+      p(mf("client")),
+      p(t("Địa chỉ: "), mf("client_address")),
       p(
         t("MST: "),
-        mf("customer_tax_code"),
+        mf("client_tax_code"),
         t(" · Đại diện: "),
-        mf("customer_rep"),
+        mf("client_rep"),
         t(" — "),
-        mf("customer_position")
+        mf("client_position")
       ),
       h2(t("BÊN B (Nhà cung cấp dịch vụ)")),
       p(mf("company.name")),
@@ -83,9 +83,9 @@ export const contractTemplates: ContractTemplate[] = [
     body: doc(
       p(t("Hôm nay, ngày "), mf("signed_date"), t(", hai bên gồm có:")),
       h2(t("BÊN A (Chủ đầu tư)")),
-      p(mf("customer")),
-      p(t("Địa chỉ: "), mf("customer_address")),
-      p(t("MST: "), mf("customer_tax_code")),
+      p(mf("client")),
+      p(t("Địa chỉ: "), mf("client_address")),
+      p(t("MST: "), mf("client_tax_code")),
       h2(t("BÊN B (Nhà thầu thi công)")),
       p(mf("company.name"), t(" — MST: "), mf("company.tax_id")),
       p(t("Đại diện: "), mf("company.rep"), t(" — "), mf("company.rep_title")),

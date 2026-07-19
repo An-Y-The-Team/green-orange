@@ -19,7 +19,7 @@ export interface Project {
   id: number;
   code: string;
   name: string;
-  customer: string;
+  client: string;
   type: ProjectType;
   address: string;
   stage: ProjectStage;

@@ -1,5 +1,5 @@
 /**
- * MergeFieldNode — a contract merge token (e.g. `customer`) as a first-class
+ * MergeFieldNode — a contract merge token (e.g. `client`) as a first-class
  * editor node. Implemented as a TextNode subclass in "token" mode so it behaves
  * as one atomic, non-editable chip (the canonical mention-style pattern) and
  * serialises trivially to JSON.

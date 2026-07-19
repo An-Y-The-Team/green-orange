@@ -57,7 +57,7 @@ export default async function ProjectsPage() {
                 </TableCell>
                 <TableCell>{project.name}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {project.customer}
+                  {project.client}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {projectType[project.type]}

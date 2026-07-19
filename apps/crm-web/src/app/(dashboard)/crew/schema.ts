@@ -4,7 +4,7 @@ import { CrewRole, CrewStatus } from "./enums";
 
 // Single source of truth for crew form validation. Imported by the server
 // actions (add/update) for server-side validation; the same shape is what
-// POST/PATCH /crew would accept on the backend. Mirrors the customers schema.
+// POST/PATCH /crew would accept on the backend. Mirrors the clients schema.
 export const crewSchema = z.object({
   name: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
   phone: z.string().min(6, "Số điện thoại không hợp lệ"),

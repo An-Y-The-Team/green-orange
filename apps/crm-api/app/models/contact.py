@@ -1,6 +1,6 @@
 """Contact model — STUDENT EXERCISE (skeleton).
 
-Fill this in using app/models/customer.py as the template, then uncomment the
+Fill this in using app/models/client.py as the template, then uncomment the
 Contact import in app/models/__init__.py. Match the crm-web `Contact` type:
 name, email, phone, title, company.
 """

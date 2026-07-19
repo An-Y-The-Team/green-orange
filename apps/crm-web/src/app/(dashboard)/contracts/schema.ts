@@ -7,7 +7,7 @@ import { ContractStatus } from "./enums";
 // Hợp đồng form schema — shared by the dialog and the add-contract action.
 export const contractSchema = z.object({
   title: z.string().min(3, "Tiêu đề phải có ít nhất 3 ký tự"),
-  customer: z.string().min(1, "Vui lòng nhập khách hàng"),
+  client: z.string().min(1, "Vui lòng nhập khách hàng"),
   project_code: z.string().min(1, "Vui lòng nhập mã công trình"),
   value: z.coerce.number().min(0, "Giá trị không hợp lệ"),
   signed_date: z.string().min(1, "Chọn ngày ký"),

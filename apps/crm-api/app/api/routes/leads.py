@@ -1,6 +1,6 @@
 """Leads — STUDENT EXERCISE (skeleton).
 
-Implement CRUD mirroring app/api/routes/customers.py.
+Implement CRUD mirroring app/api/routes/clients.py.
 Model fields (match the crm-web `Lead` type): name, company, source, status
 ("new"|"contacted"|"qualified"|"lost"), value (int), owner.
 See app/api/routes/contacts.py for the step-by-step checklist.

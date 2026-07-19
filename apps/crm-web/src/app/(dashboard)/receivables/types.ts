@@ -5,7 +5,7 @@ export interface PaymentMilestone {
   id: number;
   contract_code: string;
   project_code: string;
-  customer: string;
+  client: string;
   name: string;
   type: MilestoneType;
   status: MilestoneStatus;

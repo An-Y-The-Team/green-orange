@@ -4,21 +4,21 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { customers } from "@/data/mock/customers";
+import { clients } from "@/data/mock/clients";
 import { API_URL, apiSend, nextId } from "@/lib/http";
 
-import { type CustomerFormValues, customerSchema } from "../schema";
-import type { Customer } from "../types";
+import { type ClientFormValues, clientSchema } from "../schema";
+import type { Client } from "../types";
 
-// Server action for the "add customer" form. Wired into the dialog via
+// Server action for the "add client" form. Wired into the dialog via
 // useActionState; the client reads the returned ServerActionState through the
 // shared useServerAction hook (toast + onSuccess). The client passes the
 // already-typed form values, and we re-validate here as defense.
-export async function addCustomer(
+export async function addClient(
   _prevState: ServerActionState,
-  input: CustomerFormValues
+  input: ClientFormValues
 ): Promise<ServerActionState> {
-  const parsed = customerSchema.safeParse(input);
+  const parsed = clientSchema.safeParse(input);
 
   if (!parsed.success) {
     return {
@@ -29,20 +29,20 @@ export async function addCustomer(
   }
 
   try {
-    // Live mode → POST /customers (the worked backend resource). Mock mode →
+    // Live mode → POST /clients (the worked backend resource). Mock mode →
     // no store, so synthesize the server-side fields for the demo flow.
-    const customer: Customer = API_URL
-      ? await apiSend<Customer>("/customers", "POST", parsed.data)
+    const client: Client = API_URL
+      ? await apiSend<Client>("/clients", "POST", parsed.data)
       : {
           ...parsed.data,
-          id: nextId(customers),
+          id: nextId(clients),
           created_at: new Date().toISOString().slice(0, 10),
         };
-    revalidatePath("/customers");
+    revalidatePath("/clients");
     return {
       success: true,
-      message: `Đã thêm khách hàng "${customer.name}".`,
-      data: customer,
+      message: `Đã thêm khách hàng "${client.name}".`,
+      data: client,
     };
   } catch (error) {
     return {

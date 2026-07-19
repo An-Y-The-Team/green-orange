@@ -13,34 +13,34 @@ import {
 
 import { PageHeader } from "@/components/page-header";
 
-import { CustomerFormDialog } from "./components/customer-form-dialog/customer-form-dialog";
-import { CustomerStatus } from "./enums";
-import { listCustomers } from "./queries";
+import { ClientFormDialog } from "./components/client-form-dialog/client-form-dialog";
+import { ClientStatus } from "./enums";
+import { listClients } from "./queries";
 
 const statusVariant: Record<
-  CustomerStatus,
+  ClientStatus,
   "success" | "secondary" | "destructive"
 > = {
-  [CustomerStatus.ACTIVE]: "success",
-  [CustomerStatus.LEAD]: "secondary",
-  [CustomerStatus.CHURNED]: "destructive",
+  [ClientStatus.ACTIVE]: "success",
+  [ClientStatus.LEAD]: "secondary",
+  [ClientStatus.CHURNED]: "destructive",
 };
 
-const statusLabel: Record<CustomerStatus, string> = {
-  [CustomerStatus.ACTIVE]: "Đang hoạt động",
-  [CustomerStatus.LEAD]: "Tiềm năng",
-  [CustomerStatus.CHURNED]: "Đã rời bỏ",
+const statusLabel: Record<ClientStatus, string> = {
+  [ClientStatus.ACTIVE]: "Đang hoạt động",
+  [ClientStatus.LEAD]: "Tiềm năng",
+  [ClientStatus.CHURNED]: "Đã rời bỏ",
 };
 
-export default async function CustomersPage() {
-  const customers = await listCustomers();
+export default async function ClientsPage() {
+  const clients = await listClients();
 
   return (
     <>
       <PageHeader
         title="Khách hàng"
-        description={`${customers.length} khách hàng`}
-        action={<CustomerFormDialog />}
+        description={`${clients.length} khách hàng`}
+        action={<ClientFormDialog />}
       />
       <Card className="py-0">
         <Table>
@@ -54,29 +54,29 @@ export default async function CustomersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {customers.map((customer) => (
-              <TableRow key={customer.id}>
+            {clients.map((client) => (
+              <TableRow key={client.id}>
                 <TableCell className="font-medium">
                   <Link
-                    href={`/customers/${customer.id}`}
+                    href={`/clients/${client.id}`}
                     className="hover:underline"
                   >
-                    {customer.name}
+                    {client.name}
                   </Link>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {customer.company}
+                  {client.company}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {customer.email}
+                  {client.email}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={statusVariant[customer.status]}>
-                    {statusLabel[customer.status]}
+                  <Badge variant={statusVariant[client.status]}>
+                    {statusLabel[client.status]}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {customer.created_at}
+                  {client.created_at}
                 </TableCell>
               </TableRow>
             ))}

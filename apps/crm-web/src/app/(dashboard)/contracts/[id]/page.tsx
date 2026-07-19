@@ -98,7 +98,7 @@ export default async function ContractDocumentPage({
         <div className="mt-3 space-y-3 text-xs">
           <div>
             <p className="font-semibold uppercase">Bên A (Khách hàng)</p>
-            <p>{contract.customer}</p>
+            <p>{contract.client}</p>
           </div>
           <div>
             <p className="font-semibold uppercase">

@@ -144,7 +144,7 @@ function OverviewTab({
 
   const fields: [string, React.ReactNode][] = [
     ["Mã công trình", project.code],
-    ["Khách hàng", project.customer],
+    ["Khách hàng", project.client],
     ["Loại", projectType[project.type]],
     ["Phụ trách", project.manager],
     ["Địa điểm", project.address],

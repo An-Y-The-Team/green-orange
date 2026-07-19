@@ -44,7 +44,7 @@ export function ContractForm({ templates }: { templates: ContractTemplate[] }) {
     mode: "onChange",
     defaultValues: {
       title: "",
-      customer: "",
+      client: "",
       project_code: "",
       value: 0,
       signed_date: "",
@@ -97,7 +97,7 @@ export function ContractForm({ templates }: { templates: ContractTemplate[] }) {
           <div className="grid grid-cols-2 gap-3">
             <FormField
               control={form.control}
-              name="customer"
+              name="client"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Khách hàng</FormLabel>

@@ -10,32 +10,32 @@ import {
   CardTitle,
 } from "@yan/ui/components/card";
 
-import { getCustomer } from "../queries";
+import { getClient } from "../queries";
 
-export default async function CustomerDetailPage({
+export default async function ClientDetailPage({
   params,
 }: {
   // Next 16 route params are async.
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const customer = await getCustomer(Number(id));
+  const client = await getClient(Number(id));
 
-  if (!customer) {
+  if (!client) {
     notFound();
   }
 
   const fields: [string, string][] = [
-    ["Email", customer.email],
-    ["Số điện thoại", customer.phone],
-    ["Công ty", customer.company],
-    ["Ngày tạo", customer.created_at],
+    ["Email", client.email],
+    ["Số điện thoại", client.phone],
+    ["Công ty", client.company],
+    ["Ngày tạo", client.created_at],
   ];
 
   return (
     <>
       <Link
-        href="/customers"
+        href="/clients"
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
@@ -44,8 +44,8 @@ export default async function CustomerDetailPage({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">{customer.name}</CardTitle>
-            <Badge variant="secondary">{customer.status}</Badge>
+            <CardTitle className="text-lg">{client.name}</CardTitle>
+            <Badge variant="secondary">{client.status}</Badge>
           </div>
         </CardHeader>
         <CardContent>

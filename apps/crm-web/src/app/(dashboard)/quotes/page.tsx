@@ -55,7 +55,7 @@ export default async function QuotesPage() {
                 </TableCell>
                 <TableCell>{quote.title}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {quote.customer}
+                  {quote.client}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {quoteType[quote.type]}

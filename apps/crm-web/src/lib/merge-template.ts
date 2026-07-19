@@ -39,30 +39,30 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
     label: "Điều khoản thanh toán",
     example: "Tạm ứng 30% khi ký hợp đồng…",
   },
-  // Bên A — Party A (customer)
-  { token: "customer", label: "Bên A: Tên", example: "Vincom Retail" },
+  // Bên A — Party A (client)
+  { token: "client", label: "Bên A: Tên", example: "Vincom Retail" },
   {
-    token: "customer_address",
+    token: "client_address",
     label: "Bên A: Địa chỉ",
     example: "72 Lê Thánh Tôn, P. Sài Gòn, TP.HCM",
   },
   {
-    token: "customer_tax_code",
+    token: "client_tax_code",
     label: "Bên A: MST",
     example: "0311945734",
   },
   {
-    token: "customer_rep",
+    token: "client_rep",
     label: "Bên A: Đại diện",
     example: "Trần Thị B",
   },
   {
-    token: "customer_position",
+    token: "client_position",
     label: "Bên A: Chức vụ",
     example: "Giám đốc",
   },
   {
-    token: "customer_phone",
+    token: "client_phone",
     label: "Bên A: Điện thoại",
     example: "028 1234 5678",
   },
@@ -140,12 +140,12 @@ export function buildContractContext(contract: Contract): MergeContext {
     end_date: formatDate(contract.end_date),
     payment_terms: contract.payment_terms,
     // Bên A
-    customer: contract.customer,
-    customer_address: contract.customer_address ?? "",
-    customer_tax_code: contract.customer_tax_code ?? "",
-    customer_rep: contract.customer_rep ?? "",
-    customer_position: contract.customer_position ?? "",
-    customer_phone: contract.customer_phone ?? "",
+    client: contract.client,
+    client_address: contract.client_address ?? "",
+    client_tax_code: contract.client_tax_code ?? "",
+    client_rep: contract.client_rep ?? "",
+    client_position: contract.client_position ?? "",
+    client_phone: contract.client_phone ?? "",
     // Bên B
     "company.name": company.name,
     "company.address": company.address,
