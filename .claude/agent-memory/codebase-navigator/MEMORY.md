@@ -1,0 +1,1 @@
+- [CRM 401 stale dev token](crm-401-stale-dev-token.md) — recurring 401s traced to an expired hardcoded CRM_API_TOKEN in crm-web/.env, not an OIDC bug
