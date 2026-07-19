@@ -37,62 +37,52 @@ def client_fixture(session: Session):
     app.dependency_overrides.clear()
 
 
-def test_project_accepts_valid_enum_string_values():
-    from app.models.project import (
-        Project,
-        ProjectStage,
-        ProjectType,
-        ScheduleOutcome,
-    )
-
-    project = Project.model_validate(
-        {
-            "code": "PRJ-001",
-            "name": "Legacy Project",
-            "description": "Legacy description",
-            "client": "Legacy Co",
+def test_project_create_uses_form_payload_defaults_and_serializes_fields(
+    client: TestClient,
+):
+    res = client.post(
+        "/projects",
+        json={
+            "name": "Test Project",
+            "client": "Test Co",
             "type": "ve_sinh",
-            "address": "123 Legacy St",
-            "stage": "yeu_cau",
-            "schedule_outcome": "on_time",
-            "start_date": "2026-01-01T00:00:00",
-            "end_date": "2026-12-31T00:00:00",
+            "address": "123 Test Street",
             "manager": "Jane Doe",
-            "contract_value": 100000.0,
-            "estimated_cost": 90000.0,
-            "progress": 25,
-        }
+            "contract_value": 1000000,
+            "estimated_cost": 900000,
+            "start_date": "2026-01-01",
+            "end_date": "2026-12-31",
+        },
     )
-
-    assert project.description == "Legacy description"
-    assert project.type == ProjectType.VE_SINH
-    assert project.stage == ProjectStage.YEU_CAU
-    assert project.schedule_outcome == ScheduleOutcome.ON_TIME
+    assert res.status_code == 201
+    created = res.json()
+    assert created["id"] is not None
+    assert created["code"] == "CT-2026-001"
+    assert created["stage"] == "yeu_cau"
+    assert created["progress"] == 0
+    assert created["contract_value"] == 1000000
+    assert created["estimated_cost"] == 900000
+    assert created["start_date"] == "2026-01-01"
+    assert created["end_date"] == "2026-12-31"
 
 
 def test_project_crud_roundtrip(client: TestClient):
     res = client.post(
         "/projects",
         json={
-            "code": "PRJ-001",
             "name": "Test Project",
-            "description": "A test project",
             "client": "Test Co",
             "type": "ve_sinh",
             "address": "123 Test Street",
-            "stage": "yeu_cau",
-            "schedule_outcome": "on_time",
-            "start_date": "2026-01-01T00:00:00",
-            "end_date": "2026-12-31T00:00:00",
             "manager": "Jane Doe",
-            "contract_value": 100000.0,
-            "estimated_cost": 90000.0,
-            "progress": 25,
+            "contract_value": 1000000,
+            "estimated_cost": 900000,
+            "start_date": "2026-01-01",
+            "end_date": "2026-12-31",
         },
     )
     assert res.status_code == 201
     created = res.json()
-    assert created["id"] is not None
     project_id = created["id"]
 
     res = client.get("/projects")

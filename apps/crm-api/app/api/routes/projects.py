@@ -11,6 +11,7 @@ from app.models.project import (
     Project,
     ProjectCreate,
     ProjectPublic,
+    ProjectStage,
     ProjectUpdate,
 )
 
@@ -39,7 +40,20 @@ def get_project(project_id: int, session: SessionDep, _user: CurrentUser) -> Pro
 def create_project(
     payload: ProjectCreate, session: SessionDep, _user: CurrentUser
 ) -> Project:
-    project = Project.model_validate(payload)
+    project_data = payload.model_dump(exclude_unset=True)
+
+    if not project_data.get("code"):
+        # TODO: make this race-safe once the project code generator is moved to the DB.
+        existing_count = session.exec(select(Project)).all()
+        project_data["code"] = f"CT-2026-{len(existing_count) + 1:03d}"
+
+    if "stage" not in project_data or project_data["stage"] is None:
+        project_data["stage"] = ProjectStage.YEU_CAU
+
+    if "progress" not in project_data or project_data["progress"] is None:
+        project_data["progress"] = 0
+
+    project = Project.model_validate(project_data)
     session.add(project)
     session.commit()
     session.refresh(project)
