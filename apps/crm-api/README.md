@@ -1,7 +1,7 @@
 # crm-api — Teaching CRM backend (FastAPI + SQLModel)
 
 A small, deliberately-incomplete CRM API for learning backend development:
-**CRUD, REST, validation, and authorization**. The `customers` resource is fully
+**CRUD, REST, validation, and authorization**. The `clients` resource is fully
 worked as a reference; `contacts`, `leads`, `deals`, and `tasks` are skeletons
 left for you to implement.
 
@@ -49,7 +49,7 @@ curl -s -X POST http://localhost:8000/auth/token \
 
 # call a protected endpoint
 TOKEN=$(python -c "import json;print(json.load(open('/tmp/tok.json'))['access_token'])")
-curl -s http://localhost:8000/customers -H "Authorization: Bearer $TOKEN"
+curl -s http://localhost:8000/clients -H "Authorization: Bearer $TOKEN"
 ```
 
 In `/docs`, click **Authorize** and enter `admin` / `admin` to call protected
@@ -63,8 +63,8 @@ uv run pytest -q     # uses in-memory SQLite, no Postgres needed
 
 ## Your exercises
 
-`customers` is done. Implement the rest by following the same pattern
-(`app/models/customer.py` + `app/api/routes/customers.py`):
+`clients` is done. Implement the rest by following the same pattern
+(`app/models/client.py` + `app/api/routes/clients.py`):
 
 1. **Contacts** — `app/models/contact.py` + `app/api/routes/contacts.py`
 2. **Leads** — `app/models/lead.py` + `app/api/routes/leads.py`
@@ -100,9 +100,9 @@ app/
     security.py      password hashing, local JWT, OIDC verification
   api/
     deps.py          SessionDep, CurrentUser
-    routes/          auth.py, customers.py (worked) + *.py (exercises)
-  models/            customer.py, user.py (worked) + *.py (exercise skeletons)
-  seed.py            demo user + sample customers
+    routes/          auth.py, clients.py (worked) + *.py (exercises)
+  models/            client.py, user.py (worked) + *.py (exercise skeletons)
+  seed.py            demo user + sample clients
 alembic/             migration environment
-tests/               worked pytest example for customers
+tests/               worked pytest example for clients
 ```

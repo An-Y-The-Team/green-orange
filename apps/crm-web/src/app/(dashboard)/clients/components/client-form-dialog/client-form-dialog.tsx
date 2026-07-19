@@ -30,9 +30,9 @@ import {
 } from "@yan/ui/components/form";
 import { Input } from "@yan/ui/components/input";
 
-import { addCustomer } from "../../actions/add-customer";
-import { CustomerStatus } from "../../enums";
-import { type CustomerFormValues, customerSchema } from "../../schema";
+import { addClient } from "../../actions/add-client";
+import { ClientStatus } from "../../enums";
+import { type ClientFormValues, clientSchema } from "../../schema";
 
 const initialState: ServerActionState = {
   success: false,
@@ -40,25 +40,25 @@ const initialState: ServerActionState = {
   errors: {},
 };
 
-export function CustomerFormDialog() {
+export function ClientFormDialog() {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // useActionState owns the server round-trip: `formAction` runs addCustomer,
+  // useActionState owns the server round-trip: `formAction` runs addClient,
   // `state` is the ServerActionState it returns.
-  const [state, formAction] = useActionState(addCustomer, initialState);
+  const [state, formAction] = useActionState(addClient, initialState);
 
   // react-hook-form owns client-side validation (same schema as the server),
   // so users get instant per-field feedback before anything is submitted.
-  const form = useForm<CustomerFormValues>({
-    resolver: zodResolver(customerSchema),
+  const form = useForm<ClientFormValues>({
+    resolver: zodResolver(clientSchema),
     mode: "onChange",
     defaultValues: {
       name: "",
       email: "",
       phone: "",
       company: "",
-      status: CustomerStatus.LEAD,
+      status: ClientStatus.LEAD,
     },
   });
 
@@ -76,7 +76,7 @@ export function CustomerFormDialog() {
 
   // Runs only after client validation passes: hand the validated values to the
   // server action inside a transition (so isPending tracks it).
-  const onValid = (values: CustomerFormValues) => {
+  const onValid = (values: ClientFormValues) => {
     resetActionProcessed();
     startTransition(() => formAction(values));
   };

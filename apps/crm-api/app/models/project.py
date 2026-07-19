@@ -49,7 +49,7 @@ class ProjectBase(SQLModel):
     code: str = Field(index=True)
     name: str
     description: str | None = None
-    customer: str
+    client: str
     type: ProjectType
     address: str
     stage: ProjectStage
@@ -80,7 +80,7 @@ class ProjectUpdate(SQLModel):
     code: str | None = None
     name: str | None = None
     description: str | None = None
-    customer: str | None = None
+    client: str | None = None
     type: ProjectType | None = None
     address: str | None = None
     stage: ProjectStage | None = None

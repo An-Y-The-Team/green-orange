@@ -53,7 +53,7 @@ export function PaymentMilestoneFormDialog() {
     defaultValues: {
       contract_code: "",
       project_code: "",
-      customer: "",
+      client: "",
       name: "",
       type: MilestoneType.TAM_UNG,
       due_amount: 0,
@@ -125,7 +125,7 @@ export function PaymentMilestoneFormDialog() {
             </div>
             <FormField
               control={form.control}
-              name="customer"
+              name="client"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Khách hàng</FormLabel>

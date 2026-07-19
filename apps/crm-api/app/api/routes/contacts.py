@@ -1,14 +1,14 @@
 """Contacts — STUDENT EXERCISE (skeleton).
 
-Goal: implement full CRUD for contacts, mirroring app/api/routes/customers.py.
+Goal: implement full CRUD for contacts, mirroring app/api/routes/clients.py.
 
 Steps:
   1. Define the Contact model + schemas in app/models/contact.py (use
-     app/models/customer.py as the template). Fields to match the crm-web
+     app/models/client.py as the template). Fields to match the crm-web
      `Contact` type: name, email, phone, title, company.
   2. Register it in app/models/__init__.py so the table is created.
   3. Replace the 501 stub below with list/get/create/update/delete handlers,
-     each protected with CurrentUser (see customers.py).
+     each protected with CurrentUser (see clients.py).
   4. Generate a migration:  uv run alembic revision --autogenerate -m "contacts"
      then  uv run alembic upgrade head.
 

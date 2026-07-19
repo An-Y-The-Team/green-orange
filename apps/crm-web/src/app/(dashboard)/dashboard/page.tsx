@@ -20,14 +20,14 @@ import { PageHeader } from "@/components/page-header";
 import { formatVND, projectActuals, receivables } from "@/lib/format";
 import { projectStage, projectType } from "@/lib/labels";
 
-import { listCustomers } from "../customers/queries";
+import { listClients } from "../clients/queries";
 import { listCosts, listProjects } from "../projects/queries";
 import { listQuotes } from "../quotes/queries";
 import { listPaymentMilestones } from "../receivables/queries";
 
 export default async function DashboardPage() {
-  const [customers, projects, quotes, costs, milestones] = await Promise.all([
-    listCustomers(),
+  const [clients, projects, quotes, costs, milestones] = await Promise.all([
+    listClients(),
     listProjects(),
     listQuotes(),
     listCosts(),
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
     <>
       <PageHeader
         title="Tổng quan"
-        description={`${customers.length} khách hàng · bảng điều khiển hoạt động kinh doanh.`}
+        description={`${clients.length} khách hàng · bảng điều khiển hoạt động kinh doanh.`}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
                   </TableCell>
                   <TableCell>{project.name}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {project.customer}
+                    {project.client}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {projectType[project.type]}

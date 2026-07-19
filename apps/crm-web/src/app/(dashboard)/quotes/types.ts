@@ -13,7 +13,7 @@ export interface Quote {
   id: number;
   code: string;
   project_code: string;
-  customer: string;
+  client: string;
   title: string;
   type: QuoteType;
   issue_date: string;

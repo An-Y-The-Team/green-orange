@@ -39,7 +39,7 @@ export default async function QuoteDocumentPage({
         <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
           <p>
             <span className="text-zinc-500">Khách hàng: </span>
-            <span className="font-medium">{quote.customer}</span>
+            <span className="font-medium">{quote.client}</span>
           </p>
           <p>
             <span className="text-zinc-500">Loại: </span>

@@ -52,7 +52,7 @@ export function ProjectFormDialog() {
     mode: "onChange",
     defaultValues: {
       name: "",
-      customer: "",
+      client: "",
       type: ProjectType.VE_SINH,
       address: "",
       manager: "",
@@ -113,7 +113,7 @@ export function ProjectFormDialog() {
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
-                name="customer"
+                name="client"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Khách hàng</FormLabel>

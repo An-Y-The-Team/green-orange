@@ -21,7 +21,7 @@ export interface NavItem {
 // cross-project views.
 export const navItems: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Khách hàng", href: "/customers", icon: Users },
+  { label: "Khách hàng", href: "/clients", icon: Users },
   { label: "Công trình", href: "/projects", icon: HardHat },
   { label: "Nhân sự", href: "/crew", icon: UsersRound },
   { label: "Báo giá", href: "/quotes", icon: FileText },

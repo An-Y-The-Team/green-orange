@@ -1,6 +1,6 @@
 """Deals — STUDENT EXERCISE (skeleton).
 
-Implement CRUD mirroring app/api/routes/customers.py.
+Implement CRUD mirroring app/api/routes/clients.py.
 Model fields (match the crm-web `Deal` type): title, company, stage
 ("prospect"|"proposal"|"negotiation"|"won"|"lost"), amount (int), close_date.
 See app/api/routes/contacts.py for the step-by-step checklist.

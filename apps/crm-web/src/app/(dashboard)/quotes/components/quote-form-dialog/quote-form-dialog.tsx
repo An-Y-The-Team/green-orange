@@ -56,7 +56,7 @@ export function QuoteFormDialog() {
     mode: "onChange",
     defaultValues: {
       title: "",
-      customer: "",
+      client: "",
       project_code: "",
       type: QuoteType.BAO_GIA,
       issue_date: "",
@@ -135,7 +135,7 @@ export function QuoteFormDialog() {
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
-                name="customer"
+                name="client"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Khách hàng</FormLabel>

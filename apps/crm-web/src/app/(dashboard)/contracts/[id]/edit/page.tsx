@@ -43,7 +43,7 @@ export default async function EditContractPage({
       </Link>
       <PageHeader
         title="Chỉnh sửa nội dung hợp đồng"
-        description={`${contract.code} · ${contract.customer}`}
+        description={`${contract.code} · ${contract.client}`}
       />
       <ContractBodyEditor
         contract={contract}

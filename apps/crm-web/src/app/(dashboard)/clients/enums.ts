@@ -1,7 +1,7 @@
 // Khách hàng — closed value sets. Values stay snake_case/lowercase to map 1:1
-// onto the backend's CustomerPublic schema.
+// onto the backend's ClientPublic schema.
 
-export enum CustomerStatus {
+export enum ClientStatus {
   ACTIVE = "active",
   LEAD = "lead",
   CHURNED = "churned",

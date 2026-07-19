@@ -9,7 +9,7 @@ import { AcceptanceStatus, CostCategory, ProjectType } from "./enums";
 
 export const projectSchema = z.object({
   name: z.string().min(3, "Tên công trình phải có ít nhất 3 ký tự"),
-  customer: z.string().min(1, "Vui lòng nhập khách hàng"),
+  client: z.string().min(1, "Vui lòng nhập khách hàng"),
   type: z.nativeEnum(ProjectType),
   address: z.string().min(1, "Vui lòng nhập địa điểm"),
   manager: z.string().min(1, "Vui lòng nhập người phụ trách"),

@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, contacts, customers, deals, leads, projects, tasks
+from app.api.routes import auth, clients, contacts, deals, leads, projects, tasks
 from app.core.config import settings
 
 
@@ -41,7 +41,7 @@ app.add_middleware(
 
 # Worked reference resources.
 app.include_router(auth.router)
-app.include_router(customers.router)
+app.include_router(clients.router)
 # Student-exercise resources (currently return 501 until implemented).
 app.include_router(contacts.router)
 app.include_router(leads.router)

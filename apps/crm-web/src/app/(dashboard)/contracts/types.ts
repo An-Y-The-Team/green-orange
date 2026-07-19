@@ -5,7 +5,7 @@ export interface Contract {
   id: number;
   code: string;
   project_code: string;
-  customer: string;
+  client: string;
   title: string;
   value: number;
   signed_date: string;
@@ -13,13 +13,13 @@ export interface Contract {
   end_date: string;
   status: ContractStatus;
   payment_terms: string;
-  // Party A (customer) profile — printed in the contract preamble. `customer` is
+  // Party A (client) profile — printed in the contract preamble. `client` is
   // the legal name; these optional fields fill the rest of the party block.
-  customer_address?: string;
-  customer_tax_code?: string;
-  customer_rep?: string; // người đại diện
-  customer_position?: string; // chức vụ
-  customer_phone?: string;
+  client_address?: string;
+  client_tax_code?: string;
+  client_rep?: string; // người đại diện
+  client_position?: string; // chức vụ
+  client_phone?: string;
   // VAT rate applied to the contract value (e.g. 0.08). Drives the financial
   // breakdown tokens (before-tax / VAT amount). Defaults to 0.08 when unset.
   vat_rate?: number;

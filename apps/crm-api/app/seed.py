@@ -1,4 +1,4 @@
-"""Seed a demo user and a few customers so the worked example runs out of the box.
+"""Seed a demo user and a few clients so the worked example runs out of the box.
 
 Idempotent: only inserts when the respective table is empty. The demo login is
 admin / admin (local auth) — change it before any real deployment.
@@ -8,10 +8,10 @@ from sqlmodel import Session, select
 
 from app.core.db import engine
 from app.core.security import hash_password
-from app.models.customer import Customer
+from app.models.client import Client
 from app.models.user import User
 
-_DEMO_CUSTOMERS = [
+_DEMO_CLIENTS = [
     {
         "name": "Nguyễn Văn An",
         "email": "an.nguyen@acme.vn",
@@ -46,7 +46,7 @@ def seed_initial_data() -> None:
                     full_name="Demo Admin",
                 )
             )
-        if not session.exec(select(Customer)).first():
-            for data in _DEMO_CUSTOMERS:
-                session.add(Customer(**data))
+        if not session.exec(select(Client)).first():
+            for data in _DEMO_CLIENTS:
+                session.add(Client(**data))
         session.commit()
