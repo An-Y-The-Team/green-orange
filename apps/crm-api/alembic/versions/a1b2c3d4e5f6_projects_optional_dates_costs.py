@@ -1,7 +1,7 @@
 """projects: make dates and cost fields optional
 
 Revision ID: a1b2c3d4e5f6
-Revises: 435345c857b5
+Revises: b7d2c9a4e1f8
 Create Date: 2026-07-19 10:00:00.000000
 """
 
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "a1b2c3d4e5f6"
-down_revision: str | None = "435345c857b5"
+down_revision: str | None = "b7d2c9a4e1f8"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
