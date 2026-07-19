@@ -93,7 +93,7 @@ haven't thought of:
 - SQLModel relationships & foreign keys: read
   `node_modules`-free — see the SQLModel docs section on relationships. A FK is
   `Field(foreign_key="client.id")`.
-- There are no "right" answers here — there are *defended* answers. A reviewer
+- There are no "right" answers here — there are _defended_ answers. A reviewer
   will push on the trade-offs, not tick a spec.
 
 ## Definition of done
