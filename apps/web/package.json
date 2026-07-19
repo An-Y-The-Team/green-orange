@@ -9,7 +9,8 @@
     "start": "next start",
     "clean": "rm -rf dist server.js && rm -rf .turbo",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

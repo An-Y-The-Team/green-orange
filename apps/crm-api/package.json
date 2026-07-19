@@ -8,6 +8,7 @@
     "start": "uv run uvicorn app.main:app --port 8000",
     "build": "echo 'crm-api: no build step (Python)'",
     "lint": "uv run ruff check .",
+    "format": "uv run ruff format .",
     "check-types": "uv run ruff check .",
     "test": "uv run pytest -q",
     "migrate": "uv run alembic upgrade head",
