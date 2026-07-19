@@ -20,7 +20,7 @@
     "husky": "^9.1.7",
     "prettier": "^3.2.5",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "turbo": "^2.0.4",
+    "turbo": "^2.10.5",
     "vitest": "^4.1.8"
   },
   "packageManager": "bun@1.1.0",
