@@ -24,11 +24,11 @@ export interface Project {
   address: string;
   stage: ProjectStage;
   schedule_outcome?: ScheduleOutcome;
-  start_date: string;
-  end_date: string;
+  start_date?: string;
+  end_date?: string;
   manager: string;
-  contract_value: number; // revenue
-  estimated_cost: number; // budgeted internal cost
+  contract_value?: number; // revenue
+  estimated_cost?: number; // budgeted internal cost
   progress: number; // 0..100
 }
 

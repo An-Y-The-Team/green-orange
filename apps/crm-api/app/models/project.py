@@ -58,11 +58,11 @@ class ProjectBase(SQLModel):
     address: str
     stage: ProjectStage = ProjectStage.YEU_CAU
     schedule_outcome: ScheduleOutcome | None = None
-    start_date: date
-    end_date: date
+    start_date: date | None = None
+    end_date: date | None = None
     manager: str
-    contract_value: int
-    estimated_cost: int
+    contract_value: int | None = None
+    estimated_cost: int | None = None
     progress: int = 0
 
 
