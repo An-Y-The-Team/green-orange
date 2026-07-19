@@ -4,10 +4,10 @@ The worked example (client, user) is fully implemented. The others are TODO
 skeletons for students — uncomment/extend them as you build each resource.
 """
 
-from app.models.client import Client
 from app.models.acceptance import Acceptance
 from app.models.contact import Contact  # TODO (exercise)
 from app.models.cost import Cost
+from app.models.client import Client
 
 # from app.models.lead import Lead         # TODO (exercise)
 # from app.models.deal import Deal         # TODO (exercise)
