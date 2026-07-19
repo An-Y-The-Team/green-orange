@@ -16,9 +16,6 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      // Turbo 2 runs tasks in strict env mode. NEXT_PUBLIC_* is auto-passed;
-      // custom vars (crm-web's server-only API token, crm-api's DB URL) must be
-      // listed here to reach the task.
       "passThroughEnv": [
         "CRM_API_URL",
         "CRM_API_TOKEN",
@@ -34,6 +31,9 @@
     },
     "check-types": {
       "dependsOn": ["^check-types"]
+    },
+    "clean": {
+      "cache": false
     }
   }
 }
