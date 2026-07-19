@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import decimal
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
@@ -46,48 +45,50 @@ class AcceptanceStatus(StrEnum):
 
 
 class ProjectBase(SQLModel):
-    code: str = Field(index=True)
     name: str
-    description: str | None = None
     client: str
     type: ProjectType
     address: str
-    stage: ProjectStage
     schedule_outcome: ScheduleOutcome | None = None
-    start_date: datetime
-    end_date: datetime
+    start_date: date
+    end_date: date
     manager: str
-    contract_value: decimal.Decimal
-    estimated_cost: decimal.Decimal
-    progress: int
+    contract_value: int
+    estimated_cost: int
 
 
 class Project(ProjectBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    code: str = Field(index=True)
+    stage: ProjectStage = Field(default=ProjectStage.YEU_CAU)
+    progress: int = Field(default=0)
     created_at: datetime | None = Field(default_factory=datetime.utcnow)
     updated_at: datetime | None = None
 
 
 class ProjectCreate(ProjectBase):
-    pass
+    code: str | None = None
+    stage: ProjectStage | None = None
+    progress: int | None = None
 
 
 class ProjectPublic(ProjectBase):
     id: int
+    code: str
+    stage: ProjectStage
+    progress: int
 
 
 class ProjectUpdate(SQLModel):
-    code: str | None = None
     name: str | None = None
-    description: str | None = None
     client: str | None = None
     type: ProjectType | None = None
     address: str | None = None
-    stage: ProjectStage | None = None
     schedule_outcome: ScheduleOutcome | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
+    start_date: date | None = None
+    end_date: date | None = None
     manager: str | None = None
-    contract_value: decimal.Decimal | None = None
-    estimated_cost: decimal.Decimal | None = None
+    contract_value: int | None = None
+    estimated_cost: int | None = None
+    stage: ProjectStage | None = None
     progress: int | None = None
