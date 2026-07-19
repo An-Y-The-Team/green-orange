@@ -77,8 +77,7 @@ export const contracts: Contract[] = [
     code: "HD-2026-002",
     project_code: "CT-2026-002",
     client: "CÔNG TY TNHH VÒNG TRÒN ĐỎ (CIRCLE K)",
-    client_address:
-      "Lầu 10, Tòa nhà CR3, 109 Tôn Dật Tiên, P. Tân Phú, TP.HCM",
+    client_address: "Lầu 10, Tòa nhà CR3, 109 Tôn Dật Tiên, P. Tân Phú, TP.HCM",
     client_tax_code: "0303883266",
     client_rep: "Phạm Thị Hồng",
     client_position: "Giám đốc Vận hành",
