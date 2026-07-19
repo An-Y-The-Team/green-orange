@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, clients, contacts, deals, leads, projects, tasks
+from app.api.routes import auth, contacts, clients, deals, leads, projects, tasks
 from app.core.config import settings
 
 
@@ -48,8 +48,6 @@ app.include_router(leads.router)
 app.include_router(deals.router)
 app.include_router(tasks.router)
 app.include_router(projects.router)
-
-
 @app.get("/health", tags=["meta"])
 def health() -> dict[str, str]:
     return {"status": "ok", "auth_mode": settings.auth_mode}
