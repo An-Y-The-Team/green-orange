@@ -37,72 +37,43 @@ def client_fixture(session: Session):
     app.dependency_overrides.clear()
 
 
-def test_project_accepts_valid_enum_string_values():
-    from app.models.project import (
-        Project,
-        ProjectStage,
-        ProjectType,
-        ScheduleOutcome,
-    )
+# The exact body the crm-web form POSTs (add-project.ts) — no code/stage/progress.
+NEW_PROJECT = {
+    "name": "Test Project",
+    "client": "Test Co",
+    "type": "ve_sinh",
+    "address": "123 Test Street",
+    "manager": "Jane Doe",
+    "contract_value": 100000,
+    "estimated_cost": 90000,
+    "start_date": "2026-01-01",
+    "end_date": "2026-12-31",
+}
 
-    project = Project.model_validate(
-        {
-            "code": "PRJ-001",
-            "name": "Legacy Project",
-            "description": "Legacy description",
-            "client": "Legacy Co",
-            "type": "ve_sinh",
-            "address": "123 Legacy St",
-            "stage": "yeu_cau",
-            "schedule_outcome": "on_time",
-            "start_date": "2026-01-01T00:00:00",
-            "end_date": "2026-12-31T00:00:00",
-            "manager": "Jane Doe",
-            "contract_value": 100000.0,
-            "estimated_cost": 90000.0,
-            "progress": 25,
-        }
-    )
 
-    assert project.description == "Legacy description"
-    assert project.type == ProjectType.VE_SINH
-    assert project.stage == ProjectStage.YEU_CAU
-    assert project.schedule_outcome == ScheduleOutcome.ON_TIME
+def test_create_generates_code_and_defaults(client: TestClient):
+    """crm-web sends none of code/stage/progress; the server fills them in."""
+    res = client.post("/projects", json=NEW_PROJECT)
+    assert res.status_code == 201
+    body = res.json()
+    assert body["code"] == "CT-2026-001"  # server-assigned business key
+    assert body["stage"] == "yeu_cau"  # new project enters at first stage
+    assert body["progress"] == 0
+    # Money is a JSON number and dates are plain dates — matches the TS Project type.
+    assert body["contract_value"] == 100000
+    assert body["start_date"] == "2026-01-01"
 
 
 def test_project_crud_roundtrip(client: TestClient):
-    res = client.post(
-        "/projects",
-        json={
-            "code": "PRJ-001",
-            "name": "Test Project",
-            "description": "A test project",
-            "client": "Test Co",
-            "type": "ve_sinh",
-            "address": "123 Test Street",
-            "stage": "yeu_cau",
-            "schedule_outcome": "on_time",
-            "start_date": "2026-01-01T00:00:00",
-            "end_date": "2026-12-31T00:00:00",
-            "manager": "Jane Doe",
-            "contract_value": 100000.0,
-            "estimated_cost": 90000.0,
-            "progress": 25,
-        },
-    )
+    res = client.post("/projects", json=NEW_PROJECT)
     assert res.status_code == 201
-    created = res.json()
-    assert created["id"] is not None
-    project_id = created["id"]
+    project_id = res.json()["id"]
 
     res = client.get("/projects")
     assert res.status_code == 200
     assert len(res.json()) == 1
 
-    res = client.patch(
-        f"/projects/{project_id}",
-        json={"stage": "thi_cong"},
-    )
+    res = client.patch(f"/projects/{project_id}", json={"stage": "thi_cong"})
     assert res.status_code == 200
     assert res.json()["stage"] == "thi_cong"
 
