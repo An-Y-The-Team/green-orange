@@ -15,8 +15,8 @@ from app.core.config import settings
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    # No startup work is performed here; run Alembic migrations separately in 
-    #production.
+    # No startup work is performed here; run Alembic migrations separately in
+    # production.
     yield
 
 

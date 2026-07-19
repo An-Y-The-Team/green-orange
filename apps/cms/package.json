@@ -9,7 +9,8 @@
     "setup-access": "bun scripts/setup-access.ts",
     "seed": "bun seed/seed.ts",
     "migrate-from-payload": "bun scripts/migrate-from-payload.ts",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@types/bun": "^1.1.0",

@@ -67,14 +67,15 @@
 @layer base {
   body {
     @apply font-serif;
-    }
+  }
   html {
     @apply font-serif;
-    }
+  }
 }
 
 @keyframes float-ambient {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) scale(1) rotate(0deg);
   }
   50% {
@@ -83,7 +84,8 @@
 }
 
 @keyframes float-ambient-alt {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) scale(1.1) rotate(0deg);
   }
   50% {
@@ -92,7 +94,8 @@
 }
 
 @keyframes pulse-glow-luxury {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.15;
     filter: blur(40px) brightness(1);
   }
@@ -112,4 +115,7 @@
 
 @utility animate-pulse-glow-luxury {
   animation: pulse-glow-luxury 7s ease-in-out infinite;
-}html { scroll-behavior: smooth; }
+}
+html {
+  scroll-behavior: smooth;
+}

@@ -16,7 +16,8 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "crypto-js": "^4.2.0",
