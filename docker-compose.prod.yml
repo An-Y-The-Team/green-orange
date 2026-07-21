@@ -18,7 +18,7 @@ services:
       # all in this same container. NOTE: the init script only runs on first boot
       # of an empty volume — on an EXISTING prod DB you must create each one by
       # hand (see DEPLOY.md §6a Authentik / §6b CRM / §9 Directus).
-      POSTGRES_MULTIPLE_DATABASES: authentik,crm,directus
+      POSTGRES_MULTIPLE_DATABASES: authentik,crm,crm_nest,directus
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
@@ -114,15 +114,38 @@ services:
     networks: [internal]
     # The image entrypoint runs `alembic upgrade head` before starting uvicorn.
 
+  # ── CRM API — NestJS (INTERNAL ONLY) — the production-default backend ───────
+  # Same HTTP contract as crm-api, its own `crm_nest` database. No `ports:` block
+  # — reached only on the internal network at http://crm-api-nest:8001. crm-web
+  # points at this by default; switch back to Python by repointing CRM_API_URL to
+  # http://crm-api:8000 below (both stay running). Entrypoint runs
+  # `prisma migrate deploy` before starting the server.
+  crm-api-nest:
+    image: ${CRM_API_NEST_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/crm_nest
+      # Prod validates Authentik-issued OIDC tokens — same issuer/audience as crm-api.
+      AUTH_MODE: oidc
+      OIDC_ISSUER: https://${AUTH_DOMAIN}/application/o/crm/
+      OIDC_AUDIENCE: ${CRM_OIDC_CLIENT_ID}
+      CORS_ORIGINS: https://${CRM_DOMAIN}
+    networks: [internal]
+
   # ── CRM dashboard — Next.js (published at CRM_DOMAIN) ───────────────────────
   crm-web:
     image: ${CRM_WEB_IMAGE}
     restart: unless-stopped
-    depends_on: [crm-api]
+    depends_on: [crm-api-nest]
     environment:
       # Server-only, read at RUNTIME: the internal backend URL. Never inlined
-      # into the client bundle, so crm-api stays unexposed.
-      CRM_API_URL: http://crm-api:8000
+      # into the client bundle, so the backend stays unexposed. Production runs
+      # against the NestJS backend; to fall back to the Python teaching backend,
+      # change this to http://crm-api:8000 and redeploy (no rebuild needed).
+      CRM_API_URL: http://crm-api-nest:8001
       # Auth.js / Authentik OIDC. AUTH_TRUST_HOST makes Auth.js honor the
       # X-Forwarded-Proto https that Caddy injects (TLS terminates upstream), so
       # the OAuth callback URL is built as https and matches what's registered.

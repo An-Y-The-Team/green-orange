@@ -24,7 +24,7 @@ services:
       POSTGRES_PASSWORD: password
       # One container, a database per app, created on first boot by the init script.
       # `directus` is the new CMS DB (replaces Payload's `cms`, which is kept for rollback).
-      POSTGRES_MULTIPLE_DATABASES: cms,crm,authentik,directus
+      POSTGRES_MULTIPLE_DATABASES: cms,crm,crm_nest,authentik,directus
     ports:
       - '5432:5432'
     volumes:
@@ -114,6 +114,25 @@ services:
       CORS_ORIGINS: http://localhost:3002
     ports:
       - '8000:8000'
+
+  # ── CRM API — NestJS (port 8001) — runs `prisma migrate deploy` on startup ──
+  # The production-mode backend (its own `crm_nest` database). Same HTTP contract
+  # as crm-api, so crm-web can point CRM_API_URL at either one.
+  crm-api-nest:
+    build:
+      context: .
+      dockerfile: apps/crm-api-nest/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/crm_nest
+      JWT_SECRET: dev-only-change-me
+      AUTH_MODE: local
+      CORS_ORIGINS: http://localhost:3002
+    ports:
+      - '8001:8001'
 
   # ── CRM dashboard — Next.js (port 3002) ─────────────────────────────────────
   # Runs with NO CRM_API_URL, so it serves built-in MOCK data and needs no
