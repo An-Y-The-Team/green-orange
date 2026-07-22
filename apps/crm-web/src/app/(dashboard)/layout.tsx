@@ -6,6 +6,7 @@ import { ThemeSwitcher } from "@yan/ui/components/theme-switcher";
 import { auth, signOut } from "@/auth";
 import { authEnabled } from "@/auth.config";
 import { AppSidebar } from "@/components/app-sidebar";
+import { LoginOverlay } from "@/components/login-overlay";
 import { isLiveMode } from "@/lib/http";
 
 // CRM_API_URL is runtime-only, but the data layer chooses mock-vs-live by reading
@@ -22,8 +23,14 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }>) {
   // Only resolve a session when Authentik is enabled (avoids needing AUTH_SECRET
-  // in local/mock dev). The middleware already gates access when enabled.
+  // in local/mock dev). Gating lives HERE, not in the middleware, so the
+  // deep-linked URL is preserved: render the chrome, withhold children (their
+  // crm-api fetches have no token → 401 noise), and let the inline overlay sign
+  // in and refresh the same page. A dead refresh token re-gates too, so pages
+  // never fetch with a token that can no longer be refreshed.
   const session = authEnabled ? await auth() : null;
+  const needsLogin =
+    authEnabled && (!session?.user || session.error === "RefreshTokenError");
   const userLabel = session?.user?.email ?? session?.user?.name;
 
   return (
@@ -71,7 +78,7 @@ export default async function DashboardLayout({
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-6 print:overflow-visible print:p-0">
-          {children}
+          {needsLogin ? <LoginOverlay /> : children}
         </main>
       </div>
     </div>

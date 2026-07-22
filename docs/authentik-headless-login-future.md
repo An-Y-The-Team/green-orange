@@ -1,10 +1,12 @@
-# Future option: fully-inline Authentik login via the Headless Flow Executor
+# Fully-inline Authentik login via the Headless Flow Executor
 
-Status: **Deferred design note — not currently planned.** The CRM intentionally
-keeps the **standard OAuth2 Authorization Code + PKCE redirect** flow (see
-[authentik-oidc-milestone.md](./authentik-oidc-milestone.md)) because it is the
-canonical, transferable pattern and is the right thing to teach the students who
-own `crm-api`.
+Status: **Implemented (2026-07-22).** Originally deferred in favor of the
+**standard OAuth2 Authorization Code + PKCE redirect** flow (see
+[authentik-oidc-milestone.md](./authentik-oidc-milestone.md)) — the canonical,
+transferable pattern taught to the students who own `crm-api`. The redirect
+flow remains fully intact as the `/login` fallback; the sections below are the
+design this implementation follows. Note: `middleware.ts` is `src/proxy.ts` in
+the current Next 16 codebase.
 
 This document is kept for the day a **real client** requires a fully-branded,
 **inline** login where the user never navigates away from the page they're on
