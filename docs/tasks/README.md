@@ -10,6 +10,11 @@ Almost every task is "do for resource X what `customers` already does." If you'r
 stuck, open [`app/api/routes/customers.py`](../../apps/crm-api/app/api/routes/customers.py)
 and [`app/models/customer.py`](../../apps/crm-api/app/models/customer.py) side by side.
 
+> **Two backends now exist.** A complete **NestJS** backend (`apps/crm-api-nest`,
+> port 8001) runs the app in full production mode; this Python backlog is the
+> _learning_ track (port 8000). Flip between them with one env var — see
+> [00 — Choose your backend](00-choose-your-backend.md).
+
 ## How the UI and the API fit together
 
 The Next.js UI (`apps/crm-web`) has a **seam**: with `CRM_API_URL` unset it renders

@@ -1,0 +1,193 @@
+// crm-api-nest data model. Mirrors the crm-web contract 1:1 so this backend is
+// a drop-in for the Python crm-api.
+//
+// Conventions that keep the JSON contract exact with zero mapping code:
+//   • Fields are snake_case — Prisma emits them verbatim, so responses are
+//     already snake_case (project_code, created_at, …).
+//   • Money is BigInt (integer VND; values routinely exceed Int's 2.1e9). The
+//     global DateBigIntInterceptor converts BigInt → JSON number (safe < 2^53).
+//   • Dates are @db.Date; the interceptor serializes them to 'YYYY-MM-DD'.
+//   • Enum-like fields are plain String, validated in DTOs (@IsEnum). Values are
+//     the same snake_case strings the UI enums use.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int     @id @default(autoincrement())
+  username        String  @unique
+  hashed_password String
+  full_name       String?
+  disabled        Boolean @default(false)
+}
+
+model Client {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String
+  phone      String
+  company    String
+  status     String   @default("lead") // active | lead | churned
+  created_at DateTime @default(now()) @db.Date
+}
+
+model Contact {
+  id      Int    @id @default(autoincrement())
+  name    String
+  email   String
+  phone   String
+  title   String
+  company String
+}
+
+model Project {
+  id               Int       @id @default(autoincrement())
+  code             String    @unique
+  name             String
+  client           String
+  type             String // ve_sinh | thi_cong
+  address          String
+  stage            String    @default("yeu_cau")
+  schedule_outcome String? // on_time | delayed | early
+  start_date       DateTime? @db.Date
+  end_date         DateTime? @db.Date
+  manager          String
+  contract_value   BigInt?
+  estimated_cost   BigInt?
+  progress         Int       @default(0)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+}
+
+model Cost {
+  id           Int      @id @default(autoincrement())
+  project_code String
+  date         DateTime @db.Date
+  category     String // vat_tu | nhan_cong | thiet_bi | su_co | khac
+  description  String
+  amount       BigInt
+  is_incident  Boolean  @default(false)
+}
+
+model Acceptance {
+  id           Int      @id @default(autoincrement())
+  project_code String
+  date         DateTime @db.Date
+  status       String // cho_nghiem_thu | da_nghiem_thu | co_van_de
+  inspector    String
+  client_rep   String
+  notes        String   @default("")
+}
+
+model Quote {
+  id           Int      @id @default(autoincrement())
+  code         String   @unique
+  project_code String
+  client       String
+  title        String
+  type         String // bao_gia | quyet_toan
+  issue_date   DateTime @db.Date
+  valid_until  DateTime @db.Date
+  status       String   @default("nhap")
+  items        Json // QuoteItem[]: {description, unit, quantity, unit_price}
+  vat_rate     Float    @default(0.08)
+  notes        String   @default("")
+}
+
+model Contract {
+  id            Int      @id @default(autoincrement())
+  code          String   @unique
+  project_code  String
+  client        String
+  title         String
+  value         BigInt
+  signed_date   DateTime @db.Date
+  start_date    DateTime @db.Date
+  end_date      DateTime @db.Date
+  status        String // nhap | da_ky | dang_thuc_hien | thanh_ly
+  payment_terms String
+  client_address  String?
+  client_tax_code String?
+  client_rep      String?
+  client_position String?
+  client_phone    String?
+  vat_rate      Float?   @default(0.08)
+  template_id   Int?
+  body          String? // Lexical editorState JSON, opaque
+}
+
+model ContractTemplate {
+  id           Int     @id @default(autoincrement())
+  name         String
+  doc_title    String
+  body         String // Lexical editorState JSON, opaque
+  header_style String  @default("letterhead") // letterhead | national
+  is_active    Boolean @default(true)
+}
+
+model CrewMember {
+  id         Int      @id @default(autoincrement())
+  name       String
+  phone      String
+  role       String // tho_chinh | tho_phu | ve_sinh | giam_sat | lai_xe
+  day_rate   BigInt
+  status     String // dang_lam | tam_nghi | nghi_viec
+  note       String?
+  created_at DateTime @default(now()) @db.Date
+}
+
+model Assignment {
+  id           Int       @id @default(autoincrement())
+  crew_id      Int
+  project_code String
+  role_on_site String?
+  start_date   DateTime? @db.Date
+}
+
+model PaymentMilestone {
+  id                  Int      @id @default(autoincrement())
+  contract_code       String
+  project_code        String
+  client              String
+  name                String
+  type                String // tam_ung | tien_do | nghiem_thu | giu_bao_hanh
+  status              String   @default("chua_den_han")
+  due_amount          BigInt
+  paid_amount         BigInt   @default(0)
+  due_date            DateTime @db.Date
+  gated_by_acceptance Boolean  @default(false)
+}
+
+model Task {
+  id       Int      @id @default(autoincrement())
+  title    String
+  due_date DateTime @db.Date
+  status   String // todo | in_progress | done
+  priority String // low | medium | high
+  assignee String
+}
+
+model Lead {
+  id      Int    @id @default(autoincrement())
+  name    String
+  company String
+  source  String
+  status  String // new | contacted | qualified | lost
+  value   BigInt
+  owner   String
+}
+
+model Deal {
+  id         Int      @id @default(autoincrement())
+  title      String
+  company    String
+  stage      String // prospect | proposal | negotiation | won | lost
+  amount     BigInt
+  close_date DateTime @db.Date
+}

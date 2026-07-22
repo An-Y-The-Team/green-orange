@@ -1,0 +1,45 @@
+{
+  "//": "NestJS CRM backend — a production drop-in for the Python apps/crm-api. Same HTTP contract (snake_case JSON, integer VND, YYYY-MM-DD dates), its own `crm_nest` database. Unlike crm-api this is a first-class Node/Turbo citizen: real lint/check-types/test, no CI filter exclusion.",
+  "name": "@yan/crm-api-nest",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "prisma generate && nest start --watch",
+    "start": "node dist/main",
+    "build": "prisma generate && nest build",
+    "lint": "eslint src --max-warnings 0",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "check-types": "tsc --noEmit",
+    "test": "bun test src",
+    "db:generate": "prisma generate",
+    "db:migrate:dev": "prisma migrate dev",
+    "migrate": "prisma migrate deploy",
+    "seed": "bun run src/seed.ts",
+    "postinstall": "prisma generate || true",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@node-rs/argon2": "^2.0.0",
+    "@prisma/client": "^6.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "jose": "^5.9.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@types/bun": "latest",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.17.0",
+    "prisma": "^6.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.20.0"
+  }
+}

@@ -1,0 +1,62 @@
+// Contract-critical pure logic, unit-tested without a DB (bun test). The full
+// HTTP roundtrip is the curl smoke check in the README's verify section.
+import { describe, expect, test } from "bun:test";
+
+import { formatCode } from "./common/code";
+import { toBig } from "./common/coerce";
+import { canCollect } from "./common/milestone";
+import { normalize } from "./common/serialize.interceptor";
+
+describe("formatCode", () => {
+  test("first sequence is CT-2026-001", () => {
+    expect(formatCode("CT", 1)).toBe("CT-2026-001");
+  });
+  test("pads to 3 digits, keeps prefix", () => {
+    expect(formatCode("BG", 12)).toBe("BG-2026-012");
+    expect(formatCode("HD", 5)).toBe("HD-2026-005");
+  });
+});
+
+describe("normalize (serialization contract)", () => {
+  test("BigInt VND → JSON number", () => {
+    expect(normalize({ value: 120_000_000n })).toEqual({ value: 120_000_000 });
+  });
+  test("Date → YYYY-MM-DD", () => {
+    expect(normalize({ start_date: new Date("2026-06-01T00:00:00Z") })).toEqual(
+      {
+        start_date: "2026-06-01",
+      }
+    );
+  });
+  test("walks arrays and nested objects (Quote.items)", () => {
+    expect(
+      normalize([{ items: [{ unit_price: 5_000_000n, quantity: 2 }] }])
+    ).toEqual([{ items: [{ unit_price: 5_000_000, quantity: 2 }] }]);
+  });
+  test("passes null/undefined/strings through", () => {
+    expect(normalize({ a: null, b: undefined, c: "x", d: 3 })).toEqual({
+      a: null,
+      b: undefined,
+      c: "x",
+      d: 3,
+    });
+  });
+});
+
+describe("toBig", () => {
+  test("number → BigInt, null/undefined → null", () => {
+    expect(toBig(500)).toBe(500n);
+    expect(toBig(null)).toBeNull();
+    expect(toBig(undefined)).toBeNull();
+  });
+});
+
+describe("canCollect (acceptance gate)", () => {
+  test("ungated milestone is always collectable", () => {
+    expect(canCollect(false, false)).toBe(true);
+  });
+  test("gated milestone blocked until an approved acceptance exists", () => {
+    expect(canCollect(true, false)).toBe(false);
+    expect(canCollect(true, true)).toBe(true);
+  });
+});

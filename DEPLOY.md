@@ -470,6 +470,60 @@ internal network).
 
 ---
 
+## 6c. CRM NestJS backend (crm-api-nest) — the production default
+
+`crm-api-nest` (NestJS + Prisma) is a **drop-in replacement** for `crm-api`: same
+HTTP contract, but it implements the **whole** UI so every dashboard page shows
+live data. Like `crm-api` it is **internal-only** (no `ports:`, no Caddy route),
+reached at `http://crm-api-nest:8001`. In prod, **crm-web points at it by default**
+(`CRM_API_URL: http://crm-api-nest:8001` in
+[`docker-compose.prod.yml`](docker-compose.prod.yml)); the Python `crm-api` keeps
+running so switching back is one line (see step 5). CI builds + pushes the
+`crm-api-nest` image and pins `CRM_API_NEST_IMAGE` in `deploy/deploy.env`.
+
+**1. No DNS / no Caddy route** — it's internal-only, same as `crm-api`. Nothing to
+add; crm-web already reaches it over the docker network.
+
+**2. Create the `crm_nest` database** — it runs `prisma migrate deploy` on start,
+but the database must exist first. As with `crm` (§6b), the multi-DB init script
+only runs on a **fresh** volume, so create it once by hand (idempotent):
+
+```bash
+PG=$(docker ps -qf label=com.docker.compose.service=postgres)
+docker exec "$PG" \
+  psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='crm_nest'" \
+  | grep -q 1 || \
+docker exec "$PG" \
+  psql -U postgres -c "CREATE DATABASE crm_nest"
+```
+
+(Brand-new VPS with an empty volume: skip — the init script now includes `crm_nest`.)
+
+**3. Env — no new secrets.** It reuses `POSTGRES_USER`/`POSTGRES_PASSWORD` (for its
+`crm_nest` DATABASE_URL), `AUTH_DOMAIN`, and `CRM_OIDC_CLIENT_ID`. In prod it runs
+`AUTH_MODE=oidc` and validates the **same** Authentik `crm` app tokens as `crm-api`
+(same issuer from `AUTH_DOMAIN`, same `OIDC_AUDIENCE=CRM_OIDC_CLIENT_ID`) — all
+wired in [`docker-compose.prod.yml`](docker-compose.prod.yml).
+
+**4. No Authentik changes** — it accepts the token crm-web already forwards, and
+provisions a local user row on first valid login. No new app registration, no new
+redirect URI. (There is no admin/admin seed in prod; local seeding is dev-only.)
+
+**5. Switching backends** — flip crm-web's `CRM_API_URL` and redeploy (runtime env,
+**no rebuild**):
+
+- `http://crm-api-nest:8001` → NestJS (default, full production mode)
+- `http://crm-api:8000` → Python teaching backend (its `crm` DB, unbuilt pages mock)
+
+Change it in `docker-compose.prod.yml` (or override in Dockhand) and trigger a
+deploy. Both backends stay running, so this is a safe instant rollback.
+
+**6. Bring up** — the next tagged release deploys it automatically. Confirm the
+dashboard loads live data after sign-in; `crm-api-nest` answers over the internal
+network. Its migrations apply on container start.
+
+---
+
 ## 7. Ongoing deploys
 
 Just cut a new tag. The repo uses `vX.Y.Z` tags, and pushing one triggers the

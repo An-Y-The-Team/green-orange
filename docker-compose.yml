@@ -29,7 +29,9 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_MULTIPLE_DATABASES: cms,crm,authentik,directus
+      # `crm_nest` is the NestJS backend's own database (apps/crm-api-nest),
+      # separate from the Python backend's `crm`.
+      POSTGRES_MULTIPLE_DATABASES: cms,crm,crm_nest,authentik,directus
     ports:
       - '5432:5432'
     volumes:

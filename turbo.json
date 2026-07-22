@@ -23,7 +23,13 @@
         "AUTH_SECRET",
         "AUTH_AUTHENTIK_ID",
         "AUTH_AUTHENTIK_SECRET",
-        "AUTH_AUTHENTIK_ISSUER"
+        "AUTH_AUTHENTIK_ISSUER",
+        "AUTH_MODE",
+        "JWT_SECRET",
+        "OIDC_ISSUER",
+        "OIDC_AUDIENCE",
+        "CORS_ORIGINS",
+        "PORT"
       ]
     },
     "test": {
