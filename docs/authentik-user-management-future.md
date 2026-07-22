@@ -64,12 +64,12 @@ far expiry explicitly; a silently expired token bricks the page.
 New files, following the house feature pattern (feature-scoped types,
 `queries.ts` for reads, actions per mutation):
 
-| File                                    | Contents                                                                                                                                  |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/authentik-admin.ts`            | ~40-line server-only fetch wrapper: `akFetch<T>(path, init?)` with token header; `usersEnabled = Boolean(process.env.AUTHENTIK_ADMIN_TOKEN)` |
-| `app/(dashboard)/users/page.tsx`        | **`force-dynamic`** (runtime-only env — the known build-freeze trap, see the force-dynamic rule), renders the table                        |
-| `app/(dashboard)/users/queries.ts`      | `listUsers()` → `GET /core/users/?page_size=…&search=…`                                                                                    |
-| `app/(dashboard)/users/types.ts`        | `AkUser` type                                                                                                                              |
+| File                               | Contents                                                                                                                                     |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/authentik-admin.ts`       | ~40-line server-only fetch wrapper: `akFetch<T>(path, init?)` with token header; `usersEnabled = Boolean(process.env.AUTHENTIK_ADMIN_TOKEN)` |
+| `app/(dashboard)/users/page.tsx`   | **`force-dynamic`** (runtime-only env — the known build-freeze trap, see the force-dynamic rule), renders the table                          |
+| `app/(dashboard)/users/queries.ts` | `listUsers()` → `GET /core/users/?page_size=…&search=…`                                                                                      |
+| `app/(dashboard)/users/types.ts`   | `AkUser` type                                                                                                                                |
 
 - Sidebar: "Người dùng" link in `AppSidebar`, rendered only when
   `usersEnabled` and the caller passes the gate.

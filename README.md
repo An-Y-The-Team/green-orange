@@ -86,14 +86,14 @@ docker compose -f docker-compose.local.yml up --build
 Add `-d` to run detached. Directus bootstraps + applies its schema, and crm-api
 applies its database migrations, automatically on startup. Once it's up:
 
-| Service    | URL                          | Notes                                            |
-| ---------- | ---------------------------- | ------------------------------------------------ |
-| `web`      | <http://localhost:3000>      | Public landing page / portfolio                  |
-| `cms`      | <http://localhost:8055>      | Directus Studio (login with the bootstrap admin) |
-| `crm-web`       | <http://localhost:3002>      | CRM dashboard — **mock data** by default (repoint `CRM_API_URL` to go live) |
-| `crm-api-nest`  | <http://localhost:8001>      | NestJS + Prisma backend (`admin` / `admin`)      |
-| `crm-api`       | <http://localhost:8000/docs> | FastAPI Swagger UI (`admin` / `admin`)           |
-| `postgres`      | `localhost:5432`             | `directus`, `cms`, `crm`, `crm_nest`, `authentik` databases |
+| Service        | URL                          | Notes                                                                       |
+| -------------- | ---------------------------- | --------------------------------------------------------------------------- |
+| `web`          | <http://localhost:3000>      | Public landing page / portfolio                                             |
+| `cms`          | <http://localhost:8055>      | Directus Studio (login with the bootstrap admin)                            |
+| `crm-web`      | <http://localhost:3002>      | CRM dashboard — **mock data** by default (repoint `CRM_API_URL` to go live) |
+| `crm-api-nest` | <http://localhost:8001>      | NestJS + Prisma backend (`admin` / `admin`)                                 |
+| `crm-api`      | <http://localhost:8000/docs> | FastAPI Swagger UI (`admin` / `admin`)                                      |
+| `postgres`     | `localhost:5432`             | `directus`, `cms`, `crm`, `crm_nest`, `authentik` databases                 |
 
 Stop it with `Ctrl-C` (or `docker compose -f docker-compose.local.yml down` if
 detached). Add `-v` to `down` to also wipe the Postgres + media volumes.
