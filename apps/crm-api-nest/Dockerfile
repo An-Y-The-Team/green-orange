@@ -25,6 +25,10 @@ RUN bunx turbo run build --filter=@yan/crm-api-nest
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Prisma needs libssl present to detect the engine target; the slim image omits
+# it, so Prisma misdetects openssl-1.1.x and can't find the 3.0.x engine.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/*
 # Bring the whole built workspace (node_modules incl. the generated Prisma
 # client + CLI, dist, and the prisma/ dir with migrations).
 COPY --from=builder /app ./
