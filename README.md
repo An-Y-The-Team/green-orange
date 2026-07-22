@@ -8,8 +8,9 @@ This project uses **Turborepo** to manage multiple applications in a single repo
 
 - `apps/web`: The Next.js 16 frontend landing page and portfolio. Built with React Server Components, Tailwind CSS, and standard UI components.
 - `apps/cms`: The **Directus** CMS backend (official Docker image + config-as-code in this folder), providing a headless content management interface — with a free, open-source Visual Editor — to manage services, projects, and testimonials.
-- `apps/crm-web`: A Next.js 16 CRM dashboard. Runs on built-in mock data by default; switches to live data when pointed at `crm-api`.
-- `apps/crm-api`: A FastAPI + SQLModel backend. `customers` is fully worked; `contacts`/`leads`/`deals`/`tasks` are exercises for students to implement.
+- `apps/crm-web`: A Next.js 16 CRM dashboard. Runs on built-in mock data by default; switches to live data when its `CRM_API_URL` points at either backend below.
+- `apps/crm-api-nest`: A NestJS + Prisma backend (Bun, port 8001) — the **production default**. Implements the whole UI contract, so every dashboard page is live.
+- `apps/crm-api`: A FastAPI + SQLModel backend (port 8000) — the **learning sandbox**. `clients` is fully worked; `contacts`/`leads`/`deals`/`tasks` are exercises for students to implement.
 - `packages/ui` (`@yan/ui`): Shared shadcn + Tailwind v4 UI primitives consumed by both `web` and `crm-web`.
 
 > **Working on the CRM?** Jump to [Running just the CRM stack](#running-just-the-crm-stack) — you do **not** need `web` or `cms`.
@@ -89,9 +90,10 @@ applies its database migrations, automatically on startup. Once it's up:
 | ---------- | ---------------------------- | ------------------------------------------------ |
 | `web`      | <http://localhost:3000>      | Public landing page / portfolio                  |
 | `cms`      | <http://localhost:8055>      | Directus Studio (login with the bootstrap admin) |
-| `crm-web`  | <http://localhost:3002>      | CRM dashboard — **mock data** by default         |
-| `crm-api`  | <http://localhost:8000/docs> | FastAPI Swagger UI (`admin` / `admin`)           |
-| `postgres` | `localhost:5432`             | `directus`, `cms`, `crm`, `authentik` databases  |
+| `crm-web`       | <http://localhost:3002>      | CRM dashboard — **mock data** by default (repoint `CRM_API_URL` to go live) |
+| `crm-api-nest`  | <http://localhost:8001>      | NestJS + Prisma backend (`admin` / `admin`)      |
+| `crm-api`       | <http://localhost:8000/docs> | FastAPI Swagger UI (`admin` / `admin`)           |
+| `postgres`      | `localhost:5432`             | `directus`, `cms`, `crm`, `crm_nest`, `authentik` databases |
 
 Stop it with `Ctrl-C` (or `docker compose -f docker-compose.local.yml down` if
 detached). Add `-v` to `down` to also wipe the Postgres + media volumes.
@@ -132,9 +134,10 @@ docker compose -f docker-compose.local.yml exec cms sh
 ```
 
 > **`crm-web` live mode:** by default the dashboard ships with built-in mock data
-> so it runs with no backend. To point it at the live `crm-api`, add a runtime
-> `CRM_API_URL: http://localhost:8000` env var (server-only, read at runtime — no
-> rebuild) and a server-only `CRM_API_TOKEN` to the `crm-web` service in
+> so it runs with no backend. To go live, add a runtime `CRM_API_URL` env var
+> (server-only, read at runtime — no rebuild) pointing at either backend —
+> `http://crm-api-nest:8001` (full production) or `http://crm-api:8000` (Python
+> sandbox) — plus a server-only `CRM_API_TOKEN`, to the `crm-web` service in
 > [`docker-compose.local.yml`](docker-compose.local.yml) — the file has inline
 > notes showing how.
 >
@@ -167,9 +170,15 @@ secret/bootstrap values default to throwaway local-dev strings; the prod stack
 ## 🧑‍🎓 Running just the CRM stack
 
 If you're working on the **CRM** only, you only need three
-things — **Postgres**, **crm-api** (FastAPI backend), and **crm-web** (Next.js UI).
+things — **Postgres**, a backend, and **crm-web** (Next.js UI).
 You can ignore `web` and `cms` entirely. Authentik (SSO) is **optional** and not
 needed for day-to-day CRUD/API work.
+
+> **Two backends, one UI.** The steps below build the **Python `crm-api`** (the
+> learning sandbox — port 8000). The production default is **`apps/crm-api-nest`**
+> (NestJS + Prisma, port 8001), which serves the same HTTP contract with every
+> page live. Switching is one env var — set `crm-web`'s `CRM_API_URL` to `:8001`
+> or `:8000` and restart it. See [`apps/crm-api-nest/README.md`](apps/crm-api-nest/README.md).
 
 ### CRM prerequisites
 
