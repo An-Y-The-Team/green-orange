@@ -381,12 +381,12 @@ Authentik (from your laptop or the VPS), using the bootstrap token. This creates
 ```bash
 AUTHENTIK_URL=https://auth.example.com \
 AUTHENTIK_API_TOKEN=<AUTHENTIK_BOOTSTRAP_TOKEN> \
-APP_SLUG=crm APP_NAME="CRM" \
+APP_SLUG=green-orange APP_NAME="CRM" \
 CRM_REDIRECT_URIS=https://crm.example.com/api/auth/callback/authentik \
 python3 scripts/setup-authentik-crm.py
 ```
 
-It prints the OIDC coordinates (issuer `https://auth.example.com/application/o/crm/`,
+It prints the OIDC coordinates (issuer `https://auth.example.com/application/o/green-orange/`,
 client id/secret) to paste into crm-api/crm-web env **when you deploy the CRM apps**
 (a later milestone — Authentik is ready and waiting). See
 [`docs/authentik-oidc-milestone.md`](docs/authentik-oidc-milestone.md).

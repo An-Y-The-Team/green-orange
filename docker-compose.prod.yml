@@ -107,7 +107,7 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/crm
       # Prod validates Authentik-issued OIDC tokens — no local username/password.
       AUTH_MODE: oidc
-      OIDC_ISSUER: https://${AUTH_DOMAIN}/application/o/crm/
+      OIDC_ISSUER: https://${AUTH_DOMAIN}/application/o/green-orange/
       OIDC_AUDIENCE: ${CRM_OIDC_CLIENT_ID}
       # Calls arrive server-to-server (no browser Origin), so CORS is belt-and-braces.
       CORS_ORIGINS: https://${CRM_DOMAIN}
@@ -130,7 +130,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/crm_nest
       # Prod validates Authentik-issued OIDC tokens — same issuer/audience as crm-api.
       AUTH_MODE: oidc
-      OIDC_ISSUER: https://${AUTH_DOMAIN}/application/o/crm/
+      OIDC_ISSUER: https://${AUTH_DOMAIN}/application/o/green-orange/
       OIDC_AUDIENCE: ${CRM_OIDC_CLIENT_ID}
       CORS_ORIGINS: https://${CRM_DOMAIN}
     networks: [internal]
