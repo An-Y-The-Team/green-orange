@@ -154,7 +154,7 @@ services:
       AUTH_TRUST_HOST: 'true'
       AUTH_AUTHENTIK_ID: ${CRM_OIDC_CLIENT_ID}
       AUTH_AUTHENTIK_SECRET: ${CRM_OIDC_CLIENT_SECRET}
-      AUTH_AUTHENTIK_ISSUER: https://${AUTH_DOMAIN}/application/o/crm/
+      AUTH_AUTHENTIK_ISSUER: https://${AUTH_DOMAIN}/application/o/green-orange/
     networks: [internal]
 
   # ── Authentik (identity provider) ──────────────────────────────────────────

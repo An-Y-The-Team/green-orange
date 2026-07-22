@@ -22,7 +22,12 @@ class HeadlessLoginError extends CredentialsSignin {
 const issuer = process.env.AUTH_AUTHENTIK_ISSUER;
 export const authEnabled = Boolean(issuer);
 
-const tokenEndpoint = issuer ? `${issuer.replace(/\/$/, "")}/token/` : "";
+// Authentik's token endpoint is GLOBAL (/application/o/token/), not under the
+// per-app issuer path — the discovery doc confirms it, and the slug-scoped URL
+// answers 405. Building it from the issuer's origin keeps refresh working.
+const tokenEndpoint = issuer
+  ? `${new URL(issuer).origin}/application/o/token/`
+  : "";
 
 // Edge-safe config shared by the Node route handler and the edge middleware
 // (no DB adapter — JWT sessions only — so it runs in middleware fine).
