@@ -147,7 +147,7 @@ def main() -> None:
     print(f"Client ID    : {provider['client_id']}")
     print(f"Client secret: {provider['client_secret']}")
     print(f"Redirect URIs: {', '.join(REDIRECT_URIS)}")
-    print("\n--- apps/crm-api/.env ---")
+    print("\n--- apps/crm-api/.env AND/OR apps/crm-api-nest/.env (same var names) ---")
     print("AUTH_MODE=oidc")
     print(f"OIDC_ISSUER={issuer}")
     print(f"OIDC_AUDIENCE={provider['client_id']}")

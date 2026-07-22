@@ -135,18 +135,22 @@ services:
       - '8001:8001'
 
   # ── CRM dashboard — Next.js (port 3002) ─────────────────────────────────────
-  # Runs with NO CRM_API_URL, so it serves built-in MOCK data and needs no
-  # backend. To run it against the live crm-api instead, add a runtime env block
-  # (CRM_API_URL is server-only and read at runtime — no rebuild needed):
-  #   environment:
-  #     CRM_API_URL: http://crm-api:8000   # internal service DNS, never exposed
-  #     CRM_API_TOKEN: <token>             # mint one from the running API:
-  #   curl -s -X POST http://localhost:8000/auth/token -d "username=admin&password=admin"
+  # Runs LIVE against crm-api-nest (mirrors prod). CRM_API_URL is server-only
+  # and read at runtime — repoint or unset it without a rebuild:
+  #   • mock mode: remove the CRM_API_URL line (UI falls back to bundled data)
+  #   • Python backend: CRM_API_URL: http://crm-api:8000
   crm-web:
     build:
       context: .
       dockerfile: apps/crm-web/Dockerfile
     restart: unless-stopped
+    depends_on:
+      - crm-api-nest
+    environment:
+      # Live mode against the NestJS backend (AUTH_MODE=local there, so crm-web
+      # auto-mints its bearer from /auth/token with the seeded admin/admin —
+      # no token to manage). Point at http://crm-api:8000 for the Python one.
+      CRM_API_URL: http://crm-api-nest:8001
     ports:
       - '3002:3002'
 

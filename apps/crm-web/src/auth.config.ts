@@ -1,5 +1,19 @@
 import type { NextAuthConfig } from "next-auth";
+import { CredentialsSignin } from "next-auth";
 import Authentik from "next-auth/providers/authentik";
+import Credentials from "next-auth/providers/credentials";
+
+import { headlessLogin } from "@/lib/authentik-flow";
+
+// Surfaces the headless-login failure reason to the client as `res.code`
+// ("invalid_credentials" | "unsupported_stage" | "error") so the overlay can
+// tell "wrong password" apart from "this account needs the hosted login".
+class HeadlessLoginError extends CredentialsSignin {
+  constructor(code: string) {
+    super();
+    this.code = code;
+  }
+}
 
 // Auth is OPT-IN: only enforced when Authentik is configured. With no
 // AUTH_AUTHENTIK_ISSUER (the default for local/mock dev), the dashboard stays
@@ -25,6 +39,29 @@ export default {
             params: { scope: "openid email profile offline_access" },
           },
         }),
+        // Inline (headless) login: credentials are driven through Authentik's
+        // flow executor server-side, ending in the SAME code exchange as the
+        // redirect flow — crm-api sees an identical RS256 token. Hosted /login
+        // (the Authentik provider above) stays as the fallback for MFA etc.
+        Credentials({
+          credentials: { username: {}, password: {} },
+          async authorize(creds) {
+            const username = creds?.username;
+            const password = creds?.password;
+            if (typeof username !== "string" || typeof password !== "string") {
+              throw new HeadlessLoginError("invalid_credentials");
+            }
+            const result = await headlessLogin(username, password);
+            if (!result.ok) throw new HeadlessLoginError(result.reason);
+            return {
+              id: username,
+              name: username,
+              accessToken: result.accessToken,
+              refreshToken: result.refreshToken,
+              expiresAt: result.expiresAt,
+            };
+          },
+        }),
       ]
     : [],
   pages: { signIn: "/login" },
@@ -33,9 +70,20 @@ export default {
       if (!authEnabled) return true; // local/mock dev: no gate
       return Boolean(auth?.user);
     },
-    async jwt({ token, account }) {
-      // Initial sign-in: stash the Authentik tokens.
-      if (account) {
+    async jwt({ token, account, user }) {
+      // Initial sign-in via the headless credentials path: the tokens ride on
+      // `user`. Must run before the account block — a credentials `account`
+      // carries no tokens and would blank them.
+      if (user?.accessToken) {
+        return {
+          ...token,
+          accessToken: user.accessToken,
+          expiresAt: user.expiresAt,
+          refreshToken: user.refreshToken,
+        };
+      }
+      // Initial sign-in via the redirect flow: stash the Authentik tokens.
+      if (account?.access_token) {
         return {
           ...token,
           accessToken: account.access_token,
