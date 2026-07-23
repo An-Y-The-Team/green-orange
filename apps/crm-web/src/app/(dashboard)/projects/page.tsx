@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 import { Card } from "@yan/ui/components/card";
 import {
   Table,
@@ -28,6 +29,11 @@ export default async function ProjectsPage() {
       <PageHeader
         title="Công trình"
         description={`${visible.length} công trình`}
+        action={
+          <Button render={<Link href="/projects/new" />}>
+            + Tiếp nhận yêu cầu
+          </Button>
+        }
       />
       <Card className="py-0">
         <Table>

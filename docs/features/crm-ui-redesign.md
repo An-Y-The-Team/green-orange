@@ -586,6 +586,9 @@ pages (which remain usable, just not optimized, on mobile).
 
 ## Build order
 
+> File-level execution plan lives in `crm-ui-implementation-plan.md` —
+> iterate there; this list is the high-level sequence.
+
 1. ✅ **Contract layer** (done 2026-07-23) — v2 types/enums/labels/mocks,
    legacy folders (leads/deals/tasks/contacts) + v1 dialogs/actions
    deleted; all pages rebuilt read-only on the v2 contract and rendering

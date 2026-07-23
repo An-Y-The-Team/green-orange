@@ -4,6 +4,8 @@
  * Serialization: snake_case; `*_date` = 'YYYY-MM-DD'; `*_at` = full ISO;
  * money = numbers.
  * -------------------------------------------------------------------------- */
+import type { Quote } from "@/app/(dashboard)/quotes/types";
+
 import type {
   AcceptanceSubStatus,
   ExecutionSubStatus,
@@ -85,6 +87,7 @@ export interface Project {
   decision_maker?: ProjectContact;
   paperwork_items?: PaperworkItem[];
   notes?: ProjectNote[];
+  quotes?: Quote[]; // GET /projects/:id include; shape owned by the quotes feature
 }
 
 /** Stage-5 checklist item; overdue is DERIVED (isOverdue), never stored. */

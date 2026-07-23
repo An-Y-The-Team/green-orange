@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 import {
   Card,
   CardContent,
@@ -72,6 +73,11 @@ export default async function DashboardPage() {
       <PageHeader
         title="Tổng quan"
         description={`${active.length} công trình đang theo dõi.`}
+        action={
+          <Button render={<Link href="/projects/new" />}>
+            + Tiếp nhận yêu cầu
+          </Button>
+        }
       />
 
       <div className="grid gap-4 lg:grid-cols-2">

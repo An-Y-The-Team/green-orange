@@ -1,8 +1,9 @@
 import { paperworkItems } from "@/data/mock/paperwork-items";
+import { projectTypes } from "@/data/mock/project-types";
 import { projects } from "@/data/mock/projects";
 import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
 
-import type { PaperworkItem, Project } from "./types";
+import type { PaperworkItem, Project, ProjectType } from "./types";
 
 export async function listProjects(): Promise<Project[]> {
   return API_URL ? apiFetchSafe<Project[]>("/projects", []) : projects;
@@ -25,4 +26,10 @@ export async function listPaperworkItems(
     );
   }
   return paperworkItems.filter((i) => i.project_id === projectId);
+}
+
+export async function listProjectTypes(): Promise<ProjectType[]> {
+  return API_URL
+    ? apiFetchSafe<ProjectType[]>("/project-types", [])
+    : projectTypes;
 }
