@@ -12,24 +12,22 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { formatVND } from "@/lib/format";
-import { projectStage, projectType } from "@/lib/labels";
+import { formatDate } from "@/lib/format";
+import { projectStage, projectStatus } from "@/lib/labels";
 
-import { ProjectFormDialog } from "./components/project-form-dialog/project-form-dialog";
+import { ProjectStatus } from "./enums";
 import { listProjects } from "./queries";
 
 export default async function ProjectsPage() {
   const projects = await listProjects();
-  const active = projects.filter(
-    (p) => p.stage !== "dong" && p.stage !== "yeu_cau"
-  ).length;
+  // Cancelled jobs are hidden from the default list (still reachable by URL).
+  const visible = projects.filter((p) => p.status !== ProjectStatus.CANCELLED);
 
   return (
     <>
       <PageHeader
         title="Công trình"
-        description={`${projects.length} công trình · ${active} đang triển khai`}
-        action={<ProjectFormDialog />}
+        description={`${visible.length} công trình`}
       />
       <Card className="py-0">
         <Table>
@@ -38,14 +36,15 @@ export default async function ProjectsPage() {
               <TableHead>Mã</TableHead>
               <TableHead>Tên công trình</TableHead>
               <TableHead>Khách hàng</TableHead>
+              <TableHead>Địa điểm</TableHead>
               <TableHead>Loại</TableHead>
               <TableHead>Giai đoạn</TableHead>
-              <TableHead>Tiến độ</TableHead>
-              <TableHead className="text-right">Giá trị</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead>Hẹn khảo sát</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {projects.map((project) => (
+            {visible.map((project) => (
               <TableRow key={project.id}>
                 <TableCell className="font-medium">
                   <Link
@@ -57,10 +56,19 @@ export default async function ProjectsPage() {
                 </TableCell>
                 <TableCell>{project.name}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {project.client}
+                  {project.client?.name ?? `#${project.client_id}`}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {projectType[project.type]}
+                  {project.location?.name ?? `#${project.location_id}`}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {project.types.map((type) => (
+                      <Badge key={type.id} variant="outline">
+                        {type.name}
+                      </Badge>
+                    ))}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={projectStage[project.stage].variant}>
@@ -68,20 +76,14 @@ export default async function ProjectsPage() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${project.progress}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {project.progress}%
-                    </span>
-                  </div>
+                  <Badge variant={projectStatus[project.status].variant}>
+                    {projectStatus[project.status].label}
+                  </Badge>
                 </TableCell>
-                <TableCell className="text-right">
-                  {formatVND(project.contract_value)}
+                <TableCell className="text-muted-foreground">
+                  {project.appointment_at
+                    ? formatDate(project.appointment_at)
+                    : "—"}
                 </TableCell>
               </TableRow>
             ))}

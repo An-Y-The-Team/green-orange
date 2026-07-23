@@ -3,10 +3,9 @@ import { doc, h2, lineItems, mf, p, t } from "@/lib/lexical-build";
 
 // Mẫu hợp đồng — reusable boilerplate authored in the rich-text editor. Bodies
 // are stored as Lexical editorState JSON (string form); the merge-field chips
-// (mf("token")) resolve to a contract's data at render time (see
-// components/editor/lexical-document.tsx). These are built with the helpers in
-// lib/lexical-build.ts so the JSON shape stays valid and readable rather than
-// hand-written — authoring in the editor and pasting JSON works too.
+// (mf("token")) resolve against the contract + its project/chốt quote at
+// render time (see lib/merge-template.ts). Built with lib/lexical-build.ts
+// helpers so the JSON shape stays valid and readable.
 export const contractTemplates: ContractTemplate[] = [
   {
     id: 1,
@@ -18,15 +17,6 @@ export const contractTemplates: ContractTemplate[] = [
       p(t("Hôm nay, ngày "), mf("signed_date"), t(", hai bên gồm có:")),
       h2(t("BÊN A (Khách hàng)")),
       p(mf("client")),
-      p(t("Địa chỉ: "), mf("client_address")),
-      p(
-        t("MST: "),
-        mf("client_tax_code"),
-        t(" · Đại diện: "),
-        mf("client_rep"),
-        t(" — "),
-        mf("client_position")
-      ),
       h2(t("BÊN B (Nhà cung cấp dịch vụ)")),
       p(mf("company.name")),
       p(t("Địa chỉ: "), mf("company.address")),
@@ -37,12 +27,8 @@ export const contractTemplates: ContractTemplate[] = [
         t("Bên B cung cấp dịch vụ vệ sinh cho công trình "),
         mf("project_code"),
         t(": “"),
-        mf("title"),
-        t("”. Thời gian thực hiện từ "),
-        mf("start_date"),
-        t(" đến "),
-        mf("end_date"),
-        t(". Nội dung công việc theo bảng báo giá đã được duyệt:")
+        mf("project_name"),
+        t("”. Nội dung công việc theo bảng báo giá đã được chốt:")
       ),
       lineItems(),
       h2(t("Điều 2: Giá trị hợp đồng")),
@@ -56,7 +42,6 @@ export const contractTemplates: ContractTemplate[] = [
         t(".")
       ),
       h2(t("Điều 3: Điều khoản thanh toán")),
-      p(mf("payment_terms")),
       p(
         t("Thanh toán chuyển khoản về: "),
         mf("company.bank_account"),
@@ -84,22 +69,16 @@ export const contractTemplates: ContractTemplate[] = [
       p(t("Hôm nay, ngày "), mf("signed_date"), t(", hai bên gồm có:")),
       h2(t("BÊN A (Chủ đầu tư)")),
       p(mf("client")),
-      p(t("Địa chỉ: "), mf("client_address")),
-      p(t("MST: "), mf("client_tax_code")),
       h2(t("BÊN B (Nhà thầu thi công)")),
       p(mf("company.name"), t(" — MST: "), mf("company.tax_id")),
       p(t("Đại diện: "), mf("company.rep"), t(" — "), mf("company.rep_title")),
       h2(t("Điều 1: Phạm vi thi công")),
       p(
         t("Bên B thi công hạng mục “"),
-        mf("title"),
+        mf("project_name"),
         t("” tại công trình "),
         mf("project_code"),
-        t(", từ "),
-        mf("start_date"),
-        t(" đến "),
-        mf("end_date"),
-        t(". Khối lượng và đơn giá theo bảng báo giá đã được duyệt:")
+        t(". Khối lượng và đơn giá theo bảng báo giá đã được chốt:")
       ),
       lineItems(),
       h2(t("Điều 2: Giá trị hợp đồng")),
@@ -112,9 +91,7 @@ export const contractTemplates: ContractTemplate[] = [
         mf("value_in_words"),
         t(".")
       ),
-      h2(t("Điều 3: Tạm ứng & thanh toán")),
-      p(mf("payment_terms")),
-      h2(t("Điều 4: Bảo hành")),
+      h2(t("Điều 3: Bảo hành")),
       p(
         t(
           "Bên B bảo hành hạng mục thi công theo quy định hiện hành kể từ ngày nghiệm thu."

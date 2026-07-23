@@ -15,16 +15,14 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-// Domain-focused nav for the cleaning & construction CRM. The old generic
-// pages (contacts/leads/deals/tasks) remain on disk for reference but are no
-// longer linked here. Công trình is the hub; Báo giá / Hợp đồng / Thu-Nợ are
-// cross-project views.
+// v2 nav (docs/features/crm-ui-redesign.md IA). Công trình is the hub;
+// Báo giá / Hợp đồng / Thu & công nợ are cross-project views.
 export const navItems: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Khách hàng", href: "/clients", icon: Users },
   { label: "Công trình", href: "/projects", icon: HardHat },
-  { label: "Nhân sự", href: "/crew", icon: UsersRound },
+  { label: "Khách hàng", href: "/clients", icon: Users },
   { label: "Báo giá", href: "/quotes", icon: FileText },
   { label: "Hợp đồng", href: "/contracts", icon: FileSignature },
-  { label: "Thu / Nợ", href: "/receivables", icon: Wallet },
+  { label: "Thu & công nợ", href: "/receivables", icon: Wallet },
+  { label: "Nhân sự", href: "/crew", icon: UsersRound },
 ];

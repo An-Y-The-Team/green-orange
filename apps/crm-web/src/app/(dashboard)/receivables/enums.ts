@@ -1,16 +1,27 @@
-// Thanh toán theo đợt — closed value sets for the milestone payment schedule /
-// công nợ.
+// Thu & công nợ — v2 contract values (English); labels in src/lib/labels.ts.
 
-export enum MilestoneType {
-  TAM_UNG = "tam_ung", // advance
-  TIEN_DO = "tien_do", // progress
-  NGHIEM_THU = "nghiem_thu", // on acceptance
-  GIU_BAO_HANH = "giu_bao_hanh", // retained until warranty ends
+export enum SettlementStatus {
+  DRAFT = "draft", // Nháp
+  SENT = "sent", // Đã gửi
+  SIGNED = "signed", // Đã ký — officializes the bill, defines milestones
 }
 
+export enum BillStatus {
+  DRAFT = "draft", // Nháp — born with its settlement
+  OFFICIAL = "official", // Chính thức — client signed the settlement
+  SENT = "sent", // Đã gửi
+  PAID = "paid", // Đã thanh toán
+}
+
+export enum MilestoneType {
+  DEPOSIT = "deposit", // Tạm ứng (Cọc, stage 4 — exists before any bill)
+  PROGRESS = "progress",
+  ACCEPTANCE = "acceptance",
+}
+
+// Overdue (Quá hạn) is DERIVED — due date passed and not paid — never stored.
 export enum MilestoneStatus {
-  CHUA_DEN_HAN = "chua_den_han", // not yet due
-  CHO_THANH_TOAN = "cho_thanh_toan", // due / awaiting payment
-  DA_THU = "da_thu", // collected
-  QUA_HAN = "qua_han", // overdue
+  NOT_DUE = "not_due", // Chưa đến hạn
+  AWAITING_PAYMENT = "awaiting_payment", // Chờ thanh toán
+  PAID = "paid", // Đã thu
 }

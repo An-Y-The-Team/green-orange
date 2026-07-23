@@ -586,8 +586,11 @@ pages (which remain usable, just not optimized, on mobile).
 
 ## Build order
 
-1. **Contract layer** — v2 types/enums/labels/mocks + delete legacy folders.
-   Nothing renders yet; everything compiles.
+1. ✅ **Contract layer** (done 2026-07-23) — v2 types/enums/labels/mocks,
+   legacy folders (leads/deals/tasks/contacts) + v1 dialogs/actions
+   deleted; all pages rebuilt read-only on the v2 contract and rendering
+   in both mock and live mode. Template editor kept compiling on v2
+   fields. Creation/editing returns as dedicated pages in later phases.
 2. **Clients + Projects list + workspace shell** (header, stepper, status
    actions, Zone 3 tabs with notes/attachments).
 3. **Stage panels 1–5** (appointment, survey, quotes component, contract

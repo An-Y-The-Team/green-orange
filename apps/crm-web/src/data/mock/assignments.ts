@@ -1,49 +1,85 @@
-import type { Assignment } from "@/app/(dashboard)/crew/types";
+import type { Assignment, ProjectRef } from "@/app/(dashboard)/crew/types";
+import { crewRoles } from "@/data/mock/crew-roles";
 
-// Phân công — which crew members are staffed onto which công trình. Joins
-// crew (data/mock/crew.ts) to projects (data/mock/projects.ts) by `project_code`.
-// Mirrors the cross-reference-by-code pattern the project detail page already
-// uses for quotes/contracts/costs.
+// Phân công — v2. Projects: 1 (CT-2026-001), 2 (CT-2026-002, đang thi công),
+// 3 (CT-2026-003, đã đóng). `project` mirrors the API include on GET /crew/:id.
+// Member 1 is double-booked (project 2 ↔ project 1) to demo the non-blocking
+// "Trùng lịch" warning; `overlaps` is API-computed on writes, carried here for
+// the read-only demo.
+const project1: ProjectRef = {
+  id: 1,
+  code: "CT-2026-001",
+  name: "Vệ sinh tổng thể TTTM Vincom Plaza Q.1",
+};
+const project2: ProjectRef = {
+  id: 2,
+  code: "CT-2026-002",
+  name: "Thi công cải tạo cửa hàng Circle K Q.7",
+};
+
 export const assignments: Assignment[] = [
-  // CT-2026-001 — Vệ sinh tổng thể Vincom Plaza Q.1 (đang thi công)
+  // CT-2026-002 — đang thi công: 3 members on site
   {
     id: 1,
-    crew_id: 1,
-    project_code: "CT-2026-001",
-    role_on_site: "Giám sát công trình",
-    start_date: "2026-03-15",
+    project_id: 2,
+    crew_member_id: 1,
+    role_id: 4,
+    from_date: "2026-07-10",
+    to_date: null,
+    role: crewRoles[3],
+    project: project2,
+    overlaps: [
+      {
+        id: 4,
+        project_id: 1,
+        crew_member_id: 1,
+        role_id: 4,
+        from_date: "2026-07-18",
+        to_date: "2026-07-22",
+        project: project1,
+      },
+    ],
   },
-  { id: 2, crew_id: 7, project_code: "CT-2026-001", start_date: "2026-03-15" },
-  { id: 3, crew_id: 8, project_code: "CT-2026-001", start_date: "2026-03-15" },
-  { id: 4, crew_id: 5, project_code: "CT-2026-001", start_date: "2026-03-18" },
-  { id: 5, crew_id: 10, project_code: "CT-2026-001", start_date: "2026-03-15" },
+  {
+    id: 2,
+    project_id: 2,
+    crew_member_id: 2,
+    role_id: 1,
+    from_date: "2026-07-10",
+    to_date: "2026-07-31",
+    role: crewRoles[0],
+    project: project2,
+  },
+  {
+    id: 3,
+    project_id: 2,
+    crew_member_id: 3,
+    role_id: null,
+    from_date: "2026-07-12",
+    to_date: "2026-07-20",
+    project: project2,
+  },
 
-  // CT-2026-002 — Thi công cải tạo Circle K Q.7 (nghiệm thu)
+  // CT-2026-001 — member 1 also booked here, overlapping assignment 1
   {
-    id: 6,
-    crew_id: 2,
-    project_code: "CT-2026-002",
-    role_on_site: "Giám sát công trình",
-    start_date: "2026-02-25",
+    id: 4,
+    project_id: 1,
+    crew_member_id: 1,
+    role_id: 4,
+    from_date: "2026-07-18",
+    to_date: "2026-07-22",
+    role: crewRoles[3],
+    project: project1,
+    overlaps: [
+      {
+        id: 1,
+        project_id: 2,
+        crew_member_id: 1,
+        role_id: 4,
+        from_date: "2026-07-10",
+        to_date: null,
+        project: project2,
+      },
+    ],
   },
-  {
-    id: 7,
-    crew_id: 3,
-    project_code: "CT-2026-002",
-    role_on_site: "Tổ trưởng thi công",
-    start_date: "2026-02-25",
-  },
-  { id: 8, crew_id: 6, project_code: "CT-2026-002", start_date: "2026-02-28" },
-  { id: 9, crew_id: 11, project_code: "CT-2026-002", start_date: "2026-02-28" },
-
-  // CT-2026-003 — Vệ sinh sau xây dựng FPT Tower (chờ thanh toán)
-  {
-    id: 10,
-    crew_id: 1,
-    project_code: "CT-2026-003",
-    role_on_site: "Giám sát công trình",
-    start_date: "2026-01-20",
-  },
-  { id: 11, crew_id: 4, project_code: "CT-2026-003", start_date: "2026-01-20" },
-  { id: 12, crew_id: 8, project_code: "CT-2026-003", start_date: "2026-01-22" },
 ];

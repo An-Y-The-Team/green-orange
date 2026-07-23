@@ -7,123 +7,115 @@ import {
   CardHeader,
   CardTitle,
 } from "@yan/ui/components/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { formatVND, projectActuals, receivables } from "@/lib/format";
-import { projectStage, projectType } from "@/lib/labels";
+import { formatDate } from "@/lib/format";
+import { projectStage, projectStageOrder } from "@/lib/labels";
 
-import { listClients } from "../clients/queries";
-import { listCosts, listProjects } from "../projects/queries";
-import { listQuotes } from "../quotes/queries";
-import { listPaymentMilestones } from "../receivables/queries";
+import { ProjectStage, ProjectStatus } from "../projects/enums";
+import { listProjects } from "../projects/queries";
+import type { Project } from "../projects/types";
+
+function ProjectLinkList({ items }: { items: Project[] }) {
+  if (items.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">Không có công trình nào.</p>
+    );
+  }
+  return (
+    <ul className="space-y-2 text-sm">
+      {items.map((p) => (
+        <li key={p.id} className="flex items-center justify-between gap-4">
+          <Link href={`/projects/${p.id}`} className="hover:underline">
+            <span className="font-medium">{p.code}</span> · {p.name}
+          </Link>
+          <span className="whitespace-nowrap text-muted-foreground">
+            {p.appointment_at
+              ? formatDate(p.appointment_at)
+              : p.follow_up_date
+                ? formatDate(p.follow_up_date)
+                : null}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default async function DashboardPage() {
-  const [clients, projects, quotes, costs, milestones] = await Promise.all([
-    listClients(),
-    listProjects(),
-    listQuotes(),
-    listCosts(),
-    listPaymentMilestones(),
-  ]);
+  const projects = await listProjects();
+  const today = new Date().toISOString().slice(0, 10);
 
-  const activeProjects = projects.filter(
-    (p) => p.stage !== "dong" && p.stage !== "yeu_cau"
-  ).length;
-  const pendingQuotes = quotes.filter((q) => q.status === "da_gui").length;
-  const { outstanding } = receivables(milestones);
-
-  // Estimated gross profit = Σ(revenue) − Σ(actual costs) across all projects.
-  const estimatedProfit = projects.reduce(
-    (sum, p) =>
-      sum +
-      projectActuals(
-        p,
-        costs.filter((c) => c.project_code === p.code)
-      ).margin,
-    0
+  // Hôm nay — new requests with a survey appointment today.
+  const todayAppointments = projects.filter(
+    (p) =>
+      p.stage === ProjectStage.REQUEST && p.appointment_at?.startsWith(today)
   );
 
-  const kpis = [
-    { label: "Công trình đang triển khai", value: String(activeProjects) },
-    { label: "Còn phải thu", value: formatVND(outstanding) },
-    { label: "Báo giá chờ duyệt", value: String(pendingQuotes) },
-    { label: "Lợi nhuận ước tính", value: formatVND(estimatedProfit) },
-  ];
+  // Cần theo dõi — parked jobs whose follow-up date has arrived.
+  const followUps = projects.filter(
+    (p) =>
+      p.status === ProjectStatus.ON_HOLD &&
+      p.follow_up_date &&
+      p.follow_up_date <= today
+  );
+
+  // Pipeline — count per lifecycle stage (cancelled jobs excluded).
+  const active = projects.filter((p) => p.status !== ProjectStatus.CANCELLED);
+  const byStage = projectStageOrder.map((stage) => ({
+    stage,
+    count: active.filter((p) => p.stage === stage).length,
+  }));
 
   return (
     <>
       <PageHeader
         title="Tổng quan"
-        description={`${clients.length} khách hàng · bảng điều khiển hoạt động kinh doanh.`}
+        description={`${active.length} công trình đang theo dõi.`}
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {kpis.map((kpi) => (
-          <Card key={kpi.label}>
-            <CardHeader>
-              <CardTitle className="text-muted-foreground">
-                {kpi.label}
-              </CardTitle>
-              <div className="text-2xl font-semibold">{kpi.value}</div>
-            </CardHeader>
-          </Card>
-        ))}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Hôm nay</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProjectLinkList items={todayAppointments} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Cần theo dõi</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProjectLinkList items={followUps} />
+          </CardContent>
+        </Card>
       </div>
 
-      <Card className="mt-6">
+      <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Công trình gần đây</CardTitle>
+          <CardTitle>Pipeline</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mã</TableHead>
-                <TableHead>Tên công trình</TableHead>
-                <TableHead>Khách hàng</TableHead>
-                <TableHead>Loại</TableHead>
-                <TableHead>Giai đoạn</TableHead>
-                <TableHead className="text-right">Giá trị</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projects.map((project) => (
-                <TableRow key={project.id}>
-                  <TableCell className="font-medium">
-                    <Link
-                      href={`/projects/${project.id}`}
-                      className="hover:underline"
-                    >
-                      {project.code}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{project.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {project.client}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {projectType[project.type]}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={projectStage[project.stage].variant}>
-                      {projectStage[project.stage].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatVND(project.contract_value)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="flex flex-wrap items-center gap-2">
+            {byStage.map(({ stage, count }) => (
+              <div
+                key={stage}
+                className="flex items-center gap-2 rounded-md border px-3 py-2"
+              >
+                <Badge
+                  variant={count > 0 ? projectStage[stage].variant : "outline"}
+                >
+                  {count}
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  {projectStage[stage].label}
+                </span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </>

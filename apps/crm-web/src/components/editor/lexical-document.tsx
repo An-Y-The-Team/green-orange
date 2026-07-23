@@ -13,14 +13,24 @@
  */
 import { Fragment, type ReactNode } from "react";
 
-import type { QuoteItem } from "@/app/(dashboard)/quotes/types";
 import { formatVND, quoteTotals } from "@/lib/format";
 import { type LexNode, TEXT_FORMAT } from "@/lib/lexical-build";
 import type { MergeContext } from "@/lib/merge-template";
 import { vndInWords } from "@/lib/vnd-in-words";
 
-/** Structured pricing for the line-items block (from the linked Quote). */
-export type LineItemsData = { items: QuoteItem[]; vatRate: number };
+/**
+ * Structured pricing for the line-items block (from the linked Quote). Only
+ * the display fields — a real QuoteItem fits, and so do editor sample rows.
+ */
+export type LineItemsData = {
+  items: {
+    description: string;
+    unit?: string | null;
+    quantity: number;
+    unit_price: number;
+  }[];
+  vatRate: number;
+};
 
 function inlineText(node: LexNode, ctx: MergeContext, key: number): ReactNode {
   let content: ReactNode;

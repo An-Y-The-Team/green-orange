@@ -1,4 +1,4 @@
-import { FileText, Plus } from "lucide-react";
+import { FileText } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@yan/ui/components/badge";
@@ -14,35 +14,32 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { formatDate, formatVND } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { contractStatus } from "@/lib/labels";
 
+import { ContractStatus } from "./enums";
 import { listContracts } from "./queries";
 
 export default async function ContractsPage() {
   const contracts = await listContracts();
-  const total = contracts.reduce((sum, c) => sum + c.value, 0);
+  const signed = contracts.filter(
+    (c) => c.status === ContractStatus.SIGNED
+  ).length;
 
   return (
     <>
       <PageHeader
         title="Hợp đồng"
-        description={`${contracts.length} hợp đồng · ${formatVND(total)} tổng giá trị`}
+        description={`${contracts.length} hợp đồng · ${signed} đã ký`}
         action={
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              render={<Link href="/contracts/templates" />}
-            >
-              <FileText />
-              Mẫu hợp đồng
-            </Button>
-            <Button size="sm" render={<Link href="/contracts/new" />}>
-              <Plus />
-              Tạo hợp đồng
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/contracts/templates" />}
+          >
+            <FileText />
+            Mẫu hợp đồng
+          </Button>
         }
       />
       <Card className="py-0">
@@ -50,11 +47,10 @@ export default async function ContractsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Mã</TableHead>
-              <TableHead>Tiêu đề</TableHead>
+              <TableHead>Công trình</TableHead>
               <TableHead>Khách hàng</TableHead>
-              <TableHead>Ngày ký</TableHead>
               <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-right">Giá trị</TableHead>
+              <TableHead>Ngày ký</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -68,20 +64,28 @@ export default async function ContractsPage() {
                     {contract.code}
                   </Link>
                 </TableCell>
-                <TableCell>{contract.title}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {contract.client}
+                <TableCell>
+                  <Link
+                    href={`/projects/${contract.project_id}`}
+                    className="hover:underline"
+                  >
+                    {contract.project
+                      ? `${contract.project.code} · ${contract.project.name}`
+                      : `Công trình #${contract.project_id}`}
+                  </Link>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {formatDate(contract.signed_date)}
+                  {contract.project?.client.name ?? "—"}
                 </TableCell>
                 <TableCell>
                   <Badge variant={contractStatus[contract.status].variant}>
                     {contractStatus[contract.status].label}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
-                  {formatVND(contract.value)}
+                <TableCell className="text-muted-foreground">
+                  {contract.signed_date
+                    ? formatDate(contract.signed_date)
+                    : "—"}
                 </TableCell>
               </TableRow>
             ))}

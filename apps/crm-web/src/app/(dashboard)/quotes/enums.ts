@@ -1,14 +1,18 @@
-// Báo giá / Quyết toán — closed value sets. The `type` discriminates an initial
-// quote (báo giá) from a final settlement (quyết toán).
-
-export enum QuoteType {
-  BAO_GIA = "bao_gia",
-  QUYET_TOAN = "quyet_toan",
-}
+// Báo giá — v2 contract values (English); labels in src/lib/labels.ts.
+// Bargaining = new version; sent versions are never edited; the latest
+// version carries the live status. Quyết toán is its own entity now
+// (receivables feature), no more quote `type`.
 
 export enum QuoteStatus {
-  NHAP = "nhap",
-  DA_GUI = "da_gui",
-  DA_DUYET = "da_duyet",
-  TU_CHOI = "tu_choi",
+  DRAFT = "draft", // Nháp
+  WAITING = "waiting", // Chờ duyệt
+  DEAL = "deal", // Chốt — gates stage 4
+  ON_HOLD = "on_hold", // Hoãn — project parks with it
+  REJECTED = "rejected", // Hủy — project cancels with it
+}
+
+export enum QuoteChannel {
+  ZALO = "zalo",
+  EMAIL = "email",
+  PRINT = "print",
 }

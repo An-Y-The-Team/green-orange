@@ -1,5 +1,3 @@
-import { Lock } from "lucide-react";
-
 import { Badge } from "@yan/ui/components/badge";
 import { Card, CardHeader, CardTitle } from "@yan/ui/components/card";
 import {
@@ -12,106 +10,131 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { formatDate, formatVND, receivables } from "@/lib/format";
-import { milestoneStatus, milestoneType } from "@/lib/labels";
+import { formatDate, formatVND, isOverdue } from "@/lib/format";
+import {
+  billStatus,
+  milestoneStatus,
+  milestoneType,
+  overdue,
+} from "@/lib/labels";
 
-import { PaymentMilestoneFormDialog } from "./components/payment-milestone-form-dialog/payment-milestone-form-dialog";
-import { listPaymentMilestones } from "./queries";
+import { listProjects } from "../projects/queries";
+import { MilestoneStatus } from "./enums";
+import { listBills, listPaymentMilestones } from "./queries";
 
+// Thu & công nợ — the secretary's daily money screen. Read-only (phase 1):
+// row actions (record payment, mark bill sent/paid) come with the write phase.
 export default async function ReceivablesPage() {
-  const milestones = await listPaymentMilestones();
-  const { total_due, total_paid, outstanding, retention } =
-    receivables(milestones);
+  const [milestones, bills, projects] = await Promise.all([
+    listPaymentMilestones(),
+    listBills(),
+    listProjects(),
+  ]);
+  const projectCode = (id: number) =>
+    projects.find((p) => p.id === id)?.code ?? `#${id}`;
 
-  const kpis = [
-    { label: "Tổng giá trị hợp đồng", value: formatVND(total_due) },
-    { label: "Đã thu", value: formatVND(total_paid) },
-    { label: "Còn phải thu", value: formatVND(outstanding) },
-    { label: "Giữ lại bảo hành", value: formatVND(retention) },
-  ];
+  const milestoneOverdue = (m: (typeof milestones)[number]) =>
+    isOverdue(m.due_date, m.status === MilestoneStatus.PAID);
+  // Derived overdue on top (design doc), everything else in API order.
+  const sorted = [...milestones].sort(
+    (a, b) => Number(milestoneOverdue(b)) - Number(milestoneOverdue(a))
+  );
 
   return (
     <>
       <PageHeader
-        title="Thu / Nợ"
-        description="Lịch thanh toán theo đợt và công nợ của các hợp đồng."
-        action={<PaymentMilestoneFormDialog />}
+        title="Thu & công nợ"
+        description="Đợt thanh toán và hóa đơn của các công trình."
       />
 
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {kpis.map((kpi) => (
-          <Card key={kpi.label}>
-            <CardHeader>
-              <CardTitle className="text-muted-foreground">
-                {kpi.label}
-              </CardTitle>
-              <div className="text-xl font-semibold">{kpi.value}</div>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="py-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Hợp đồng</TableHead>
-              <TableHead>Khách hàng</TableHead>
-              <TableHead>Đợt</TableHead>
-              <TableHead>Hạn</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-right">Phải thu</TableHead>
-              <TableHead className="text-right">Đã thu</TableHead>
-              <TableHead className="text-right">Còn nợ</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {milestones.map((m) => {
-              const locked = m.gated_by_acceptance && m.status !== "da_thu";
-              return (
-                <TableRow key={m.id}>
-                  <TableCell className="font-medium">
-                    {m.contract_code}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {m.client}
-                  </TableCell>
-                  <TableCell>
-                    <span className="flex items-center gap-1.5">
-                      {locked && (
-                        <Lock className="size-3.5 text-muted-foreground" />
-                      )}
-                      {m.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
+      <div className="grid gap-6">
+        <Card className="gap-3 py-4">
+          <CardHeader>
+            <CardTitle className="text-base">Đợt thanh toán</CardTitle>
+          </CardHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Công trình</TableHead>
+                <TableHead>Đợt</TableHead>
+                <TableHead className="text-right">Số tiền</TableHead>
+                <TableHead>Hạn thu</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead>Ngày thu</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sorted.map((m) => {
+                const badge = milestoneOverdue(m)
+                  ? overdue
+                  : milestoneStatus[m.status];
+                return (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium">
+                      {projectCode(m.project_id)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {milestoneType[m.type]}
-                    </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatVND(m.amount)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {m.due_date ? formatDate(m.due_date) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {m.paid_date ? formatDate(m.paid_date) : "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
+
+        <Card className="gap-3 py-4">
+          <CardHeader>
+            <CardTitle className="text-base">Hóa đơn</CardTitle>
+          </CardHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Công trình</TableHead>
+                <TableHead className="text-right">Tổng tiền</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead>Ngày gửi</TableHead>
+                <TableHead>Ngày thanh toán</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {bills.map((b) => (
+                <TableRow key={b.id}>
+                  <TableCell className="font-medium">
+                    {projectCode(b.project_id)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(m.due_date)}
+                  <TableCell className="text-right">
+                    {formatVND(b.total_amount)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={milestoneStatus[m.status].variant}>
-                      {locked
-                        ? "Chờ nghiệm thu"
-                        : milestoneStatus[m.status].label}
+                    <Badge variant={billStatus[b.status].variant}>
+                      {billStatus[b.status].label}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    {formatVND(m.due_amount)}
+                  <TableCell className="text-muted-foreground">
+                    {b.sent_date ? formatDate(b.sent_date) : "—"}
                   </TableCell>
-                  <TableCell className="text-right">
-                    {formatVND(m.paid_amount)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatVND(m.due_amount - m.paid_amount)}
+                  <TableCell className="text-muted-foreground">
+                    {b.paid_date ? formatDate(b.paid_date) : "—"}
                   </TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </Card>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
     </>
   );
 }

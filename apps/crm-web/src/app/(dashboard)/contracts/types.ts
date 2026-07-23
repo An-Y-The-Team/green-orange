@@ -1,42 +1,31 @@
 import type { ContractStatus } from "./enums";
 
-// Hợp đồng
+// Hợp đồng — v2. Optional entity (0..n per project); the party/value data
+// lives on the project + chốt quote now. The printable body/template feature
+// is kept from v1. GET /contracts includes a slim project relation.
 export interface Contract {
   id: number;
-  code: string;
-  project_code: string;
-  client: string;
-  title: string;
-  value: number;
-  signed_date: string;
-  start_date: string;
-  end_date: string;
+  project_id: number;
+  code: string; // HD-YYYY-NNN
   status: ContractStatus;
-  payment_terms: string;
-  // Party A (client) profile — printed in the contract preamble. `client` is
-  // the legal name; these optional fields fill the rest of the party block.
-  client_address?: string;
-  client_tax_code?: string;
-  client_rep?: string; // người đại diện
-  client_position?: string; // chức vụ
-  client_phone?: string;
-  // VAT rate applied to the contract value (e.g. 0.08). Drives the financial
-  // breakdown tokens (before-tax / VAT amount). Defaults to 0.08 when unset.
-  vat_rate?: number;
-  // Optional printable template. When set, the contract document is rendered by
-  // merging this template's body with the contract's data; when unset, the
-  // detail page falls back to the built-in hard-coded layout.
-  template_id?: number;
-  // Rich-text clause prose (Lexical editorState JSON, string form). Seeded from
-  // the chosen template on create, then editable per contract. Merge tokens stay
-  // live (resolved at render). When present it supersedes the template body on
-  // the detail page; see components/editor/lexical-document.tsx.
-  body?: string;
+  signed_date?: string | null; // YYYY-MM-DD
+  note?: string | null;
+  // Printable-contract feature (kept from v1): optional template + per-contract
+  // rich body (Lexical editorState JSON, string form). Body supersedes the
+  // template body at render; merge tokens resolve at render time.
+  template_id?: number | null;
+  body?: string | null;
+  // As included by crm-api-nest (list + detail).
+  project?: {
+    id: number;
+    code: string;
+    name: string;
+    client: { id: number; name: string };
+  };
 }
 
-// Mẫu hợp đồng — user-authored boilerplate (clauses, headings) with
-// {{placeholders}} that merge against a contract's data at render time. The
-// variable data lives on the Contract; the reusable prose lives here.
+// Mẫu hợp đồng — user-authored boilerplate (clauses, headings) with merge
+// fields that resolve against a contract's data at render time.
 export interface ContractTemplate {
   id: number;
   name: string; // internal name, e.g. "Hợp đồng vệ sinh định kỳ"

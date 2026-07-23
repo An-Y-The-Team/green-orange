@@ -1,8 +1,6 @@
-// Khách hàng — closed value sets. Values stay snake_case/lowercase to map 1:1
-// onto the backend's ClientPublic schema.
+// Khách hàng — v2 contract values (English); labels in src/lib/labels.ts.
 
-export enum ClientStatus {
-  ACTIVE = "active",
-  LEAD = "lead",
-  CHURNED = "churned",
+export enum ClientType {
+  COMPANY = "company", // Công ty — multi-site, Locations first-class
+  INDIVIDUAL = "individual", // Cá nhân — backend auto-creates contact + location
 }

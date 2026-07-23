@@ -6,15 +6,20 @@
  *   • the print page ([id]/page.tsx) — server-side, against a real Contract;
  *   • the editor preview — client-side, against sample values.
  *
- * The merge itself is now node-level: merge-field nodes in a Lexical `body` are
+ * The merge itself is node-level: merge-field nodes in a Lexical `body` are
  * resolved against a MergeContext by components/editor/lexical-document.tsx.
+ *
+ * v2: the contract no longer carries party/value fields — the client comes from
+ * the embedded project relation and the money tokens derive from the project's
+ * chốt (deal) quote, passed alongside the contract.
  */
 import type { Contract } from "@/app/(dashboard)/contracts/types";
+import type { Quote } from "@/app/(dashboard)/quotes/types";
 import { company } from "@/config/company";
 import { formatDate, formatVND } from "@/lib/format";
 import { vndInWords } from "@/lib/vnd-in-words";
 
-/** Default VAT rate when a contract doesn't pin its own. */
+/** Default VAT rate when no quote pins one. */
 export const DEFAULT_VAT_RATE = 0.08;
 
 /**
@@ -29,43 +34,20 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
   example: string;
 }> = [
   { token: "code", label: "Mã hợp đồng", example: "HD-2026-001" },
-  { token: "title", label: "Tiêu đề", example: "Hợp đồng vệ sinh tổng thể" },
   { token: "project_code", label: "Mã công trình", example: "CT-2026-001" },
+  {
+    token: "project_name",
+    label: "Tên công trình",
+    example: "Vệ sinh kính mặt ngoài Vincom Plaza Q.1",
+  },
   { token: "signed_date", label: "Ngày ký", example: "10/03/2026" },
-  { token: "start_date", label: "Ngày bắt đầu", example: "15/03/2026" },
-  { token: "end_date", label: "Ngày kết thúc", example: "30/06/2026" },
   {
-    token: "payment_terms",
-    label: "Điều khoản thanh toán",
-    example: "Tạm ứng 30% khi ký hợp đồng…",
+    token: "note",
+    label: "Ghi chú hợp đồng",
+    example: "Ký tại văn phòng BQL.",
   },
-  // Bên A — Party A (client)
+  // Bên A — Party A (client, from the project)
   { token: "client", label: "Bên A: Tên", example: "Vincom Retail" },
-  {
-    token: "client_address",
-    label: "Bên A: Địa chỉ",
-    example: "72 Lê Thánh Tôn, P. Sài Gòn, TP.HCM",
-  },
-  {
-    token: "client_tax_code",
-    label: "Bên A: MST",
-    example: "0311945734",
-  },
-  {
-    token: "client_rep",
-    label: "Bên A: Đại diện",
-    example: "Trần Thị B",
-  },
-  {
-    token: "client_position",
-    label: "Bên A: Chức vụ",
-    example: "Giám đốc",
-  },
-  {
-    token: "client_phone",
-    label: "Bên A: Điện thoại",
-    example: "028 1234 5678",
-  },
   // Bên B — Party B (our company)
   { token: "company.name", label: "Bên B: Tên", example: company.name },
   {
@@ -105,47 +87,48 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
     label: "Bên B: Chi nhánh/PGD",
     example: company.bank_branch,
   },
-  // Tài chính — financial breakdown
-  { token: "value", label: "Giá trị (đã gồm VAT)", example: "81.307.800 ₫" },
+  // Tài chính — from the chốt quote (total_amount is before VAT)
+  { token: "value", label: "Giá trị (đã gồm VAT)", example: "38.880.000 ₫" },
   {
     token: "value_before_tax",
     label: "Giá trị trước thuế",
-    example: "75.285.000 ₫",
+    example: "36.000.000 ₫",
   },
   { token: "vat_rate", label: "Thuế suất VAT", example: "8%" },
-  { token: "vat_amount", label: "Tiền thuế VAT", example: "6.022.000 ₫" },
+  { token: "vat_amount", label: "Tiền thuế VAT", example: "2.880.000 ₫" },
   {
     token: "value_in_words",
     label: "Giá trị bằng chữ",
-    example: "Tám mươi mốt triệu ba trăm lẻ bảy nghìn tám trăm đồng",
+    example: "Ba mươi tám triệu tám trăm tám mươi nghìn đồng",
   },
 ] as const;
 
 export type MergeContext = Record<string, string>;
 
-/** Real merge values for a given contract — formatting (VND, dates) applied here. */
-export function buildContractContext(contract: Contract): MergeContext {
-  // `value` is the VAT-inclusive contract total (as in the printed document);
-  // derive the before-tax base and VAT amount from the rate.
-  const vatRate = contract.vat_rate ?? DEFAULT_VAT_RATE;
-  const beforeTax = Math.round(contract.value / (1 + vatRate));
-  const vatAmount = contract.value - beforeTax;
+/**
+ * Real merge values for a contract — formatting (VND, dates) applied here.
+ * `quote` is the project's chốt quote (drives the money tokens); when absent
+ * the money tokens resolve to empty strings.
+ */
+export function buildContractContext(
+  contract: Contract,
+  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null
+): MergeContext {
+  const beforeTax = quote?.total_amount;
+  const vatRate = quote?.vat_rate ?? DEFAULT_VAT_RATE;
+  const vatAmount =
+    beforeTax === undefined ? undefined : Math.round(beforeTax * vatRate);
+  const total =
+    beforeTax === undefined ? undefined : beforeTax + (vatAmount ?? 0);
 
   return {
     code: contract.code,
-    title: contract.title,
-    project_code: contract.project_code,
-    signed_date: formatDate(contract.signed_date),
-    start_date: formatDate(contract.start_date),
-    end_date: formatDate(contract.end_date),
-    payment_terms: contract.payment_terms,
+    project_code: contract.project?.code ?? "",
+    project_name: contract.project?.name ?? "",
+    signed_date: contract.signed_date ? formatDate(contract.signed_date) : "",
+    note: contract.note ?? "",
     // Bên A
-    client: contract.client,
-    client_address: contract.client_address ?? "",
-    client_tax_code: contract.client_tax_code ?? "",
-    client_rep: contract.client_rep ?? "",
-    client_position: contract.client_position ?? "",
-    client_phone: contract.client_phone ?? "",
+    client: contract.project?.client.name ?? "",
     // Bên B
     "company.name": company.name,
     "company.address": company.address,
@@ -158,11 +141,11 @@ export function buildContractContext(contract: Contract): MergeContext {
     "company.bank_name": company.bank_name,
     "company.bank_branch": company.bank_branch,
     // Tài chính
-    value: formatVND(contract.value),
-    value_before_tax: formatVND(beforeTax),
+    value: total === undefined ? "" : formatVND(total),
+    value_before_tax: beforeTax === undefined ? "" : formatVND(beforeTax),
     vat_rate: `${Math.round(vatRate * 100)}%`,
-    vat_amount: formatVND(vatAmount),
-    value_in_words: vndInWords(contract.value),
+    vat_amount: vatAmount === undefined ? "" : formatVND(vatAmount),
+    value_in_words: total === undefined ? "" : vndInWords(total),
   };
 }
 

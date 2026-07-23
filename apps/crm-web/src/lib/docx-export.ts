@@ -99,7 +99,7 @@ export async function exportDocx({
           children: [
             textCell(String(i + 1)),
             textCell(item.description),
-            textCell(item.unit),
+            textCell(item.unit ?? ""),
             textCell(String(item.quantity)),
             textCell(formatVND(item.unit_price)),
             textCell(formatVND(item.quantity * item.unit_price)),

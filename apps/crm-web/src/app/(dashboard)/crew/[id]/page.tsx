@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -18,13 +18,17 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { formatVND } from "@/lib/format";
-import { crewRole, crewStatus, projectStage } from "@/lib/labels";
+import { formatDate } from "@/lib/format";
+import {
+  crewMemberStatus,
+  employmentType,
+  timekeepingSource,
+} from "@/lib/labels";
 
-import { listProjects } from "../../projects/queries";
-import { CrewFormDialog } from "../components/crew-form-dialog/crew-form-dialog";
-import { getCrewMember, listAssignments } from "../queries";
+import { getCrewMember, listTimekeeping } from "../queries";
 
+// Hồ sơ nhân sự — read-only (phase 1): member card, assignment history with
+// the non-blocking "Trùng lịch" chip, timekeeping records.
 export default async function CrewDetailPage({
   params,
 }: {
@@ -33,29 +37,16 @@ export default async function CrewDetailPage({
 }) {
   const { id } = await params;
   const member = await getCrewMember(Number(id));
+  if (!member) notFound();
 
-  if (!member) {
-    notFound();
-  }
-
-  // Công trình this member is staffed onto: their assignments joined to the
-  // project list by project_code (same cross-reference pattern as elsewhere).
-  const [assignments, projects] = await Promise.all([
-    listAssignments(),
-    listProjects(),
-  ]);
-  const myProjects = assignments
-    .filter((a) => a.crew_id === member.id)
-    .map((a) => ({
-      assignment: a,
-      project: projects.find((p) => p.code === a.project_code),
-    }));
+  const records = await listTimekeeping(member.id);
+  const assignments = member.assignments ?? [];
 
   const fields: [string, string][] = [
-    ["Vai trò", crewRole[member.role]],
-    ["Số điện thoại", member.phone],
-    ["Ngày công", formatVND(member.day_rate)],
-    ["Ngày tạo", member.created_at],
+    ["Hình thức", employmentType[member.employment_type]],
+    ["Số điện thoại / Zalo", member.phone ?? "—"],
+    ["Vai trò mặc định", member.default_role?.name ?? "—"],
+    ["Ngày tạo", formatDate(member.created_at)],
   ];
 
   return (
@@ -70,14 +61,11 @@ export default async function CrewDetailPage({
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-lg">{member.name}</CardTitle>
-                <Badge variant={crewStatus[member.status].variant}>
-                  {crewStatus[member.status].label}
-                </Badge>
-              </div>
-              <CrewFormDialog member={member} />
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg">{member.name}</CardTitle>
+              <Badge variant={crewMemberStatus[member.status].variant}>
+                {crewMemberStatus[member.status].label}
+              </Badge>
             </div>
           </CardHeader>
           <CardContent>
@@ -98,49 +86,104 @@ export default async function CrewDetailPage({
           </CardContent>
         </Card>
 
-        <Card className={myProjects.length === 0 ? undefined : "py-0"}>
-          {myProjects.length === 0 ? (
+        <Card className={assignments.length === 0 ? undefined : "gap-3 py-4"}>
+          {assignments.length === 0 ? (
             <CardContent className="py-10 text-center text-sm text-muted-foreground">
               Chưa được phân công vào công trình nào.
             </CardContent>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Công trình</TableHead>
-                  <TableHead>Vai trò tại công trình</TableHead>
-                  <TableHead>Giai đoạn</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {myProjects.map(({ assignment, project }) => (
-                  <TableRow key={assignment.id}>
-                    <TableCell className="font-medium">
-                      {project ? (
-                        <Link
-                          href={`/projects/${project.id}`}
-                          className="hover:underline"
-                        >
-                          {project.name}
-                        </Link>
-                      ) : (
-                        assignment.project_code
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {assignment.role_on_site ?? crewRole[member.role]}
-                    </TableCell>
-                    <TableCell>
-                      {project && (
-                        <Badge variant={projectStage[project.stage].variant}>
-                          {projectStage[project.stage].label}
-                        </Badge>
-                      )}
-                    </TableCell>
+            <>
+              <CardHeader>
+                <CardTitle className="text-base">Phân công</CardTitle>
+              </CardHeader>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Công trình</TableHead>
+                    <TableHead>Vai trò</TableHead>
+                    <TableHead>Từ ngày</TableHead>
+                    <TableHead>Đến ngày</TableHead>
+                    <TableHead />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {assignments.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell className="font-medium">
+                        {a.project ? (
+                          <Link
+                            href={`/projects/${a.project.id}`}
+                            className="hover:underline"
+                          >
+                            {a.project.code}
+                          </Link>
+                        ) : (
+                          `#${a.project_id}`
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {a.role?.name ?? member.default_role?.name ?? "—"}
+                      </TableCell>
+                      <TableCell>{formatDate(a.from_date)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {a.to_date ? formatDate(a.to_date) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {(a.overlaps?.length ?? 0) > 0 && (
+                          <Badge variant="warning">
+                            <TriangleAlert className="size-3" />
+                            Trùng lịch với{" "}
+                            {a.overlaps
+                              ?.map(
+                                (o) => o.project?.code ?? `#${o.project_id}`
+                              )
+                              .join(", ")}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
+          )}
+        </Card>
+
+        <Card className={records.length === 0 ? undefined : "gap-3 py-4"}>
+          {records.length === 0 ? (
+            <CardContent className="py-10 text-center text-sm text-muted-foreground">
+              Chưa có dữ liệu chấm công.
+            </CardContent>
+          ) : (
+            <>
+              <CardHeader>
+                <CardTitle className="text-base">Chấm công</CardTitle>
+              </CardHeader>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ngày</TableHead>
+                    <TableHead className="text-right">Số giờ</TableHead>
+                    <TableHead>Nguồn</TableHead>
+                    <TableHead>Ghi chú</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {records.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell>{formatDate(r.work_date)}</TableCell>
+                      <TableCell className="text-right">{r.hours}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {timekeepingSource[r.source]}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {r.note ?? ""}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
           )}
         </Card>
       </div>

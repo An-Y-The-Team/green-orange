@@ -1,25 +1,36 @@
-// Báo giá / Quyết toán — initial quote vs final settlement. Same shape, the
-// `type` discriminates: a quyết toán is just a quote reconciling actual costs.
-import type { QuoteStatus, QuoteType } from "./enums";
+// Báo giá — v2. Bargaining = a new version row; sent versions are frozen and
+// the latest version carries the live status ("superseded" is derived, never
+// stored). Serialized by crm-api-nest: money as numbers, *_date = YYYY-MM-DD,
+// *_at = full ISO.
+import type { QuoteChannel, QuoteStatus } from "./enums";
 
 export interface QuoteItem {
   description: string;
-  unit: string;
+  unit?: string | null; // m², buổi, … (free text)
   quantity: number;
-  unit_price: number;
+  unit_price: number; // VND
+  amount: number; // VND — server-computed round(quantity × unit_price)
+  sort_order: number;
+}
+
+export interface QuoteSendLog {
+  id: number;
+  quote_id: number;
+  channel: QuoteChannel;
+  sent_by: string;
+  sent_at: string; // full ISO
+  follow_up_ref?: string | null;
 }
 
 export interface Quote {
   id: number;
-  code: string;
-  project_code: string;
-  client: string;
-  title: string;
-  type: QuoteType;
-  issue_date: string;
-  valid_until: string;
+  project_id: number;
+  version: number;
   status: QuoteStatus;
+  total_amount: number; // VND, before VAT (Σ item amounts)
+  vat_rate: number; // e.g. 0.08
+  decided_date?: string | null; // YYYY-MM-DD
+  note?: string | null; // terms block on the printable
   items: QuoteItem[];
-  vat_rate: number; // e.g. 0.08 for 8% VAT
-  notes: string;
+  send_logs: QuoteSendLog[];
 }

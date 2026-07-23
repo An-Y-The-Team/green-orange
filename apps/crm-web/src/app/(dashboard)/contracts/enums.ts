@@ -1,8 +1,8 @@
-// Hợp đồng — closed value sets.
+// Hợp đồng — v2 contract values (English); labels in src/lib/labels.ts.
+// Optional entity (0..n per project); everything after signing lives on
+// the project.
 
 export enum ContractStatus {
-  NHAP = "nhap",
-  DA_KY = "da_ky",
-  DANG_THUC_HIEN = "dang_thuc_hien",
-  THANH_LY = "thanh_ly",
+  DRAFT = "draft", // Nháp
+  SIGNED = "signed", // Đã ký
 }

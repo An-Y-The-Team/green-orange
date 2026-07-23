@@ -1,7 +1,7 @@
 import { quotes } from "@/data/mock/quotes";
 import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
 
-import { QuoteType } from "./enums";
+import { QuoteStatus } from "./enums";
 import type { Quote } from "./types";
 
 export async function listQuotes(): Promise<Quote[]> {
@@ -15,17 +15,23 @@ export async function getQuote(id: number): Promise<Quote | undefined> {
   return quotes.find((q) => q.id === id);
 }
 
+/** All versions for a project, newest first (mirrors GET /quotes?project_id=). */
+export async function getProjectQuotes(projectId: number): Promise<Quote[]> {
+  if (API_URL) {
+    return apiFetchSafe<Quote[]>(`/quotes?project_id=${projectId}`, []);
+  }
+  return quotes
+    .filter((q) => q.project_id === projectId)
+    .sort((a, b) => b.version - a.version);
+}
+
 /**
- * The báo giá (initial quote) for a project — drives a contract's line-items
- * block. Prefers `type: "bao_gia"`; falls back to any quote for the project.
+ * The chốt (deal) quote for a project — drives a contract's line-items block
+ * and money merge tokens. Falls back to the latest version when none is deal.
  */
-export async function getQuoteByProjectCode(
-  projectCode: string
+export async function getDealQuote(
+  projectId: number
 ): Promise<Quote | undefined> {
-  const all = await listQuotes();
-  return (
-    all.find(
-      (q) => q.project_code === projectCode && q.type === QuoteType.BAO_GIA
-    ) ?? all.find((q) => q.project_code === projectCode)
-  );
+  const versions = await getProjectQuotes(projectId);
+  return versions.find((q) => q.status === QuoteStatus.DEAL) ?? versions[0];
 }

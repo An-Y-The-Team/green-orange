@@ -12,34 +12,33 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { formatVND } from "@/lib/format";
-import { crewRole, crewStatus } from "@/lib/labels";
+import { crewMemberStatus, employmentType } from "@/lib/labels";
 
-import { CrewFormDialog } from "./components/crew-form-dialog/crew-form-dialog";
-import { CrewStatus } from "./enums";
+import { CrewMemberStatus, EmploymentType } from "./enums";
 import { listCrew } from "./queries";
 
+// Read-only roster (phase 1). Roles tab + timekeeping grid come with the
+// write phase.
 export default async function CrewPage() {
   const members = await listCrew();
-  const activeCount = members.filter(
-    (m) => m.status === CrewStatus.DANG_LAM
+  const workingCount = members.filter(
+    (m) => m.status === CrewMemberStatus.WORKING
   ).length;
 
   return (
     <>
       <PageHeader
         title="Nhân sự"
-        description={`${members.length} nhân sự · ${activeCount} đang làm`}
-        action={<CrewFormDialog />}
+        description={`${members.length} nhân sự · ${workingCount} đang làm`}
       />
       <Card className="py-0">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Họ và tên</TableHead>
-              <TableHead>Vai trò</TableHead>
-              <TableHead>Số điện thoại</TableHead>
-              <TableHead className="text-right">Ngày công</TableHead>
+              <TableHead>Số điện thoại / Zalo</TableHead>
+              <TableHead>Vai trò mặc định</TableHead>
+              <TableHead>Hình thức</TableHead>
               <TableHead>Trạng thái</TableHead>
             </TableRow>
           </TableHeader>
@@ -52,17 +51,25 @@ export default async function CrewPage() {
                   </Link>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {crewRole[member.role]}
+                  {member.phone ?? "—"}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {member.phone}
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatVND(member.day_rate)}
+                  {member.default_role?.name ?? "—"}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={crewStatus[member.status].variant}>
-                    {crewStatus[member.status].label}
+                  <Badge
+                    variant={
+                      member.employment_type === EmploymentType.PERMANENT
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {employmentType[member.employment_type]}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={crewMemberStatus[member.status].variant}>
+                    {crewMemberStatus[member.status].label}
                   </Badge>
                 </TableCell>
               </TableRow>
