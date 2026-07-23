@@ -1,20 +1,24 @@
 import {
   Body,
+  ConflictException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Module,
   NotFoundException,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
+  Query,
 } from "@nestjs/common";
 import { Type } from "class-transformer";
 import {
   ArrayMinSize,
   IsArray,
-  IsDateString,
   IsIn,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -24,72 +28,222 @@ import {
   ValidateNested,
 } from "class-validator";
 
-import { nextCode } from "../common/code";
+import { toBig } from "../common/coerce";
 import { PrismaService } from "../prisma/prisma.service";
 
-const QUOTE_TYPE = ["bao_gia", "quyet_toan"];
+const CHANNEL = ["zalo", "email", "print"];
+const DECISION = ["deal", "on_hold", "rejected"];
 
+const INCLUDE = {
+  items: { orderBy: { sort_order: "asc" as const } },
+  send_logs: true,
+};
+
+// ── DTOs ────────────────────────────────────────────────────────────────────
 class QuoteItemDto {
   @IsString() @MinLength(1) description: string;
-  @IsString() @MinLength(1) unit: string;
+  @IsOptional() @IsString() unit?: string;
   @IsNumber() @Min(0) quantity: number;
   @IsNumber() @Min(0) unit_price: number;
 }
 
 class CreateQuoteDto {
-  @IsString() @MinLength(3) title: string;
-  @IsString() @MinLength(1) client: string;
-  @IsString() @MinLength(1) project_code: string;
-  @IsIn(QUOTE_TYPE) type: string;
-  @IsDateString() issue_date: string;
-  @IsDateString() valid_until: string;
-  @IsNumber() @Min(0) @Max(1) vat_rate: number;
-  @IsOptional() @IsString() notes?: string;
+  @IsInt() project_id: number;
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => QuoteItemDto)
   items: QuoteItemDto[];
+  @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
+  @IsOptional() @IsString() note?: string;
 }
+
+class UpdateQuoteDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => QuoteItemDto)
+  items?: QuoteItemDto[];
+  @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
+  @IsOptional() @IsString() note?: string;
+}
+
+class SendQuoteDto {
+  @IsIn(CHANNEL) channel: string;
+  @IsString() @MinLength(1) sent_by: string;
+  @IsOptional() @IsString() follow_up_ref?: string;
+}
+
+class DecideQuoteDto {
+  @IsIn(DECISION) status: string;
+}
+
+// amount = round(quantity × unit_price) per item; total = Σ amounts.
+const computeItems = (items: QuoteItemDto[]) => {
+  const rows = items.map((it, i) => ({
+    description: it.description,
+    unit: it.unit ?? null,
+    quantity: it.quantity,
+    unit_price: toBig(it.unit_price)!,
+    amount: toBig(Math.round(it.quantity * it.unit_price))!,
+    sort_order: i,
+  }));
+  const total = rows.reduce((sum, r) => sum + r.amount, 0n);
+  return { rows, total };
+};
 
 @Controller("quotes")
 class QuotesController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list() {
-    return this.prisma.quote.findMany();
+  list(@Query("project_id") projectId?: string) {
+    return this.prisma.quote.findMany({
+      where: projectId ? { project_id: Number(projectId) } : undefined,
+      include: INCLUDE,
+      orderBy: { version: "desc" },
+    });
   }
 
   @Get(":id")
   async get(@Param("id", ParseIntPipe) id: number) {
-    const row = await this.prisma.quote.findUnique({ where: { id } });
+    const row = await this.prisma.quote.findUnique({
+      where: { id },
+      include: INCLUDE,
+    });
     if (!row) throw new NotFoundException("Quote not found");
     return row;
+  }
+
+  private async nextVersion(projectId: number) {
+    const max = await this.prisma.quote.aggregate({
+      where: { project_id: projectId },
+      _max: { version: true },
+    });
+    return (max._max.version ?? 0) + 1;
   }
 
   @Post()
   @HttpCode(201)
   async create(@Body() dto: CreateQuoteDto) {
-    // Code prefix follows the type: quyết toán → QT, báo giá → BG. New quotes
-    // start as a draft (nháp). Sequence is global by id, like the UI mock.
-    const prefix = dto.type === "quyet_toan" ? "QT" : "BG";
-    const code = await nextCode(this.prisma.quote, prefix);
+    const { rows, total } = computeItems(dto.items);
     return this.prisma.quote.create({
       data: {
-        code,
-        project_code: dto.project_code,
-        client: dto.client,
-        title: dto.title,
-        type: dto.type,
-        issue_date: new Date(dto.issue_date),
-        valid_until: new Date(dto.valid_until),
-        vat_rate: dto.vat_rate,
-        notes: dto.notes ?? "",
-        items: dto.items as object[],
-        // status defaults to "nhap" in the schema
+        project_id: dto.project_id,
+        version: await this.nextVersion(dto.project_id),
+        total_amount: total,
+        ...(dto.vat_rate !== undefined && { vat_rate: dto.vat_rate }),
+        note: dto.note,
+        items: { create: rows },
+        // status defaults to "draft" in the schema
+      },
+      include: INCLUDE,
+    });
+  }
+
+  @Patch(":id")
+  async update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdateQuoteDto
+  ) {
+    const quote = await this.get(id);
+    if (quote.status !== "draft")
+      throw new ConflictException("sent versions are never edited");
+    const data: Record<string, unknown> = {};
+    if (dto.vat_rate !== undefined) data.vat_rate = dto.vat_rate;
+    if (dto.note !== undefined) data.note = dto.note;
+    if (dto.items) {
+      const { rows, total } = computeItems(dto.items);
+      data.total_amount = total;
+      const [, updated] = await this.prisma.$transaction([
+        this.prisma.quoteItem.deleteMany({ where: { quote_id: id } }),
+        this.prisma.quote.update({
+          where: { id },
+          data: { ...data, items: { create: rows } },
+          include: INCLUDE,
+        }),
+      ]);
+      return updated;
+    }
+    return this.prisma.quote.update({ where: { id }, data, include: INCLUDE });
+  }
+
+  @Post(":id/send")
+  @HttpCode(201)
+  async send(@Param("id", ParseIntPipe) id: number, @Body() dto: SendQuoteDto) {
+    const quote = await this.get(id);
+    if (quote.status !== "draft" && quote.status !== "waiting")
+      throw new ConflictException("only draft or waiting quotes can be sent");
+    await this.prisma.quoteSendLog.create({
+      data: {
+        quote_id: id,
+        channel: dto.channel,
+        sent_by: dto.sent_by,
+        follow_up_ref: dto.follow_up_ref,
       },
     });
+    if (quote.status === "draft")
+      await this.prisma.quote.update({
+        where: { id },
+        data: { status: "waiting" },
+      });
+    return this.get(id);
+  }
+
+  @Post(":id/decide")
+  async decide(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: DecideQuoteDto
+  ) {
+    const quote = await this.get(id);
+    if (quote.status !== "waiting")
+      throw new ConflictException("only waiting quotes can be decided");
+    return this.prisma.quote.update({
+      where: { id },
+      data: { status: dto.status, decided_date: new Date() },
+      include: INCLUDE,
+    });
+  }
+
+  // Bargaining loop: sent versions are frozen; a revision is a new draft row.
+  @Post(":id/revise")
+  @HttpCode(201)
+  async revise(@Param("id", ParseIntPipe) id: number) {
+    const quote = await this.get(id);
+    return this.prisma.quote.create({
+      data: {
+        project_id: quote.project_id,
+        version: await this.nextVersion(quote.project_id),
+        total_amount: quote.total_amount,
+        vat_rate: quote.vat_rate,
+        note: quote.note,
+        items: {
+          create: quote.items.map((it) => ({
+            description: it.description,
+            unit: it.unit,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            amount: it.amount,
+            sort_order: it.sort_order,
+          })),
+        },
+      },
+      include: INCLUDE,
+    });
+  }
+
+  @Delete(":id")
+  @HttpCode(204)
+  async remove(@Param("id", ParseIntPipe) id: number) {
+    const quote = await this.get(id);
+    if (quote.status !== "draft")
+      throw new ConflictException("only draft quotes can be deleted");
+    await this.prisma.$transaction([
+      this.prisma.quoteSendLog.deleteMany({ where: { quote_id: id } }),
+      this.prisma.quoteItem.deleteMany({ where: { quote_id: id } }),
+      this.prisma.quote.delete({ where: { id } }),
+    ]);
   }
 }
 

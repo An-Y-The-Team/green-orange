@@ -1,9 +1,19 @@
-// Seed the local demo user + a little live data. Run: `bun run seed`.
-// Idempotent-ish: the admin user is upserted; demo rows only load into empty tables.
+// Seed the local demo user + v2 baseline data. Run: `bun run seed`.
+// Idempotent-ish: the admin user is upserted; lookup tables (project types,
+// crew roles) are upserted by name; demo rows only load into empty tables.
 import { hash } from "@node-rs/argon2";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+const PROJECT_TYPES = ["Vệ sinh", "Thi công", "Tháo dỡ"];
+const CREW_ROLES = [
+  "Thợ chính",
+  "Thợ phụ",
+  "Nhân viên vệ sinh",
+  "Giám sát",
+  "Lái xe",
+];
 
 async function main() {
   const username = process.env.SEED_USER ?? "admin";
@@ -18,67 +28,81 @@ async function main() {
     },
   });
 
-  if ((await prisma.client.count()) === 0) {
-    await prisma.client.createMany({
-      data: [
-        {
-          name: "Công ty TNHH An Phát",
-          email: "lienhe@anphat.vn",
-          phone: "0901234567",
-          company: "An Phát",
-          status: "active",
-        },
-        {
-          name: "Chung cư Sunrise",
-          email: "bql@sunrise.vn",
-          phone: "0912345678",
-          company: "Sunrise BQL",
-          status: "lead",
-        },
-      ],
-    });
+  for (const name of PROJECT_TYPES) {
+    await prisma.projectType.upsert({ where: { name }, update: {}, create: { name } });
+  }
+  for (const name of CREW_ROLES) {
+    await prisma.crewRole.upsert({ where: { name }, update: {}, create: { name } });
   }
 
-  if ((await prisma.project.count()) === 0) {
+  if ((await prisma.client.count()) === 0) {
+    const client = await prisma.client.create({
+      data: {
+        name: "Công ty TNHH An Phát",
+        type: "company",
+        tax_code: "0312345678",
+        contacts: {
+          create: [
+            {
+              name: "Trần Văn B",
+              phone: "0912345678",
+              title: "Quản lý tòa nhà",
+            },
+          ],
+        },
+      },
+      include: { contacts: true },
+    });
+    const manager = client.contacts[0];
+    const location = await prisma.location.create({
+      data: {
+        client_id: client.id,
+        name: "Tòa nhà An Phát Q1",
+        address: "123 Nguyễn Huệ, Q1, TP.HCM",
+        manager_contact_id: manager.id,
+      },
+    });
+
+    const veSinh = await prisma.projectType.findUniqueOrThrow({
+      where: { name: "Vệ sinh" },
+    });
     await prisma.project.create({
       data: {
         code: "CT-2026-001",
-        name: "Vệ sinh định kỳ Sunrise",
-        client: "Chung cư Sunrise",
-        type: "ve_sinh",
-        address: "123 Nguyễn Huệ, Q1, TP.HCM",
-        stage: "thi_cong",
-        manager: "Trần Văn B",
-        contract_value: 120_000_000n,
-        estimated_cost: 80_000_000n,
-        progress: 40,
-        start_date: new Date("2026-06-01"),
+        name: "Vệ sinh kính mặt ngoài An Phát Q1",
+        client_id: client.id,
+        location_id: location.id,
+        working_contact_id: manager.id,
+        decision_maker_contact_id: manager.id,
+        stage: "quote",
+        appointment_at: new Date("2026-07-20T09:00:00+07:00"),
+        visit_date: new Date("2026-07-20"),
+        survey_note: "Kính 12 tầng, mặt tiền + 2 mặt bên. Cần dây đu.",
+        types: { connect: { id: veSinh.id } },
+        quotes: {
+          create: {
+            version: 1,
+            status: "draft",
+            total_amount: 36_000_000n,
+            items: {
+              create: [
+                {
+                  description: "Vệ sinh kính mặt ngoài (dây đu)",
+                  unit: "m²",
+                  quantity: 1200,
+                  unit_price: 30_000n,
+                  amount: 36_000_000n,
+                  sort_order: 0,
+                },
+              ],
+            },
+          },
+        },
       },
     });
   }
 
-  if ((await prisma.crewMember.count()) === 0) {
-    await prisma.crewMember.createMany({
-      data: [
-        {
-          name: "Nguyễn Văn C",
-          phone: "0987654321",
-          role: "tho_chinh",
-          day_rate: 450_000n,
-          status: "dang_lam",
-        },
-        {
-          name: "Lê Thị D",
-          phone: "0976543210",
-          role: "ve_sinh",
-          day_rate: 350_000n,
-          status: "dang_lam",
-        },
-      ],
-    });
-  }
-
-  console.log("✓ Seeded crm_nest (user + demo data).");
+  console.log("✓ Seeded crm_nest (user, lookups, demo client/project).");
 }
 
 main()

@@ -2,9 +2,10 @@
 // HTTP roundtrip is the curl smoke check in the README's verify section.
 import { describe, expect, test } from "bun:test";
 
+import { Prisma } from "@prisma/client";
+
 import { formatCode } from "./common/code";
 import { toBig } from "./common/coerce";
-import { canCollect } from "./common/milestone";
 import { normalize } from "./common/serialize.interceptor";
 
 describe("formatCode", () => {
@@ -21,12 +22,22 @@ describe("normalize (serialization contract)", () => {
   test("BigInt VND → JSON number", () => {
     expect(normalize({ value: 120_000_000n })).toEqual({ value: 120_000_000 });
   });
-  test("Date → YYYY-MM-DD", () => {
+  test("*_date columns → YYYY-MM-DD", () => {
     expect(normalize({ start_date: new Date("2026-06-01T00:00:00Z") })).toEqual(
       {
         start_date: "2026-06-01",
       }
     );
+  });
+  test("*_at timestamps keep their time (appointments are same-day)", () => {
+    expect(
+      normalize({ appointment_at: new Date("2026-07-20T02:00:00.000Z") })
+    ).toEqual({ appointment_at: "2026-07-20T02:00:00.000Z" });
+  });
+  test("Prisma Decimal (quantity, hours) → JSON number", () => {
+    expect(normalize({ hours: new Prisma.Decimal("7.5") })).toEqual({
+      hours: 7.5,
+    });
   });
   test("walks arrays and nested objects (Quote.items)", () => {
     expect(
@@ -48,15 +59,5 @@ describe("toBig", () => {
     expect(toBig(500)).toBe(500n);
     expect(toBig(null)).toBeNull();
     expect(toBig(undefined)).toBeNull();
-  });
-});
-
-describe("canCollect (acceptance gate)", () => {
-  test("ungated milestone is always collectable", () => {
-    expect(canCollect(false, false)).toBe(true);
-  });
-  test("gated milestone blocked until an approved acceptance exists", () => {
-    expect(canCollect(true, false)).toBe(false);
-    expect(canCollect(true, true)).toBe(true);
   });
 });
