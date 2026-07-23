@@ -241,8 +241,7 @@ mutating controls except notes + reopen (server enforces anyway).
 
 **Shipped.** `tsc`, `eslint --max-warnings 0`, `bun run build` clean;
 route smoke of `/crew` (tabs), `/crew/new`, `/crew/[id]/edit`,
-`/settings`, `/dashboard` (Công nợ), `/projects/[id]` (Nhân sự tab) all
-200. Contract findings: crew member DELETE 409s if it has
+`/settings`, `/dashboard` (Công nợ), `/projects/[id]` (Nhân sự tab) all 200. Contract findings: crew member DELETE 409s if it has
 assignments/timekeeping (UI's primary "leave" action = `PATCH
 {status:"left"}`, delete only for never-used); role + project-type DELETE
 409 if referenced; role name `@unique` (dup → raw error, surfaced);
