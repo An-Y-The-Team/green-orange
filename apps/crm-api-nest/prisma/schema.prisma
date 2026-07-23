@@ -93,6 +93,8 @@ model Project {
   working_contact_id        Int // defaults to location manager (app logic)
   decision_maker_contact_id Int // defaults to working contact (app logic)
   name                      String
+  request_note              String? // stage 1: short "what they want done" from the first call
+  referral_source           String? // stage 1: free text (giới thiệu, gọi lại, …) — not a managed list
   stage                     String    @default("request") // request | survey | quote | contract | paperwork | execution | acceptance | settlement | closed
   status                    String    @default("active") // active | on_hold | cancelled
   cancel_reason             String? // required when status = cancelled (DTO rule)
@@ -100,6 +102,7 @@ model Project {
   appointment_at            DateTime? // stage 1; reschedule = update in place
   visit_date                DateTime? @db.Date // "Đã gặp khách" tap (1→2)
   survey_note               String? // stage 2; photos → Attachment(kind: survey)
+  survey_items              Json? // stage 2: {name, quantity, unit, note}[] — scratch rows that prefill quote items; never queried across projects
   client_signed_date          DateTime? @db.Date // stage-4 gate 1
   execution_sub_status      String? // kickoff | hoarding | works
   start_date                DateTime? @db.Date
@@ -108,6 +111,7 @@ model Project {
   approaches                String? // free text until a structure emerges
   works_done_at             DateTime? // stage-6 exit button
   acceptance_sub_status     String? // request_sent | inspecting | rework | passed
+  acceptance_passed_date    DateTime? @db.Date // stamped when acceptance_sub_status → passed
   created_at                DateTime  @default(now())
   updated_at                DateTime  @updatedAt
 
@@ -201,6 +205,7 @@ model PaperworkItem {
   project_id Int
   name       String // user-facing Vietnamese; seeded: Giấy phép thi công, PCCC, Danh sách nhân sự, Danh sách thiết bị
   status     String @default("preparing") // preparing | submitted | approved
+  due_date   DateTime? @db.Date // permits have lead times; overdue is DERIVED (due_date < today && != approved), never stored
   note       String?
 
   project     Project      @relation(fields: [project_id], references: [id])
@@ -208,14 +213,29 @@ model PaperworkItem {
 }
 
 model Settlement {
-  id         Int       @id @default(autoincrement())
-  project_id Int // 0..n per project
-  status     String    @default("draft") // draft | sent | signed
+  id           Int       @id @default(autoincrement())
+  project_id   Int // 0..n per project — settling happens in phases
+  status       String    @default("draft") // draft | sent | signed
+  total_amount BigInt    @default(0) // VND, server-computed from items; copied to the bill on sign
   signed_date  DateTime? @db.Date
-  note       String?
+  note         String?
 
-  project Project @relation(fields: [project_id], references: [id])
+  project Project          @relation(fields: [project_id], references: [id])
   bill    Bill?
+  items   SettlementItem[]
+}
+
+model SettlementItem {
+  id            Int     @id @default(autoincrement())
+  settlement_id Int
+  description   String
+  unit          String? // m², buổi, … (free text)
+  quantity      Decimal // adjusted to khối lượng thực tế (prefilled from quote items)
+  unit_price    BigInt // VND
+  amount        BigInt // VND, server-computed
+  sort_order    Int     @default(0)
+
+  settlement Settlement @relation(fields: [settlement_id], references: [id], onDelete: Cascade)
 }
 
 model Bill {

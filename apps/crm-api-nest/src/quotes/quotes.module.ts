@@ -29,6 +29,7 @@ import {
 } from "class-validator";
 
 import { toBig } from "../common/coerce";
+import { assertProjectOpen } from "../common/project-lock";
 import { PrismaService } from "../prisma/prisma.service";
 
 const CHANNEL = ["zalo", "email", "print"];
@@ -127,6 +128,7 @@ class QuotesController {
   @Post()
   @HttpCode(201)
   async create(@Body() dto: CreateQuoteDto) {
+    await assertProjectOpen(this.prisma, dto.project_id);
     const { rows, total } = computeItems(dto.items);
     return this.prisma.quote.create({
       data: {
@@ -148,6 +150,7 @@ class QuotesController {
     @Body() dto: UpdateQuoteDto
   ) {
     const quote = await this.get(id);
+    await assertProjectOpen(this.prisma, quote.project_id);
     if (quote.status !== "draft")
       throw new ConflictException("sent versions are never edited");
     const data: Record<string, unknown> = {};
@@ -173,6 +176,7 @@ class QuotesController {
   @HttpCode(201)
   async send(@Param("id", ParseIntPipe) id: number, @Body() dto: SendQuoteDto) {
     const quote = await this.get(id);
+    await assertProjectOpen(this.prisma, quote.project_id);
     if (quote.status !== "draft" && quote.status !== "waiting")
       throw new ConflictException("only draft or waiting quotes can be sent");
     await this.prisma.quoteSendLog.create({
@@ -197,6 +201,7 @@ class QuotesController {
     @Body() dto: DecideQuoteDto
   ) {
     const quote = await this.get(id);
+    await assertProjectOpen(this.prisma, quote.project_id);
     if (quote.status !== "waiting")
       throw new ConflictException("only waiting quotes can be decided");
     return this.prisma.quote.update({
@@ -211,6 +216,7 @@ class QuotesController {
   @HttpCode(201)
   async revise(@Param("id", ParseIntPipe) id: number) {
     const quote = await this.get(id);
+    await assertProjectOpen(this.prisma, quote.project_id);
     return this.prisma.quote.create({
       data: {
         project_id: quote.project_id,
@@ -237,6 +243,7 @@ class QuotesController {
   @HttpCode(204)
   async remove(@Param("id", ParseIntPipe) id: number) {
     const quote = await this.get(id);
+    await assertProjectOpen(this.prisma, quote.project_id);
     if (quote.status !== "draft")
       throw new ConflictException("only draft quotes can be deleted");
     await this.prisma.$transaction([

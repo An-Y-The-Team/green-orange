@@ -25,6 +25,7 @@ import {
 } from "class-validator";
 
 import { toDate } from "../common/coerce";
+import { assertProjectOpen } from "../common/project-lock";
 import { PrismaService } from "../prisma/prisma.service";
 
 const EMPLOYMENT_TYPE = ["permanent", "day_hire"];
@@ -228,6 +229,7 @@ class AssignmentsController {
   @Post()
   @HttpCode(201)
   async create(@Body() dto: CreateAssignmentDto) {
+    await assertProjectOpen(this.prisma, dto.project_id);
     const row = await this.prisma.assignment.create({
       data: {
         project_id: dto.project_id,
@@ -248,6 +250,7 @@ class AssignmentsController {
   ) {
     const exists = await this.prisma.assignment.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException("Assignment not found");
+    await assertProjectOpen(this.prisma, exists.project_id);
     const data: Record<string, unknown> = { ...dto };
     if (dto.from_date !== undefined) data.from_date = toDate(dto.from_date);
     if ("to_date" in dto) data.to_date = toDate(dto.to_date);
@@ -264,6 +267,7 @@ class AssignmentsController {
   async remove(@Param("id", ParseIntPipe) id: number) {
     const exists = await this.prisma.assignment.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException("Assignment not found");
+    await assertProjectOpen(this.prisma, exists.project_id);
     await this.prisma.assignment.delete({ where: { id } });
   }
 
@@ -333,7 +337,8 @@ class TimekeepingController {
   // uses this same endpoint).
   @Post()
   @HttpCode(201)
-  create(@Body() dto: CreateTimekeepingDto) {
+  async create(@Body() dto: CreateTimekeepingDto) {
+    await assertProjectOpen(this.prisma, dto.project_id);
     const key = {
       crew_member_id: dto.crew_member_id,
       project_id: dto.project_id,
@@ -354,6 +359,7 @@ class TimekeepingController {
       where: { id },
     });
     if (!exists) throw new NotFoundException("Timekeeping record not found");
+    await assertProjectOpen(this.prisma, exists.project_id);
     await this.prisma.timekeepingRecord.delete({ where: { id } });
   }
 }

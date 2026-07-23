@@ -11,7 +11,9 @@ enum values. Vietnamese exists in exactly one place: the display-label map
 for the full mapping. The business-flow doc keeps speaking Vietnamese; this
 doc is its technical counterpart.
 
-**Status: IMPLEMENTED 2026-07-23** in `apps/crm-api-nest` (schema.prisma +
+**Status: IMPLEMENTED 2026-07-23** (+ UI-design deltas migration
+`ui_design_deltas`, same day — see `crm-ui-redesign.md` Backend deltas)
+in `apps/crm-api-nest` (schema.prisma +
 migrations `v2_greenorange_flow`, `date_column_naming_convention`).
 
 **Date naming convention** (serialization contract): columns ending `*_date`
@@ -105,6 +107,8 @@ The spine. Stage + orthogonal status + per-stage sub-statuses live here.
 | working_contact_id | FK → contact | defaults to location manager |
 | decision_maker_contact_id | FK → contact | approves quote / signs; defaults to working contact |
 | name | text | |
+| request_note | text null | stage 1: short "what they want" from the first call (2026-07-23 UI deltas) |
+| referral_source | text null | stage 1: free text — giới thiệu, gọi lại, … (2026-07-23 UI deltas) |
 | stage | text | `request` `survey` `quote` `contract` `paperwork` `execution` `acceptance` `settlement` `closed` |
 | status | text | `active` \| `on_hold` \| `cancelled` — default `active` |
 | cancel_reason | text null | required when status = `cancelled` |
@@ -112,6 +116,7 @@ The spine. Stage + orthogonal status + per-stage sub-statuses live here.
 | appointment_at | timestamptz null | stage 1; reschedule = update in place |
 | visit_date | date null | set by "Đã gặp khách" tap (1→2) |
 | survey_note | text null | stage 2 notes (photos → attachment) |
+| survey_items | jsonb null | stage 2: `{name, quantity, unit, note}[]` — measurement rows that prefill quote items (2026-07-23 UI deltas) |
 | client_signed_date | date null | stage-4 gate 1 (contract or deal-quote confirmation) |
 | execution_sub_status | text null | `kickoff` \| `hoarding` \| `works` |
 | start_date | date null | stage 6 |
@@ -120,6 +125,7 @@ The spine. Stage + orthogonal status + per-stage sub-statuses live here.
 | approaches | text null | free text until a structure emerges |
 | works_done_at | timestamptz null | stage-6 exit button |
 | acceptance_sub_status | text null | `request_sent` \| `inspecting` \| `rework` \| `passed` |
+| acceptance_passed_date | date null | stamped when acceptance_sub_status → `passed` (2026-07-23 UI deltas) |
 | created_at / updated_at | timestamptz | |
 
 Stage-4 gate 2 (deposit received) is not a column — it's the `deposit`
@@ -206,17 +212,47 @@ Multiple contracts on one Công Trình happen in practice.
 | project_id | FK → project | |
 | name | text | user-facing, stays Vietnamese: seeded with Giấy phép thi công, PCCC, Danh sách nhân sự, Danh sách thiết bị; freely added/removed |
 | status | text | `preparing` \| `submitted` \| `approved` |
+| due_date | date null | permits have lead times; overdue DERIVED (`due_date < today && != approved`), never stored (2026-07-23 UI deltas) |
 | note | text null | |
 
+The 4 default items are **auto-created with the project** (2026-07-23 UI
+deltas); `POST /paperwork-items/defaults` stays as a re-seed.
+
 ### settlement (Quyết toán) — 0..n per project
+
+Settling happens **in phases** (sometimes corrections) — hence 0..n.
 
 | column | type | notes |
 | --- | --- | --- |
 | id | bigserial PK | |
 | project_id | FK → project | |
 | status | text | `draft` \| `sent` \| `signed` |
+| total_amount | bigint | VND, server-computed from settlement_item rows; copied to the bill on sign (2026-07-23 UI deltas) |
 | signed_date | date null | |
 | note | text null | papers → attachment |
+
+### settlement_item (2026-07-23 UI deltas)
+
+Line items for the printable Quyết toán — prefilled from the chốt quote's
+items, quantities adjusted to khối lượng thực tế. Mirrors `quote_item`.
+
+| column | type | notes |
+| --- | --- | --- |
+| id | bigserial PK | |
+| settlement_id | FK → settlement, cascade delete | |
+| description | text | |
+| unit | text null | |
+| quantity | numeric | actuals, not quoted |
+| unit_price | bigint | VND |
+| amount | bigint | VND, server-computed |
+| sort_order | int | |
+
+On settlement **sign** (one transaction): bill gets `total_amount` + flips
+`official`; the project's unallocated `deposit` milestone (bill_id null)
+attaches to this bill; one `progress` milestone is auto-created for the
+remaining balance (splittable afterwards). Closed projects (stage
+`closed`) are **locked**: mutations rejected except project notes and the
+reopen transition (`closed → settlement`).
 
 ### bill (Hóa đơn) — 0..n per project
 

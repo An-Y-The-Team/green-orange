@@ -14,19 +14,25 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
+import { Type } from "class-transformer";
 import {
   ArrayMinSize,
+  IsArray,
   IsDateString,
   IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Min,
   MinLength,
+  ValidateNested,
 } from "class-validator";
 
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
+import { assertProjectOpen } from "../common/project-lock";
+import { DEFAULT_PAPERWORK } from "../paperwork/paperwork.module";
 import { PrismaService } from "../prisma/prisma.service";
 
 // Enum-like values — English snake_case, from prisma/schema.prisma comments.
@@ -110,6 +116,14 @@ class ProjectTypesController {
 }
 
 // ── Projects ────────────────────────────────────────────────────────────────
+// Stage-2 measurement rows, stored as Json (scratch input for quote prefill).
+class SurveyItemDto {
+  @IsString() @MinLength(1) name: string;
+  @IsOptional() @IsNumber() @Min(0) quantity?: number;
+  @IsOptional() @IsString() unit?: string;
+  @IsOptional() @IsString() note?: string;
+}
+
 class CreateProjectDto {
   @IsString() @MinLength(1) name: string;
   @IsInt() client_id: number;
@@ -117,6 +131,13 @@ class CreateProjectDto {
   @IsOptional() @IsInt() working_contact_id?: number;
   @IsOptional() @IsInt() decision_maker_contact_id?: number;
   @IsInt({ each: true }) @ArrayMinSize(1) type_ids: number[];
+  @IsOptional() @IsString() request_note?: string;
+  @IsOptional() @IsString() referral_source?: string;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SurveyItemDto)
+  survey_items?: SurveyItemDto[];
 }
 
 class UpdateProjectDto {
@@ -124,6 +145,13 @@ class UpdateProjectDto {
   @IsOptional() @IsInt() working_contact_id?: number;
   @IsOptional() @IsInt() decision_maker_contact_id?: number;
   @IsOptional() @IsInt({ each: true }) @ArrayMinSize(1) type_ids?: number[];
+  @IsOptional() @IsString() request_note?: string;
+  @IsOptional() @IsString() referral_source?: string;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SurveyItemDto)
+  survey_items?: SurveyItemDto[];
   @IsOptional() @IsIn(STAGE) stage?: string;
   @IsOptional() @IsIn(STATUS) status?: string;
   @IsOptional() @IsString() cancel_reason?: string;
@@ -207,17 +235,30 @@ class ProjectsController {
         "working_contact_id required (location has no manager)"
       );
     const code = await nextCode(this.prisma.project, "CT");
-    return this.prisma.project.create({
-      data: {
-        code,
-        name: dto.name,
-        client_id: dto.client_id,
-        location_id: dto.location_id,
-        working_contact_id: working,
-        decision_maker_contact_id: dto.decision_maker_contact_id ?? working,
-        types: { connect: dto.type_ids.map((id) => ({ id })) },
-      },
-      include: { client: true, location: true, types: true },
+    // Same transaction: auto-seed the stage-5 default paperwork checklist.
+    return this.prisma.$transaction(async (tx) => {
+      const project = await tx.project.create({
+        data: {
+          code,
+          name: dto.name,
+          client_id: dto.client_id,
+          location_id: dto.location_id,
+          working_contact_id: working,
+          decision_maker_contact_id: dto.decision_maker_contact_id ?? working,
+          request_note: dto.request_note,
+          referral_source: dto.referral_source,
+          survey_items: dto.survey_items?.map((i) => ({ ...i })),
+          types: { connect: dto.type_ids.map((id) => ({ id })) },
+        },
+        include: { client: true, location: true, types: true },
+      });
+      await tx.paperworkItem.createMany({
+        data: DEFAULT_PAPERWORK.map((name) => ({
+          project_id: project.id,
+          name,
+        })),
+      });
+      return project;
     });
   }
 
@@ -228,6 +269,25 @@ class ProjectsController {
   ) {
     const current = await this.prisma.project.findUnique({ where: { id } });
     if (!current) throw new NotFoundException("Project not found");
+
+    // Closed projects are locked; the only allowed PATCH is the reopen
+    // transition (stage: closed → settlement), a backward move — no gates.
+    if (current.stage === "closed" && dto.stage !== "settlement")
+      throw new ConflictException(
+        "project is closed — reopen it (stage: settlement) before editing"
+      );
+
+    // Forward-only in [kickoff, hoarding, works]; skipping allowed
+    // (kickoff → works directly — Dựng rào is optional for indoor jobs).
+    if (
+      dto.execution_sub_status !== undefined &&
+      current.execution_sub_status !== null &&
+      EXECUTION_SUB.indexOf(dto.execution_sub_status) <
+        EXECUTION_SUB.indexOf(current.execution_sub_status)
+    )
+      throw new BadRequestException(
+        "execution_sub_status can only move forward (kickoff → hoarding → works)"
+      );
 
     if (
       dto.status === "cancelled" &&
@@ -249,6 +309,9 @@ class ProjectsController {
       if (dto[f] !== undefined) data[f] = toDate(dto[f]);
     if (type_ids !== undefined)
       data.types = { set: type_ids.map((tid) => ({ id: tid })) };
+    // Server-stamped, never client-supplied (crm-ui-redesign.md, stage 7).
+    if (dto.acceptance_sub_status === "passed" && !current.acceptance_passed_date)
+      data.acceptance_passed_date = new Date();
     return this.prisma.project.update({ where: { id }, data });
   }
 
@@ -326,6 +389,7 @@ class ProjectsController {
   async remove(@Param("id", ParseIntPipe) id: number) {
     const row = await this.prisma.project.findUnique({ where: { id } });
     if (!row) throw new NotFoundException("Project not found");
+    await assertProjectOpen(this.prisma, id);
     await this.prisma.project.delete({ where: { id } });
   }
 }
@@ -395,7 +459,8 @@ class AttachmentsController {
 
   @Post()
   @HttpCode(201)
-  create(@Body() dto: CreateAttachmentDto) {
+  async create(@Body() dto: CreateAttachmentDto) {
+    await assertProjectOpen(this.prisma, dto.project_id);
     return this.prisma.attachment.create({
       data: {
         project_id: dto.project_id,
@@ -412,6 +477,7 @@ class AttachmentsController {
   async remove(@Param("id", ParseIntPipe) id: number) {
     const row = await this.prisma.attachment.findUnique({ where: { id } });
     if (!row) throw new NotFoundException("Attachment not found");
+    await assertProjectOpen(this.prisma, row.project_id);
     await this.prisma.attachment.delete({ where: { id } });
   }
 }

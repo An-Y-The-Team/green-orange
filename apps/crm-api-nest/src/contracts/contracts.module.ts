@@ -25,6 +25,7 @@ import {
 
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
+import { assertProjectOpen } from "../common/project-lock";
 import { PrismaService } from "../prisma/prisma.service";
 
 const CONTRACT_STATUS = ["draft", "signed"];
@@ -88,6 +89,7 @@ class ContractsController {
   @Post()
   @HttpCode(201)
   async create(@Body() dto: CreateContractDto) {
+    await assertProjectOpen(this.prisma, dto.project_id);
     const code = await nextCode(this.prisma.contract, "HD");
     return this.prisma.contract.create({
       data: {
@@ -107,6 +109,7 @@ class ContractsController {
     @Body() dto: UpdateContractDto
   ) {
     const row = await this.get(id);
+    await assertProjectOpen(this.prisma, row.project_id);
     const data: Record<string, unknown> = { ...dto };
     if (dto.signed_date !== undefined) data.signed_date = toDate(dto.signed_date);
     // Signing without an explicit date stamps today.
@@ -123,6 +126,7 @@ class ContractsController {
   @HttpCode(204)
   async remove(@Param("id", ParseIntPipe) id: number) {
     const row = await this.get(id);
+    await assertProjectOpen(this.prisma, row.project_id);
     if (row.status !== "draft")
       throw new ConflictException("Only draft contracts can be deleted");
     await this.prisma.contract.delete({ where: { id } });
