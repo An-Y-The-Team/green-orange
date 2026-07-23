@@ -51,3 +51,24 @@ export async function listTimekeeping(
       )
     : timekeeping.filter((t) => t.crew_member_id === crewMemberId);
 }
+
+/** GET /assignments?project_id= — crew_member + role includes (stage-6 panel). */
+export async function getProjectAssignments(
+  projectId: number
+): Promise<Assignment[]> {
+  return API_URL
+    ? apiFetchSafe<Assignment[]>(`/assignments?project_id=${projectId}`, [])
+    : assignments.filter((a) => a.project_id === projectId);
+}
+
+/** GET /timekeeping?project_id= — no crew_member include (stage-6 panel). */
+export async function getProjectTimekeeping(
+  projectId: number
+): Promise<TimekeepingRecord[]> {
+  return API_URL
+    ? apiFetchSafe<TimekeepingRecord[]>(
+        `/timekeeping?project_id=${projectId}`,
+        []
+      )
+    : timekeeping.filter((t) => t.project_id === projectId);
+}

@@ -1,29 +1,22 @@
-import { Badge } from "@yan/ui/components/badge";
 import { Card, CardHeader, CardTitle } from "@yan/ui/components/card";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header";
-import { formatDate, formatVND, isOverdue } from "@/lib/format";
-import {
-  billStatus,
-  milestoneStatus,
-  milestoneType,
-  overdue,
-} from "@/lib/labels";
+import { isOverdue } from "@/lib/format";
 
 import { listProjects } from "../projects/queries";
 import { MilestoneStatus } from "./enums";
 import { listBills, listPaymentMilestones } from "./queries";
+import { BillRow, MilestoneRow } from "./receivable-rows";
 
-// Thu & công nợ — the secretary's daily money screen. Read-only (phase 1):
-// row actions (record payment, mark bill sent/paid) come with the write phase.
+// Thu & công nợ — the secretary's daily money screen. Read-only columns plus
+// row actions (record payment, mark bill sent/paid) driven by the write phase.
 export default async function ReceivablesPage() {
   const [milestones, bills, projects] = await Promise.all([
     listPaymentMilestones(),
@@ -61,36 +54,17 @@ export default async function ReceivablesPage() {
                 <TableHead>Hạn thu</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Ngày thu</TableHead>
+                <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sorted.map((m) => {
-                const badge = milestoneOverdue(m)
-                  ? overdue
-                  : milestoneStatus[m.status];
-                return (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium">
-                      {projectCode(m.project_id)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {milestoneType[m.type]}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatVND(m.amount)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {m.due_date ? formatDate(m.due_date) : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={badge.variant}>{badge.label}</Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {m.paid_date ? formatDate(m.paid_date) : "—"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {sorted.map((m) => (
+                <MilestoneRow
+                  key={m.id}
+                  milestone={m}
+                  projectCode={projectCode(m.project_id)}
+                />
+              ))}
             </TableBody>
           </Table>
         </Card>
@@ -107,29 +81,16 @@ export default async function ReceivablesPage() {
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Ngày gửi</TableHead>
                 <TableHead>Ngày thanh toán</TableHead>
+                <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {bills.map((b) => (
-                <TableRow key={b.id}>
-                  <TableCell className="font-medium">
-                    {projectCode(b.project_id)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatVND(b.total_amount)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={billStatus[b.status].variant}>
-                      {billStatus[b.status].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {b.sent_date ? formatDate(b.sent_date) : "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {b.paid_date ? formatDate(b.paid_date) : "—"}
-                  </TableCell>
-                </TableRow>
+                <BillRow
+                  key={b.id}
+                  bill={b}
+                  projectCode={projectCode(b.project_id)}
+                />
               ))}
             </TableBody>
           </Table>

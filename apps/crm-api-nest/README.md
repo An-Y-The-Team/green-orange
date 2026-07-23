@@ -35,15 +35,15 @@ serialization, gates).
 
 ## Env
 
-| Var | Meaning |
-| --- | --- |
-| `DATABASE_URL` | Postgres, database `crm_nest` |
-| `PORT` | default `8001` |
-| `AUTH_MODE` | `local` (default) or `oidc` |
-| `JWT_SECRET`, `ACCESS_TOKEN_EXPIRE_MINUTES` | local mode HS256 tokens |
-| `SEED_USER`, `SEED_PASSWORD` | user created by `bun run seed` (keep matching crm-web's `CRM_DEV_USER`/`CRM_DEV_PASSWORD`) |
-| `OIDC_ISSUER`, `OIDC_AUDIENCE` | oidc mode: Authentik issuer (+ optional audience) |
-| `CORS_ORIGINS` | crm-web origin(s), comma-separated |
+| Var                                         | Meaning                                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                              | Postgres, database `crm_nest`                                                              |
+| `PORT`                                      | default `8001`                                                                             |
+| `AUTH_MODE`                                 | `local` (default) or `oidc`                                                                |
+| `JWT_SECRET`, `ACCESS_TOKEN_EXPIRE_MINUTES` | local mode HS256 tokens                                                                    |
+| `SEED_USER`, `SEED_PASSWORD`                | user created by `bun run seed` (keep matching crm-web's `CRM_DEV_USER`/`CRM_DEV_PASSWORD`) |
+| `OIDC_ISSUER`, `OIDC_AUDIENCE`              | oidc mode: Authentik issuer (+ optional audience)                                          |
+| `CORS_ORIGINS`                              | crm-web origin(s), comma-separated                                                         |
 
 ## Auth
 
@@ -90,7 +90,7 @@ Business codes (`CT-…` projects, `HD-…` contracts) are server-assigned.
   (forward moves only; backward is free): `contract` needs latest quote =
   `deal`; `execution` needs `client_signed_date` + a paid deposit milestone +
   all paperwork approved; `settlement` needs `acceptance_sub_status =
-  'passed'`; `closed` needs no unpaid milestones/bills. Cancelling requires
+'passed'`; `closed` needs no unpaid milestones/bills. Cancelling requires
   `cancel_reason`.
 - `GET|POST /project-notes`, `DELETE /project-notes/:id`
 - `GET|POST /attachments`, `DELETE /attachments/:id` — `kind`-tagged, may hang

@@ -161,7 +161,8 @@ class SettlementsController {
     await assertProjectOpen(this.prisma, row.project_id);
     const data: Record<string, unknown> = {};
     if (dto.note !== undefined) data.note = dto.note;
-    if (dto.signed_date !== undefined) data.signed_date = toDate(dto.signed_date);
+    if (dto.signed_date !== undefined)
+      data.signed_date = toDate(dto.signed_date);
     if (dto.items) {
       if (row.status !== "draft")
         throw new BadRequestException("items are editable only while draft");
@@ -188,7 +189,11 @@ class SettlementsController {
             data: { status: "official", total_amount: row.total_amount },
           });
           const deposit = await tx.paymentMilestone.findFirst({
-            where: { project_id: row.project_id, type: "deposit", bill_id: null },
+            where: {
+              project_id: row.project_id,
+              type: "deposit",
+              bill_id: null,
+            },
           });
           if (deposit)
             await tx.paymentMilestone.update({

@@ -95,8 +95,8 @@ The center of the app. Three zones:
 
 - **Zone 1 — header.** Code, name, status badge, client → location →
   contacts, type tags. The 9-step stepper: completed steps filled, current
-  highlighted, future dimmed. Clicking a *past* step scrolls to its summary;
-  the *next* step is a button that runs the stage move (server enforces
+  highlighted, future dimmed. Clicking a _past_ step scrolls to its summary;
+  the _next_ step is a button that runs the stage move (server enforces
   gates; the panel already shows them, so the button is disabled with a
   reason until they're green). `Hoãn` asks for a follow-up date; `Hủy` asks
   for the required reason. Parked/cancelled projects show a banner with the
@@ -110,17 +110,17 @@ The center of the app. Three zones:
 
 ### Per-stage panels (first-pass draft — each stage confirmed below, one by one)
 
-| # | Stage | Panel contents | Gate to advance (server-enforced) |
-| --- | ------- | ---------------- | ----------------------------------- |
-| 1 | Yêu cầu | ✅ confirmed — see "Stage 1" below. | — |
-| 2 | Khảo sát | ✅ confirmed — see "Stage 2" below. | — |
-| 3 | Báo giá | ✅ confirmed — see "Stage 3" below. | latest quote `deal` |
-| 4 | Hợp đồng | ✅ confirmed — see "Stage 4" below. | — (gates apply to *entering* 6) |
-| 5 | Chuẩn bị hồ sơ | ✅ confirmed — see "Stage 5" below. | all items `approved` + stage-4 gates |
-| 6 | Thi công | ✅ confirmed — see "Stage 6" below. | — |
-| 7 | Nghiệm thu | ✅ confirmed — see "Stage 7" below. | sub-status `passed` |
-| 8 | Quyết toán & Thanh toán | ✅ confirmed — see "Stage 8" below. | all milestones + bills `paid` |
-| 9 | Đã đóng | ✅ confirmed — see "Stage 9" below. | terminal (reopen → stage 8) |
+| #   | Stage                   | Panel contents                      | Gate to advance (server-enforced)    |
+| --- | ----------------------- | ----------------------------------- | ------------------------------------ |
+| 1   | Yêu cầu                 | ✅ confirmed — see "Stage 1" below. | —                                    |
+| 2   | Khảo sát                | ✅ confirmed — see "Stage 2" below. | —                                    |
+| 3   | Báo giá                 | ✅ confirmed — see "Stage 3" below. | latest quote `deal`                  |
+| 4   | Hợp đồng                | ✅ confirmed — see "Stage 4" below. | — (gates apply to _entering_ 6)      |
+| 5   | Chuẩn bị hồ sơ          | ✅ confirmed — see "Stage 5" below. | all items `approved` + stage-4 gates |
+| 6   | Thi công                | ✅ confirmed — see "Stage 6" below. | —                                    |
+| 7   | Nghiệm thu              | ✅ confirmed — see "Stage 7" below. | sub-status `passed`                  |
+| 8   | Quyết toán & Thanh toán | ✅ confirmed — see "Stage 8" below. | all milestones + bills `paid`        |
+| 9   | Đã đóng                 | ✅ confirmed — see "Stage 9" below. | terminal (reopen → stage 8)          |
 
 ### Stage 1 — Yêu cầu (confirmed 2026-07-23)
 
@@ -197,7 +197,7 @@ stage-1 project and lands on its workspace:
 ```
 
 - **Measurement rows** (`survey_items`, JSON on Project: `{name, quantity,
-  unit, note}[]`) — inline-editable rows; they **prefill quote line items**
+unit, note}[]`) — inline-editable rows; they **prefill quote line items**
   (name → description, quantity + unit carried over, price left empty).
 - **One free-text note** (`survey_note`) for everything else: access hours,
   safety constraints, site conditions.
@@ -308,7 +308,7 @@ parking chore.
 ```
 
 - Rows: name, one-way single-tap status stepper (`Chưa xong → Đã nộp →
-  Đã duyệt`), expandable note + attachment (metadata). ✕ deletes.
+Đã duyệt`), expandable note + attachment (metadata). ✕ deletes.
 - **Auto-seeded**: the 4 default items are created automatically with the
   project (backend delta — was a manual button). Zero-paperwork jobs just
   delete them (or ignore: gate is vacuous with zero items — "Không cần
@@ -345,7 +345,7 @@ parking chore.
 
 - **Sub-status stepper**, one-way, single tap. **Dựng rào is skippable**
   (indoor jobs): Khởi công → Thi công allowed directly. Each advance
-  offers an *optional* note → stored as a ProjectNote with the sub-status
+  offers an _optional_ note → stored as a ProjectNote with the sub-status
   as context (timeline in Zone 3), no per-step note columns.
 - **Est end derived**: `start_date + est_duration_days`; "trễ" chip when
   today is past it and works aren't done.
@@ -456,19 +456,19 @@ and that bill's milestones:
 
 ## Backend deltas — ✅ APPLIED 2026-07-23 (migration `20260723142049_ui_design_deltas`)
 
-| Model | Change | From stage |
-| --- | --- | --- |
-| Project | `request_note String?` | 1 |
-| Project | `referral_source String?` | 1 |
-| Project | `survey_items Json?` — `{name, quantity, unit, note}[]` (scratch input for quote prefill; JSON, not a table — never queried across projects) | 2 |
-| PaperworkItem | `due_date DateTime? @db.Date` — overdue derived, never stored | 5 |
-| (behavior) | `POST /projects` auto-creates the 4 default paperwork items (replaces the manual `/paperwork-items/defaults` call; endpoint can stay for re-seeding) | 5 |
-| (behavior) | `execution_sub_status`: allow `kickoff → works` directly (Dựng rào skippable) — verify current PATCH validation permits it | 6 |
-| Project | `acceptance_passed_date DateTime? @db.Date` — stamped on sub-status → `passed` | 7 |
-| SettlementItem | new table mirroring QuoteItem (`settlement_id`, `description`, `unit`, `quantity`, `unit_price`, `amount`, `sort_order`) — prefilled from quote items, quantities adjusted to actuals; server computes amounts/total | 8 |
-| Settlement | `total_amount BigInt` (server-computed from items; copied to bill on sign) | 8 |
-| (behavior) | on settlement sign: attach unallocated cọc milestone (`bill_id` null, paid) to the new official bill + auto-create one milestone for the remaining balance | 8 |
-| (behavior) | closed projects are locked: mutations on the project + its entities rejected (except ProjectNote and the reopen action `stage: closed → settlement`) | 9 |
+| Model          | Change                                                                                                                                                                                                               | From stage |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Project        | `request_note String?`                                                                                                                                                                                               | 1          |
+| Project        | `referral_source String?`                                                                                                                                                                                            | 1          |
+| Project        | `survey_items Json?` — `{name, quantity, unit, note}[]` (scratch input for quote prefill; JSON, not a table — never queried across projects)                                                                         | 2          |
+| PaperworkItem  | `due_date DateTime? @db.Date` — overdue derived, never stored                                                                                                                                                        | 5          |
+| (behavior)     | `POST /projects` auto-creates the 4 default paperwork items (replaces the manual `/paperwork-items/defaults` call; endpoint can stay for re-seeding)                                                                 | 5          |
+| (behavior)     | `execution_sub_status`: allow `kickoff → works` directly (Dựng rào skippable) — verify current PATCH validation permits it                                                                                           | 6          |
+| Project        | `acceptance_passed_date DateTime? @db.Date` — stamped on sub-status → `passed`                                                                                                                                       | 7          |
+| SettlementItem | new table mirroring QuoteItem (`settlement_id`, `description`, `unit`, `quantity`, `unit_price`, `amount`, `sort_order`) — prefilled from quote items, quantities adjusted to actuals; server computes amounts/total | 8          |
+| Settlement     | `total_amount BigInt` (server-computed from items; copied to bill on sign)                                                                                                                                           | 8          |
+| (behavior)     | on settlement sign: attach unallocated cọc milestone (`bill_id` null, paid) to the new official bill + auto-create one milestone for the remaining balance                                                           | 8          |
+| (behavior)     | closed projects are locked: mutations on the project + its entities rejected (except ProjectNote and the reopen action `stage: closed → settlement`)                                                                 | 9          |
 
 ## Other desktop screens
 

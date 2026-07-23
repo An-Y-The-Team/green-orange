@@ -72,7 +72,7 @@ same day** as the first contact.
   Yêu cầu → appointment a near-zero-friction step (quick create, today
   pre-filled), not a long-lived pipeline stage.
 
-**Transition 1 → 2:** the appointment *is* the khảo sát visit. Manual, one
+**Transition 1 → 2:** the appointment _is_ the khảo sát visit. Manual, one
 tap — "Đã gặp khách / Bắt đầu khảo sát" — records the real visit date.
 Nothing flips automatically on the clock (appointments slip).
 
@@ -139,7 +139,7 @@ common items; operators add/remove items freely per site.
 
 Default checklist (the most common requirements):
 
-1. **Giấy phép thi công** (working permit) — required by *all* sites.
+1. **Giấy phép thi công** (working permit) — required by _all_ sites.
 2. **PCCC** (fire protection & prevention) — required by most buildings,
    rarely waived.
 3. **Danh sách nhân sự** (worker list).
@@ -171,7 +171,7 @@ General data on the project for this stage:
   truth**, timekeeping-derived duration is secondary. When the two
   conflict, the UI shows a conflict modal to resolve.
 - Worker list — who is assigned to the project.
-- Approaches — *optional*, some projects need different ways of working.
+- Approaches — _optional_, some projects need different ways of working.
   Shape unclear yet (free-text per project until a real structure emerges).
 
 **Timekeeping:** workers will eventually clock in/out via a **Zalo mini
@@ -248,7 +248,7 @@ dang_hoat_dong | hoan → huy (Hủy, + reason, terminal)
   back to `dang_hoat_dong`; should carry a follow-up date so parked jobs
   resurface instead of being forgotten.
 - The stage is **frozen where the project died/parked**, so reports can show
-  *where* leads are lost (in practice: usually at Báo giá, and rarely).
+  _where_ leads are lost (in practice: usually at Báo giá, and rarely).
 
 ## Entity state machines
 
@@ -371,7 +371,7 @@ placeholder except "it's separate from the project pipeline".
 
 ### Crew (Nhân sự) — confirmed 2026-07-23
 
-Crew answers *who is where* — the CRM does **not** compute wages (pay
+Crew answers _who is where_ — the CRM does **not** compute wages (pay
 lives in the future Cost module, if ever).
 
 **Crew member** (roster): name, **phone/Zalo** (captured from day one — it
@@ -391,7 +391,7 @@ sinh, Giám sát, Lái xe. A member has a default role; the role on each
 assignment can override it.
 
 **Assignment**: crew member ↔ Công Trình, with role + from/to dates. The
-stage-6 worker list *is* this list, and the stage-5 "danh sách nhân sự"
+stage-6 worker list _is_ this list, and the stage-5 "danh sách nhân sự"
 paperwork is generated from it. **Double-booking is allowed** (happens
 regularly) but the UI shows a **non-blocking warning** on overlapping
 assignments.

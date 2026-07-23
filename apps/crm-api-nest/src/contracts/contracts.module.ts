@@ -111,9 +111,14 @@ class ContractsController {
     const row = await this.get(id);
     await assertProjectOpen(this.prisma, row.project_id);
     const data: Record<string, unknown> = { ...dto };
-    if (dto.signed_date !== undefined) data.signed_date = toDate(dto.signed_date);
+    if (dto.signed_date !== undefined)
+      data.signed_date = toDate(dto.signed_date);
     // Signing without an explicit date stamps today.
-    if (dto.status === "signed" && dto.signed_date === undefined && !row.signed_date)
+    if (
+      dto.status === "signed" &&
+      dto.signed_date === undefined &&
+      !row.signed_date
+    )
       data.signed_date = new Date();
     return this.prisma.contract.update({
       where: { id },

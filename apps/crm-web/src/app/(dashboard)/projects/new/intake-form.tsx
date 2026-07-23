@@ -68,19 +68,34 @@ function nowTime() {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+type Prefill = {
+  client_id: number;
+  location_id: number;
+  working_contact_id: number;
+  decision_maker_contact_id: number;
+};
+
 export function IntakeForm({
   clients,
   projectTypes,
+  prefill,
+  initialClientDetail,
 }: {
   clients: ClientListItem[];
   projectTypes: ProjectType[];
+  prefill?: Prefill;
+  initialClientDetail?: ClientDetail;
 }) {
   const router = useRouter();
 
   const [clientOptions, setClientOptions] = useState<ClientOption[]>(
     clients.map((c) => ({ id: c.id, name: c.name }))
   );
-  const [detail, setDetail] = useState<ClientDetail | null>(null);
+  // Lazy init from prefill (repeat business): the client/contact/location
+  // selects render already populated + selected, no useEffect.
+  const [detail, setDetail] = useState<ClientDetail | null>(
+    () => initialClientDetail ?? null
+  );
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [nameTouched, setNameTouched] = useState(false);
   const [apptDate, setApptDate] = useState(today());
@@ -95,10 +110,10 @@ export function IntakeForm({
     resolver: zodResolver(createProjectSchema),
     mode: "onChange",
     defaultValues: {
-      client_id: 0,
-      location_id: 0,
-      working_contact_id: undefined,
-      decision_maker_contact_id: undefined,
+      client_id: prefill?.client_id ?? 0,
+      location_id: prefill?.location_id ?? 0,
+      working_contact_id: prefill?.working_contact_id,
+      decision_maker_contact_id: prefill?.decision_maker_contact_id,
       name: "",
       type_ids: [],
       request_note: "",

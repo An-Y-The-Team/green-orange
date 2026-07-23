@@ -35,11 +35,11 @@ the changelog.
 - Bun only; user owns ALL git operations; Codex reviews output.
 - Local run gotcha: `apps/crm-web/.env` sets `CRM_API_URL` + Authentik →
   mock-mode smoke needs `CRM_API_URL= AUTH_AUTHENTIK_ISSUER= bun run
-  start` (port pinned 3002). Live test: boot API from `apps/crm-api-nest`
+start` (port pinned 3002). Live test: boot API from `apps/crm-api-nest`
   `PORT=8001 AUTH_MODE=local node dist/main.js`, web with
   `CRM_API_URL=http://localhost:8001`.
 - Verify each phase: `bunx tsc --noEmit`, `bunx eslint src
-  --max-warnings 0`, `bun run build`, curl smoke in mock AND live mode.
+--max-warnings 0`, `bun run build`, curl smoke in mock AND live mode.
 
 ## Current state (after phase 1, 2026-07-23)
 
@@ -145,7 +145,7 @@ New files:
 - `projects/[id]/components/panels/survey.tsx` — survey_items inline row
   editor (add/remove/edit rows → update-project), survey_note textarea
   with save, attachments metadata list (`projects/actions/
-  add-attachment.ts` + delete), [Đủ dữ liệu — lập báo giá] (stage→quote +
+add-attachment.ts` + delete), [Đủ dữ liệu — lập báo giá] (stage→quote +
   redirect to builder).
 - `projects/[id]/quotes/new/page.tsx` + `quote-builder-form.tsx` —
   builder per redesign: items table prefilled from `survey_items`
@@ -183,7 +183,25 @@ New files:
 Changed: `stage-panel.tsx` switch; `quotes/page.tsx` link "new version"
 into builder; `contracts` list page gets [+] back (to the v2 new page).
 
-## Phase 4 — Stage panels 6–9 + receivables writes
+## Phase 4 — Stage panels 6–9 + receivables writes ✅ (2026-07-24)
+
+**Shipped.** All panels/actions/pages below built; `tsc`, `eslint
+--max-warnings 0`, `bun run build` clean; mock-smoke of every panel
+(execution/acceptance/settlement/closed via temp stage-flips), settlement
+builder, settlement+bill printables, acceptance-request letter, and
+receivables row actions — all 200. Findings baked in: **no `/send`
+routes** (status flips are `PATCH {status}`); **settlement create
+auto-makes a draft bill**; **sign = `PATCH {status:signed}`** (server
+does bill officialize + deposit attach + remainder milestone); bill
+status = any forward jump, settlement/milestone = one step; **no `code`**
+on settlements/bills (shown as `QT #id`/`HĐ #id`); `acceptance_sub_status:
+"request_sent"` is **not** auto-set → the stage-6 exit sends
+`{works_done_at, stage:acceptance, acceptance_sub_status:request_sent}` in
+one PATCH. **`"use server"` files must export only `async` functions** —
+a non-async `export function` gets silently dropped ("module has no
+exports"), caught at build not tsc. New project-scoped queries:
+`getProjectBills`, `getProjectSettlements`, `getProjectAssignments`,
+`getProjectTimekeeping`. Intake `?from=<id>` repeat-business prefill added.
 
 New files:
 
@@ -227,7 +245,7 @@ mutating controls except notes + reopen (server enforces anyway).
   (grid: pick project → member×day hours entry, upsert via
   `crew/actions/timekeeping.ts`; zalo_app rows read-only chip).
 - Assignments editing in workspace Nhân sự tab (`crew/actions/
-  assignments.ts`, non-blocking overlap warning from response
+assignments.ts`, non-blocking overlap warning from response
   `overlaps`).
 - `dashboard/page.tsx` — add Công nợ block (awaiting + derived overdue
   from receivables queries) alongside existing Hôm nay / pipeline / Cần
@@ -255,6 +273,18 @@ mutating controls except notes + reopen (server enforces anyway).
 
 ## Changelog
 
+- 2026-07-24 — phase 4 shipped: stage panels 6–9 + receivables writes.
+  Execution (sub-status stepper w/ skippable hoarding, optional notes,
+  duration dual-source + Xem chênh lệch timekeeping modal, exit stamps
+  works_done_at + enters acceptance w/ request_sent), acceptance
+  (transitions w/ required rework note, history from notes, printable
+  request letter), settlement (cards list, builder prefilled from deal
+  quote, send/sign choreography, bill + milestone actions, settlement &
+  bill printables), closed (recap + Mở lại → settlement + repeat-business
+  intake ?from). Receivables page gained row actions. Built via 4
+  fan-out subagents (one interrupted at its report step but files were
+  complete); integrator wired the full 9-stage dispatcher + page.tsx
+  stage-gated fetches, fixed a `"use server"` non-async-export build error.
 - 2026-07-23 — phase 3 shipped: stage panels 1–5 wired into the workspace
   dispatcher. Quotes (builder page `?from=survey`/`?edit=`, versions rail,
   send/decide/revise/delete actions with chained project on_hold/cancelled),

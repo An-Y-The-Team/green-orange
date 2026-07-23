@@ -29,10 +29,18 @@ async function main() {
   });
 
   for (const name of PROJECT_TYPES) {
-    await prisma.projectType.upsert({ where: { name }, update: {}, create: { name } });
+    await prisma.projectType.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
   }
   for (const name of CREW_ROLES) {
-    await prisma.crewRole.upsert({ where: { name }, update: {}, create: { name } });
+    await prisma.crewRole.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
   }
 
   if ((await prisma.client.count()) === 0) {

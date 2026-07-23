@@ -27,6 +27,22 @@ export async function listBills(): Promise<Bill[]> {
   return API_URL ? apiFetchSafe<Bill[]>("/bills", []) : bills;
 }
 
+/** All bills for a project (mirrors GET /bills?project_id=; includes milestones). */
+export async function getProjectBills(projectId: number): Promise<Bill[]> {
+  return API_URL
+    ? apiFetchSafe<Bill[]>(`/bills?project_id=${projectId}`, [])
+    : bills.filter((b) => b.project_id === projectId);
+}
+
 export async function listSettlements(): Promise<Settlement[]> {
   return API_URL ? apiFetchSafe<Settlement[]>("/settlements", []) : settlements;
+}
+
+/** All settlements for a project (mirrors GET /settlements?project_id=; each includes bill + items). */
+export async function getProjectSettlements(
+  projectId: number
+): Promise<Settlement[]> {
+  return API_URL
+    ? apiFetchSafe<Settlement[]>(`/settlements?project_id=${projectId}`, [])
+    : settlements.filter((s) => s.project_id === projectId);
 }

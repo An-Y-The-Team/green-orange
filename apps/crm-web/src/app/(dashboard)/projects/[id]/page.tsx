@@ -4,10 +4,26 @@ import { notFound } from "next/navigation";
 
 import { getProjectContracts } from "@/app/(dashboard)/contracts/queries";
 import type { Contract } from "@/app/(dashboard)/contracts/types";
+import {
+  getProjectAssignments,
+  getProjectTimekeeping,
+} from "@/app/(dashboard)/crew/queries";
+import type {
+  Assignment,
+  TimekeepingRecord,
+} from "@/app/(dashboard)/crew/types";
 import { getDealQuote } from "@/app/(dashboard)/quotes/queries";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
-import { getProjectMilestones } from "@/app/(dashboard)/receivables/queries";
-import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
+import {
+  getProjectBills,
+  getProjectMilestones,
+  getProjectSettlements,
+} from "@/app/(dashboard)/receivables/queries";
+import type {
+  Bill,
+  PaymentMilestone,
+  Settlement,
+} from "@/app/(dashboard)/receivables/types";
 
 import { ProjectStage } from "../enums";
 import {
@@ -40,21 +56,50 @@ export default async function ProjectDetailPage({
   const paperworkItems =
     project.paperwork_items ?? (await listPaperworkItems(project.id));
 
-  const isSurvey = project.stage === ProjectStage.SURVEY;
-  const isContract = project.stage === ProjectStage.CONTRACT;
-  const [attachments, contracts, milestones, dealQuote] = await Promise.all([
+  const { stage } = project;
+  const isSurvey = stage === ProjectStage.SURVEY;
+  const isContract = stage === ProjectStage.CONTRACT;
+  const isExecution = stage === ProjectStage.EXECUTION;
+  const isSettlement = stage === ProjectStage.SETTLEMENT;
+  const isClosed = stage === ProjectStage.CLOSED;
+
+  const needsContracts = isContract || isClosed;
+  const needsMilestones = isContract || isSettlement || isClosed;
+  const needsDealQuote = isContract || isSettlement;
+  const needsMoneyDocs = isSettlement || isClosed;
+
+  const [
+    attachments,
+    contracts,
+    milestones,
+    dealQuote,
+    timekeeping,
+    assignments,
+    settlements,
+    bills,
+  ] = await Promise.all([
     isSurvey
       ? listProjectAttachments(project.id, "survey")
       : Promise.resolve<Attachment[]>([]),
-    isContract
+    needsContracts
       ? getProjectContracts(project.id)
       : Promise.resolve<Contract[]>([]),
-    isContract
+    needsMilestones
       ? getProjectMilestones(project.id)
       : Promise.resolve<PaymentMilestone[]>([]),
-    isContract
+    needsDealQuote
       ? getDealQuote(project.id)
       : Promise.resolve<Quote | undefined>(undefined),
+    isExecution
+      ? getProjectTimekeeping(project.id)
+      : Promise.resolve<TimekeepingRecord[]>([]),
+    isExecution
+      ? getProjectAssignments(project.id)
+      : Promise.resolve<Assignment[]>([]),
+    needsMoneyDocs
+      ? getProjectSettlements(project.id)
+      : Promise.resolve<Settlement[]>([]),
+    needsMoneyDocs ? getProjectBills(project.id) : Promise.resolve<Bill[]>([]),
   ]);
 
   return (
@@ -74,7 +119,11 @@ export default async function ProjectDetailPage({
         attachments={attachments}
         contracts={contracts}
         milestones={milestones}
+        bills={bills}
+        settlements={settlements}
         dealQuote={dealQuote}
+        timekeeping={timekeeping}
+        assignments={assignments}
         paperworkItems={paperworkItems}
       />
       <WorkspaceTabs project={project} paperworkItems={paperworkItems} />

@@ -108,9 +108,7 @@ class ProjectTypesController {
       where: { types: { some: { id } } },
     });
     if (used > 0)
-      throw new ConflictException(
-        `Project type is used by ${used} project(s)`
-      );
+      throw new ConflictException(`Project type is used by ${used} project(s)`);
     await this.prisma.projectType.delete({ where: { id } });
   }
 }
@@ -225,9 +223,7 @@ class ProjectsController {
       where: { id: dto.location_id },
     });
     if (!location || location.client_id !== dto.client_id)
-      throw new BadRequestException(
-        "location_id does not belong to client_id"
-      );
+      throw new BadRequestException("location_id does not belong to client_id");
     const working =
       dto.working_contact_id ?? location.manager_contact_id ?? null;
     if (working === null)
@@ -310,7 +306,10 @@ class ProjectsController {
     if (type_ids !== undefined)
       data.types = { set: type_ids.map((tid) => ({ id: tid })) };
     // Server-stamped, never client-supplied (crm-ui-redesign.md, stage 7).
-    if (dto.acceptance_sub_status === "passed" && !current.acceptance_passed_date)
+    if (
+      dto.acceptance_sub_status === "passed" &&
+      !current.acceptance_passed_date
+    )
       data.acceptance_passed_date = new Date();
     return this.prisma.project.update({ where: { id }, data });
   }
@@ -320,7 +319,10 @@ class ProjectsController {
   private async checkStageGate(
     id: number,
     dto: UpdateProjectDto,
-    current: { client_signed_date: Date | null; acceptance_sub_status: string | null }
+    current: {
+      client_signed_date: Date | null;
+      acceptance_sub_status: string | null;
+    }
   ) {
     switch (dto.stage) {
       case "contract": {
@@ -359,8 +361,7 @@ class ProjectsController {
         return;
       }
       case "settlement": {
-        const sub =
-          dto.acceptance_sub_status ?? current.acceptance_sub_status;
+        const sub = dto.acceptance_sub_status ?? current.acceptance_sub_status;
         if (sub !== "passed")
           throw new BadRequestException(
             "Cannot enter settlement stage: acceptance sub-status must be 'passed'"
@@ -444,10 +445,7 @@ class AttachmentsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list(
-    @Query("project_id") projectId?: string,
-    @Query("kind") kind?: string
-  ) {
+  list(@Query("project_id") projectId?: string, @Query("kind") kind?: string) {
     return this.prisma.attachment.findMany({
       where: {
         project_id: projectId ? Number(projectId) : undefined,

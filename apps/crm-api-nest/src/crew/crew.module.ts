@@ -133,7 +133,9 @@ class CrewController {
       include: {
         default_role: true,
         assignments: {
-          include: { project: { select: { id: true, code: true, name: true } } },
+          include: {
+            project: { select: { id: true, code: true, name: true } },
+          },
         },
       },
     });

@@ -1,8 +1,7 @@
 // Contract-critical pure logic, unit-tested without a DB (bun test). The full
 // HTTP roundtrip is the curl smoke check in the README's verify section.
-import { describe, expect, test } from "bun:test";
-
 import { Prisma } from "@prisma/client";
+import { describe, expect, test } from "bun:test";
 
 import { formatCode } from "./common/code";
 import { toBig } from "./common/coerce";
