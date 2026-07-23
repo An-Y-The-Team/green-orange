@@ -1,26 +1,18 @@
-import Link from "next/link";
-
-import { Badge } from "@yan/ui/components/badge";
-import { Card } from "@yan/ui/components/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@yan/ui/components/table";
-
 import { PageHeader } from "@/components/page-header";
-import { crewMemberStatus, employmentType } from "@/lib/labels";
 
-import { CrewMemberStatus, EmploymentType } from "./enums";
-import { listCrew } from "./queries";
+import { listProjects } from "../projects/queries";
+import { CrewTabs } from "./components/crew-tabs";
+import { CrewMemberStatus } from "./enums";
+import { listCrew, listCrewRoles } from "./queries";
 
-// Read-only roster (phase 1). Roles tab + timekeeping grid come with the
-// write phase.
+// Tabbed Nhân sự shell: Danh sách · Vai trò · Chấm công. Data fetched here
+// (server) and handed to the client tab switcher.
 export default async function CrewPage() {
-  const members = await listCrew();
+  const [members, roles, projects] = await Promise.all([
+    listCrew(),
+    listCrewRoles(),
+    listProjects(),
+  ]);
   const workingCount = members.filter(
     (m) => m.status === CrewMemberStatus.WORKING
   ).length;
@@ -31,52 +23,7 @@ export default async function CrewPage() {
         title="Nhân sự"
         description={`${members.length} nhân sự · ${workingCount} đang làm`}
       />
-      <Card className="py-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Họ và tên</TableHead>
-              <TableHead>Số điện thoại / Zalo</TableHead>
-              <TableHead>Vai trò mặc định</TableHead>
-              <TableHead>Hình thức</TableHead>
-              <TableHead>Trạng thái</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {members.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell className="font-medium">
-                  <Link href={`/crew/${member.id}`} className="hover:underline">
-                    {member.name}
-                  </Link>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {member.phone ?? "—"}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {member.default_role?.name ?? "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      member.employment_type === EmploymentType.PERMANENT
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {employmentType[member.employment_type]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={crewMemberStatus[member.status].variant}>
-                    {crewMemberStatus[member.status].label}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <CrewTabs crew={members} roles={roles} projects={projects} />
     </>
   );
 }

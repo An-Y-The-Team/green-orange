@@ -26,6 +26,7 @@ import {
 } from "@/lib/labels";
 
 import { getCrewMember, listTimekeeping } from "../queries";
+import { MemberActions } from "./member-actions";
 
 // Hồ sơ nhân sự — read-only (phase 1): member card, assignment history with
 // the non-blocking "Trùng lịch" chip, timekeeping records.
@@ -61,11 +62,14 @@ export default async function CrewDetailPage({
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-lg">{member.name}</CardTitle>
-              <Badge variant={crewMemberStatus[member.status].variant}>
-                {crewMemberStatus[member.status].label}
-              </Badge>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-lg">{member.name}</CardTitle>
+                <Badge variant={crewMemberStatus[member.status].variant}>
+                  {crewMemberStatus[member.status].label}
+                </Badge>
+              </div>
+              <MemberActions id={member.id} status={member.status} />
             </div>
           </CardHeader>
           <CardContent>

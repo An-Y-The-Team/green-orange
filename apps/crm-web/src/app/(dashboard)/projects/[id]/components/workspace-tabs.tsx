@@ -21,9 +21,11 @@ import { Textarea } from "@yan/ui/components/textarea";
 import { formatDate, formatVND, isOverdue } from "@/lib/format";
 import { overdue, paperworkStatus, quoteStatus } from "@/lib/labels";
 
+import type { Assignment, CrewMember, CrewRole } from "../../../crew/types";
 import { addNote } from "../../actions/add-note";
 import { PaperworkStatus } from "../../enums";
 import type { PaperworkItem, Project } from "../../types";
+import { AssignmentsTab } from "./assignments-tab";
 
 const TABS = ["quotes", "paperwork", "crew", "payment", "notes"] as const;
 type Tab = (typeof TABS)[number];
@@ -39,9 +41,15 @@ const TAB_LABELS: Record<Tab, string> = {
 export function WorkspaceTabs({
   project,
   paperworkItems,
+  assignments,
+  crew,
+  roles,
 }: {
   project: Project;
   paperworkItems: PaperworkItem[];
+  assignments: Assignment[];
+  crew: CrewMember[];
+  roles: CrewRole[];
 }) {
   const [tab, setTab] = useState<Tab>("quotes");
 
@@ -67,7 +75,14 @@ export function WorkspaceTabs({
 
       {tab === "quotes" ? <QuotesTab project={project} /> : null}
       {tab === "paperwork" ? <PaperworkTab items={paperworkItems} /> : null}
-      {tab === "crew" ? <Stub text="Sẽ có ở giai đoạn 5" /> : null}
+      {tab === "crew" ? (
+        <AssignmentsTab
+          projectId={project.id}
+          assignments={assignments}
+          crew={crew}
+          roles={roles}
+        />
+      ) : null}
       {tab === "payment" ? <Stub text="Sẽ có ở giai đoạn 4" /> : null}
       {tab === "notes" ? <NotesTab project={project} /> : null}
     </div>

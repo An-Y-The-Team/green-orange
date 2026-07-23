@@ -44,6 +44,17 @@ export async function listProjectAttachments(
   );
 }
 
+/**
+ * All paperwork items (cross-project) for dashboard overdue surfacing.
+ * ponytail: the live GET /paperwork-items may require project_id; if it errors
+ * or returns nothing without one, apiFetchSafe degrades to [] — acceptable.
+ */
+export async function listAllPaperworkItems(): Promise<PaperworkItem[]> {
+  return API_URL
+    ? apiFetchSafe<PaperworkItem[]>("/paperwork-items", [])
+    : paperworkItems;
+}
+
 export async function listProjectTypes(): Promise<ProjectType[]> {
   return API_URL
     ? apiFetchSafe<ProjectType[]>("/project-types", [])

@@ -237,7 +237,25 @@ Changed: `receivables/page.tsx` gets row actions (record payment, bill
 flips) via the new actions; workspace lock UX: when stage closed, hide
 mutating controls except notes + reopen (server enforces anyway).
 
-## Phase 5 — Crew, dashboard money blocks, settings
+## Phase 5 — Crew, dashboard money blocks, settings ✅ (2026-07-24)
+
+**Shipped.** `tsc`, `eslint --max-warnings 0`, `bun run build` clean;
+route smoke of `/crew` (tabs), `/crew/new`, `/crew/[id]/edit`,
+`/settings`, `/dashboard` (Công nợ), `/projects/[id]` (Nhân sự tab) all
+200. Contract findings: crew member DELETE 409s if it has
+assignments/timekeeping (UI's primary "leave" action = `PATCH
+{status:"left"}`, delete only for never-used); role + project-type DELETE
+409 if referenced; role name `@unique` (dup → raw error, surfaced);
+timekeeping POST is an **upsert** on `(crew_member_id, project_id,
+work_date, source)`, no PATCH, UI writes `source:"manual"`, `zalo_app`
+rows read-only; assignment `overlaps` only on POST/PATCH responses
+(non-blocking amber chip). `apiSend` discards the 409 JSON body so
+counts (e.g. "N project(s)") aren't shown — generic VN message instead.
+`WorkspaceTabs` gained `{assignments, crew, roles}` props (fed by
+`page.tsx`, assignments now fetched every stage). Added
+`listAllPaperworkItems` (dashboard overdue feed). Built via 4 fan-out
+subagents (crew page / timekeeping grid / assignments / dashboard+settings);
+integrator wired the `page.tsx` → `WorkspaceTabs` seam.
 
 - `crew/new/page.tsx` + `crew/[id]/edit/page.tsx` (or inline edit on
   detail) + `crew/actions/` (member CRUD; roles CRUD with 409 handling).
@@ -273,6 +291,15 @@ assignments.ts`, non-blocking overlap warning from response
 
 ## Changelog
 
+- 2026-07-24 — phase 5 shipped: crew management + dashboard money + settings.
+  `/crew` is now a tabbed page (Danh sách roster + member CRUD via
+  `/crew/new` + `/crew/[id]/edit`; Vai trò inline role CRUD; Chấm công
+  members×days weekly timekeeping grid w/ manual-upsert-on-blur + read-only
+  zalo_app cells). Workspace Nhân sự tab is a live assignments editor
+  (add/edit/delete + non-blocking overlap chip). Dashboard gained a Công nợ
+  block + overdue-paperwork in Cần theo dõi. New /settings (Danh mục:
+  project-types inline CRUD + templates link) + nav item. Built via 4
+  fan-out subagents; integrator wired page.tsx → WorkspaceTabs props.
 - 2026-07-24 — phase 4 shipped: stage panels 6–9 + receivables writes.
   Execution (sub-status stepper w/ skippable hoarding, optional notes,
   duration dual-source + Xem chênh lệch timekeeping modal, exit stamps

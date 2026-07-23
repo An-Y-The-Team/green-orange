@@ -4,6 +4,7 @@ import {
   HardHat,
   LayoutDashboard,
   type LucideIcon,
+  Tags,
   Users,
   UsersRound,
   Wallet,
@@ -25,4 +26,5 @@ export const navItems: NavItem[] = [
   { label: "Hợp đồng", href: "/contracts", icon: FileSignature },
   { label: "Thu & công nợ", href: "/receivables", icon: Wallet },
   { label: "Nhân sự", href: "/crew", icon: UsersRound },
+  { label: "Danh mục", href: "/settings", icon: Tags },
 ];

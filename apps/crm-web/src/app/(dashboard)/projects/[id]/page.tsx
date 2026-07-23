@@ -7,11 +7,10 @@ import type { Contract } from "@/app/(dashboard)/contracts/types";
 import {
   getProjectAssignments,
   getProjectTimekeeping,
+  listCrew,
+  listCrewRoles,
 } from "@/app/(dashboard)/crew/queries";
-import type {
-  Assignment,
-  TimekeepingRecord,
-} from "@/app/(dashboard)/crew/types";
+import type { TimekeepingRecord } from "@/app/(dashboard)/crew/types";
 import { getDealQuote } from "@/app/(dashboard)/quotes/queries";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
 import {
@@ -77,6 +76,8 @@ export default async function ProjectDetailPage({
     assignments,
     settlements,
     bills,
+    crew,
+    roles,
   ] = await Promise.all([
     isSurvey
       ? listProjectAttachments(project.id, "survey")
@@ -93,13 +94,13 @@ export default async function ProjectDetailPage({
     isExecution
       ? getProjectTimekeeping(project.id)
       : Promise.resolve<TimekeepingRecord[]>([]),
-    isExecution
-      ? getProjectAssignments(project.id)
-      : Promise.resolve<Assignment[]>([]),
+    getProjectAssignments(project.id),
     needsMoneyDocs
       ? getProjectSettlements(project.id)
       : Promise.resolve<Settlement[]>([]),
     needsMoneyDocs ? getProjectBills(project.id) : Promise.resolve<Bill[]>([]),
+    listCrew(),
+    listCrewRoles(),
   ]);
 
   return (
@@ -126,7 +127,13 @@ export default async function ProjectDetailPage({
         assignments={assignments}
         paperworkItems={paperworkItems}
       />
-      <WorkspaceTabs project={project} paperworkItems={paperworkItems} />
+      <WorkspaceTabs
+        project={project}
+        paperworkItems={paperworkItems}
+        assignments={assignments}
+        crew={crew}
+        roles={roles}
+      />
     </>
   );
 }
