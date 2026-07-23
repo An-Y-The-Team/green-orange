@@ -1,4 +1,3 @@
-import { Badge } from "@yan/ui/components/badge";
 import {
   Card,
   CardContent,
@@ -6,17 +5,24 @@ import {
   CardTitle,
 } from "@yan/ui/components/card";
 
-import { formatDate, formatVND } from "@/lib/format";
+import type { Contract } from "@/app/(dashboard)/contracts/types";
+import type { Quote } from "@/app/(dashboard)/quotes/types";
+import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
+import { formatDate } from "@/lib/format";
 import {
   acceptanceSubStatus,
   executionSubStatus,
   projectStage,
   projectStageOrder,
-  quoteStatus,
 } from "@/lib/labels";
 
 import { ProjectStage } from "../../enums";
-import type { Project } from "../../types";
+import type { Attachment, PaperworkItem, Project } from "../../types";
+import { ContractPanel } from "./panels/contract";
+import { PaperworkPanel } from "./panels/paperwork";
+import { QuotePanel } from "./panels/quote";
+import { RequestPanel } from "./panels/request";
+import { SurveyPanel } from "./panels/survey";
 
 // Read-only <dt>/<dd> grid, mirroring the phase-1 facts card. Empty rows drop out.
 function Facts({ rows }: { rows: [string, string | null | undefined][] }) {
@@ -36,83 +42,14 @@ function Facts({ rows }: { rows: [string, string | null | undefined][] }) {
 
 const LATER = "Bảng điều khiển đầy đủ sẽ có ở giai đoạn kế tiếp.";
 
-// ponytail: one switch, one file — real per-stage panels land in phases 3–4.
-function StageBody({ project }: { project: Project }) {
+// Stub panel for stages 6–9 (execution, acceptance, settlement, closed) —
+// real panels land in phase 4. ponytail: read-only facts until then.
+function StubPanel({ project }: { project: Project }) {
+  const n = projectStageOrder.indexOf(project.stage) + 1;
+  let body;
   switch (project.stage) {
-    case ProjectStage.REQUEST:
-      return (
-        <Facts
-          rows={[
-            ["Yêu cầu", project.request_note],
-            ["Nguồn", project.referral_source],
-            [
-              "Hẹn khảo sát",
-              project.appointment_at
-                ? formatDate(project.appointment_at)
-                : null,
-            ],
-          ]}
-        />
-      );
-
-    case ProjectStage.SURVEY:
-      return (
-        <div className="space-y-3">
-          {project.survey_items && project.survey_items.length > 0 ? (
-            <ul className="space-y-1 text-sm">
-              {project.survey_items.map((item, i) => (
-                <li key={i}>
-                  {item.name}
-                  {item.quantity != null
-                    ? ` — ${item.quantity}${item.unit ? ` ${item.unit}` : ""}`
-                    : ""}
-                  {item.note ? ` (${item.note})` : ""}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <Facts rows={[["Ghi chú khảo sát", project.survey_note]]} />
-          {!project.survey_items?.length && !project.survey_note ? (
-            <p className="text-sm text-muted-foreground">{LATER}</p>
-          ) : null}
-        </div>
-      );
-
-    case ProjectStage.QUOTE: {
-      const latest = [...(project.quotes ?? [])].sort(
-        (a, b) => b.version - a.version
-      )[0];
-      if (!latest)
-        return <p className="text-sm text-muted-foreground">{LATER}</p>;
-      return (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="font-medium">
-            {project.code} · v{latest.version}
-          </span>
-          <span>{formatVND(latest.total_amount)}</span>
-          <Badge variant={quoteStatus[latest.status].variant}>
-            {quoteStatus[latest.status].label}
-          </Badge>
-        </div>
-      );
-    }
-
-    case ProjectStage.CONTRACT:
-      return (
-        <Facts
-          rows={[
-            [
-              "Khách ký hợp đồng",
-              project.client_signed_date
-                ? formatDate(project.client_signed_date)
-                : null,
-            ],
-          ]}
-        />
-      );
-
     case ProjectStage.EXECUTION:
-      return (
+      body = (
         <Facts
           rows={[
             [
@@ -141,9 +78,9 @@ function StageBody({ project }: { project: Project }) {
           ]}
         />
       );
-
+      break;
     case ProjectStage.ACCEPTANCE:
-      return (
+      body = (
         <Facts
           rows={[
             [
@@ -165,15 +102,10 @@ function StageBody({ project }: { project: Project }) {
           ]}
         />
       );
-
-    // paperwork (tab: Hồ sơ), settlement (tab: Thanh toán, phase 4), closed.
+      break;
     default:
-      return <p className="text-sm text-muted-foreground">{LATER}</p>;
+      body = <p className="text-sm text-muted-foreground">{LATER}</p>;
   }
-}
-
-export function StagePanel({ project }: { project: Project }) {
-  const n = projectStageOrder.indexOf(project.stage) + 1;
   return (
     <Card id={`stage-${project.stage}`} className="mb-6 scroll-mt-4">
       <CardHeader>
@@ -181,9 +113,59 @@ export function StagePanel({ project }: { project: Project }) {
           Giai đoạn {n} · {projectStage[project.stage].label}
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <StageBody project={project} />
-      </CardContent>
+      <CardContent>{body}</CardContent>
     </Card>
   );
+}
+
+// Dispatch to the current stage's panel. Stages 1–5 have real panels (each
+// brings its own Card + "Giai đoạn N" header); contract returns a bare body,
+// so it's wrapped here; stages 6–9 fall to the read-only stub.
+export function StagePanel({
+  project,
+  attachments,
+  contracts,
+  milestones,
+  dealQuote,
+  paperworkItems,
+}: {
+  project: Project;
+  attachments: Attachment[];
+  contracts: Contract[];
+  milestones: PaymentMilestone[];
+  dealQuote?: Quote;
+  paperworkItems: PaperworkItem[];
+}) {
+  switch (project.stage) {
+    case ProjectStage.REQUEST:
+      return <RequestPanel project={project} />;
+    case ProjectStage.SURVEY:
+      return <SurveyPanel project={project} attachments={attachments} />;
+    case ProjectStage.QUOTE:
+      return <QuotePanel project={project} />;
+    case ProjectStage.CONTRACT:
+      return (
+        <Card id="stage-contract" className="mb-6 scroll-mt-4">
+          <CardHeader>
+            <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">
+              Giai đoạn 4 · {projectStage[project.stage].label}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ContractPanel
+              project={project}
+              contracts={contracts}
+              milestones={milestones}
+              dealQuote={dealQuote}
+            />
+          </CardContent>
+        </Card>
+      );
+    case ProjectStage.PAPERWORK:
+      return (
+        <PaperworkPanel project={project} paperworkItems={paperworkItems} />
+      );
+    default:
+      return <StubPanel project={project} />;
+  }
 }

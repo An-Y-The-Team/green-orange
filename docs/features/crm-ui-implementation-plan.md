@@ -118,9 +118,24 @@ Changed files:
   buttons → link `/projects/new`.
 - `data/mock/*` — only if new includes are needed.
 
-## Phase 3 — Stage panels 1–5 + quote builder
+## Phase 3 — Stage panels 1–5 + quote builder ✅ (2026-07-23)
 
 Goal: pre-execution pipeline fully operational.
+
+**Shipped.** All panels/actions/pages below built; `tsc`, `eslint
+--max-warnings 0`, `bun run build` clean; mock-smoke of every real panel
+(request/survey/quote/contract/paperwork via temporary stage-flips),
+quote builder (`?from=survey`/`?edit=`/blank), contract authoring, and
+worker-list print — all 200. Contract findings: vat_rate is a **fraction
+0..1** (UI shows %); milestone status advances **one step at a time**
+(record-deposit = POST + 2 PATCHes); contract template body is **not**
+copied server-side (editor pre-fills client-side); paperwork has **no**
+server forward-only guard (UI enforces). New per-project queries added:
+`getProjectContracts`, `getProjectMilestones`, `listProjectAttachments`.
+`stage-panel.tsx` dispatches to `panels/*.tsx`; contract panel returns a
+bare body so the dispatcher wraps it in the standard Card. Attachments
+are metadata-only (`s3_key`=filename). Worker-list print is live (reused
+`listAssignments`). Stages 6–9 remain read-only stubs (phase 4).
 
 New files:
 
@@ -240,6 +255,15 @@ mutating controls except notes + reopen (server enforces anyway).
 
 ## Changelog
 
+- 2026-07-23 — phase 3 shipped: stage panels 1–5 wired into the workspace
+  dispatcher. Quotes (builder page `?from=survey`/`?edit=`, versions rail,
+  send/decide/revise/delete actions with chained project on_hold/cancelled),
+  contracts (gate checklist + client-signed + 60%-deposit via record-deposit
+  3-step, contract authoring page reusing Lexical editor, sign-contract
+  chaining client_signed_date), paperwork (one-way status stepper + due_date
+  overdue), request/survey panels + attachments layer (metadata-only). Built
+  via 4 fan-out subagents (one per stage-group); integrator wired
+  stage-panel switch + page.tsx stage-gated fetches.
 - 2026-07-23 — phase 2 shipped: `/projects/new` intake (search-select
   client + inline quick-create + dependent contact/location selects via
   `loadClient` loader action), workspace shell (header w/ Hoãn/Hủy/Kích

@@ -21,3 +21,21 @@ export const contractTemplateSchema = z.object({
   is_active: z.coerce.boolean(),
 });
 export type ContractTemplateFormValues = z.infer<typeof contractTemplateSchema>;
+
+// Hợp đồng create/edit — contracts are born from a project (stage-4 panel).
+// The template body is pre-filled into `body` client-side (the server never
+// copies it), so `body` is a plain optional editorState string here.
+export const createContractSchema = z.object({
+  project_id: z.number().int().positive(),
+  template_id: z.number().int().positive().optional(),
+  body: z.string().optional(),
+  note: z.string().optional(),
+});
+export type CreateContractFormValues = z.infer<typeof createContractSchema>;
+
+export const updateContractSchema = z.object({
+  template_id: z.number().int().positive().optional(),
+  body: z.string().optional(),
+  note: z.string().optional(),
+});
+export type UpdateContractFormValues = z.infer<typeof updateContractSchema>;

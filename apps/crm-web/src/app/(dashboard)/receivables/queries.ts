@@ -11,6 +11,18 @@ export async function listPaymentMilestones(): Promise<PaymentMilestone[]> {
     : paymentMilestones;
 }
 
+/** All payment milestones for a project (mirrors GET /payment-milestones?project_id=). */
+export async function getProjectMilestones(
+  projectId: number
+): Promise<PaymentMilestone[]> {
+  return API_URL
+    ? apiFetchSafe<PaymentMilestone[]>(
+        `/payment-milestones?project_id=${projectId}`,
+        []
+      )
+    : paymentMilestones.filter((m) => m.project_id === projectId);
+}
+
 export async function listBills(): Promise<Bill[]> {
   return API_URL ? apiFetchSafe<Bill[]>("/bills", []) : bills;
 }

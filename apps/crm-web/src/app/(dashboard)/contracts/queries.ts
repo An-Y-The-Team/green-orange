@@ -15,6 +15,15 @@ export async function getContract(id: number): Promise<Contract | undefined> {
   return contracts.find((c) => c.id === id);
 }
 
+/** All contracts for a project (mirrors GET /contracts?project_id=). */
+export async function getProjectContracts(
+  projectId: number
+): Promise<Contract[]> {
+  return API_URL
+    ? apiFetchSafe<Contract[]>(`/contracts?project_id=${projectId}`, [])
+    : contracts.filter((c) => c.project_id === projectId);
+}
+
 export async function listContractTemplates(): Promise<ContractTemplate[]> {
   return API_URL
     ? apiFetchSafe<ContractTemplate[]>("/contract-templates", [])
