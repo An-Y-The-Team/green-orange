@@ -22,9 +22,17 @@ refined during build.
 
 ## Principles
 
-- **The pipeline is the product.** Every screen answers "what does this job
-  need next?" — the stage panel shows the gates the server enforces, so a
-  blocked stage move is never a surprise 400.
+- **The pipeline is the common flow, not the only one.** The 9 stages are how
+  a typical job progresses, but work happens opportunistically — clients,
+  quotes, contracts, crew are created directly from their own pages, and jobs
+  can be entered mid-pipeline (backfill). Every screen still answers "what
+  does this job need next?"
+- **Stages auto-advance from the work; they don't gate it.** Doing the thing
+  moves the stage forward — creating a quote sends the project to Báo giá —
+  forward-only (`stage = max(stage, triggered)`, never dragged backward). The
+  panel's checklist shows what the current stage needs; when satisfied the
+  project advances on its own. Manual stage moves stay possible with a soft
+  warning — no hard 400 blocks.
 - **Vietnamese in the UI, English in the code.** Enum values come from the v2
   API in English; `labels.ts` (regenerated from the glossary) is the only
   place Vietnamese labels live.
@@ -94,13 +102,16 @@ The center of the app. Three zones:
 ```
 
 - **Zone 1 — header.** Code, name, status badge, client → location →
-  contacts, type tags. The 9-step stepper: completed steps filled, current
-  highlighted, future dimmed. Clicking a _past_ step scrolls to its summary;
-  the _next_ step is a button that runs the stage move (server enforces
-  gates; the panel already shows them, so the button is disabled with a
-  reason until they're green). `Hoãn` asks for a follow-up date; `Hủy` asks
-  for the required reason. Parked/cancelled projects show a banner with the
-  frozen stage + reason, and `Hoãn` offers "Kích hoạt lại".
+  contacts, type tags. The 9-step stepper reflects where the job _is_,
+  derived from the work done: completed steps filled, current highlighted,
+  future dimmed. Most advances happen automatically as artifacts are created
+  (quote → 3, cọc → 5, works-done → 7, settlement signed → 8…); where there's
+  no artifact (Đã gặp khách 1→2) the current panel carries the button.
+  Clicking a step lets you jump there manually — a forward jump that skips
+  unfinished work shows a soft warning, never a hard block. `Hoãn` asks for a
+  follow-up date; `Hủy` asks for the required reason. Parked/cancelled
+  projects show a banner with the frozen stage + reason, and `Hoãn` offers
+  "Kích hoạt lại".
 - **Zone 2 — stage panel.** Only the current stage's panel renders. Each
   panel = gate checklist (live from the same data the server gates on) +
   the stage's own fields/actions.
@@ -110,34 +121,49 @@ The center of the app. Three zones:
 
 ### Per-stage panels (first-pass draft — each stage confirmed below, one by one)
 
-| #   | Stage                   | Panel contents                      | Gate to advance (server-enforced)    |
-| --- | ----------------------- | ----------------------------------- | ------------------------------------ |
-| 1   | Yêu cầu                 | ✅ confirmed — see "Stage 1" below. | —                                    |
-| 2   | Khảo sát                | ✅ confirmed — see "Stage 2" below. | —                                    |
-| 3   | Báo giá                 | ✅ confirmed — see "Stage 3" below. | latest quote `deal`                  |
-| 4   | Hợp đồng                | ✅ confirmed — see "Stage 4" below. | — (gates apply to _entering_ 6)      |
-| 5   | Chuẩn bị hồ sơ          | ✅ confirmed — see "Stage 5" below. | all items `approved` + stage-4 gates |
-| 6   | Thi công                | ✅ confirmed — see "Stage 6" below. | —                                    |
-| 7   | Nghiệm thu              | ✅ confirmed — see "Stage 7" below. | sub-status `passed`                  |
-| 8   | Quyết toán & Thanh toán | ✅ confirmed — see "Stage 8" below. | all milestones + bills `paid`        |
-| 9   | Đã đóng                 | ✅ confirmed — see "Stage 9" below. | terminal (reopen → stage 8)          |
+| #   | Stage                   | Panel contents                      | Auto-advance trigger (soft, forward-only) |
+| --- | ----------------------- | ----------------------------------- | ----------------------------------------- |
+| 1   | Yêu cầu                 | ✅ confirmed — see "Stage 1" below. | —                                         |
+| 2   | Khảo sát                | ✅ confirmed — see "Stage 2" below. | —                                         |
+| 3   | Báo giá                 | ✅ confirmed — see "Stage 3" below. | latest quote `deal`                       |
+| 4   | Hợp đồng                | ✅ confirmed — see "Stage 4" below. | — (gates apply to _entering_ 6)           |
+| 5   | Chuẩn bị hồ sơ          | ✅ confirmed — see "Stage 5" below. | all items `approved` + stage-4 gates      |
+| 6   | Thi công                | ✅ confirmed — see "Stage 6" below. | —                                         |
+| 7   | Nghiệm thu              | ✅ confirmed — see "Stage 7" below. | sub-status `passed`                       |
+| 8   | Quyết toán & Thanh toán | ✅ confirmed — see "Stage 8" below. | all milestones + bills `paid`             |
+| 9   | Đã đóng                 | ✅ confirmed — see "Stage 9" below. | terminal (reopen → stage 8)               |
 
-### Stage 1 — Yêu cầu (confirmed 2026-07-23)
+### Stage 1 — Yêu cầu (confirmed 2026-07-23; entry decoupled 2026-07-24)
 
-**Intake page** (`/projects/new` — "+ Tiếp nhận yêu cầu" buttons on the
-dashboard header + projects list link here) — one submit creates the
-stage-1 project and lands on its workspace:
+**A project does not have to start as a request.** `/projects/new` is one
+create page with a **starting-stage selector** (default `Yêu cầu`), reached
+by two buttons with different defaults:
+
+- Dashboard **"+ Tiếp nhận yêu cầu"** → starts at Yêu cầu, appointment
+  prefilled today — the zero-friction stage-1 path.
+- Projects list **"+ Công trình mới"** → stage selector visible, no
+  appointment prefill — direct create + **backfilling pre-CRM projects**
+  that are already mid-pipeline (or finished).
+
+Only the Công Trình identity is **always required** — Client · Location ·
+Type · Name. The stage-1 fields (**Hẹn gặp**, **Yêu cầu**, **Nguồn**) are
+**conditional**: shown/required only when the starting stage is Yêu cầu,
+hidden/optional otherwise. One submit creates the project at the chosen
+stage and lands on its workspace.
 
 ```text
 ┌─ /projects/new · Tiếp nhận yêu cầu ────────────┐
+│ Giai đoạn     [Yêu cầu ▾]  ← default; hides     │
+│                             stage-1 fields when  │
+│                             set to a later stage │
 │ Khách hàng    [search… ▾]  (+ tạo nhanh)       │
 │ Người liên hệ [auto from client ▾] (+ tạo nhanh)│
 │ Địa điểm      [auto from client ▾] (+ tạo nhanh)│
 │ Loại          [Vệ sinh] [Thi công] [Tháo dỡ]   │
 │ Tên công trình [___________] (gợi ý tự động)   │
-│ Yêu cầu       [mô tả ngắn___________________]  │
-│ Nguồn         [giới thiệu / gọi lại / …______] │
-│ Hẹn gặp       [Hôm nay ▾] [15:00]              │
+│ Yêu cầu       [mô tả ngắn___________________]  │ ← stage-1 only
+│ Nguồn         [giới thiệu / gọi lại / …______] │ ← stage-1 only
+│ Hẹn gặp       [Hôm nay ▾] [15:00]              │ ← stage-1 only
 │                              [Tạo công trình]  │
 └────────────────────────────────────────────────┘
 ```
@@ -153,6 +179,17 @@ stage-1 project and lands on its workspace:
   list (YAGNI).
 - Appointment defaults to today; time required (drives the dashboard's
   "Hôm nay" block).
+- **Backfill fidelity**: create at the real current stage, then back-date
+  via the workspace's existing edit affordances (`visit_date` sửa, start/end
+  dates, money on bills/milestones). No back-date fields on the create form
+  itself — reuse what the workspace already has.
+- **Creating at a stage asserts state, it does not transition** — the
+  forward-move gates (chốt quote, cọc, paperwork approved…) are **not run on
+  create**, so a backfilled stage-6 job doesn't 400 on gates it never passed
+  through in-app. Auto-seed paperwork still fires (harmless).
+- Backfilling an already-**finished** job hits the stage-9 close lock:
+  create at stage 8, or reopen to edit.
+  `// ponytail: revisit if backfilling closed jobs becomes common`
 
 **Stage-1 panel:**
 
@@ -470,6 +507,21 @@ and that bill's milestones:
 | (behavior)     | on settlement sign: attach unallocated cọc milestone (`bill_id` null, paid) to the new official bill + auto-create one milestone for the remaining balance                                                           | 8          |
 | (behavior)     | closed projects are locked: mutations on the project + its entities rejected (except ProjectNote and the reopen action `stage: closed → settlement`)                                                                 | 9          |
 
+## Backend deltas — pending (2026-07-24, entry + auto-advance reframe)
+
+**Not yet applied.** These follow from the 2026-07-24 decisions (entry
+decoupled from stage 1; gates are soft auto-switches, not hard rejects;
+standalone quotes/contracts):
+
+| Model / behavior | Change                                                                                                                                                                                                                                                                       | From |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| (behavior)       | `POST /projects` accepts optional `stage` (default `yeu_cau`); creating at a stage **asserts state** and does NOT run forward-move gates (direct create / pre-CRM backfill)                                                                                                  | 1    |
+| (behavior)       | stage transitions become **auto-advance, forward-only** — `stage = max(stage, triggered)` on the artifact action (quote → 3, cọc → 5, works-done → 7, settlement signed → 8…). No gate 400s; manual moves allowed (soft warning). Replaces the server-enforced gate rejects. | all  |
+| Quote            | `project_id` **nullable** — standalone quotes (walk-in / speculative), attachable to a project later; attaching auto-advances that project to Báo giá                                                                                                                        | 3    |
+| Contract         | `project_id` **nullable** — standalone contracts; attaching auto-advances that project to Hợp đồng                                                                                                                                                                           | 4    |
+
+The stage-9 **closed-project lock stays** (it's an edit lock, not a transition gate); only the _trigger_ to close (final payment) becomes auto/soft like the rest.
+
 ## Other desktop screens
 
 ### Tổng quan (`/dashboard`)
@@ -485,13 +537,15 @@ Four blocks, all v2-derived — replaces the v1 rollup cards:
 4. **Cần theo dõi** — `on_hold` projects whose `follow_up_date` has arrived.
 
 Plus the header button **"+ Tiếp nhận yêu cầu"** → the intake page
-(`/projects/new`, see Stage 1).
+(`/projects/new`, default stage Yêu cầu, appointment prefilled — see Stage 1).
 
 ### Công trình list (`/projects`)
 
 Table: code, name, client, location, type tags, stage chip, status badge,
 appointment/next-due hint. Filters: stage, status, type. Default view hides
-`cancelled`. Row → workspace.
+`cancelled`. Row → workspace. Header button **"+ Công trình mới"** →
+`/projects/new` with the stage selector visible (direct create / backfill —
+see Stage 1).
 
 ### Khách hàng (`/clients`, `/clients/:id`)
 
@@ -505,18 +559,23 @@ as "Địa chỉ").
 
 ### Báo giá (`/quotes`, `/quotes/:id`)
 
-List across projects: code+version, project, client, total, status, sent
-channels, decided date. Detail = the printable (DocumentShell) + version
-history rail (older versions frozen/`superseded`, watermark "Đã thay thế").
-Creation always starts from a project — the quote builder is a dedicated
-page (`/projects/:id/quotes/new`, also used by "Tạo phiên bản mới" for
-bargaining) — no orphan quotes.
+List across projects: code+version, project (or "—" for standalone), client,
+total, status, sent channels, decided date. Header button **"+ Báo giá mới"**
+opens the builder directly (`/quotes/new`); a project is **optional**
+(`project_id` nullable) — pick one to tie the quote into a pipeline (which
+auto-advances that project to Báo giá), or leave it standalone (walk-in /
+speculative) and attach later. Detail = the printable (DocumentShell) +
+version history rail (older versions frozen/`superseded`, watermark "Đã thay
+thế"). Project-scoped creation stays at `/projects/:id/quotes/new` (also used
+by "Tạo phiên bản mới" for bargaining).
 
 ### Hợp đồng (`/contracts`, templates kept)
 
-List: code, project, status (`Nháp/Đã ký`), signed date. Detail/edit and the
-Lexical template editor stay as-is, re-pointed at v2 fields
-(`project_id`, `signed_date`).
+List: code, project (or "—" for standalone), status (`Nháp/Đã ký`), signed
+date. Header button **"+ Hợp đồng mới"** opens the template editor directly;
+a project is **optional** (`project_id` nullable) — tying one in auto-advances
+that project to Hợp đồng. Detail/edit and the Lexical template editor stay
+as-is, re-pointed at v2 fields (`project_id`, `signed_date`).
 
 ### Thu & công nợ (`/receivables`)
 
@@ -581,8 +640,9 @@ pages (which remain usable, just not optimized, on mobile).
   regenerated to v2 shapes (small, one happy-path project per stage).
   TanStack Query stays provisioned-but-unused; no client-side data layer
   until field mode proves it needs one.
-- **Errors:** stage-gate 400s from the server surface as toast with the
-  server message — but the UI's gate checklist should make them rare.
+- **Errors:** stage transitions no longer 400 on unmet gates (auto-advance,
+  forward-only; manual jumps are soft). Real validation errors (bad input,
+  missing required fields) still surface as toast with the server message.
 
 ## Build order
 
@@ -649,6 +709,24 @@ pages (which remain usable, just not optimized, on mobile).
 - 2026-07-23 — stage 9 confirmed: locked on close (server-enforced,
   notes exempt) with [Mở lại] → stage 8; repeat-business shortcut kept.
   **All 9 stage panels confirmed — stage design pass complete.**
+- 2026-07-24 — entry decoupled from stage 1: `/projects/new` gains a
+  starting-stage selector (default Yêu cầu). "+ Tiếp nhận yêu cầu"
+  (dashboard) defaults to Yêu cầu w/ appointment prefilled; "+ Công trình
+  mới" (projects list) shows the selector for direct create + pre-CRM
+  backfill. Stage-1 fields conditional on stage = Yêu cầu; only
+  Client/Location/Type/Name always required. Backend delta: `POST /projects`
+  takes optional `stage`, skips forward-move gates on create (asserts state,
+  not a transition). Backfill dates via existing workspace edit affordances.
+- 2026-07-24 — gates → auto-switches + standalone entities: the pipeline is
+  the common flow, not the only one. Stage transitions become auto-advance,
+  forward-only (`max` rule) side-effects of the work; no hard 400 gates,
+  manual moves allowed with a soft warning. Every list page creates its own
+  items directly ("+ Báo giá mới" on `/quotes`, "+ Hợp đồng mới" on
+  `/contracts`, existing new-buttons on clients/crew/projects). Quotes and
+  contracts become standalone-capable (`project_id` nullable); attaching to a
+  project auto-advances it. New pending-deltas backend section added (not yet
+  applied). Principles + Zone-1 stepper + per-stage table header + contract-
+  wiring errors reframed accordingly.
 - 2026-07-23 — backend deltas applied: migration `ui_design_deltas` +
   module changes (auto-seed paperwork, sub-status skip rule,
   acceptance date stamp, SettlementItem + sign choreography, closed-

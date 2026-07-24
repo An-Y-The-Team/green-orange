@@ -18,13 +18,12 @@ import { Textarea } from "@yan/ui/components/textarea";
 import { fieldError, selectClass } from "@/components/form-bits";
 import { crewMemberStatus, employmentType } from "@/lib/labels";
 
+import { createCrewMember, updateCrewMember } from "./actions/members";
+import { CrewMemberStatus, EmploymentType } from "./enums";
 import {
   type CreateCrewMemberFormValues,
-  createCrewMember,
   createCrewMemberSchema,
-  updateCrewMember,
-} from "./actions/members";
-import { CrewMemberStatus, EmploymentType } from "./enums";
+} from "./schema";
 import type { CrewMember, CrewRole } from "./types";
 
 const initialState: ServerActionState = { success: false };

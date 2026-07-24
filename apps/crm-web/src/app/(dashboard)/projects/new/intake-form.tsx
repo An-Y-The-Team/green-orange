@@ -26,19 +26,16 @@ import { Textarea } from "@yan/ui/components/textarea";
 import { fieldError, selectClass } from "@/components/form-bits";
 import { clientType } from "@/lib/labels";
 
-import {
-  type CreateClientFormValues,
-  createClient,
-  createClientSchema,
-} from "../../clients/actions/create-client";
+import { createClient } from "../../clients/actions/create-client";
 import { loadClient } from "../../clients/actions/load-client";
 import { ClientType } from "../../clients/enums";
-import type { ClientListItem, Contact, Location } from "../../clients/types";
 import {
-  type CreateProjectFormValues,
-  createProject,
-  createProjectSchema,
-} from "../actions/create-project";
+  type CreateClientFormValues,
+  createClientSchema,
+} from "../../clients/schema";
+import type { ClientListItem, Contact, Location } from "../../clients/types";
+import { createProject } from "../actions/create-project";
+import { type CreateProjectFormValues, createProjectSchema } from "../schema";
 import type { ProjectType } from "../types";
 
 const initialState: ServerActionState = {

@@ -265,7 +265,10 @@ Template for each entity as we redefine it:
 
 Built by the boss, sent via Zalo / email / print (per client). Sent
 channel(s) are recorded on the quote. Quote is **báo giá only** — Quyết toán
-is its own entity (see stage 8), no more `type` field.
+is its own entity (see stage 8), no more `type` field. **A quote usually
+belongs to a project but can be standalone** (`project_id` nullable, 2026-07-24)
+— a walk-in / speculative quote created from `/quotes`, attachable to a project
+later; attaching auto-advances that project to Báo giá.
 
 ```text
 nhap (Nháp — being built, not sent)
@@ -284,7 +287,9 @@ versions are frozen as superseded.
 ### Contract (Hợp đồng) — partially confirmed 2026-07-23
 
 Optional entity — small jobs run on the chốt quote alone. Printed by
-secretary/operator, signed by the boss (our side) + the client.
+secretary/operator, signed by the boss (our side) + the client. Also
+**`project_id`-optional** (2026-07-24) — creatable standalone from
+`/contracts`; attaching to a project auto-advances it to Hợp đồng.
 
 ```text
 nhap (Nháp — drafted/printed, not yet signed by both)
@@ -402,6 +407,13 @@ day-unit), `source: manual | zalo_app`. Manual is source of truth
 
 ## Cross-entity rules (confirmed 2026-07-23)
 
+**2026-07-24 — these are auto-advance triggers, not hard gates.** Each event
+below moves the project's stage **forward only** (`stage = max(stage,
+triggered)`) when it happens; the project is never hard-blocked from a manual
+stage move (soft warning instead). Read "gates X" below as "auto-advances the
+project to X". The pipeline is the _common_ flow — direct create and pre-CRM
+backfill let a job start at any stage.
+
 - Quote `chot` gates stage 4 (contract signing / quote-only agreement).
 - Cọc received (`tam_ung` milestone `da_thu`) closes stage 4.
 - All paperwork items `da_duyet` gates Thi công.
@@ -438,3 +450,8 @@ day-unit), `source: manual | zalo_app`. Manual is source of truth
   common, Zalo phone as future identity), user-managed roles, assignments
   with overridable role + non-blocking double-booking warning, timekeeping
   records (manual | zalo_app); no wage computation.
+- 2026-07-24 — pipeline is the common flow, not the only one: projects can be
+  created directly / mid-pipeline (pre-CRM backfill); cross-entity rules are
+  auto-advance triggers (forward-only `max` rule), not hard gates — no 400
+  blocks, manual moves are soft; Quote and Contract become `project_id`-
+  optional (standalone, attachable later, attaching auto-advances the stage).

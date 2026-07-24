@@ -1,35 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { clients } from "@/data/mock/clients";
 import { API_URL, apiSend, nextId } from "@/lib/http";
 
-import { ClientType } from "../enums";
+import { type CreateClientFormValues, createClientSchema } from "../schema";
 import type { Client } from "../types";
-
-export const createClientSchema = z
-  .object({
-    name: z.string().min(1),
-    type: z.nativeEnum(ClientType),
-    address: z.string().optional(),
-  })
-  .superRefine((val, ctx) => {
-    // Individual clients need an address — the backend derives their default
-    // location/contact from it.
-    if (val.type === ClientType.INDIVIDUAL && !val.address?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["address"],
-        message: "Vui lòng nhập địa chỉ cho khách cá nhân.",
-      });
-    }
-  });
-
-export type CreateClientFormValues = z.infer<typeof createClientSchema>;
 
 export async function createClient(
   _prev: ServerActionState,

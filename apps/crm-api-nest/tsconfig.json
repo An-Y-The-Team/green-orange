@@ -14,6 +14,10 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "incremental": true,
+    // Keep the build-info inside dist so nest-cli's deleteOutDir wipes it with
+    // the output — a root-level tsbuildinfo survives the wipe and makes tsc skip
+    // emit, leaving no dist/main (Cannot find module dist/main).
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
     "skipLibCheck": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": false,
