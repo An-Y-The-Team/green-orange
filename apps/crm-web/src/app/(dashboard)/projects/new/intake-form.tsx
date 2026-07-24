@@ -24,7 +24,7 @@ import { Separator } from "@yan/ui/components/separator";
 import { Textarea } from "@yan/ui/components/textarea";
 
 import { fieldError, selectClass } from "@/components/form-bits";
-import { clientType } from "@/lib/labels";
+import { clientType, projectStage, projectStageOrder } from "@/lib/labels";
 
 import { createClient } from "../../clients/actions/create-client";
 import { loadClient } from "../../clients/actions/load-client";
@@ -35,6 +35,7 @@ import {
 } from "../../clients/schema";
 import type { ClientListItem, Contact, Location } from "../../clients/types";
 import { createProject } from "../actions/create-project";
+import { ProjectStage } from "../enums";
 import { type CreateProjectFormValues, createProjectSchema } from "../schema";
 import type { ProjectType } from "../types";
 
@@ -113,11 +114,17 @@ export function IntakeForm({
       decision_maker_contact_id: prefill?.decision_maker_contact_id,
       name: "",
       type_ids: [],
+      stage: ProjectStage.REQUEST,
       request_note: "",
       referral_source: "",
       appointment_at: undefined,
     },
   });
+
+  // Stage-1 (Yêu cầu) fields only apply when the project starts at request;
+  // a direct-create / backfill at a later stage skips them.
+  const stage = useWatch({ control: form.control, name: "stage" });
+  const isRequest = stage === ProjectStage.REQUEST;
 
   useServerAction(state, isPending, {
     successToastTitle: "Thành công",
@@ -163,11 +170,12 @@ export function IntakeForm({
   };
 
   const onValid = (values: CreateProjectFormValues) => {
-    const appointment_at = values.appointment_at
-      ? values.appointment_at
-      : apptDate
-        ? new Date(`${apptDate}T${apptTime || "00:00"}`).toISOString()
-        : undefined;
+    const appointment_at =
+      values.stage !== ProjectStage.REQUEST
+        ? undefined
+        : apptDate
+          ? new Date(`${apptDate}T${apptTime || "00:00"}`).toISOString()
+          : undefined;
     // Decision maker defaults to the working contact.
     startTransition(() =>
       formAction({
@@ -215,6 +223,32 @@ export function IntakeForm({
       >
         <Card>
           <CardContent className="space-y-4">
+            {/* Giai đoạn bắt đầu — default Yêu cầu; later stages = direct
+                create / backfill and hide the stage-1 fields below. */}
+            <FormField
+              control={form.control}
+              name="stage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Giai đoạn</FormLabel>
+                  <FormControl>
+                    <select
+                      className={selectClass}
+                      value={field.value}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    >
+                      {projectStageOrder.map((s) => (
+                        <option key={s} value={s}>
+                          {projectStage[s].label}
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Khách hàng */}
             <FormField
               control={form.control}
@@ -427,63 +461,68 @@ export function IntakeForm({
               )}
             />
 
-            {/* Yêu cầu */}
-            <FormField
-              control={form.control}
-              name="request_note"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Yêu cầu</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={3}
-                      placeholder="Mô tả yêu cầu của khách hàng..."
-                      {...field}
-                      value={field.value ?? ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Stage-1 (Yêu cầu) fields — only when starting at request */}
+            {isRequest ? (
+              <>
+                {/* Yêu cầu */}
+                <FormField
+                  control={form.control}
+                  name="request_note"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Yêu cầu</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          rows={3}
+                          placeholder="Mô tả yêu cầu của khách hàng..."
+                          {...field}
+                          value={field.value ?? ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {/* Nguồn */}
-            <FormField
-              control={form.control}
-              name="referral_source"
-              render={({ field }) => (
+                {/* Nguồn */}
+                <FormField
+                  control={form.control}
+                  name="referral_source"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nguồn</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Giới thiệu, Facebook, khách cũ..."
+                          {...field}
+                          value={field.value ?? ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Hẹn gặp */}
                 <FormItem>
-                  <FormLabel>Nguồn</FormLabel>
-                  <FormControl>
+                  <FormLabel>Hẹn gặp</FormLabel>
+                  <div className="flex gap-2">
                     <Input
-                      placeholder="Giới thiệu, Facebook, khách cũ..."
-                      {...field}
-                      value={field.value ?? ""}
+                      type="date"
+                      value={apptDate}
+                      onChange={(e) => setApptDate(e.target.value)}
+                      className="w-auto"
                     />
-                  </FormControl>
-                  <FormMessage />
+                    <Input
+                      type="time"
+                      value={apptTime}
+                      onChange={(e) => setApptTime(e.target.value)}
+                      className="w-auto"
+                    />
+                  </div>
                 </FormItem>
-              )}
-            />
-
-            {/* Hẹn gặp */}
-            <FormItem>
-              <FormLabel>Hẹn gặp</FormLabel>
-              <div className="flex gap-2">
-                <Input
-                  type="date"
-                  value={apptDate}
-                  onChange={(e) => setApptDate(e.target.value)}
-                  className="w-auto"
-                />
-                <Input
-                  type="time"
-                  value={apptTime}
-                  onChange={(e) => setApptTime(e.target.value)}
-                  className="w-auto"
-                />
-              </div>
-            </FormItem>
+              </>
+            ) : null}
           </CardContent>
         </Card>
 
