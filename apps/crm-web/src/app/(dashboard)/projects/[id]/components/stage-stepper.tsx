@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useActionState, useTransition } from "react";
 
 import {
@@ -7,6 +8,7 @@ import {
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
+import { cn } from "@yan/ui/lib/utils";
 
 import { projectStage, projectStageOrder } from "@/lib/labels";
 
@@ -52,8 +54,8 @@ export function StageStepper({ project }: { project: Project }) {
         ) : null}
       </div>
 
-      {/* Full rail at md+. */}
-      <div className="hidden flex-wrap items-center gap-1.5 md:flex">
+      {/* Full pipeline line at md+. */}
+      <div className="hidden flex-wrap items-center gap-x-2 gap-y-3 md:flex">
         {projectStageOrder.map((stage, i) => {
           const done = i < currentIndex;
           const current = i === currentIndex;
@@ -61,16 +63,32 @@ export function StageStepper({ project }: { project: Project }) {
             <a
               key={stage}
               href={`#stage-${stage}`}
-              className={[
-                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                current
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : done
-                    ? "border-primary/40 bg-primary/10 text-foreground"
-                    : "border-border text-muted-foreground",
-              ].join(" ")}
+              className="flex items-center gap-2"
             >
-              {i + 1}. {projectStage[stage].label}
+              <span
+                className={cn(
+                  "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                  done && "bg-primary text-primary-foreground",
+                  current &&
+                    "bg-primary text-primary-foreground ring-2 ring-primary/30",
+                  !done && !current && "bg-muted text-muted-foreground"
+                )}
+              >
+                {done ? <Check className="size-3.5" /> : i + 1}
+              </span>
+              <span
+                className={cn(
+                  "text-xs whitespace-nowrap",
+                  current
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                {projectStage[stage].label}
+              </span>
+              {i < projectStageOrder.length - 1 && (
+                <span className="mx-0.5 h-px w-4 bg-border" aria-hidden />
+              )}
             </a>
           );
         })}
