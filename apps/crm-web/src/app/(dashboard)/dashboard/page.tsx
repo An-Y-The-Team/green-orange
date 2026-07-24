@@ -11,7 +11,7 @@ import {
 
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatVND, isOverdue } from "@/lib/format";
-import { overdue, projectStage, projectStageOrder } from "@/lib/labels";
+import { overdue } from "@/lib/labels";
 
 import {
   PaperworkStatus,
@@ -119,12 +119,7 @@ export default async function DashboardPage() {
   );
   const debtTotal = debts.reduce((sum, d) => sum + d.amount, 0);
 
-  // Pipeline — count per lifecycle stage (cancelled jobs excluded).
   const active = projects.filter((p) => p.status !== ProjectStatus.CANCELLED);
-  const byStage = projectStageOrder.map((stage) => ({
-    stage,
-    count: active.filter((p) => p.stage === stage).length,
-  }));
 
   return (
     <>
@@ -237,31 +232,6 @@ export default async function DashboardPage() {
               </ul>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Pipeline</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-center gap-2">
-            {byStage.map(({ stage, count }) => (
-              <div
-                key={stage}
-                className="flex items-center gap-2 rounded-md border px-3 py-2"
-              >
-                <Badge
-                  variant={count > 0 ? projectStage[stage].variant : "outline"}
-                >
-                  {count}
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  {projectStage[stage].label}
-                </span>
-              </div>
-            ))}
-          </div>
         </CardContent>
       </Card>
     </>

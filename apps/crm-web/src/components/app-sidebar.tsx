@@ -41,7 +41,7 @@ export function AppSidebar() {
         })}
       </nav>
       <div className="border-t border-sidebar-border p-3 text-xs text-muted-foreground">
-        Bản demo dạy học
+        <p>GreenOrange CRM</p>
       </div>
     </aside>
   );
