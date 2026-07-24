@@ -56,7 +56,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         {children}
         {/* sonner toasts — used by the shared useServerAction hook for
             success/error feedback on server actions. */}
-        <Toaster position="top-right" richColors />
+        <Toaster position="bottom-right" richColors />
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </ThemeProvider>
