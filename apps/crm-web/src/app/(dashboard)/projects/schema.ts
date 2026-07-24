@@ -13,10 +13,24 @@ export const projectSchema = z.object({
   type: z.nativeEnum(ProjectType),
   address: z.string().min(1, "Vui lòng nhập địa điểm"),
   manager: z.string().min(1, "Vui lòng nhập người phụ trách"),
-  contract_value: z.coerce.number().min(0, "Giá trị không hợp lệ"),
-  estimated_cost: z.coerce.number().min(0, "Dự toán không hợp lệ"),
-  start_date: z.string().min(1, "Chọn ngày bắt đầu"),
-  end_date: z.string().min(1, "Chọn ngày kết thúc"),
+  // Optional: blank inputs ("") become undefined so they're omitted from the
+  // payload (dates especially — "" is not a valid date on the backend).
+  contract_value: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.coerce.number().min(0, "Giá trị không hợp lệ").optional()
+  ),
+  estimated_cost: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.coerce.number().min(0, "Dự toán không hợp lệ").optional()
+  ),
+  start_date: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
+  end_date: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
 });
 export type ProjectFormValues = z.infer<typeof projectSchema>;
 

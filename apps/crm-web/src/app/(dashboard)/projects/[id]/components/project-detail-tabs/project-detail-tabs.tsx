@@ -339,7 +339,7 @@ function CostsTab({
   quotes: Quote[];
 }) {
   const { actual_cost, margin, margin_pct } = projectActuals(project, costs);
-  const overBudget = actual_cost > project.estimated_cost;
+  const overBudget = actual_cost > (project.estimated_cost ?? 0);
   const settlement = quotes.find((q) => q.type === "quyet_toan");
 
   return (

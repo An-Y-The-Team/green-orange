@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import decimal
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
@@ -45,25 +44,31 @@ class AcceptanceStatus(StrEnum):
     CO_VAN_DE = "co_van_de"
 
 
+# Fields the client supplies on create. `code`/`stage`/`progress` are NOT here:
+# the crm-web form posts none of them, so `code` is server-generated and `stage`
+# /`progress` default to a new-project state (mirrors the mock in add-project.ts).
+# Money is `int` VND and dates are `date` to match the crm-web `Project` type 1:1
+# (Decimal serializes to a JSON string and datetime to an ISO timestamp, both of
+# which the UI mis-renders). DB columns stay Numeric/DateTime — Pydantic coerces
+# on read — so no migration is needed.
 class ProjectBase(SQLModel):
-    code: str = Field(index=True)
     name: str
-    description: str | None = None
     client: str
     type: ProjectType
     address: str
-    stage: ProjectStage
+    stage: ProjectStage = ProjectStage.YEU_CAU
     schedule_outcome: ScheduleOutcome | None = None
-    start_date: datetime
-    end_date: datetime
+    start_date: date | None = None
+    end_date: date | None = None
     manager: str
-    contract_value: decimal.Decimal
-    estimated_cost: decimal.Decimal
-    progress: int
+    contract_value: int | None = None
+    estimated_cost: int | None = None
+    progress: int = 0
 
 
 class Project(ProjectBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    code: str = Field(index=True)
     created_at: datetime | None = Field(default_factory=datetime.utcnow)
     updated_at: datetime | None = None
 
@@ -74,20 +79,20 @@ class ProjectCreate(ProjectBase):
 
 class ProjectPublic(ProjectBase):
     id: int
+    code: str
 
 
 class ProjectUpdate(SQLModel):
     code: str | None = None
     name: str | None = None
-    description: str | None = None
     client: str | None = None
     type: ProjectType | None = None
     address: str | None = None
     stage: ProjectStage | None = None
     schedule_outcome: ScheduleOutcome | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
+    start_date: date | None = None
+    end_date: date | None = None
     manager: str | None = None
-    contract_value: decimal.Decimal | None = None
-    estimated_cost: decimal.Decimal | None = None
+    contract_value: int | None = None
+    estimated_cost: int | None = None
     progress: int | None = None

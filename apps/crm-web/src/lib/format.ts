@@ -11,7 +11,8 @@ export function formatUSD(amount: number): string {
 }
 
 /** Vietnamese đồng — e.g. 12.500.000 ₫. No fractional digits (VND has none). */
-export function formatVND(amount: number): string {
+export function formatVND(amount: number | null | undefined): string {
+  if (amount == null) return "—";
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
@@ -20,7 +21,8 @@ export function formatVND(amount: number): string {
 }
 
 /** ISO date (YYYY-MM-DD) → dd/MM/yyyy. Returns the input unchanged if unparsable. */
-export function formatDate(iso: string): string {
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
 }
@@ -38,11 +40,10 @@ export function quoteTotals(items: QuoteItem[], vatRate: number) {
 /** Estimated-vs-actual for a project, given its logged costs. */
 export function projectActuals(project: Project, costs: Cost[]) {
   const actual_cost = costs.reduce((sum, c) => sum + c.amount, 0);
-  const margin = project.contract_value - actual_cost;
+  const contract_value = project.contract_value ?? 0;
+  const margin = contract_value - actual_cost;
   const margin_pct =
-    project.contract_value > 0
-      ? Math.round((margin / project.contract_value) * 100)
-      : 0;
+    contract_value > 0 ? Math.round((margin / contract_value) * 100) : 0;
   return { actual_cost, margin, margin_pct };
 }
 

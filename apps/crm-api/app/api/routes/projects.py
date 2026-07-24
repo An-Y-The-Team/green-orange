@@ -4,6 +4,7 @@ Every endpoint is protected (depends on CurrentUser).
 """
 
 from fastapi import APIRouter, HTTPException, Query, status
+from sqlalchemy import func
 from sqlmodel import select
 
 from app.api.deps import CurrentUser, SessionDep
@@ -39,7 +40,12 @@ def get_project(project_id: int, session: SessionDep, _user: CurrentUser) -> Pro
 def create_project(
     payload: ProjectCreate, session: SessionDep, _user: CurrentUser
 ) -> Project:
-    project = Project.model_validate(payload)
+    # Server-assigned business key CT-2026-NNN (the web form never sends `code`).
+    # max(id)+1 == the new row's id and mirrors the mock's `CT-2026-${seq(id)}`.
+    # ponytail: not race-safe under concurrent inserts; fine for the teaching app.
+    next_num = (session.exec(select(func.max(Project.id))).one() or 0) + 1
+    code = f"CT-2026-{next_num:03d}"
+    project = Project.model_validate(payload, update={"code": code})
     session.add(project)
     session.commit()
     session.refresh(project)
