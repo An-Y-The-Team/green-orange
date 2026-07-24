@@ -7,6 +7,7 @@ export interface Client {
   name: string;
   type: ClientType;
   tax_code: string | null;
+  email: string | null; // the client's own email (distinct from Contact emails)
   note: string | null;
   created_at: string;
   updated_at: string;

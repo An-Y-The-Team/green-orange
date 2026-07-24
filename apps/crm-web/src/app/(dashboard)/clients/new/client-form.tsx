@@ -27,10 +27,10 @@ const initialState: ServerActionState = {
   errors: {},
 };
 
-// Standalone client create. Name + type only (companies add locations/contacts
-// inline on the detail page); individuals need an address (backend derives
-// their single location/contact). Redirects to the list — mock data isn't
-// persisted, and in live mode the new client shows there.
+// Standalone client create. Core fields (name, type, client email); companies
+// add locations/contacts inline on the detail page; individuals need an address
+// (backend derives their single location/contact). Redirects to the list — mock
+// data isn't persisted, and in live mode the new client shows there.
 export function ClientForm() {
   const router = useRouter();
   const [state, formAction] = useActionState(createClient, initialState);
@@ -39,7 +39,12 @@ export function ClientForm() {
   const form = useForm<CreateClientFormValues>({
     resolver: zodResolver(createClientSchema),
     mode: "onChange",
-    defaultValues: { name: "", type: ClientType.COMPANY, address: "" },
+    defaultValues: {
+      name: "",
+      type: ClientType.COMPANY,
+      email: "",
+      address: "",
+    },
   });
   const type = useWatch({ control: form.control, name: "type" });
 
@@ -80,6 +85,17 @@ export function ClientForm() {
                 {clientType[ClientType.INDIVIDUAL]}
               </option>
             </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="ketoan@congty.com"
+              {...form.register("email")}
+            />
+            {fieldError(form.formState.errors.email)}
           </div>
 
           {type === ClientType.INDIVIDUAL ? (

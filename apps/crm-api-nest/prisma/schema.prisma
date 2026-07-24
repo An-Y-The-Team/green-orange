@@ -42,6 +42,7 @@ model Client {
   name       String
   type       String // company | individual
   tax_code   String?
+  email      String? // the client's own billing/contact email (distinct from Contact emails)
   note       String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt

@@ -34,9 +34,11 @@ class CreateClientDto {
   @IsIn(CLIENT_TYPE) type: string;
   @IsOptional() @IsString() tax_code?: string;
   @IsOptional() @IsString() note?: string;
-  // individual clients: auto-created default contact + location
-  @IsOptional() @IsString() phone?: string;
+  // the client's own email (distinct from Contact emails). For individuals it
+  // also seeds their auto-created contact (client === the person).
   @IsOptional() @IsEmail() email?: string;
+  // individual clients: phone seeds the auto-created default contact
+  @IsOptional() @IsString() phone?: string;
   @ValidateIf((o) => o.type === "individual")
   @IsString()
   @MinLength(1)
@@ -47,6 +49,7 @@ class UpdateClientDto {
   @IsOptional() @IsString() @MinLength(1) name?: string;
   @IsOptional() @IsIn(CLIENT_TYPE) type?: string;
   @IsOptional() @IsString() tax_code?: string;
+  @IsOptional() @IsEmail() email?: string;
   @IsOptional() @IsString() note?: string;
 }
 
@@ -78,6 +81,7 @@ class ClientsController {
       name: dto.name,
       type: dto.type,
       tax_code: dto.tax_code,
+      email: dto.email,
       note: dto.note,
     };
     if (dto.type !== "individual") {
