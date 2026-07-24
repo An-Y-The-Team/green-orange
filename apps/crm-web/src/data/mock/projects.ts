@@ -39,6 +39,9 @@ export const projects: Project[] = [
     location_id: 1,
     working_contact_id: 1,
     decision_maker_contact_id: 1,
+    // Embedded like GET /projects/:id (detail) includes them — the list omits these.
+    working_contact: { id: 1, name: "Trần Văn B", phone: "0901234567" },
+    decision_maker: { id: 1, name: "Trần Văn B", phone: "0901234567" },
     name: "Vệ sinh kính mặt ngoài Toà nhà A",
     request_note: "Vệ sinh kính mặt ngoài",
     referral_source: "giới thiệu",

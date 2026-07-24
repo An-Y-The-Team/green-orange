@@ -271,7 +271,26 @@ assignments.ts`, non-blocking overlap warning from response
   (`projects/actions/project-types.ts`) + link card to templates; add
   nav item (Settings icon) in `config/nav.ts`.
 
-## Phase 6 — Field mode (`/field`)
+## Phase 6 — Field mode (`/field`) ✅ (2026-07-24)
+
+**Shipped — final phase; crm-web v2 rebuild complete.** `tsc`, `eslint
+--max-warnings 0`, `bun run build` clean; `/field` smoked 200 with all
+four cards rendering (appointment w/ Gọi `tel:` + Bắt đầu khảo sát, quote
+Chốt/Hoãn/Hủy, execution Xác nhận hoàn tất, intake link + bottom bar).
+New `(field)` route group with its OWN layout (no middleware exists —
+auth is per-layout, so the `force-dynamic` + `authEnabled`/`auth()`/
+`needsLogin`→`<LoginOverlay/>` block was cloned from `(dashboard)/
+layout.tsx`; providers are root-level, not re-added). Reuses
+`decideQuote`/`updateProject`/`listProjects`/`listQuotes` — no new
+backend. **Gotcha: `GET /projects` list omits `working_contact`**, so the
+[Gọi] tel link needs the detail — the page refetches today's appointments
+via `getProject` (detail includes the contact); embedded `working_contact`
+in the mock so it mirrors the detail endpoint + is verifiable. **Ops
+gotcha: killing the `bun run start` wrapper leaves the child `next start`
+holding port 3002** → next boot silently binds nothing and a STALE server
+answers (false-negative smokes). Always `lsof -ti tcp:3002 | xargs kill`
+and confirm "✓ Ready" before smoking. Built by one focused agent (a 4-way
+fan-out would be over-engineering for one page + one layout).
 
 - Route group `app/(field)/field/page.tsx` with own minimal layout
   (bottom bar, no sidebar; reuse auth/providers). Blocks per redesign:
@@ -290,6 +309,14 @@ assignments.ts`, non-blocking overlap warning from response
 
 ## Changelog
 
+- 2026-07-24 — phase 6 shipped (FINAL): field mode `(field)` route group at
+  `/field` — thumb-first mobile with its own auth-gated layout (cloned from
+  dashboard) + bottom bar. Blocks: today's appointments (Gọi tel: + one-tap
+  Bắt đầu khảo sát), quick intake link, Chờ quyết định quote cards
+  (Chốt/Hoãn/Hủy reusing decideQuote), Đang thi công/nghiệm thu sub-status
+  bumps + Xác nhận hoàn tất (reusing updateProject). All reuse existing
+  actions/queries. Fixed [Gọi] (list omits working_contact → refetch detail
+  via getProject). **crm-web v2 rebuild complete (phases 1–6).**
 - 2026-07-24 — phase 5 shipped: crew management + dashboard money + settings.
   `/crew` is now a tabbed page (Danh sách roster + member CRUD via
   `/crew/new` + `/crew/[id]/edit`; Vai trò inline role CRUD; Chấm công
