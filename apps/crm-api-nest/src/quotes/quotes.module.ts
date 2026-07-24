@@ -30,6 +30,7 @@ import {
 
 import { toBig } from "../common/coerce";
 import { assertProjectOpen } from "../common/project-lock";
+import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 
 const CHANNEL = ["zalo", "email", "print"];
@@ -49,7 +50,9 @@ class QuoteItemDto {
 }
 
 class CreateQuoteDto {
-  @IsInt() project_id: number;
+  // Optional (crm-ui-redesign.md, 2026-07-24): standalone quotes have no
+  // project; attaching one auto-advances the project to Báo giá.
+  @IsOptional() @IsInt() project_id?: number;
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
@@ -117,7 +120,10 @@ class QuotesController {
     return row;
   }
 
-  private async nextVersion(projectId: number) {
+  // Standalone quotes (no project) share version 1 — @@unique[project_id,
+  // version] treats null project_id as distinct in Postgres, so no collision.
+  private async nextVersion(projectId: number | null | undefined) {
+    if (projectId == null) return 1;
     const max = await this.prisma.quote.aggregate({
       where: { project_id: projectId },
       _max: { version: true },
@@ -130,9 +136,9 @@ class QuotesController {
   async create(@Body() dto: CreateQuoteDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
     const { rows, total } = computeItems(dto.items);
-    return this.prisma.quote.create({
+    const quote = await this.prisma.quote.create({
       data: {
-        project_id: dto.project_id,
+        project_id: dto.project_id ?? null,
         version: await this.nextVersion(dto.project_id),
         total_amount: total,
         ...(dto.vat_rate !== undefined && { vat_rate: dto.vat_rate }),
@@ -142,6 +148,8 @@ class QuotesController {
       },
       include: INCLUDE,
     });
+    await advanceStage(this.prisma, dto.project_id, "quote");
+    return quote;
   }
 
   @Patch(":id")
@@ -217,7 +225,7 @@ class QuotesController {
   async revise(@Param("id", ParseIntPipe) id: number) {
     const quote = await this.get(id);
     await assertProjectOpen(this.prisma, quote.project_id);
-    return this.prisma.quote.create({
+    const revised = await this.prisma.quote.create({
       data: {
         project_id: quote.project_id,
         version: await this.nextVersion(quote.project_id),
@@ -237,6 +245,8 @@ class QuotesController {
       },
       include: INCLUDE,
     });
+    await advanceStage(this.prisma, quote.project_id, "quote");
+    return revised;
   }
 
   @Delete(":id")

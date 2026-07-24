@@ -32,21 +32,12 @@ import {
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
 import { assertProjectOpen } from "../common/project-lock";
+import { STAGE_ORDER } from "../common/stage";
 import { DEFAULT_PAPERWORK } from "../paperwork/paperwork.module";
 import { PrismaService } from "../prisma/prisma.service";
 
 // Enum-like values — English snake_case, from prisma/schema.prisma comments.
-const STAGE = [
-  "request",
-  "survey",
-  "quote",
-  "contract",
-  "paperwork",
-  "execution",
-  "acceptance",
-  "settlement",
-  "closed",
-];
+const STAGE = STAGE_ORDER;
 const STATUS = ["active", "on_hold", "cancelled"];
 const EXECUTION_SUB = ["kickoff", "hoarding", "works"];
 const ACCEPTANCE_SUB = ["request_sent", "inspecting", "rework", "passed"];
@@ -129,6 +120,10 @@ class CreateProjectDto {
   @IsOptional() @IsInt() working_contact_id?: number;
   @IsOptional() @IsInt() decision_maker_contact_id?: number;
   @IsInt({ each: true }) @ArrayMinSize(1) type_ids: number[];
+  // Starting stage — default "request". Creating at a later stage asserts
+  // historical state (direct create / pre-CRM backfill); no gates run on
+  // create (crm-ui-redesign.md, 2026-07-24).
+  @IsOptional() @IsIn(STAGE) stage?: string;
   @IsOptional() @IsString() request_note?: string;
   @IsOptional() @IsString() referral_source?: string;
   @IsOptional()
@@ -241,6 +236,7 @@ class ProjectsController {
           location_id: dto.location_id,
           working_contact_id: working,
           decision_maker_contact_id: dto.decision_maker_contact_id ?? working,
+          stage: dto.stage ?? "request",
           request_note: dto.request_note,
           referral_source: dto.referral_source,
           survey_items: dto.survey_items?.map((i) => ({ ...i })),
@@ -293,11 +289,9 @@ class ProjectsController {
         "cancel_reason is required when cancelling a project"
       );
 
-    if (
-      dto.stage !== undefined &&
-      STAGE.indexOf(dto.stage) > STAGE.indexOf(current.stage)
-    )
-      await this.checkStageGate(id, dto, current);
+    // No stage gates (crm-ui-redesign.md, 2026-07-24): transitions are soft.
+    // Forward moves auto-advance from the work (see advanceStage in the quote/
+    // contract/settlement/milestone modules); a manual jump here just applies.
 
     const { type_ids, ...rest } = dto;
     const data: Record<string, unknown> = { ...rest };
@@ -312,77 +306,6 @@ class ProjectsController {
     )
       data.acceptance_passed_date = new Date();
     return this.prisma.project.update({ where: { id }, data });
-  }
-
-  // Stage gates (docs/features/crm-business-flow.md, cross-entity rules).
-  // Only forward moves are gated; backward/same-stage moves are free.
-  private async checkStageGate(
-    id: number,
-    dto: UpdateProjectDto,
-    current: {
-      client_signed_date: Date | null;
-      acceptance_sub_status: string | null;
-    }
-  ) {
-    switch (dto.stage) {
-      case "contract": {
-        const latest = await this.prisma.quote.findFirst({
-          where: { project_id: id },
-          orderBy: { version: "desc" },
-        });
-        if (latest?.status !== "deal")
-          throw new BadRequestException(
-            "Cannot enter contract stage: latest quote must have status 'deal'"
-          );
-        return;
-      }
-      case "execution": {
-        const signed = dto.client_signed_date
-          ? true
-          : current.client_signed_date !== null;
-        if (!signed)
-          throw new BadRequestException(
-            "Cannot enter execution stage: client_signed_date is not set"
-          );
-        const deposit = await this.prisma.paymentMilestone.findFirst({
-          where: { project_id: id, type: "deposit", status: "paid" },
-        });
-        if (!deposit)
-          throw new BadRequestException(
-            "Cannot enter execution stage: no paid deposit milestone"
-          );
-        const pending = await this.prisma.paperworkItem.count({
-          where: { project_id: id, status: { not: "approved" } },
-        });
-        if (pending > 0)
-          throw new BadRequestException(
-            `Cannot enter execution stage: ${pending} paperwork item(s) not approved`
-          );
-        return;
-      }
-      case "settlement": {
-        const sub = dto.acceptance_sub_status ?? current.acceptance_sub_status;
-        if (sub !== "passed")
-          throw new BadRequestException(
-            "Cannot enter settlement stage: acceptance sub-status must be 'passed'"
-          );
-        return;
-      }
-      case "closed": {
-        const unpaidMilestones = await this.prisma.paymentMilestone.count({
-          where: { project_id: id, status: { not: "paid" } },
-        });
-        const unpaidBills = await this.prisma.bill.count({
-          where: { project_id: id, status: { not: "paid" } },
-        });
-        if (unpaidMilestones > 0 || unpaidBills > 0)
-          throw new BadRequestException(
-            "Cannot close project: unpaid payment milestones or bills remain"
-          );
-        return;
-      }
-      // survey, quote, paperwork (may start in parallel), acceptance: no gate.
-    }
   }
 
   @Delete(":id")

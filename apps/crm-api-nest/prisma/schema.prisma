@@ -135,7 +135,7 @@ model Project {
 
 model Quote {
   id           Int       @id @default(autoincrement())
-  project_id   Int
+  project_id   Int? // null = standalone quote (walk-in / speculative), attachable later
   version      Int // 1, 2, … — bargaining = new row; sent rows never edited
   status       String    @default("draft") // draft | waiting | deal | on_hold | rejected — latest version carries live status
   total_amount BigInt // VND
@@ -143,7 +143,7 @@ model Quote {
   decided_date   DateTime? @db.Date
   note         String?
 
-  project   Project        @relation(fields: [project_id], references: [id])
+  project   Project?       @relation(fields: [project_id], references: [id])
   items     QuoteItem[]
   send_logs QuoteSendLog[]
 
@@ -176,7 +176,7 @@ model QuoteSendLog {
 
 model Contract {
   id         Int       @id @default(autoincrement())
-  project_id Int // 0..n per project
+  project_id Int? // 0..n per project; null = standalone contract, attachable later
   code       String    @unique
   status     String    @default("draft") // draft | signed
   signed_date  DateTime? @db.Date
@@ -185,7 +185,7 @@ model Contract {
   template_id Int?
   body        String? // Lexical editorState JSON, opaque
 
-  project  Project           @relation(fields: [project_id], references: [id])
+  project  Project?          @relation(fields: [project_id], references: [id])
   template ContractTemplate? @relation(fields: [template_id], references: [id])
 }
 

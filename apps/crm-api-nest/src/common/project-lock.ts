@@ -7,8 +7,9 @@ import { PrismaService } from "../prisma/prisma.service";
 // transition (stage closed → settlement) handled in the projects module.
 export async function assertProjectOpen(
   prisma: PrismaService,
-  projectId: number
+  projectId: number | null | undefined
 ): Promise<void> {
+  if (projectId == null) return; // standalone quote/contract — nothing to lock
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: { stage: true },

@@ -24,12 +24,9 @@ export async function createProject(
     };
   }
 
-  // POST /projects takes everything except appointment_at, which is only
-  // settable via PATCH (see NEST contract). `stage` is held back from the
-  // live POST — the backend doesn't accept it yet (pending 2026-07-24 delta:
-  // POST /projects with optional stage). ponytail: add `stage` to createBody
-  // once that delta lands; mock already honors it.
-  const { appointment_at, stage, ...createBody } = parsed.data;
+  // POST /projects takes everything (incl. optional `stage`) except
+  // appointment_at, which is only settable via PATCH (see NEST contract).
+  const { appointment_at, ...createBody } = parsed.data;
 
   try {
     let project: Project;
@@ -48,7 +45,7 @@ export async function createProject(
         code: `CT-2026-${seq(id)}`,
         working_contact_id: createBody.working_contact_id ?? 0,
         decision_maker_contact_id: createBody.decision_maker_contact_id ?? 0,
-        stage,
+        stage: createBody.stage,
         status: "active",
         appointment_at: appointment_at ?? null,
         types: [],

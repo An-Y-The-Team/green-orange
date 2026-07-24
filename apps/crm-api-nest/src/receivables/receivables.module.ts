@@ -36,6 +36,7 @@ import {
 
 import { toBig, toDate } from "../common/coerce";
 import { assertProjectOpen } from "../common/project-lock";
+import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 
 const SETTLEMENT_STATUS = ["draft", "sent", "signed"];
@@ -129,7 +130,7 @@ class SettlementsController {
     await assertProjectOpen(this.prisma, dto.project_id);
     const { rows, total } = computeItems(dto.items ?? []);
     // Doc rule: the draft bill is prepared alongside the settlement.
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const settlement = await tx.settlement.create({
         data: {
           project_id: dto.project_id,
@@ -150,6 +151,9 @@ class SettlementsController {
         include: SETTLEMENT_INCLUDE,
       });
     });
+    // Starting a settlement means the project has reached stage 8.
+    await advanceStage(this.prisma, dto.project_id, "settlement");
+    return created;
   }
 
   @Patch(":id")
@@ -384,7 +388,18 @@ class PaymentMilestonesController {
       data.status = dto.status;
       if (dto.status === "paid") data.paid_date ??= new Date();
     }
-    return this.prisma.paymentMilestone.update({ where: { id }, data });
+    const updated = await this.prisma.paymentMilestone.update({
+      where: { id },
+      data,
+    });
+    // Cọc received (deposit milestone paid) closes stage 4 → paperwork.
+    if (
+      dto.status === "paid" &&
+      row.status !== "paid" &&
+      row.type === "deposit"
+    )
+      await advanceStage(this.prisma, row.project_id, "paperwork");
+    return updated;
   }
 
   @Delete(":id")

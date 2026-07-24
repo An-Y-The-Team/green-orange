@@ -26,6 +26,7 @@ import {
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
 import { assertProjectOpen } from "../common/project-lock";
+import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 
 const CONTRACT_STATUS = ["draft", "signed"];
@@ -44,7 +45,9 @@ const PROJECT_INCLUDE = {
 
 // ── Contracts (hợp đồng) ────────────────────────────────────────────────────
 class CreateContractDto {
-  @IsInt() project_id: number;
+  // Optional (crm-ui-redesign.md, 2026-07-24): standalone contracts have no
+  // project; attaching one auto-advances the project to Hợp đồng.
+  @IsOptional() @IsInt() project_id?: number;
   @IsOptional() @IsInt() template_id?: number;
   @IsOptional() @IsString() body?: string; // Lexical editorState JSON, opaque
   @IsOptional() @IsString() note?: string;
@@ -91,16 +94,18 @@ class ContractsController {
   async create(@Body() dto: CreateContractDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
     const code = await nextCode(this.prisma.contract, "HD");
-    return this.prisma.contract.create({
+    const contract = await this.prisma.contract.create({
       data: {
         code,
-        project_id: dto.project_id,
+        project_id: dto.project_id ?? null,
         template_id: dto.template_id ?? null,
         body: dto.body ?? null,
         note: dto.note ?? null,
       },
       include: PROJECT_INCLUDE,
     });
+    await advanceStage(this.prisma, dto.project_id, "contract");
+    return contract;
   }
 
   @Patch(":id")

@@ -6,6 +6,7 @@ import { describe, expect, test } from "bun:test";
 import { formatCode } from "./common/code";
 import { toBig } from "./common/coerce";
 import { normalize } from "./common/serialize.interceptor";
+import { shouldAdvance } from "./common/stage";
 
 describe("formatCode", () => {
   test("first sequence is CT-2026-001", () => {
@@ -58,5 +59,20 @@ describe("toBig", () => {
     expect(toBig(500)).toBe(500n);
     expect(toBig(null)).toBeNull();
     expect(toBig(undefined)).toBeNull();
+  });
+});
+
+describe("shouldAdvance (forward-only auto-advance)", () => {
+  test("advances when target is ahead", () => {
+    expect(shouldAdvance("request", "quote")).toBe(true);
+  });
+  test("never moves backward", () => {
+    expect(shouldAdvance("execution", "quote")).toBe(false);
+  });
+  test("same stage is a no-op", () => {
+    expect(shouldAdvance("quote", "quote")).toBe(false);
+  });
+  test("closed projects never auto-advance", () => {
+    expect(shouldAdvance("closed", "settlement")).toBe(false);
   });
 });

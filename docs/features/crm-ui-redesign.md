@@ -507,11 +507,11 @@ and that bill's milestones:
 | (behavior)     | on settlement sign: attach unallocated cọc milestone (`bill_id` null, paid) to the new official bill + auto-create one milestone for the remaining balance                                                           | 8          |
 | (behavior)     | closed projects are locked: mutations on the project + its entities rejected (except ProjectNote and the reopen action `stage: closed → settlement`)                                                                 | 9          |
 
-## Backend deltas — pending (2026-07-24, entry + auto-advance reframe)
+## Backend deltas — ✅ APPLIED 2026-07-24 (migration `20260724050124_soft_gates_auto_advance_standalone`)
 
-**Not yet applied.** These follow from the 2026-07-24 decisions (entry
-decoupled from stage 1; gates are soft auto-switches, not hard rejects;
-standalone quotes/contracts):
+Entry decoupled from stage 1; gates are soft auto-switches, not hard rejects;
+standalone quotes/contracts. Live in `crm-api-nest` (shared `advanceStage`
+helper in `src/common/stage.ts`; `checkStageGate` removed):
 
 | Model / behavior | Change                                                                                                                                                                                                                                                                       | From |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
