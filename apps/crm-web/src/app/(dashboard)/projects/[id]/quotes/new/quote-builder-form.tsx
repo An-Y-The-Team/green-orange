@@ -32,11 +32,11 @@ import {
   type QuoteFormValues,
   quoteFormSchema,
 } from "@/app/(dashboard)/quotes/schema";
-import { fieldError } from "@/components/form-bits";
+import { fieldError, selectClass } from "@/components/form-bits";
 import { formatVND, quoteTotals } from "@/lib/format";
 
 export interface QuoteBuilderInitial {
-  projectId: number;
+  projectId?: number; // undefined = standalone quote (created from /quotes/new)
   projectCode: string;
   version: number;
   editId?: number;
@@ -54,13 +54,19 @@ const BLANK_ROW = { description: "", unit: "", quantity: 1, unit_price: 0 };
 
 export function QuoteBuilderForm({
   initial,
+  projects,
 }: {
   initial: QuoteBuilderInitial;
+  // When provided (standalone /quotes/new), shows an optional project picker.
+  projects?: { id: number; label: string }[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const intentRef = useRef<"draft" | "send">("draft");
   const [sendId, setSendId] = useState<number | null>(null);
+  const [projectId, setProjectId] = useState<number | undefined>(
+    initial.projectId
+  );
 
   // Bind the draft id (edit) or use create; both collapse to (prevState, input).
   // updateQuote's schema strips project_id, so one create-shaped payload works.
@@ -90,7 +96,9 @@ export function QuoteBuilderForm({
       if (intentRef.current === "send" && data?.id) {
         setSendId(data.id);
       } else {
-        router.push(`/projects/${initial.projectId}`);
+        // Standalone → the quotes list (a newly-created quote's own detail
+        // only exists in live mode; mock data isn't persisted).
+        router.push(projectId ? `/projects/${projectId}` : "/quotes");
       }
     },
   });
@@ -109,7 +117,7 @@ export function QuoteBuilderForm({
 
   const onValid = (values: QuoteFormValues) => {
     const payload = {
-      project_id: initial.projectId,
+      project_id: projectId,
       items: values.items.map((it) => ({
         description: it.description,
         unit: it.unit || undefined,
@@ -127,6 +135,31 @@ export function QuoteBuilderForm({
       <Card>
         <CardContent className="space-y-5">
           <form onSubmit={handleSubmit(onValid)} className="space-y-5">
+            {projects ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="project">Công trình (không bắt buộc)</Label>
+                <select
+                  id="project"
+                  className={selectClass}
+                  value={projectId ?? ""}
+                  onChange={(e) =>
+                    setProjectId(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
+                >
+                  <option value="">
+                    — Báo giá độc lập (không gắn công trình) —
+                  </option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -280,7 +313,9 @@ export function QuoteBuilderForm({
           quoteId={sendId}
           open={sendId != null}
           onOpenChange={(open) => !open && setSendId(null)}
-          onSent={() => router.push(`/projects/${initial.projectId}`)}
+          onSent={() =>
+            router.push(projectId ? `/projects/${projectId}` : "/quotes")
+          }
         />
       ) : null}
     </>

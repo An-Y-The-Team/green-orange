@@ -5,7 +5,7 @@ import type { ContractStatus } from "./enums";
 // is kept from v1. GET /contracts includes a slim project relation.
 export interface Contract {
   id: number;
-  project_id: number;
+  project_id: number | null; // null = standalone contract
   code: string; // HD-YYYY-NNN
   status: ContractStatus;
   signed_date?: string | null; // YYYY-MM-DD

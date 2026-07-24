@@ -26,7 +26,7 @@ export type ContractTemplateFormValues = z.infer<typeof contractTemplateSchema>;
 // The template body is pre-filled into `body` client-side (the server never
 // copies it), so `body` is a plain optional editorState string here.
 export const createContractSchema = z.object({
-  project_id: z.number().int().positive(),
+  project_id: z.number().int().positive().optional(), // optional = standalone
   template_id: z.number().int().positive().optional(),
   body: z.string().optional(),
   note: z.string().optional(),

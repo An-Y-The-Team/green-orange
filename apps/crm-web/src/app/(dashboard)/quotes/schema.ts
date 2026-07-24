@@ -11,7 +11,9 @@ const quoteItemSchema = z.object({
 });
 
 export const createQuoteSchema = z.object({
-  project_id: z.number().int().positive(),
+  // Optional: standalone quotes have no project (attach one to tie it into the
+  // pipeline — the backend auto-advances that project to Báo giá).
+  project_id: z.number().int().positive().optional(),
   items: z.array(quoteItemSchema).min(1, "Cần ít nhất một dòng"),
   vat_rate: z.number().min(0).max(1),
   note: z.string().optional(),

@@ -32,14 +32,19 @@ export default async function ContractsPage() {
         title="Hợp đồng"
         description={`${contracts.length} hợp đồng · ${signed} đã ký`}
         action={
-          <Button
-            variant="outline"
-            size="sm"
-            render={<Link href="/contracts/templates" />}
-          >
-            <FileText />
-            Mẫu hợp đồng
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href="/contracts/templates" />}
+            >
+              <FileText />
+              Mẫu hợp đồng
+            </Button>
+            <Button size="sm" render={<Link href="/contracts/new" />}>
+              + Hợp đồng mới
+            </Button>
+          </div>
         }
       />
       <Card className="py-0">
@@ -65,14 +70,18 @@ export default async function ContractsPage() {
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <Link
-                    href={`/projects/${contract.project_id}`}
-                    className="hover:underline"
-                  >
-                    {contract.project
-                      ? `${contract.project.code} · ${contract.project.name}`
-                      : `Công trình #${contract.project_id}`}
-                  </Link>
+                  {contract.project_id ? (
+                    <Link
+                      href={`/projects/${contract.project_id}`}
+                      className="hover:underline"
+                    >
+                      {contract.project
+                        ? `${contract.project.code} · ${contract.project.name}`
+                        : `Công trình #${contract.project_id}`}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {contract.project?.client.name ?? "—"}

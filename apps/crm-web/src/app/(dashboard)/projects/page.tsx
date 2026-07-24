@@ -31,7 +31,7 @@ export default async function ProjectsPage() {
         description={`${visible.length} công trình`}
         action={
           <Button render={<Link href="/projects/new" />}>
-            + Tiếp nhận yêu cầu
+            + Thêm công trình
           </Button>
         }
       />

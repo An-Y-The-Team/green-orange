@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 import { Card } from "@yan/ui/components/card";
 import {
   Table,
@@ -26,6 +27,11 @@ export default async function ClientsPage() {
       <PageHeader
         title="Khách hàng"
         description={`${clients.length} khách hàng`}
+        action={
+          <Button size="sm" render={<Link href="/clients/new" />}>
+            + Khách hàng mới
+          </Button>
+        }
       />
       <Card className="py-0">
         <Table>

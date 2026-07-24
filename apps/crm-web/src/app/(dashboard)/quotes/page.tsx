@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 import { Card } from "@yan/ui/components/card";
 import {
   Table,
@@ -32,12 +33,14 @@ export default async function QuotesPage() {
   // Older-than-latest versions per project are "Đã thay thế" (derived).
   const maxVersion = new Map<number, number>();
   for (const q of quotes) {
+    if (q.project_id == null) continue; // standalone quotes have no siblings
     maxVersion.set(
       q.project_id,
       Math.max(maxVersion.get(q.project_id) ?? 0, q.version)
     );
   }
   const isSuperseded = (q: Quote) =>
+    q.project_id != null &&
     q.version < (maxVersion.get(q.project_id) ?? q.version);
 
   return (
@@ -45,6 +48,11 @@ export default async function QuotesPage() {
       <PageHeader
         title="Báo giá"
         description={`${quotes.length} báo giá · ${waiting} chờ duyệt`}
+        action={
+          <Button size="sm" render={<Link href="/quotes/new" />}>
+            + Báo giá mới
+          </Button>
+        }
       />
       <Card className="py-0">
         <Table>
@@ -75,12 +83,16 @@ export default async function QuotesPage() {
                     </Link>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    <Link
-                      href={`/projects/${quote.project_id}`}
-                      className="hover:underline"
-                    >
-                      Công trình #{quote.project_id}
-                    </Link>
+                    {quote.project_id ? (
+                      <Link
+                        href={`/projects/${quote.project_id}`}
+                        className="hover:underline"
+                      >
+                        Công trình #{quote.project_id}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatVND(quote.total_amount)}

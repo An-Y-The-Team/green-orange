@@ -42,16 +42,18 @@ export async function createQuote(
         amount: Math.round(it.quantity * it.unit_price),
         sort_order: i,
       }));
-      const version =
-        Math.max(
-          0,
-          ...quotes
-            .filter((q) => q.project_id === project_id)
-            .map((q) => q.version)
-        ) + 1;
+      // Standalone quotes (no project) share version 1 — mirrors the backend.
+      const version = project_id
+        ? Math.max(
+            0,
+            ...quotes
+              .filter((q) => q.project_id === project_id)
+              .map((q) => q.version)
+          ) + 1
+        : 1;
       quote = {
         id: nextId(quotes),
-        project_id,
+        project_id: project_id ?? null,
         version,
         status: QuoteStatus.DRAFT,
         total_amount: priced.reduce((s, it) => s + it.amount, 0),
@@ -62,7 +64,7 @@ export async function createQuote(
       };
     }
 
-    revalidatePath(`/projects/${quote.project_id}`);
+    if (quote.project_id) revalidatePath(`/projects/${quote.project_id}`);
     revalidatePath("/quotes");
 
     return { success: true, message: "Đã lưu báo giá nháp.", data: quote };

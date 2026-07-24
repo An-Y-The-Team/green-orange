@@ -38,7 +38,10 @@ export default async function FieldPage() {
   // Chờ quyết định — waiting quotes joined to their project.
   const waitingQuotes = quotes
     .filter((q) => q.status === QuoteStatus.WAITING)
-    .map((q) => ({ quote: q, project: projectById.get(q.project_id) }))
+    .map((q) => ({
+      quote: q,
+      project: q.project_id != null ? projectById.get(q.project_id) : undefined,
+    }))
     .filter((x) => x.project);
 
   // Đang thi công / nghiệm thu.

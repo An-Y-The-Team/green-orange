@@ -522,6 +522,14 @@ helper in `src/common/stage.ts`; `checkStageGate` removed):
 
 The stage-9 **closed-project lock stays** (it's an edit lock, not a transition gate); only the _trigger_ to close (final payment) becomes auto/soft like the rest.
 
+**Frontend (2026-07-24):** `/quotes` gains "+ Báo giá mới" → `/quotes/new`
+(reuses the quote builder with an optional project picker; standalone → quote
+detail, picked → project workspace + auto-advance). `/contracts` gains
+"+ Hợp đồng mới" → `/contracts/new` (project picker → the existing
+project-scoped editor). Standalone list rows show "—" for no project.
+Deferred: project-_less_ contract authoring (the editor's live preview merges
+project/client/quote data) — backend accepts null, UI comes on real need.
+
 ## Other desktop screens
 
 ### Tổng quan (`/dashboard`)

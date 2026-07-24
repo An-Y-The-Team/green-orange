@@ -22,7 +22,10 @@ export default async function QuoteDocumentPage({
     notFound();
   }
 
-  const versions = await getProjectQuotes(quote.project_id);
+  // Standalone quotes have no sibling versions to supersede them.
+  const versions = quote.project_id
+    ? await getProjectQuotes(quote.project_id)
+    : [quote];
   const superseded = versions.some((v) => v.version > quote.version);
   const badge = superseded ? quoteSuperseded : quoteStatus[quote.status];
   const { subtotal, vat, total } = quoteTotals(quote.items, quote.vat_rate);
@@ -42,7 +45,11 @@ export default async function QuoteDocumentPage({
 
       <DocumentShell
         title="BÁO GIÁ DỊCH VỤ"
-        subtitle={`Phiên bản ${quote.version} · Công trình #${quote.project_id}`}
+        subtitle={
+          quote.project_id
+            ? `Phiên bản ${quote.version} · Công trình #${quote.project_id}`
+            : `Phiên bản ${quote.version} · Báo giá độc lập`
+        }
       >
         <div className="relative">
           {/* Superseded watermark — older versions stay printable but marked. */}
@@ -59,10 +66,12 @@ export default async function QuoteDocumentPage({
 
           {/* Meta */}
           <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
-            <p>
-              <span className="text-zinc-500">Công trình: </span>
-              <span className="font-medium">#{quote.project_id}</span>
-            </p>
+            {quote.project_id ? (
+              <p>
+                <span className="text-zinc-500">Công trình: </span>
+                <span className="font-medium">#{quote.project_id}</span>
+              </p>
+            ) : null}
             <p>
               <span className="text-zinc-500">Phiên bản: </span>v{quote.version}
             </p>

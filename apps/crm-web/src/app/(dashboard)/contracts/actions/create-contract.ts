@@ -38,7 +38,7 @@ export async function createContract(
     } else {
       contract = {
         id: nextId(contracts),
-        project_id: parsed.data.project_id,
+        project_id: parsed.data.project_id ?? null,
         code: `HD-${new Date().getFullYear()}-${seq(nextId(contracts))}`,
         status: ContractStatus.DRAFT,
         signed_date: null,
@@ -48,7 +48,9 @@ export async function createContract(
       };
     }
 
-    revalidatePath(`/projects/${parsed.data.project_id}`);
+    if (parsed.data.project_id)
+      revalidatePath(`/projects/${parsed.data.project_id}`);
+    revalidatePath("/contracts");
 
     return { success: true, message: "Đã tạo hợp đồng.", data: contract };
   } catch (error) {

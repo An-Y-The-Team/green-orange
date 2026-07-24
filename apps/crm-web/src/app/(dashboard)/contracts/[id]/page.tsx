@@ -35,7 +35,9 @@ export default async function ContractDocumentPage({
   );
 
   // The chốt quote drives the line-items block and the money merge tokens.
-  const quote = await getDealQuote(contract.project_id);
+  const quote = contract.project_id
+    ? await getDealQuote(contract.project_id)
+    : undefined;
 
   // The contract's own rich body wins (edited per contract); otherwise seed from
   // its template body; otherwise fall back to the built-in hard-coded layout.
@@ -109,7 +111,9 @@ export default async function ContractDocumentPage({
             <dd>
               {contract.project
                 ? `${contract.project.code} · ${contract.project.name}`
-                : `#${contract.project_id}`}
+                : contract.project_id
+                  ? `#${contract.project_id}`
+                  : "Độc lập"}
             </dd>
           </div>
           <div>

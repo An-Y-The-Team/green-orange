@@ -24,7 +24,7 @@ export interface QuoteSendLog {
 
 export interface Quote {
   id: number;
-  project_id: number;
+  project_id: number | null; // null = standalone (walk-in / speculative)
   version: number;
   status: QuoteStatus;
   total_amount: number; // VND, before VAT (Σ item amounts)
