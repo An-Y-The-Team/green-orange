@@ -10,7 +10,7 @@ import { API_URL, apiSend, nextId } from "@/lib/http";
 
 import type { CrewRole } from "../types";
 
-export const roleSchema = z.object({
+const roleSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên vai trò."),
 });
 export type RoleFormValues = z.infer<typeof roleSchema>;

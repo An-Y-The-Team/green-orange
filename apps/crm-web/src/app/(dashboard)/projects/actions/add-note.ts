@@ -9,7 +9,7 @@ import { API_URL, apiSend } from "@/lib/http";
 
 import type { ProjectNote } from "../types";
 
-export const addNoteSchema = z.object({
+const addNoteSchema = z.object({
   body: z.string().min(1),
   tag: z.string().optional(),
 });

@@ -23,7 +23,7 @@ const surveyItemSchema = z.object({
 });
 
 // Every PATCH field is optional — callers send only what changed.
-export const updateProjectSchema = z.object({
+const updateProjectSchema = z.object({
   name: z.string().min(1).optional(),
   working_contact_id: z.number().int().positive().optional(),
   decision_maker_contact_id: z.number().int().positive().optional(),
