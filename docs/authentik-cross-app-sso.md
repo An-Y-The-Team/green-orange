@@ -5,7 +5,7 @@ browser session spans the whole product suite without re-login. `crm-web` is
 already an OIDC client; this doc is about bringing `cms` (and optionally `web`)
 under the same Authentik.
 
-## The mental model — Authentik *is* the shared session
+## The mental model — Authentik _is_ the shared session
 
 There is nothing to "share" between the apps. The shared session is the
 **Authentik IdP session cookie** on `auth.dichvuyan.com`. Each app stays its own
@@ -32,12 +32,12 @@ and avoids the brittle cross-domain-cookie hack (see "Rejected" below).
 
 ## Current topology
 
-| App | Domain | Auth today |
-| --- | --- | --- |
-| `apps/web` (Next.js marketing site) | `dichvuyan.com` | none — public, reads Directus |
-| `apps/cms` (Directus 12) | `cms.dichvuyan.com` | local admin login |
-| `crm-web` | `crm.` / `quanly.dichvuyan.com` | **Authentik OIDC ✓** (redirect + headless) |
-| Authentik (IdP) | `auth.dichvuyan.com` | — |
+| App                                 | Domain                          | Auth today                                 |
+| ----------------------------------- | ------------------------------- | ------------------------------------------ |
+| `apps/web` (Next.js marketing site) | `dichvuyan.com`                 | none — public, reads Directus              |
+| `apps/cms` (Directus 12)            | `cms.dichvuyan.com`             | local admin login                          |
+| `crm-web`                           | `crm.` / `quanly.dichvuyan.com` | **Authentik OIDC ✓** (redirect + headless) |
+| Authentik (IdP)                     | `auth.dichvuyan.com`            | —                                          |
 
 All are subdomains of one parent domain, and Authentik is already the shared
 IdP — the two facts that make suite-wide SSO a config exercise, not a rebuild.
@@ -113,7 +113,7 @@ Authentik provider as a third RP, its own Authentik app, redirect
 2. **One identity, consistent roles.** Map Authentik **groups → roles** in both
    `crm-api` and Directus so the same person has coherent permissions
    everywhere. (Already an open question in `authentik-oidc-milestone.md`.)
-3. **Rejected — literal cookie sharing.** You *could* set the NextAuth cookie to
+3. **Rejected — literal cookie sharing.** You _could_ set the NextAuth cookie to
    domain `.dichvuyan.com` + a shared `AUTH_SECRET` so `crm-web` and `web` share
    one JWT — but Directus can't join that scheme, so it wouldn't unify all three,
    and it's the brittle path the teaching-ROI rule warns against. Multi-RP OIDC

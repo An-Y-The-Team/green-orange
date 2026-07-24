@@ -24,11 +24,13 @@ import type {
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
 
+import { loadClient } from "../../clients/actions/load-client";
 import { ProjectStage } from "../enums";
 import {
   getProject,
   listPaperworkItems,
   listProjectAttachments,
+  listProjectTypes,
 } from "../queries";
 import type { Attachment } from "../types";
 import { StagePanel } from "./components/stage-panel";
@@ -78,6 +80,8 @@ export default async function ProjectDetailPage({
     bills,
     crew,
     roles,
+    projectTypes,
+    clientDetail,
   ] = await Promise.all([
     isSurvey
       ? listProjectAttachments(project.id, "survey")
@@ -101,6 +105,8 @@ export default async function ProjectDetailPage({
     needsMoneyDocs ? getProjectBills(project.id) : Promise.resolve<Bill[]>([]),
     listCrew(),
     listCrewRoles(),
+    listProjectTypes(),
+    loadClient(project.client_id),
   ]);
 
   return (
@@ -113,7 +119,11 @@ export default async function ProjectDetailPage({
         Quay lại danh sách
       </Link>
 
-      <WorkspaceHeader project={project} />
+      <WorkspaceHeader
+        project={project}
+        contacts={clientDetail?.contacts ?? []}
+        projectTypes={projectTypes}
+      />
       <StageStepper project={project} />
       <StagePanel
         project={project}
