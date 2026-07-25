@@ -9,6 +9,13 @@
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Operators asked for a bigger UI. Every Tailwind size (text, spacing, radii) is
+   rem-based, so raising the root font-size zooms the whole app proportionally
+   instead of only enlarging text into cramped rows. */
+html {
+  font-size: 112.5%; /* 18px */
+}
+
 /* Printing a Báo giá / Hợp đồng: the dashboard chrome is hidden via `print:hidden`
    utilities in the layout. Here we force a clean white A4 surface and let the
    document sheet flow naturally across pages. The printable sheet itself is
@@ -18,6 +25,10 @@
   body {
     background: #fff !important;
     height: auto !important;
+  }
+  /* A4 documents keep the original 16px base — the zoom is for on-screen use. */
+  html {
+    font-size: 100%;
   }
   .print-sheet {
     box-shadow: none !important;

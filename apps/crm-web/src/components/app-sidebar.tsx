@@ -7,7 +7,7 @@ import { cn } from "@yan/ui/lib/utils";
 
 import { navItems } from "@/config/nav";
 
-export function AppSidebar() {
+export function AppSidebar({ footer }: { footer?: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -40,8 +40,10 @@ export function AppSidebar() {
           );
         })}
       </nav>
+      {/* The signed-in user + sign-out live here; the layout passes them in as
+          server-rendered nodes (the sign-out is a server action). */}
       <div className="border-t border-sidebar-border p-3 text-xs text-muted-foreground">
-        <p>GreenOrange CRM</p>
+        {footer ?? <p>Guest</p>}
       </div>
     </aside>
   );
