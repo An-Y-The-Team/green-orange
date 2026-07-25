@@ -112,8 +112,9 @@ export async function apiSend<T>(
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) {
+    const detail = await res.text().catch(() => "");
     throw new Error(
-      `API ${method} ${path} failed: ${res.status} ${res.statusText}`
+      `API ${method} ${path} failed: ${res.status} ${res.statusText}${detail ? ` — ${detail}` : ""}`
     );
   }
   return res.json() as Promise<T>;

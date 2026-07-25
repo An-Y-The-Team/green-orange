@@ -60,15 +60,12 @@ function useRun(
 }
 
 function SendHistory({ quote }: { quote: Quote }) {
-  if (quote.send_logs.length === 0) return null;
+  if (quote.send_logs?.length === 0) return null;
   return (
     <p className="text-xs text-muted-foreground">
       Gửi:{" "}
       {quote.send_logs
-        .map(
-          (l) =>
-            `${quoteChannel[l.channel]} ${formatDate(l.sent_at)} (${l.sent_by})`
-        )
+        ?.map((l) => `${quoteChannel[l.channel]} ${formatDate(l.sent_at)}`)
         .join(" · ")}
     </p>
   );
