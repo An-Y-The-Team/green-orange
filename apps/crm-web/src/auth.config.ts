@@ -100,8 +100,13 @@ export default {
       if (token.expiresAt && Date.now() < token.expiresAt * 1000) {
         return token;
       }
-      // Expired → refresh against Authentik's token endpoint.
-      if (!token.refreshToken || !tokenEndpoint) return token;
+      // Expired → refresh against Authentik's token endpoint. Nothing to refresh
+      // with means the session is dead: flag it (same signal as a failed refresh)
+      // so the layout gate shows the login overlay instead of silently handing
+      // pages a stale token that every crm-api call 401s on.
+      if (!token.refreshToken || !tokenEndpoint) {
+        return { ...token, error: "RefreshTokenError" };
+      }
       try {
         const res = await fetch(tokenEndpoint, {
           method: "POST",

@@ -35,7 +35,7 @@ type LoginValues = z.infer<typeof loginSchema>;
 // executor driver (lib/authentik-flow.ts), so the user never leaves the page
 // they deep-linked to — after sign-in the same URL re-renders authenticated.
 // The hosted /login stays reachable for anything headless can't do (MFA…).
-export function LoginOverlay() {
+export function LoginOverlay({ expired }: { expired?: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -67,9 +67,13 @@ export function LoginOverlay() {
     <Dialog open>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Đăng nhập</DialogTitle>
+          <DialogTitle>
+            {expired ? "Phiên đăng nhập đã hết hạn" : "Đăng nhập"}
+          </DialogTitle>
           <DialogDescription>
-            Nhập tài khoản Authentik để tiếp tục — bạn sẽ ở lại trang này.
+            {expired
+              ? "Đăng nhập lại để tiếp tục — bạn sẽ ở lại trang này."
+              : "Nhập tài khoản Authentik để tiếp tục — bạn sẽ ở lại trang này."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

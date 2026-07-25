@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { authEnabled } from "@/auth.config";
 import { LoginOverlay } from "@/components/login-overlay";
+import { SessionWatch } from "@/components/session-watch";
 import { formatDate } from "@/lib/format";
 
 import { FieldBottomBar } from "./components/field-bottom-bar";
@@ -30,7 +31,14 @@ export default async function FieldLayout({
         </span>
       </header>
       <main className="flex-1 p-4 pb-24">
-        {needsLogin ? <LoginOverlay /> : children}
+        {needsLogin ? (
+          <LoginOverlay expired={Boolean(session?.error)} />
+        ) : (
+          <>
+            {authEnabled && <SessionWatch />}
+            {children}
+          </>
+        )}
       </main>
       <FieldBottomBar />
     </div>

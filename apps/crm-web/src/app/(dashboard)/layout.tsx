@@ -7,6 +7,7 @@ import { auth, signOut } from "@/auth";
 import { authEnabled } from "@/auth.config";
 import { AppSidebar } from "@/components/app-sidebar";
 import { LoginOverlay } from "@/components/login-overlay";
+import { SessionWatch } from "@/components/session-watch";
 import { isLiveMode } from "@/lib/http";
 
 // CRM_API_URL is runtime-only, but the data layer chooses mock-vs-live by reading
@@ -78,7 +79,14 @@ export default async function DashboardLayout({
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-6 print:overflow-visible print:p-0">
-          {needsLogin ? <LoginOverlay /> : children}
+          {needsLogin ? (
+            <LoginOverlay expired={Boolean(session?.error)} />
+          ) : (
+            <>
+              {authEnabled && <SessionWatch />}
+              {children}
+            </>
+          )}
         </main>
       </div>
     </div>

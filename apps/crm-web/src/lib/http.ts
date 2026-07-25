@@ -50,6 +50,9 @@ async function getBearer(forceRefresh = false): Promise<string | undefined> {
   return localToken;
 }
 
+export const SESSION_EXPIRED =
+  "Phiên đăng nhập đã hết hạn — tải lại trang để đăng nhập lại.";
+
 // Whether a 401 should trigger a token re-mint + retry — only for the auto-mint
 // path (local mode, no explicit override). Authentik/override tokens self-heal elsewhere.
 const canRemint = () => !authEnabled && !process.env.CRM_API_TOKEN;
@@ -72,6 +75,11 @@ async function fetchWithAuth(
     });
   const res = await call(await getBearer());
   if (res.status === 401 && canRemint()) return call(await getBearer(true));
+  // Live auth + 401 → the session's token is dead (expired or revoked). Fail with
+  // a human message here so all ~40 server actions surface "log in again" from
+  // their existing catch instead of a raw "401 Unauthorized"; reloading the page
+  // then hits the layout's auth gate, which shows the login overlay.
+  if (res.status === 401 && authEnabled) throw new Error(SESSION_EXPIRED);
   return res;
 }
 
