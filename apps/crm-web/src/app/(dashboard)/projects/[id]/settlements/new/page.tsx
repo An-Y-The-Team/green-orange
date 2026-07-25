@@ -1,8 +1,10 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getDealQuote } from "@/app/(dashboard)/quotes/queries";
+import { SettlementStatus } from "@/app/(dashboard)/receivables/enums";
+import { getProjectSettlements } from "@/app/(dashboard)/receivables/queries";
 import { PageHeader } from "@/components/page-header";
 
 import { getProject } from "../../../queries";
@@ -22,6 +24,16 @@ export default async function NewSettlementPage({
   const { id } = await params;
   const project = await getProject(Number(id));
   if (!project) notFound();
+
+  // 1:1 — a project settles once, so an existing quyết toán is corrected, not
+  // replaced (the server would 409 anyway).
+  const [existing] = await getProjectSettlements(project.id);
+  if (existing)
+    redirect(
+      existing.status === SettlementStatus.DRAFT
+        ? `/projects/${project.id}/settlements/${existing.id}/edit`
+        : `/projects/${project.id}`
+    );
 
   const dealQuote = await getDealQuote(project.id);
   const items = (dealQuote?.items ?? []).map((it) => ({

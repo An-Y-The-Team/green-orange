@@ -125,7 +125,7 @@ model Project {
   quotes             Quote[]
   contracts          Contract[]
   paperwork_items    PaperworkItem[]
-  settlements        Settlement[]
+  settlement         Settlement? // 1:1 — a project settles once
   bills              Bill[]
   payment_milestones PaymentMilestone[]
   assignments        Assignment[]
@@ -215,7 +215,7 @@ model PaperworkItem {
 
 model Settlement {
   id           Int       @id @default(autoincrement())
-  project_id   Int // 0..n per project — settling happens in phases
+  project_id   Int       @unique // 1:1 — a project settles once (corrections revise this row)
   status       String    @default("draft") // draft | sent | signed
   total_amount BigInt    @default(0) // VND, server-computed from items; copied to the bill on sign
   signed_date  DateTime? @db.Date

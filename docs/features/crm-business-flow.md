@@ -216,7 +216,9 @@ One stage covering settlement and payment, in order:
 1. **Quyết toán** — settlement minutes/paper + **draft Bill** prepared and
    sent; client **signs off on both** → draft Bill becomes the **official
    Bill**. Quyết toán is its own entity (decided at stage 2), not a quote
-   type.
+   type. **Exactly one per Công Trình** (2026-07-25) — a project settles
+   once; corrections revise that single Quyết toán, they don't create a
+   second one.
 2. **Mail the official Bill.**
 3. **Payment schedule** — payments tracked as milestones against the
    official Bill.
@@ -318,17 +320,29 @@ project (`gui_yeu_cau → nghiem_thu ⇄ bo_sung → dat`), and the signed biên
 bản nghiệm thu is an attachment on the project. The old
 `cho_nghiem_thu/da_nghiem_thu/co_van_de` model is dead.
 
-### Quyết toán — confirmed 2026-07-23
+### Quyết toán — confirmed 2026-07-23, 1-to-1 since 2026-07-25
 
 Its own entity (not a quote type): paperwork + status, nothing more. The
 settlement papers are prepared in stage 7, sent with the draft Bill, and
 signed by the client.
 
+**One Quyết toán per Công Trình (1:1).** A project is settled once — the
+final settlement covers the whole job. If numbers change (correction, khối
+lượng adjusted, client pushes back), the **same** Quyết toán is revised, not
+a second one: while `nhap`/`da_gui` it's editable, and a signed one can be
+unsigned back to `nhap` to correct it (which pulls its Bill back to `nhap`
+and re-derives the milestones — the cọc is kept). Once money has actually
+come in on the Bill, un-signing is refused: fix it with a new milestone /
+adjusted amount instead.
+
 ```text
 nhap (Nháp) → da_gui (Đã gửi) → da_ky (Đã ký — client signed)
+                                   └─→ back to nhap (correction — reverts Bill + milestones)
 ```
 
 The payment schedule (milestones) **derives from the signed Quyết toán**.
+Because there's one Quyết toán, there's one official Bill per project too
+(the Bill is created alongside it).
 
 ### Bill (Hóa đơn) — confirmed 2026-07-23
 
@@ -453,6 +467,10 @@ backfill let a job start at any stage.
   auto-advance triggers (forward-only `max` rule), not hard gates — no 400
   blocks, manual moves are soft; Quote and Contract become `project_id`-
   optional (standalone, attachable later, attaching auto-advances the stage).
+- 2026-07-25 — **Quyết toán is 1-to-1 with the Công Trình**: a project settles
+  once. The old "settling happens in phases → 0..n" model is dropped;
+  corrections revise the single Quyết toán (signed → back to `nhap`, which
+  reverts its Bill + milestones). One official Bill per project follows.
 - 2026-07-25 — pipeline down to **8 stages**: Yêu cầu + Khảo sát collapsed into
   one "Yêu cầu & Khảo sát" stage (the appointment and the survey are the same
   same-day visit); the old 1→2 transition tap becomes an in-stage marker that

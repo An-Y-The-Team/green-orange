@@ -439,26 +439,27 @@ parking chore.
 
 ### Stage 7 — Quyết toán & Thanh toán (confirmed 2026-07-23)
 
-**Settling happens in phases** (sometimes corrections) — the panel is a
-list of settlement cards, newest/active on top, each card owning its bill
-and that bill's milestones:
+**One quyết toán per công trình** (1:1, 2026-07-25 — replaces the earlier
+"settling happens in phases" list). The panel is a single settlement card
+owning its bill and that bill's milestones:
 
 ```text
 ┌ GIAI ĐOẠN 7 · QUYẾT TOÁN & THANH TOÁN ─────────┐
-│ ▼ QT-2026-004 · Đợt 1     Nháp ─● Đã gửi ─○ Ký  │
+│ QT #4                     Nháp ─● Đã gửi ─○ Ký  │
 │   38.500.000₫  [Sửa] [In] [Đã gửi] [✓ Đã ký]    │
-│   ② Hóa đơn HĐ-004 · Nháp (chính thức khi ký)   │
+│   ② Hóa đơn HĐ #4 · Nháp (chính thức khi ký)    │
 │      [In đề nghị thanh toán] [Đã gửi] [Đã thu]  │
 │   ③ Đợt thanh toán                  [+ Thêm đợt]│
 │      Tạm ứng (cọc)  21,6tr · Đã thu 23/07 ✓     │
 │      Đợt cuối       16,9tr · hạn 15/08 ⚠Quá hạn │
 │                     [Ghi nhận đã thu]           │
-│ ▸ (các đợt quyết toán trước…)                   │
 │                                                 │
 │ Toàn công trình: Đã thu 21,6tr / 38,5tr         │
-│                            [+ Quyết toán mới]   │
+│           (signed: [Sửa lại (bỏ ký)] on card)   │
 └─────────────────────────────────────────────────┘
 ```
+
+`[+ Quyết toán]` shows only while the project has none.
 
 - **Settlement builder page** ([Soạn quyết toán] / [Sửa], drafts only) —
   **line-items editor prefilled from the chốt quote's items**; quantities
@@ -470,12 +471,17 @@ and that bill's milestones:
   total, **attaches the unallocated cọc milestone to this first bill**,
   and **auto-creates one milestone for the remaining balance** (bill −
   cọc) — she can then split it into đợt with [+ Thêm đợt] or edit dates.
+- **"Sửa lại (bỏ ký)"** (signed cards only, 2026-07-25) — the correction
+  path now that there's one quyết toán per project: reverts the sign
+  transaction (bill → Nháp, unpaid đợt dropped, cọc kept) so the numbers
+  can be edited and re-signed. Hidden/refused once money has come in on
+  the bill.
 - **Hóa đơn**: forward-only manual flips, dates default today. Printable
   = internal "Đề nghị thanh toán"; the real VAT e-invoice lives outside
   the CRM.
 - Quá hạn derived (due date passed, unpaid), red chip here + dashboard +
   `/receivables`.
-- Gate to Đã đóng: all bills + all milestones paid (server-enforced).
+- Gate to Đã đóng: the bill + all milestones paid (server-enforced).
 
 ### Stage 8 — Đã đóng (confirmed 2026-07-23)
 
@@ -496,8 +502,8 @@ and that bill's milestones:
   links to all printables. No new fields.
 - **Locked on close**: entities of a closed project reject edits (server-
   enforced); viewing/printing always works, notes stay allowed. **[Mở
-  lại]** returns the project to stage 7 and unlocks — corrections usually
-  mean another settlement phase anyway.
+  lại]** returns the project to stage 7 and unlocks — the correction is
+  then made on the project's single quyết toán ([Sửa lại (bỏ ký)]).
 - **[+ Công trình mới tại địa điểm này]** — repeat-business shortcut:
   opens intake prefilled with this client/location/contacts; a completely
   separate new Công Trình.
@@ -776,6 +782,11 @@ pages (which remain usable, just not optimized, on mobile).
   stage-1 → Báo giá move. Panels 3–9 renumbered 2–8, stepper/pipeline/pill
   counts updated. **Built the same day** — see "Stage merge delta" above and
   phase 7 in the implementation plan.
+- 2026-07-25 — **Quyết toán 1:1 with the Công Trình**: stage-7 panel is a
+  single settlement card (no phases list), `[+ Quyết toán]` hides once one
+  exists, and signed cards get **[Sửa lại (bỏ ký)]** as the correction path
+  (refused after money comes in). Applied with migration
+  `20260725010000_settlement_one_per_project`.
 - 2026-07-23 — backend deltas applied: migration `ui_design_deltas` +
   module changes (auto-seed paperwork, sub-status skip rule,
   acceptance date stamp, SettlementItem + sign choreography, closed-

@@ -1,13 +1,16 @@
 // Receivables: Settlement (Quyết toán) → Bill (Hóa đơn) → PaymentMilestone
 // (Đợt thanh toán). Doc: docs/features/crm-database-schema.md.
 // Rules enforced here:
+//   • One settlement per project (1:1) — a second POST is a 409.
 //   • A settlement is born with its draft bill (same transaction).
-//   • Signing a settlement officializes its bill (same transaction).
+//   • Signing a settlement officializes its bill (same transaction);
+//     unsigning (signed → draft) is its exact inverse — the correction path.
 //   • Bills have no POST/DELETE — they live and die with their settlement.
 //   • "overdue" is DERIVED (due_date < today && status != paid), never stored.
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -100,7 +103,7 @@ const computeItems = (items: SettlementItemDto[]) => {
 };
 
 @Controller("settlements")
-class SettlementsController {
+export class SettlementsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
@@ -128,6 +131,14 @@ class SettlementsController {
   @HttpCode(201)
   async create(@Body() dto: CreateSettlementDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
+    // 1:1 rule: correct the existing settlement instead of adding another.
+    const existing = await this.prisma.settlement.findUnique({
+      where: { project_id: dto.project_id },
+    });
+    if (existing)
+      throw new ConflictException(
+        `project already has a settlement (QT #${existing.id}) — a project settles once`
+      );
     const { rows, total } = computeItems(dto.items ?? []);
     // Doc rule: the draft bill is prepared alongside the settlement.
     const created = await this.prisma.$transaction(async (tx) => {
@@ -175,6 +186,10 @@ class SettlementsController {
       data.items = { deleteMany: {}, create: rows };
     }
     if (dto.status !== undefined && dto.status !== row.status) {
+      // Correction path (1:1 rule): un-sign back to draft instead of creating
+      // a second settlement. Inverse of the sign transaction below.
+      if (row.status === "signed" && dto.status === "draft")
+        return this.unsign(row);
       assertStep(SETTLEMENT_STATUS, row.status, dto.status);
       data.status = dto.status;
       if (dto.status === "signed") {
@@ -223,6 +238,51 @@ class SettlementsController {
       data,
       include: SETTLEMENT_INCLUDE,
     });
+  }
+
+  // signed → draft: give the money back to the pre-sign state so the numbers
+  // can be corrected. Refuses once money has actually come in — un-signing a
+  // paid bill would silently orphan collected payments.
+  // (not private: unit-tested in contract.test.ts — not a route, no decorator)
+  async unsign(row: Awaited<ReturnType<SettlementsController["get"]>>) {
+    const bill = row.bill;
+    if (bill) {
+      const collected =
+        bill.status === "paid" ||
+        (await this.prisma.paymentMilestone.findFirst({
+          where: { bill_id: bill.id, type: { not: "deposit" }, status: "paid" },
+        })) !== null;
+      if (collected)
+        throw new BadRequestException(
+          "cannot un-sign: payments have already been collected on this bill"
+        );
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.settlement.update({
+        where: { id: row.id },
+        data: { status: "draft", signed_date: null },
+      });
+      if (!bill) return;
+      // Detach the cọc first so it survives the cleanup and a re-sign
+      // re-attaches it (keeps sign/unsign idempotent).
+      await tx.paymentMilestone.updateMany({
+        where: { bill_id: bill.id, type: "deposit" },
+        data: { bill_id: null },
+      });
+      await tx.paymentMilestone.deleteMany({
+        where: { bill_id: bill.id, status: { not: "paid" } },
+      });
+      await tx.bill.update({
+        where: { id: bill.id },
+        data: {
+          status: "draft",
+          total_amount: 0,
+          sent_date: null,
+          paid_date: null,
+        },
+      });
+    });
+    return this.get(row.id);
   }
 
   @Delete(":id")

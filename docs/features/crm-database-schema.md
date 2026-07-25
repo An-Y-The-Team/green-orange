@@ -57,8 +57,8 @@ erDiagram
   quote ||--o{ quote_send_log : "sent via"
   project ||--o{ contract : "0..n, optional"
   project ||--o{ paperwork_item : "stage-4 checklist"
-  project ||--o{ settlement : "0..n"
-  project ||--o{ bill : "0..n"
+  project ||--o| settlement : "0..1 — one settlement per project"
+  project ||--o{ bill : "0..n (in practice 1 — from the settlement)"
   settlement ||--o| bill : "officializes"
   project ||--o{ payment_milestone : ""
   bill ||--o{ payment_milestone : "scheduled against"
@@ -238,14 +238,16 @@ Multiple contracts on one Công Trình happen in practice.
 The 4 default items are **auto-created with the project** (2026-07-23 UI
 deltas); `POST /paperwork-items/defaults` stays as a re-seed.
 
-### settlement (Quyết toán) — 0..n per project
+### settlement (Quyết toán) — **0..1 per project** (1:1, 2026-07-25)
 
-Settling happens **in phases** (sometimes corrections) — hence 0..n.
+A project settles **once**. `project_id` is **unique** — the DB enforces it,
+not app code. Corrections revise the same row (unsign back to `draft`), they
+never insert a second settlement.
 
-| column       | type         | notes                                                                                             |
-| ------------ | ------------ | ------------------------------------------------------------------------------------------------- |
-| id           | bigserial PK |                                                                                                   |
-| project_id   | FK → project |                                                                                                   |
+| column       | type                | notes                                                                                             |
+| ------------ | ------------------- | ------------------------------------------------------------------------------------------------- |
+| id           | bigserial PK        |                                                                                                   |
+| project_id   | FK → project unique | **one settlement per project**                                                                    |
 | status       | text         | `draft` \| `sent` \| `signed`                                                                     |
 | total_amount | bigint       | VND, server-computed from settlement_item rows; copied to the bill on sign (2026-07-23 UI deltas) |
 | signed_date  | date null    |                                                                                                   |
@@ -270,11 +272,22 @@ items, quantities adjusted to khối lượng thực tế. Mirrors `quote_item`.
 On settlement **sign** (one transaction): bill gets `total_amount` + flips
 `official`; the project's unallocated `deposit` milestone (bill_id null)
 attaches to this bill; one `progress` milestone is auto-created for the
-remaining balance (splittable afterwards). Closed projects (stage
+remaining balance (splittable afterwards). **Unsign** (`signed → draft`, the
+correction path since the 1:1 rule) is the inverse in one transaction: bill
+back to `draft` (total 0, dates cleared), the `deposit` milestone **detached
+first** (`bill_id` → null, so a re-sign re-attaches it), then non-`paid`
+milestones on that bill dropped, `signed_date` cleared. It is **refused** when
+the bill is `paid` or any non-deposit milestone is `paid` — un-signing
+collected money would orphan it. Closed projects (stage
 `closed`) are **locked**: mutations rejected except project notes and the
 reopen transition (`closed → settlement`).
 
-### bill (Hóa đơn) — 0..n per project
+### bill (Hóa đơn) — 0..n per project (in practice 1)
+
+Cardinality left at 0..n (no unique on `project_id`): the bill can exist as a
+draft before the settlement, and `settlement_id` is nullable. But since a
+project has one settlement and `settlement_id` is unique, there is exactly
+**one official bill per project**.
 
 | column                | type                  | notes                                                                                 |
 | --------------------- | --------------------- | ------------------------------------------------------------------------------------- |
@@ -420,9 +433,11 @@ across projects or attach to none.
 2. `deposit` milestone `paid` + `client_signed_date` set → stage 3 done.
 3. All paperwork_items `approved` → execution may start.
 4. `acceptance_sub_status = passed` → stage 7 may begin.
-5. Settlement `signed` ⇒ its bill `official` + milestones created from it.
-6. **All** milestones `paid` and **all** bills `paid` ⇒ stage `closed`
-   (projects can carry several settlements/bills).
+5. Settlement `signed` ⇒ its bill `official` + milestones created from it;
+   `signed → draft` (correction) reverses it.
+6. **All** milestones `paid` and the bill `paid` ⇒ stage `closed`.
+7. One settlement per project (`settlement.project_id` unique) — a second
+   `POST /settlements` for the same project is a 409, not a new phase.
 
 ## Resolved review questions (2026-07-23)
 
@@ -430,6 +445,23 @@ across projects or attach to none.
    `project_type_tag`), seeded Vệ sinh / Thi công / Tháo dỡ.
 2. Quote sends → **per-send log rows** (`quote_send_log`: channel, sent_by,
    follow_up_ref).
-3. Contract / settlement / bill are **0..n per project** (multiple
-   instances happen in practice); one bill per settlement.
+3. Contract / bill are **0..n per project** (multiple instances happen in
+   practice); one bill per settlement. **Superseded 2026-07-25 for
+   settlement: 1:1 with the project** — see the settlement table.
 4. Timekeeping records **raw hours**.
+
+## Settlement 1:1 ✅ APPLIED 2026-07-25
+
+Migration `20260725010000_settlement_one_per_project`. Settlements are
+financial records, so the migration **never deletes**: it raises an exception
+listing any project that already has two (the operator merges them by hand),
+then creates the unique index.
+
+- `Settlement.project_id @unique`; `Project.settlement Settlement?`.
+- `POST /settlements` → **409** when the project already has one.
+- `PATCH /settlements/:id {status:"draft"}` on a signed row = the **unsign**
+  correction path (see the settlement table). Refused when money has already
+  come in (bill `paid`, or any non-deposit milestone `paid`).
+- `crm-web`: stage-7 panel renders a single settlement card with a
+  **Sửa lại (bỏ ký)** action; `+ Quyết toán` hides once one exists, and
+  `/settlements/new` redirects to the existing one.

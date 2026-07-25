@@ -75,3 +75,20 @@ export async function signSettlement(
     "Không thể ký quyết toán."
   );
 }
+
+/**
+ * Un-sign — PATCH {status:draft}. One quyết toán per công trình, so a
+ * correction reopens this one: the server reverts its bill to nháp and drops
+ * the derived đợt thanh toán (refused once money has been collected).
+ */
+export async function unsignSettlement(
+  id: number,
+  _prev: ServerActionState
+): Promise<ServerActionState> {
+  return patchStatus(
+    id,
+    { status: SettlementStatus.DRAFT },
+    "Đã mở lại quyết toán để sửa.",
+    "Không thể mở lại quyết toán."
+  );
+}

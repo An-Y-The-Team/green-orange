@@ -36,6 +36,7 @@ import {
 import {
   sendSettlement,
   signSettlement,
+  unsignSettlement,
 } from "@/app/(dashboard)/receivables/actions/settlement-status";
 import { updateBill } from "@/app/(dashboard)/receivables/actions/update-bill";
 import {
@@ -368,6 +369,7 @@ function SettlementCard({
   const [signOpen, setSignOpen] = useState(false);
   const [signedDate, setSignedDate] = useState(TODAY);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [unsignOpen, setUnsignOpen] = useState(false);
 
   const isDraft = settlement.status === SettlementStatus.DRAFT;
   const isSent = settlement.status === SettlementStatus.SENT;
@@ -380,11 +382,15 @@ function SettlementCard({
     signSettlement.bind(null, settlement.id) as never,
     () => setSignOpen(false)
   );
+  const [unsignPending, runUnsign] = useRun(
+    unsignSettlement.bind(null, settlement.id) as never,
+    () => setUnsignOpen(false)
+  );
   const [deletePending, runDelete] = useRun(
     deleteSettlement.bind(null, settlement.id) as never,
     () => setDeleteOpen(false)
   );
-  const busy = sendPending || signPending || deletePending;
+  const busy = sendPending || signPending || unsignPending || deletePending;
 
   const milestones = [...extraMilestones, ...billMilestones];
 
@@ -462,6 +468,16 @@ function SettlementCard({
             Xóa nháp
           </Button>
         ) : null}
+        {isSigned ? (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => setUnsignOpen(true)}
+          >
+            Sửa lại (bỏ ký)
+          </Button>
+        ) : null}
       </div>
 
       {/* Bill row — officializes on sign */}
@@ -522,6 +538,29 @@ function SettlementCard({
         </DialogContent>
       </Dialog>
 
+      {/* Un-sign — the correction path (one quyết toán per công trình) */}
+      <Dialog open={unsignOpen} onOpenChange={setUnsignOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mở lại quyết toán để sửa?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Mỗi công trình chỉ có một quyết toán, nên sai số được sửa trên QT #
+            {settlement.id} này. Hóa đơn quay về nháp và các đợt chưa thu bị
+            xóa; đợt cọc và các đợt đã thu được giữ lại. Không mở lại được nếu
+            hóa đơn đã có tiền về.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnsignOpen(false)}>
+              Đóng
+            </Button>
+            <Button disabled={busy} onClick={() => runUnsign()}>
+              Mở lại để sửa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete draft — tiny confirm */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
@@ -566,20 +605,22 @@ export function SettlementPanel({
 }) {
   const label = projectStage[ProjectStage.SETTLEMENT].label;
 
-  // Newest/active settlement on top.
-  const ordered = [...settlements].sort((a, b) => b.id - a.id);
+  // One quyết toán per công trình (1:1) — the API still answers with a list.
+  const settlement = settlements[0];
+  const bill = settlement
+    ? (settlement.bill ??
+      bills.find((b) => b.settlement_id === settlement.id) ??
+      null)
+    : null;
 
-  const billFor = (s: Settlement) =>
-    s.bill ?? bills.find((b) => b.settlement_id === s.id) ?? null;
-
-  // Unallocated deposit(s) (pre-bill, stage 4) surface on the top card — that's
+  // Unallocated deposit(s) (pre-bill, stage 4) surface on the card — that's
   // where the sign transaction attaches them.
   const unallocated = milestones.filter((m) => m.bill_id == null);
 
   const collected = milestones
     .filter((m) => m.status === MilestoneStatus.PAID)
     .reduce((s, m) => s + m.amount, 0);
-  const target = settlements.reduce((s, st) => s + st.total_amount, 0);
+  const target = settlement?.total_amount ?? 0;
 
   return (
     <Card id="stage-settlement" className="mb-6 scroll-mt-4">
@@ -589,22 +630,16 @@ export function SettlementPanel({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {ordered.length > 0 ? (
-          ordered.map((s, i) => {
-            const bill = billFor(s);
-            return (
-              <SettlementCard
-                key={s.id}
-                settlement={s}
-                bill={bill}
-                billMilestones={
-                  bill ? milestones.filter((m) => m.bill_id === bill.id) : []
-                }
-                extraMilestones={i === 0 ? unallocated : []}
-                projectId={project.id}
-              />
-            );
-          })
+        {settlement ? (
+          <SettlementCard
+            settlement={settlement}
+            bill={bill}
+            billMilestones={
+              bill ? milestones.filter((m) => m.bill_id === bill.id) : []
+            }
+            extraMilestones={unallocated}
+            projectId={project.id}
+          />
         ) : (
           <p className="text-sm text-muted-foreground">
             {dealQuote
@@ -624,12 +659,14 @@ export function SettlementPanel({
             </span>{" "}
             / <span className="tabular-nums">{formatVND(target)}</span>
           </p>
-          <Button
-            size="sm"
-            render={<Link href={`/projects/${project.id}/settlements/new`} />}
-          >
-            + Quyết toán mới
-          </Button>
+          {settlement ? null : (
+            <Button
+              size="sm"
+              render={<Link href={`/projects/${project.id}/settlements/new`} />}
+            >
+              + Quyết toán
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
