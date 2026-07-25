@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { toast } from "sonner";
 
 import {
   type ServerActionState,
@@ -26,17 +27,20 @@ import { Textarea } from "@yan/ui/components/textarea";
 import { fieldError, selectClass } from "@/components/form-bits";
 import { clientType, projectStage, projectStageOrder } from "@/lib/labels";
 
+import { createContact } from "../../clients/actions/contacts";
 import { createClient } from "../../clients/actions/create-client";
 import { loadClient } from "../../clients/actions/load-client";
+import { createLocation } from "../../clients/actions/locations";
 import { ClientType } from "../../clients/enums";
-import {
-  type CreateClientFormValues,
-  createClientSchema,
-} from "../../clients/schema";
 import type { ClientListItem, Contact, Location } from "../../clients/types";
 import { createProject } from "../actions/create-project";
 import { ProjectStage } from "../enums";
-import { type CreateProjectFormValues, createProjectSchema } from "../schema";
+import {
+  type CreateProjectFormValues,
+  type QuickClientFormValues,
+  createProjectSchema,
+  quickClientSchema,
+} from "../schema";
 import type { ProjectType } from "../types";
 
 const initialState: ServerActionState = {
@@ -187,32 +191,93 @@ export function IntakeForm({
   };
 
   // --- quick-create client (inline) -------------------------------------
-  const [clientState, clientAction] = useActionState(
-    createClient,
-    initialState
-  );
   const [clientPending, startClient] = useTransition();
 
-  const clientForm = useForm<CreateClientFormValues>({
-    resolver: zodResolver(createClientSchema),
+  const clientForm = useForm<QuickClientFormValues>({
+    resolver: zodResolver(quickClientSchema),
     mode: "onChange",
-    defaultValues: { name: "", type: ClientType.COMPANY, address: "" },
+    defaultValues: {
+      name: "",
+      type: ClientType.COMPANY,
+      address: "",
+      contact_name: "",
+      contact_phone: "",
+      location_name: "",
+      location_address: "",
+    },
   });
   const quickType = useWatch({ control: clientForm.control, name: "type" });
 
-  useServerAction(clientState, clientPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
-    onSuccess: (data) => {
-      setClientOptions((prev) => [...prev, { id: data.id, name: data.name }]);
+  // Create the client and — for a company — its first contact + location, then
+  // populate + pre-select them so the intake form is immediately usable.
+  // (Individuals: the backend derives location/contact from the address, so we
+  // just reload via selectClient.) Chained through the raw actions rather than
+  // useActionState so the follow-up creates can run in order.
+  const onQuickCreate = (values: QuickClientFormValues) => {
+    startClient(async () => {
+      const isCompany = values.type === ClientType.COMPANY;
+      const clientRes = await createClient(initialState, {
+        name: values.name,
+        type: values.type,
+        address: isCompany ? undefined : values.address,
+      });
+      if (!clientRes.success || !clientRes.data) {
+        toast.error("Lỗi", {
+          description: clientRes.message ?? "Không thể tạo khách hàng.",
+        });
+        return;
+      }
+      const client = clientRes.data as { id: number; name: string };
+      setClientOptions((prev) => [
+        ...prev,
+        { id: client.id, name: client.name },
+      ]);
       setShowQuickCreate(false);
       clientForm.reset();
-      selectClient(data.id);
-    },
-  });
 
-  const onQuickCreate = (values: CreateClientFormValues) => {
-    startClient(() => clientAction(values));
+      if (!isCompany) {
+        selectClient(client.id);
+        return;
+      }
+
+      const [contactRes, locationRes] = await Promise.all([
+        createContact(client.id, initialState, {
+          name: values.contact_name ?? "",
+          phone: values.contact_phone,
+          email: "",
+          title: "",
+        }),
+        createLocation(client.id, initialState, {
+          name: values.location_name ?? "",
+          address: values.location_address ?? "",
+        }),
+      ]);
+      if (!contactRes.data || !locationRes.data) {
+        // Client exists but a dependent failed — reload whatever stuck and let
+        // the user fill the rest via the selects.
+        toast.error("Lỗi", {
+          description:
+            contactRes.message ||
+            locationRes.message ||
+            "Không thể tạo liên hệ/địa điểm.",
+        });
+        selectClient(client.id);
+        return;
+      }
+
+      const contact = contactRes.data as Contact;
+      const location = locationRes.data as Location;
+      const nextDetail: ClientDetail = {
+        type: values.type,
+        contacts: [contact],
+        locations: [location],
+      };
+      setDetail(nextDetail);
+      form.setValue("client_id", client.id, { shouldValidate: true });
+      form.setValue("working_contact_id", contact.id, { shouldValidate: true });
+      form.setValue("location_id", location.id, { shouldValidate: true });
+      maybeSuggestName(form.getValues("type_ids"), location.id, nextDetail);
+    });
   };
 
   return (
@@ -320,7 +385,42 @@ export function IntakeForm({
                     />
                     {fieldError(clientForm.formState.errors.address)}
                   </div>
-                ) : null}
+                ) : (
+                  <>
+                    <div className="space-y-1">
+                      <FormLabel>Người liên hệ</FormLabel>
+                      <Input
+                        placeholder="Nguyễn Văn A"
+                        {...clientForm.register("contact_name")}
+                      />
+                      {fieldError(clientForm.formState.errors.contact_name)}
+                    </div>
+                    <div className="space-y-1">
+                      <FormLabel>Số điện thoại liên hệ</FormLabel>
+                      <Input
+                        placeholder="0901234567"
+                        {...clientForm.register("contact_phone")}
+                      />
+                      {fieldError(clientForm.formState.errors.contact_phone)}
+                    </div>
+                    <div className="space-y-1">
+                      <FormLabel>Tên địa điểm/Toà nhà</FormLabel>
+                      <Input
+                        placeholder="Trụ sở chính"
+                        {...clientForm.register("location_name")}
+                      />
+                      {fieldError(clientForm.formState.errors.location_name)}
+                    </div>
+                    <div className="space-y-1">
+                      <FormLabel>Địa điểm</FormLabel>
+                      <Input
+                        placeholder="123 Đường ABC, Quận 1, TP.HCM"
+                        {...clientForm.register("location_address")}
+                      />
+                      {fieldError(clientForm.formState.errors.location_address)}
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-end">
                   <Button
                     type="button"
