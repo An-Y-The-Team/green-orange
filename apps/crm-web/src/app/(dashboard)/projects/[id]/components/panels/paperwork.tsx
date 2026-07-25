@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@yan/ui/components/card";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Input } from "@yan/ui/components/input";
 import { Textarea } from "@yan/ui/components/textarea";
 
@@ -98,14 +99,12 @@ function PaperworkRow({
           </Button>
         ) : null}
 
-        {/* Native date input; overdue drives the red chip + dashboard later. */}
-        <Input
-          type="date"
+        {/* overdue drives the red chip + dashboard later. */}
+        <DateInput
           value={due}
           disabled={isPending}
           className="h-8 w-auto"
-          onChange={(e) => {
-            const value = e.target.value;
+          onChange={(value) => {
             setDue(value);
             startTransition(() =>
               updateAction({ due_date: value === "" ? null : value })

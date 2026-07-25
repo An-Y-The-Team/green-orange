@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@yan/ui/components/card";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
   DialogClose,
@@ -245,14 +246,12 @@ function Duration({
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="start-date">Bắt đầu</Label>
-          <Input
+          <DateInput
             id="start-date"
-            type="date"
             value={start}
             disabled={isPending}
             className="h-8 w-auto"
-            onChange={(e) => {
-              const value = e.target.value;
+            onChange={(value) => {
               setStart(value);
               if (value)
                 startTransition(() => formAction({ start_date: value }));

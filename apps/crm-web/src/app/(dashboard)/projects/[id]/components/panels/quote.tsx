@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@yan/ui/components/card";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
   DialogContent,
@@ -245,11 +246,10 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
           </DialogHeader>
           <div className="space-y-1">
             <Label htmlFor="follow_up_date">Hẹn theo dõi lại ngày nào?</Label>
-            <Input
+            <DateInput
               id="follow_up_date"
-              type="date"
               value={followUp}
-              onChange={(e) => setFollowUp(e.target.value)}
+              onChange={setFollowUp}
             />
           </div>
           <DialogFooter>

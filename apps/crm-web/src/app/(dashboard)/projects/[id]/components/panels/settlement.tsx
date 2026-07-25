@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@yan/ui/components/card";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
   DialogContent,
@@ -154,11 +155,10 @@ function MilestoneRow({
               </DialogHeader>
               <div className="space-y-1">
                 <Label htmlFor={`paid-${milestone.id}`}>Ngày thu</Label>
-                <Input
+                <DateInput
                   id={`paid-${milestone.id}`}
-                  type="date"
                   value={paidDate}
-                  onChange={(e) => setPaidDate(e.target.value)}
+                  onChange={setPaidDate}
                 />
               </div>
               <DialogFooter>
@@ -224,12 +224,7 @@ function AddMilestone({
             </div>
             <div className="space-y-1">
               <Label htmlFor="dot-due">Hạn thu (tùy chọn)</Label>
-              <Input
-                id="dot-due"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
+              <DateInput id="dot-due" value={dueDate} onChange={setDueDate} />
             </div>
           </div>
           <DialogFooter>
@@ -517,11 +512,10 @@ function SettlementCard({
           </p>
           <div className="space-y-1">
             <Label htmlFor={`signed-${settlement.id}`}>Ngày ký</Label>
-            <Input
+            <DateInput
               id={`signed-${settlement.id}`}
-              type="date"
               value={signedDate}
-              onChange={(e) => setSignedDate(e.target.value)}
+              onChange={setSignedDate}
             />
           </div>
           <DialogFooter>

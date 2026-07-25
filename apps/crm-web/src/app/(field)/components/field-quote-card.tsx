@@ -7,6 +7,7 @@ import {
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
   DialogContent,
@@ -96,11 +97,10 @@ export function FieldQuoteCard({
           </DialogHeader>
           <div className="space-y-1">
             <Label htmlFor="follow_up_date">Hẹn theo dõi lại ngày nào?</Label>
-            <Input
+            <DateInput
               id="follow_up_date"
-              type="date"
               value={followUp}
-              onChange={(e) => setFollowUp(e.target.value)}
+              onChange={setFollowUp}
             />
           </div>
           <DialogFooter>

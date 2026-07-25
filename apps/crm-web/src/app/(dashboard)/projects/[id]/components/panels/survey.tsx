@@ -8,6 +8,7 @@ import {
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
   DialogClose,
@@ -139,11 +140,10 @@ export function SurveyPanel({
             </DialogHeader>
             <div className="space-y-1.5">
               <Label htmlFor="visit-date">Ngày gặp khách</Label>
-              <Input
+              <DateInput
                 id="visit-date"
-                type="date"
                 value={visitDate}
-                onChange={(e) => setVisitDate(e.target.value)}
+                onChange={setVisitDate}
               />
             </div>
             <DialogFooter>

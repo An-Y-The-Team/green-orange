@@ -10,6 +10,7 @@ import {
 } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
   DialogClose,
@@ -166,11 +167,10 @@ export function ContractPanel({
                     </DialogHeader>
                     <div className="space-y-1.5">
                       <Label htmlFor="client-signed-date">Ngày ký</Label>
-                      <Input
+                      <DateInput
                         id="client-signed-date"
-                        type="date"
                         value={signedDate}
-                        onChange={(e) => setSignedDate(e.target.value)}
+                        onChange={setSignedDate}
                       />
                     </div>
                     <DialogFooter>
@@ -224,11 +224,10 @@ export function ContractPanel({
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="deposit-date">Ngày nhận</Label>
-                        <Input
+                        <DateInput
                           id="deposit-date"
-                          type="date"
                           value={depDate}
-                          onChange={(e) => setDepDate(e.target.value)}
+                          onChange={setDepDate}
                         />
                       </div>
                     </div>
@@ -360,11 +359,10 @@ function ContractRow({
                 <Label htmlFor={`contract-signed-${contract.id}`}>
                   Ngày ký
                 </Label>
-                <Input
+                <DateInput
                   id={`contract-signed-${contract.id}`}
-                  type="date"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={setDate}
                 />
               </div>
               <DialogFooter>

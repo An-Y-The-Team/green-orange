@@ -12,6 +12,7 @@ import {
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Form,
   FormControl,
@@ -607,10 +608,9 @@ export function IntakeForm({
                 <FormItem>
                   <FormLabel>Hẹn gặp</FormLabel>
                   <div className="flex gap-2">
-                    <Input
-                      type="date"
+                    <DateInput
                       value={apptDate}
-                      onChange={(e) => setApptDate(e.target.value)}
+                      onChange={setApptDate}
                       className="w-auto"
                     />
                     <Input

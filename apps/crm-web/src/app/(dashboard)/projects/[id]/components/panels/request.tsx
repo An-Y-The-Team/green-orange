@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@yan/ui/components/card";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
   DialogClose,
@@ -121,11 +122,10 @@ export function RequestPanel({
                 <div className="flex gap-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="appt-date">Ngày</Label>
-                    <Input
+                    <DateInput
                       id="appt-date"
-                      type="date"
                       value={apptDate}
-                      onChange={(e) => setApptDate(e.target.value)}
+                      onChange={setApptDate}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -165,12 +165,11 @@ export function RequestPanel({
           <div className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
             <div className="space-y-1.5">
               <Label htmlFor="visit-date">Ngày gặp khách</Label>
-              <Input
+              <DateInput
                 id="visit-date"
-                type="date"
                 className="w-auto"
                 value={visitDate}
-                onChange={(e) => setVisitDate(e.target.value)}
+                onChange={setVisitDate}
               />
             </div>
             <Button

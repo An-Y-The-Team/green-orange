@@ -9,6 +9,7 @@ import {
 } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
   DialogClose,
@@ -276,11 +277,10 @@ export function WorkspaceHeader({
                     </DialogHeader>
                     <div className="space-y-1.5">
                       <Label htmlFor="follow-up-date">Hẹn liên hệ lại</Label>
-                      <Input
+                      <DateInput
                         id="follow-up-date"
-                        type="date"
                         value={followUp}
-                        onChange={(e) => setFollowUp(e.target.value)}
+                        onChange={setFollowUp}
                       />
                     </div>
                     <DialogFooter>

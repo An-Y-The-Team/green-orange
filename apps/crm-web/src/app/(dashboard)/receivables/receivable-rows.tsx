@@ -9,6 +9,7 @@ import {
 } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@yan/ui/components/dialog";
-import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { TableCell, TableRow } from "@yan/ui/components/table";
 
@@ -115,11 +115,10 @@ export function MilestoneRow({
                 </DialogHeader>
                 <div className="space-y-1">
                   <Label htmlFor={`paid-${milestone.id}`}>Ngày thu</Label>
-                  <Input
+                  <DateInput
                     id={`paid-${milestone.id}`}
-                    type="date"
                     value={paidDate}
-                    onChange={(e) => setPaidDate(e.target.value)}
+                    onChange={setPaidDate}
                   />
                 </div>
                 <DialogFooter>

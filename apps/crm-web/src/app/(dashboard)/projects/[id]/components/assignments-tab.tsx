@@ -8,6 +8,7 @@ import {
 } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@yan/ui/components/dialog";
-import { Input } from "@yan/ui/components/input";
 import {
   Table,
   TableBody,
@@ -303,20 +303,18 @@ function AssignmentForm({
       </label>
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
         Từ ngày
-        <Input
-          type="date"
+        <DateInput
           className="w-auto"
           value={f.from_date}
-          onChange={(e) => setF({ ...f, from_date: e.target.value })}
+          onChange={(v) => setF({ ...f, from_date: v })}
         />
       </label>
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
         Đến ngày
-        <Input
-          type="date"
+        <DateInput
           className="w-auto"
           value={f.to_date}
-          onChange={(e) => setF({ ...f, to_date: e.target.value })}
+          onChange={(v) => setF({ ...f, to_date: v })}
         />
       </label>
       <div className="flex gap-2">
