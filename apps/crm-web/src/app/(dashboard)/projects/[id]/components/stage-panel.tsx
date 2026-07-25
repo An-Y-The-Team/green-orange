@@ -16,7 +16,7 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
-import { projectStage } from "@/lib/labels";
+import { projectStage, projectStageOrder } from "@/lib/labels";
 
 import { ProjectStage } from "../../enums";
 import type { Attachment, PaperworkItem, Project } from "../../types";
@@ -28,10 +28,10 @@ import { PaperworkPanel } from "./panels/paperwork";
 import { QuotePanel } from "./panels/quote";
 import { RequestPanel } from "./panels/request";
 import { SettlementPanel } from "./panels/settlement";
-import { SurveyPanel } from "./panels/survey";
 
 // Dispatch to the current stage's panel. Every panel brings its own Card +
 // "Giai đoạn N" header except ContractPanel (a bare body), which is wrapped here.
+// (SurveyPanel is also bare — RequestPanel embeds it; stage 1 covers both.)
 export function StagePanel({
   project,
   attachments,
@@ -57,9 +57,7 @@ export function StagePanel({
 }) {
   switch (project.stage) {
     case ProjectStage.REQUEST:
-      return <RequestPanel project={project} />;
-    case ProjectStage.SURVEY:
-      return <SurveyPanel project={project} attachments={attachments} />;
+      return <RequestPanel project={project} attachments={attachments} />;
     case ProjectStage.QUOTE:
       return <QuotePanel project={project} />;
     case ProjectStage.CONTRACT:
@@ -67,7 +65,8 @@ export function StagePanel({
         <Card id="stage-contract" className="mb-6 scroll-mt-4">
           <CardHeader>
             <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">
-              Giai đoạn 4 · {projectStage[project.stage].label}
+              Giai đoạn {projectStageOrder.indexOf(project.stage) + 1} ·{" "}
+              {projectStage[project.stage].label}
             </CardTitle>
           </CardHeader>
           <CardContent>

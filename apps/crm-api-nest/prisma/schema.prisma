@@ -96,15 +96,15 @@ model Project {
   name                      String
   request_note              String? // stage 1: short "what they want done" from the first call
   referral_source           String? // stage 1: free text (giới thiệu, gọi lại, …) — not a managed list
-  stage                     String    @default("request") // request | survey | quote | contract | paperwork | execution | acceptance | settlement | closed
+  stage                     String    @default("request") // request | quote | contract | paperwork | execution | acceptance | settlement | closed
   status                    String    @default("active") // active | on_hold | cancelled
   cancel_reason             String? // required when status = cancelled (DTO rule)
   follow_up_date            DateTime? @db.Date // on_hold jobs resurface
   appointment_at            DateTime? // stage 1; reschedule = update in place
-  visit_date                DateTime? @db.Date // "Đã gặp khách" tap (1→2)
-  survey_note               String? // stage 2; photos → Attachment(kind: survey)
-  survey_items              Json? // stage 2: {name, quantity, unit, note}[] — scratch rows that prefill quote items; never queried across projects
-  client_signed_date          DateTime? @db.Date // stage-4 gate 1
+  visit_date                DateTime? @db.Date // "Đã gặp khách" tap — in-stage marker (null = awaiting appointment, set = surveying)
+  survey_note               String? // stage 1; photos → Attachment(kind: survey)
+  survey_items              Json? // stage 1: {name, quantity, unit, note}[] — scratch rows that prefill quote items; never queried across projects
+  client_signed_date          DateTime? @db.Date // stage-3 gate 1
   execution_sub_status      String? // kickoff | hoarding | works
   start_date                DateTime? @db.Date
   est_duration_days         Int?

@@ -112,4 +112,29 @@ export const projects: Project[] = [
     client: chiHoa,
     location: macDinh,
   },
+  {
+    // Stage 1 before the visit: appointment today, no visit_date — the only
+    // state that exercises the Hôm nay blocks (dashboard + field) and the
+    // stage-1 panel with its survey half still hidden.
+    id: 4,
+    code: "CT-2026-004",
+    client_id: 1,
+    location_id: 2,
+    working_contact_id: 1,
+    decision_maker_contact_id: 1,
+    working_contact: { id: 1, name: "Trần Văn B", phone: "0901234567" },
+    decision_maker: { id: 1, name: "Trần Văn B", phone: "0901234567" },
+    name: "Vệ sinh sảnh Toà nhà B",
+    request_note: "Vệ sinh sảnh + thảm",
+    referral_source: "gọi lại",
+    stage: ProjectStage.REQUEST,
+    status: ProjectStatus.ACTIVE,
+    // Today's date — the Hôm nay filters compare the UTC date part only.
+    appointment_at: `${new Date().toISOString().slice(0, 10)}T08:00:00.000Z`,
+    created_at: "2026-07-25T01:00:00.000Z",
+    updated_at: "2026-07-25T01:00:00.000Z",
+    types: [projectTypes[0]],
+    client: anPhat,
+    location: toaNhaB,
+  },
 ];

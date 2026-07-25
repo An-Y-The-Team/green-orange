@@ -7,8 +7,10 @@ the changelog.
 
 **Read first, in order:**
 
-1. `docs/features/crm-ui-redesign.md` — the design truth (all 9 stage
-   panels confirmed, wireframes, IA, principles).
+1. `docs/features/crm-ui-redesign.md` — the design truth (all stage panels
+   confirmed, wireframes, IA, principles). **8 stages since 2026-07-25** —
+   phases 1–6 below shipped against the older 9-stage numbering, so read their
+   stage numbers as historical; phase 7 is the merge.
 2. This doc — build mechanics.
 3. For payload shapes: the Nest controllers are authoritative —
    `apps/crm-api-nest/src/<feature>/*.module.ts` (types in crm-web already
@@ -301,6 +303,80 @@ fan-out would be over-engineering for one page + one layout).
 - Decide after usage: whether TanStack Query (already provisioned in
   providers) is needed for snappier field interactions.
 
+## Phase 7 — collapse Yêu cầu + Khảo sát into one stage ✅ (2026-07-25)
+
+Business change: the appointment **is** the khảo sát visit (same day), so
+`request` + `survey` become one stage `request` — 9 stages → 8. Design in
+`crm-ui-redesign.md` "Stage merge delta" + Stage 1.
+
+**Shipped.** `tsc`, `eslint --max-warnings 0`, `bun run build` clean both
+apps; nest tests 14 pass. Mock smoke: `/projects/4` (new stage-1 mock) shows
+the appointment half only, and with `visit_date` temp-set the survey half
+(Hạng mục đo đạc / Ghi chú khảo sát / Hình ảnh / Đủ dữ liệu) renders in the
+same card while the [Đã gặp khách] input disappears; stepper renders 8 steps
+with no bare "Khảo sát" chip anywhere; `/dashboard`, `/projects`, `/field`,
+`/projects/new` all 200 (intake stage selector offers `request`,`quote`,… no
+`survey`). Live: migration applied to local `crm_nest` and **verified on a
+real row** (a project temp-set to `survey` came out `request`), `migrate
+status` clean, API boots on the new schema.
+
+Findings: `projects.module.ts` derives its stage whitelist from `STAGE_ORDER`
+(`const STAGE = STAGE_ORDER`, `@IsIn(STAGE)` on both DTOs), so dropping the
+value from `common/stage.ts` tightens validation everywhere — **the `"survey"`
+at `projects.module.ts:45` is `ATTACHMENT_KIND`, not a stage; touching it
+would have broken survey photo uploads.** Same trap in `[id]/page.tsx` and
+`mock/attachments.ts`: `listProjectAttachments(id, "survey")` is the file
+category and stays. The dashboard has **no** pipeline block anymore (removed
+in `02501ac`), so the redesign's "8 columns" is spec-only.
+
+Backend (`apps/crm-api-nest`):
+
+- `prisma/migrations/20260725000000_merge_request_survey_stage/migration.sql`
+  — data-only: `UPDATE "Project" SET stage='request' WHERE stage='survey'`.
+  `stage` is a plain `String` column, so no type surgery.
+- `src/common/stage.ts` — `"survey"` out of `STAGE_ORDER` (8 entries).
+  `advanceStage` compares indices, so every later stage shifts down one.
+- `prisma/schema.prisma` — stage comment; `visit_date` re-documented as an
+  in-stage marker; `survey_note`/`survey_items` now "stage 1";
+  `client_signed_date` "stage-3 gate 1".
+- `src/contract.test.ts` — new case: `STAGE_ORDER` has 8 entries, no
+  `"survey"`, starts at `"request"` (re-adding one would silently shift
+  every index).
+
+Frontend (`apps/crm-web`):
+
+- `projects/enums.ts` — `SURVEY` deleted, stage comments renumbered.
+- `lib/labels.ts` — out of `projectStageOrder`; `REQUEST` relabelled
+  "Yêu cầu & Khảo sát". Stepper, the "n/8" pill and the intake stage selector
+  all derive from that array — no edits needed there.
+- `panels/request.tsx` — takes `attachments`; [Đã gặp khách] PATCHes
+  `{visit_date}` only (no stage move) and that input/button is replaced by
+  `<SurveyPanel/>` once `visit_date` is set.
+- `panels/survey.tsx` — now a **bare body** (`<div className="space-y-6
+border-t …">`), same pattern as `ContractPanel`; keeps its own
+  "Đã gặp khách: … [sửa]" row and its `stage: QUOTE` exit.
+- `stage-panel.tsx` — `SURVEY` case deleted; the contract case's hardcoded
+  "Giai đoạn 4" is now computed from `projectStageOrder`.
+- `[id]/page.tsx` — `isSurvey` → `isRequest` (gates the survey-attachment
+  fetch).
+- `(field)/components/field-appointment-card.tsx` — `{visit_date}`-only PATCH.
+- **`dashboard/page.tsx` + `(field)/field/page.tsx` — "Hôm nay" filters gained
+  `!p.visit_date`.** Without it a visited project stays in stage 1 and would
+  sit on the Hôm nay list forever offering "Bắt đầu khảo sát" again.
+- `data/mock/projects.ts` — new project 4 at stage 1, appointment today, no
+  `visit_date`: the only state that exercises both Hôm nay blocks and the
+  pre-visit panel (nothing was seeded at stage 1 before).
+
+Not done: authenticated live HTTP smoke of the PATCH paths — no local dev
+credentials on this machine (`CRM_DEV_USER`/`CRM_DEV_PASSWORD` are unset in
+both `.env`s; only the argon2 hash for `admin` exists in the DB). Run
+`curl -X PATCH :8001/projects/<id> -d '{"stage":"survey"}'` with a real token
+to confirm the 400, and one `{"visit_date":"…"}` PATCH for the happy path.
+
+Not in scope: renumbering the shipped-phase notes below — they are history.
+The Python `crm-api` sandbox still has its own `KHAO_SAT` stage (already on
+the deferred list below).
+
 ## Deferred / blocked (do not build without a new decision)
 
 - Cost module (own design session), S3 uploads (attachments stay
@@ -309,6 +385,15 @@ fan-out would be over-engineering for one page + one layout).
 
 ## Changelog
 
+- 2026-07-25 — phase 7 shipped: stages 1+2 collapsed into one "Yêu cầu &
+  Khảo sát" stage — the appointment is the survey visit. 9 → 8 stages,
+  `survey` dropped from `STAGE_ORDER`/`ProjectStage` + a data-only migration,
+  [Đã gặp khách] stops moving the stage and instead reveals the survey half of
+  the same panel (`survey.tsx` became a bare body embedded by `request.tsx`).
+  Both "Hôm nay" filters gained `!visit_date` so visited jobs drop off. New
+  stage-1 mock project. Docs updated (business-flow, database-schema,
+  ui-redesign). Phases 1–6 notes keep their original 9-stage numbering as
+  history.
 - 2026-07-24 — phase 6 shipped (FINAL): field mode `(field)` route group at
   `/field` — thumb-first mobile with its own auth-gated layout (cloned from
   dashboard) + bottom bar. Blocks: today's appointments (Gọi tel: + one-tap

@@ -1,7 +1,8 @@
 # CRM Relational Schema — draft for review
 
-Derived from [crm-business-flow.md](./crm-business-flow.md) (9-stage
-pipeline, confirmed 2026-07-23). Target: Postgres via Prisma in
+Derived from [crm-business-flow.md](./crm-business-flow.md) (8-stage
+pipeline: 9 confirmed 2026-07-23, `request` + `survey` merged 2026-07-25).
+Target: Postgres via Prisma in
 `apps/crm-api-nest` (its conventions kept: enums stored as snake_case
 strings, money as `BigInt` VND, dates serialized `YYYY-MM-DD`).
 
@@ -15,6 +16,25 @@ doc is its technical counterpart.
 `ui_design_deltas`, same day — see `crm-ui-redesign.md` Backend deltas)
 in `apps/crm-api-nest` (schema.prisma +
 migrations `v2_greenorange_flow`, `date_column_naming_convention`).
+
+**Stage merge ✅ APPLIED 2026-07-25** (migration
+`20260725000000_merge_request_survey_stage`). `request` and `survey` collapsed
+into one stage, kept as **`request`** (same rule as the `settlement` merge: the
+merged stage keeps the first name). `stage` is a plain `String` column, not a
+Postgres enum, so the whole migration was one data statement — no type
+surgery:
+
+```sql
+UPDATE "Project" SET "stage" = 'request' WHERE "stage" = 'survey';
+```
+
+`survey` is also gone from `STAGE_ORDER` (`src/common/stage.ts`, which feeds
+the `@IsIn` DTO validation), `ProjectStage` in
+`apps/crm-web/src/app/(dashboard)/projects/enums.ts`, and `projectStageOrder` +
+the label map in `src/lib/labels.ts`. No columns were added or removed —
+`visit_date`, `survey_note`, `survey_items` keep their names and meaning, they
+just live inside stage 1 now. `attachment.kind = 'survey'` is a file category,
+unrelated to the stage enum, and stays.
 
 **Date naming convention** (serialization contract): columns ending `*_date`
 are date-only (`@db.Date`, serialized `YYYY-MM-DD`); columns ending `*_at`
@@ -36,7 +56,7 @@ erDiagram
   project ||--o{ quote : "versions"
   quote ||--o{ quote_send_log : "sent via"
   project ||--o{ contract : "0..n, optional"
-  project ||--o{ paperwork_item : "stage-5 checklist"
+  project ||--o{ paperwork_item : "stage-4 checklist"
   project ||--o{ settlement : "0..n"
   project ||--o{ bill : "0..n"
   settlement ||--o| bill : "officializes"
@@ -99,37 +119,37 @@ location (their address) at creation time — app logic, not schema.
 
 The spine. Stage + orthogonal status + per-stage sub-statuses live here.
 
-| column                    | type             | notes                                                                                                        |
-| ------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
-| id                        | bigserial PK     |                                                                                                              |
-| client_id                 | FK → client      | who signs/pays                                                                                               |
-| location_id               | FK → location    | where                                                                                                        |
-| working_contact_id        | FK → contact     | defaults to location manager                                                                                 |
-| decision_maker_contact_id | FK → contact     | approves quote / signs; defaults to working contact                                                          |
-| name                      | text             |                                                                                                              |
-| request_note              | text null        | stage 1: short "what they want" from the first call (2026-07-23 UI deltas)                                   |
-| referral_source           | text null        | stage 1: free text — giới thiệu, gọi lại, … (2026-07-23 UI deltas)                                           |
-| stage                     | text             | `request` `survey` `quote` `contract` `paperwork` `execution` `acceptance` `settlement` `closed`             |
-| status                    | text             | `active` \| `on_hold` \| `cancelled` — default `active`                                                      |
-| cancel_reason             | text null        | required when status = `cancelled`                                                                           |
-| follow_up_date            | date null        | parked (`on_hold`) jobs resurface                                                                            |
-| appointment_at            | timestamptz null | stage 1; reschedule = update in place                                                                        |
-| visit_date                | date null        | set by "Đã gặp khách" tap (1→2)                                                                              |
-| survey_note               | text null        | stage 2 notes (photos → attachment)                                                                          |
-| survey_items              | jsonb null       | stage 2: `{name, quantity, unit, note}[]` — measurement rows that prefill quote items (2026-07-23 UI deltas) |
-| client_signed_date        | date null        | stage-4 gate 1 (contract or deal-quote confirmation)                                                         |
-| execution_sub_status      | text null        | `kickoff` \| `hoarding` \| `works`                                                                           |
-| start_date                | date null        | stage 6                                                                                                      |
-| est_duration_days         | int null         |                                                                                                              |
-| actual_duration_days      | int null         | **manual = source of truth**; timekeeping-derived value computed at read time, conflict surfaced in UI       |
-| approaches                | text null        | free text until a structure emerges                                                                          |
-| works_done_at             | timestamptz null | stage-6 exit button                                                                                          |
-| acceptance_sub_status     | text null        | `request_sent` \| `inspecting` \| `rework` \| `passed`                                                       |
-| acceptance_passed_date    | date null        | stamped when acceptance_sub_status → `passed` (2026-07-23 UI deltas)                                         |
-| created_at / updated_at   | timestamptz      |                                                                                                              |
+| column                    | type             | notes                                                                                                                                   |
+| ------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| id                        | bigserial PK     |                                                                                                                                         |
+| client_id                 | FK → client      | who signs/pays                                                                                                                          |
+| location_id               | FK → location    | where                                                                                                                                   |
+| working_contact_id        | FK → contact     | defaults to location manager                                                                                                            |
+| decision_maker_contact_id | FK → contact     | approves quote / signs; defaults to working contact                                                                                     |
+| name                      | text             |                                                                                                                                         |
+| request_note              | text null        | stage 1: short "what they want" from the first call (2026-07-23 UI deltas)                                                              |
+| referral_source           | text null        | stage 1: free text — giới thiệu, gọi lại, … (2026-07-23 UI deltas)                                                                      |
+| stage                     | text             | `request` `quote` `contract` `paperwork` `execution` `acceptance` `settlement` `closed` (8 — `survey` merged into `request` 2026-07-25) |
+| status                    | text             | `active` \| `on_hold` \| `cancelled` — default `active`                                                                                 |
+| cancel_reason             | text null        | required when status = `cancelled`                                                                                                      |
+| follow_up_date            | date null        | parked (`on_hold`) jobs resurface                                                                                                       |
+| appointment_at            | timestamptz null | stage 1; reschedule = update in place                                                                                                   |
+| visit_date                | date null        | set by "Đã gặp khách" tap — **in-stage marker**, not a stage move: null = awaiting appointment, set = surveying                         |
+| survey_note               | text null        | stage 1 notes (photos → attachment)                                                                                                     |
+| survey_items              | jsonb null       | stage 1: `{name, quantity, unit, note}[]` — measurement rows that prefill quote items (2026-07-23 UI deltas)                            |
+| client_signed_date        | date null        | stage-3 gate 1 (contract or deal-quote confirmation)                                                                                    |
+| execution_sub_status      | text null        | `kickoff` \| `hoarding` \| `works`                                                                                                      |
+| start_date                | date null        | stage 5                                                                                                                                 |
+| est_duration_days         | int null         |                                                                                                                                         |
+| actual_duration_days      | int null         | **manual = source of truth**; timekeeping-derived value computed at read time, conflict surfaced in UI                                  |
+| approaches                | text null        | free text until a structure emerges                                                                                                     |
+| works_done_at             | timestamptz null | stage-5 exit button                                                                                                                     |
+| acceptance_sub_status     | text null        | `request_sent` \| `inspecting` \| `rework` \| `passed`                                                                                  |
+| acceptance_passed_date    | date null        | stamped when acceptance_sub_status → `passed` (2026-07-23 UI deltas)                                                                    |
+| created_at / updated_at   | timestamptz      |                                                                                                                                         |
 
-Stage-4 gate 2 (deposit received) is not a column — it's the `deposit`
-milestone reaching `paid`. Stage-5 exit is "no paperwork_item not yet
+Stage-3 gate 2 (deposit received) is not a column — it's the `deposit`
+milestone reaching `paid`. Stage-4 exit is "no paperwork_item not yet
 `approved`". Both derived, never stored twice.
 
 ### project_type + project_type_tag
@@ -204,7 +224,7 @@ Multiple contracts on one Công Trình happen in practice.
 | signed_date | date null    |                          |
 | note        | text null    | signed scan → attachment |
 
-### paperwork_item (Hồ sơ — stage-5 checklist)
+### paperwork_item (Hồ sơ — stage-4 checklist)
 
 | column     | type         | notes                                                                                                                            |
 | ---------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -272,7 +292,7 @@ reopen transition (`closed → settlement`).
 | id         | bigserial PK    |                                                          |
 | project_id | FK → project    |                                                          |
 | bill_id    | FK → bill, null | null for the deposit (exists before any bill)            |
-| type       | text            | `deposit` (= Cọc, stage 4) \| `progress` \| `acceptance` |
+| type       | text            | `deposit` (= Cọc, stage 3) \| `progress` \| `acceptance` |
 | amount     | bigint          | VND                                                      |
 | due_date   | date null       |                                                          |
 | status     | text            | `not_due` `awaiting_payment` `paid`                      |
@@ -310,8 +330,8 @@ reopen transition (`closed → settlement`).
 | from_date / to_date | date                 | to_date null = open-ended       |
 
 Overlapping assignments for one member are **allowed** — the app shows a
-non-blocking warning, no DB constraint. Stage-5 "Danh sách nhân sự" and the
-stage-6 worker list are generated from these rows.
+non-blocking warning, no DB constraint. Stage-4 "Danh sách nhân sự" and the
+stage-5 worker list are generated from these rows.
 
 ### timekeeping_record
 
@@ -345,7 +365,7 @@ shape is stable regardless).
 
 ### project_note
 
-Step-level notes (stage-6 sub-steps, acceptance rework rounds, anything).
+Step-level notes (stage-5 sub-steps, acceptance rework rounds, anything).
 
 | column     | type         | notes                                |
 | ---------- | ------------ | ------------------------------------ |
@@ -364,8 +384,7 @@ crew role names, quote units) is data, stays Vietnamese as typed.
 | ----------------------------- | ----------------------------------------------- | --------------------------------------------- |
 | client.type                   | company / individual                            | Công ty / Cá nhân                             |
 | project types                 | (user-managed `project_type` rows, not an enum) | seeded: Vệ sinh, Thi công, Tháo dỡ            |
-| project.stage                 | request                                         | Yêu cầu (Gặp khách)                           |
-|                               | survey                                          | Khảo sát                                      |
+| project.stage                 | request                                         | Yêu cầu & Khảo sát (Gặp khách)                |
 |                               | quote                                           | Báo giá                                       |
 |                               | contract                                        | Hợp đồng                                      |
 |                               | paperwork                                       | Chuẩn bị hồ sơ                                |
@@ -397,10 +416,10 @@ across projects or attach to none.
 
 ## Cross-entity rules recap (enforced in app/service layer)
 
-1. Quote `deal` (latest version) → stage 4 may begin.
-2. `deposit` milestone `paid` + `client_signed_date` set → stage 4 done.
+1. Quote `deal` (latest version) → stage 3 may begin.
+2. `deposit` milestone `paid` + `client_signed_date` set → stage 3 done.
 3. All paperwork_items `approved` → execution may start.
-4. `acceptance_sub_status = passed` → stage 8 may begin.
+4. `acceptance_sub_status = passed` → stage 7 may begin.
 5. Settlement `signed` ⇒ its bill `official` + milestones created from it.
 6. **All** milestones `paid` and **all** bills `paid` ⇒ stage `closed`
    (projects can carry several settlements/bills).

@@ -58,7 +58,8 @@ export default async function ProjectDetailPage({
     project.paperwork_items ?? (await listPaperworkItems(project.id));
 
   const { stage } = project;
-  const isSurvey = stage === ProjectStage.SURVEY;
+  // Stage 1 owns the survey half now, so its attachments load there.
+  const isRequest = stage === ProjectStage.REQUEST;
   const isContract = stage === ProjectStage.CONTRACT;
   const isExecution = stage === ProjectStage.EXECUTION;
   const isSettlement = stage === ProjectStage.SETTLEMENT;
@@ -83,7 +84,7 @@ export default async function ProjectDetailPage({
     projectTypes,
     clientDetail,
   ] = await Promise.all([
-    isSurvey
+    isRequest
       ? listProjectAttachments(project.id, "survey")
       : Promise.resolve<Attachment[]>([]),
     needsContracts

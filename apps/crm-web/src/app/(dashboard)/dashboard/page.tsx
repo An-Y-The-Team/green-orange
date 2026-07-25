@@ -70,10 +70,13 @@ export default async function DashboardPage() {
   const codeOf = (id: number) =>
     projects.find((p) => p.id === id)?.code ?? `#${id}`;
 
-  // Hôm nay — new requests with a survey appointment today.
+  // Hôm nay — appointments today not yet visited. Stage 1 spans request AND
+  // survey, so `!visit_date` (not the stage) is what marks "still to meet".
   const todayAppointments = projects.filter(
     (p) =>
-      p.stage === ProjectStage.REQUEST && p.appointment_at?.startsWith(today)
+      p.stage === ProjectStage.REQUEST &&
+      !p.visit_date &&
+      p.appointment_at?.startsWith(today)
   );
 
   // Cần theo dõi — parked jobs whose follow-up date has arrived …

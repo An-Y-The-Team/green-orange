@@ -13,13 +13,15 @@ old (wrong) model and will be replaced as each entity is discussed.
 
 ```mermaid
 flowchart LR
-  YEU_CAU[Yêu cầu] --> KHAO_SAT[Khảo sát] --> BAO_GIA[Báo giá] --> HOP_DONG[Hợp đồng]
+  KHAO_SAT[Yêu cầu & Khảo sát] --> BAO_GIA[Báo giá] --> HOP_DONG[Hợp đồng]
   HOP_DONG --> CHUAN_BI[Chuẩn bị hồ sơ] --> THI_CONG[Thi công] --> NGHIEM_THU[Nghiệm thu]
   NGHIEM_THU --> QUYET_TOAN_THANH_TOAN[Quyết toán & Thanh toán] --> DONG[Đã đóng]
 ```
 
-**9 stages** (2026-07-23: the old separate Quyết toán and Chờ thanh toán
-stages merged into one "Quyết toán & Thanh toán" stage).
+**8 stages.** Two merges so far: 2026-07-23 Quyết toán + Chờ thanh toán →
+"Quyết toán & Thanh toán"; 2026-07-25 Yêu cầu + Khảo sát → "Yêu cầu & Khảo
+sát" (the appointment _is_ the survey visit, same day — two stages for one
+event was friction, not tracking).
 
 Enum: `ProjectStage` (`apps/crm-web/src/app/(dashboard)/projects/enums.ts`),
 display order in `src/lib/labels.ts` (`projectStageOrder`) — code still has
@@ -57,45 +59,41 @@ erDiagram
 
 ## Stage details (confirmed, one by one)
 
-### 1. Yêu cầu ("Gặp khách")
+### 1. Yêu cầu & Khảo sát ("Gặp khách")
 
 The client contacts the boss directly (inbound — the client reaches out).
 Together they set up an **appointment**, which usually happens **within the
-same day** as the first contact.
+same day** as the first contact — and that appointment _is_ the khảo sát
+visit, which is why these are one stage.
 
 - Entry: client makes contact.
-- Action: agree on an appointment (date/time + location).
-- Exit: the appointment takes place → moves into the next stage.
+- Action: agree on an appointment (date/time + location); at the visit,
+  record survey notes, photos, measurements against the Công Trình.
+- Exit: survey data is enough to build a quote → stage 2 (Báo giá).
 - Data captured: Client (existing or quick-created), the Contact who called,
-  the Location concerned, appointment date/time.
+  the Location concerned, appointment date/time; then notes, photos,
+  measurements (attached to the project; a dedicated Khảo sát record stays a
+  deferred exercise for now).
+- Khảo sát is **notes + photos + measurements only** — input for the quote.
+  No verbal price is ever given, at first contact or on site; pricing always
+  waits for Báo giá.
 - Note: because the turnaround is same-day, the CRM must make
-  Yêu cầu → appointment a near-zero-friction step (quick create, today
-  pre-filled), not a long-lived pipeline stage.
+  Yêu cầu → appointment → khảo sát a near-zero-friction path (quick create,
+  today pre-filled), not a long-lived pipeline stage.
 
-**Transition 1 → 2:** the appointment _is_ the khảo sát visit. Manual, one
-tap — "Đã gặp khách / Bắt đầu khảo sát" — records the real visit date.
-Nothing flips automatically on the clock (appointments slip).
+**Inside the stage:** the "Đã gặp khách / Bắt đầu khảo sát" tap survives as a
+manual one-tap that records the **real visit date** on the project. Nothing
+flips automatically on the clock (appointments slip). No visit date yet = still
+waiting on the appointment; visit date set = surveying. That date is the
+sub-state — no separate sub-status enum.
 
 Branches while in stage 1:
 
 - **Postponed** → reschedule: update the appointment date, stay in stage 1.
 - **No-show / client cancels / dead lead** → project status becomes `huy`
-  (see "Project status" below). No verbal pricing ever happens at first
-  contact — pricing always waits for Báo giá.
+  (see "Project status" below).
 
-### 2. Khảo sát
-
-The boss is on site (same visit as the stage-1 appointment). Khảo sát is
-**notes + photos + measurements only** — input for the quote. No verbal
-price is given on the spot.
-
-- Entry: the visit happens.
-- Action: record survey notes, photos, measurements against the Công Trình.
-- Exit: survey data is enough to build a quote → stage 3 (Báo giá).
-- Data captured: notes, photos, measurements (attached to the project;
-  a dedicated Khảo sát record stays a deferred exercise for now).
-
-### 3. Báo giá
+### 2. Báo giá
 
 The boss builds the quote from the khảo sát data and sends it to the client
 via **Zalo, email, or printed** — channel depends on the client (record
@@ -104,14 +102,14 @@ which channel(s) were used on the quote).
 - Entry: khảo sát data ready.
 - Action: build quote → send → wait / bargain.
 - Exit:
-  - Quote **Chốt** → stage 4 (Hợp đồng — contract signing).
+  - Quote **Chốt** → stage 3 (Hợp đồng — contract signing).
   - Quote **Hủy** → project status `huy` (frozen at Báo giá).
   - Quote **Hoãn** → project parked (client wants it, just not now).
 - Bargaining: a rejection from the client is not immediately final — it
   opens a bargaining loop (revise price → resend → Chờ again) until the
   quote lands on Chốt, Hoãn, or Hủy.
 
-### 4. Hợp đồng
+### 3. Hợp đồng
 
 A written contract is **optional** — some jobs run on the chốt quote alone
 (the quote is the agreement). When there is one: printing is done by the
@@ -120,18 +118,18 @@ boss**.
 
 - Entry: quote `chot`.
 - Action: (optionally) draft + print contract, both sides sign, collect cọc.
-- Exit — stage 4 is passed when **both** are done (a checklist on the
+- Exit — stage 3 is passed when **both** are done (a checklist on the
   project, independent of whether a written contract exists):
   1. Client signed confirmation (contract, or confirmation of the chốt
      quote).
   2. First payment — **Cọc** (deposit) received. This is the payment
-     milestone `tam_ung`, and it officially closes stage 4.
-- Building authorization / permits belong to **stage 5** — but to
+     milestone `tam_ung`, and it officially closes stage 3.
+- Building authorization / permits belong to **stage 4** — but to
   streamline, permit paperwork is sometimes sent together with the
-  contract, so stage-5 work may start in parallel while stage 4 is open.
+  contract, so stage-4 work may start in parallel while stage 3 is open.
 - Data captured: signed doc (if any), cọc amount + received date.
 
-### 5. Chuẩn bị hồ sơ
+### 4. Chuẩn bị hồ sơ
 
 Requirements **vary per client/site**, so this stage is a **per-project
 paperwork checklist**, not a fixed form. New projects are seeded with the
@@ -145,16 +143,16 @@ Default checklist (the most common requirements):
 3. **Danh sách nhân sự** (worker list).
 4. **Danh sách thiết bị** (equipment list).
 
-- Entry: cọc received (stage 4 done) — though paperwork may have started in
+- Entry: cọc received (stage 3 done) — though paperwork may have started in
   parallel (sent along with the contract).
 - Action: work the checklist — prepare each document, submit to the
   building/client, get it approved.
 - Exit: every checklist item on the project is cleared → Thi công can start.
 - See "Paperwork item" entity below for per-item states.
 
-### 6. Thi công (WIP — requirements still being gathered)
+### 5. Thi công (WIP — requirements still being gathered)
 
-Stage 6 has its own **sub-status** on the project, advancing in order, with
+Stage 5 has its own **sub-status** on the project, advancing in order, with
 a note on each step:
 
 ```text
@@ -185,49 +183,49 @@ ingest endpoint instead of manual entry.
 page/flow (they can bleed across projects or stand alone). See the Cost
 entity section.
 
-- Entry: paperwork cleared (stage 5 done).
+- Entry: paperwork cleared (stage 4 done).
 - Exit: a **"works done" confirmation button** — confirms all works are
   complete, optionally with **image logs** as evidence (photo upload; S3
   architecture for this is still to be designed).
 
-### 7. Nghiệm thu
+### 6. Nghiệm thu
 
 Starts by mailing a "Nghiệm thu" request to the host/client, requesting:
 
 1. Lịch nghiệm thu (acceptance schedule).
 2. Biên bản nghiệm thu (acceptance minutes — to be signed).
-3. Finish images (same S3 concern as stage 6 image logs).
+3. Finish images (same S3 concern as stage 5 image logs).
 
-Stage 7 sub-status, with a **rework loop**:
+Stage 6 sub-status, with a **rework loop**:
 
 ```text
 gui_yeu_cau (Gửi yêu cầu — request mailed, waiting for schedule)
   └─→ nghiem_thu (Nghiệm thu — inspection scheduled/underway)
         ├─→ bo_sung (Bổ sung — client found issues, crew reworks)
         │     └─→ nghiem_thu (re-inspect; loop until passed)
-        └─→ dat (Đạt — biên bản signed) → stage 8
+        └─→ dat (Đạt — biên bản signed) → stage 7
 ```
 
-- Entry: works-done confirmation (stage 6 exit).
-- Exit: biên bản nghiệm thu signed → stage 8.
+- Entry: works-done confirmation (stage 5 exit).
+- Exit: biên bản nghiệm thu signed → stage 7.
 
-### 8. Quyết toán & Thanh toán (merged stage)
+### 7. Quyết toán & Thanh toán (merged stage)
 
 One stage covering settlement and payment, in order:
 
 1. **Quyết toán** — settlement minutes/paper + **draft Bill** prepared and
    sent; client **signs off on both** → draft Bill becomes the **official
-   Bill**. Quyết toán is its own entity (decided at stage 3), not a quote
+   Bill**. Quyết toán is its own entity (decided at stage 2), not a quote
    type.
 2. **Mail the official Bill.**
 3. **Payment schedule** — payments tracked as milestones against the
    official Bill.
-4. **Final payment received** → stage 9 (Đã đóng).
+4. **Final payment received** → stage 8 (Đã đóng).
 
 - Entry: biên bản nghiệm thu signed.
 - Exit: final payment received.
 
-### 9. Đã đóng
+### 8. Đã đóng
 
 Project finished. No warranty/retention in practice (no "giữ bảo hành"
 holdback) — final payment closes the project outright.
@@ -265,7 +263,7 @@ Template for each entity as we redefine it:
 
 Built by the boss, sent via Zalo / email / print (per client). Sent
 channel(s) are recorded on the quote. Quote is **báo giá only** — Quyết toán
-is its own entity (see stage 8), no more `type` field. **A quote usually
+is its own entity (see stage 7), no more `type` field. **A quote usually
 belongs to a project but can be standalone** (`project_id` nullable, 2026-07-24)
 — a walk-in / speculative quote created from `/quotes`, attachable to a project
 later; attaching auto-advances that project to Báo giá.
@@ -273,7 +271,7 @@ later; attaching auto-advances that project to Báo giá.
 ```text
 nhap (Nháp — being built, not sent)
   └─→ cho (Chờ — sent, waiting for approval)
-        ├─→ chot (Chốt — DEAL → contract signing, stage 4)
+        ├─→ chot (Chốt — DEAL → contract signing, stage 3)
         ├─→ hoan (Hoãn — HOLD, client won't do it now; project → hoan)
         └─→ huy  (Hủy — rejected for good; project status → huy)
 ```
@@ -300,12 +298,12 @@ Open points:
 
 - Old model had `dang_thuc_hien` and `thanh_ly` — do those exist in
   reality, or is `da_ky` the end of the contract's own life (everything
-  after lives on the project)? Decide when we reach stages 6–10.
+  after lives on the project)? Decide when we reach stages 5–8.
 
 ### Paperwork item (Hồ sơ) — confirmed 2026-07-23
 
 One row per required document on a Công Trình (seeded from the defaults in
-stage 5, freely added/removed per site). Fields: name, note, attachment.
+stage 4, freely added/removed per site). Fields: name, note, attachment.
 
 ```text
 chua_xong (Chưa xong — being prepared)
@@ -313,9 +311,9 @@ chua_xong (Chưa xong — being prepared)
         └─→ da_duyet (Đã duyệt — approved/cleared)
 ```
 
-### Acceptance (Nghiệm thu) — replaced by stage-7 sub-status
+### Acceptance (Nghiệm thu) — replaced by stage-6 sub-status
 
-No separate Acceptance entity: nghiệm thu is the stage-7 sub-status on the
+No separate Acceptance entity: nghiệm thu is the stage-6 sub-status on the
 project (`gui_yeu_cau → nghiem_thu ⇄ bo_sung → dat`), and the signed biên
 bản nghiệm thu is an attachment on the project. The old
 `cho_nghiem_thu/da_nghiem_thu/co_van_de` model is dead.
@@ -323,7 +321,7 @@ bản nghiệm thu is an attachment on the project. The old
 ### Quyết toán — confirmed 2026-07-23
 
 Its own entity (not a quote type): paperwork + status, nothing more. The
-settlement papers are prepared in stage 8, sent with the draft Bill, and
+settlement papers are prepared in stage 7, sent with the draft Bill, and
 signed by the client.
 
 ```text
@@ -335,7 +333,7 @@ The payment schedule (milestones) **derives from the signed Quyết toán**.
 ### Bill (Hóa đơn) — confirmed 2026-07-23
 
 Created as a draft alongside the Quyết toán; becomes official when the
-client signs off (stage 8). Sent/paid tracking is **manual status
+client signs off (stage 7). Sent/paid tracking is **manual status
 flipping** for now — a future sub-system may read incoming payments from a
 bank app and flip `da_thanh_toan` automatically (same pattern as
 timekeeping: manual is source of truth, external feed secondary).
@@ -349,8 +347,8 @@ nhap (Nháp) → chinh_thuc (Chính thức — client signed off)
 ### Payment milestone (Đợt thanh toán) — confirmed 2026-07-23
 
 - Derived from the signed **Quyết toán** (the schedule lives there),
-  tracked against the official Bill in stage 8.
-- `tam_ung` = the **Cọc** collected at stage 4.
+  tracked against the official Bill in stage 7.
+- `tam_ung` = the **Cọc** collected at stage 3.
 - `giu_bao_hanh` is **dropped** — no warranty retention in practice.
 
 ```text
@@ -396,14 +394,14 @@ sinh, Giám sát, Lái xe. A member has a default role; the role on each
 assignment can override it.
 
 **Assignment**: crew member ↔ Công Trình, with role + from/to dates. The
-stage-6 worker list _is_ this list, and the stage-5 "danh sách nhân sự"
+stage-5 worker list _is_ this list, and the stage-4 "danh sách nhân sự"
 paperwork is generated from it. **Double-booking is allowed** (happens
 regularly) but the UI shows a **non-blocking warning** on overlapping
 assignments.
 
 **Timekeeping record**: one row per worker per project per day (hours or
 day-unit), `source: manual | zalo_app`. Manual is source of truth
-(stage-6 rule); actual work duration derives from these records.
+(stage-5 rule); actual work duration derives from these records.
 
 ## Cross-entity rules (confirmed 2026-07-23)
 
@@ -414,10 +412,10 @@ stage move (soft warning instead). Read "gates X" below as "auto-advances the
 project to X". The pipeline is the _common_ flow — direct create and pre-CRM
 backfill let a job start at any stage.
 
-- Quote `chot` gates stage 4 (contract signing / quote-only agreement).
-- Cọc received (`tam_ung` milestone `da_thu`) closes stage 4.
+- Quote `chot` gates stage 3 (contract signing / quote-only agreement).
+- Cọc received (`tam_ung` milestone `da_thu`) closes stage 3.
 - All paperwork items `da_duyet` gates Thi công.
-- Biên bản nghiệm thu signed (stage-7 sub-status `dat`) gates stage 8.
+- Biên bản nghiệm thu signed (stage-6 sub-status `dat`) gates stage 7.
 - Quyết toán `da_ky` turns the draft Bill `chinh_thuc` and defines the
   payment milestones.
 - Final milestone `da_thu` (Bill `da_thanh_toan`) closes the project.
@@ -455,3 +453,9 @@ backfill let a job start at any stage.
   auto-advance triggers (forward-only `max` rule), not hard gates — no 400
   blocks, manual moves are soft; Quote and Contract become `project_id`-
   optional (standalone, attachable later, attaching auto-advances the stage).
+- 2026-07-25 — pipeline down to **8 stages**: Yêu cầu + Khảo sát collapsed into
+  one "Yêu cầu & Khảo sát" stage (the appointment and the survey are the same
+  same-day visit); the old 1→2 transition tap becomes an in-stage marker that
+  records the real visit date — no sub-status enum. Stages renumbered: Báo giá
+  2, Hợp đồng 3, Chuẩn bị hồ sơ 4, Thi công 5, Nghiệm thu 6, Quyết toán &
+  Thanh toán 7, Đã đóng 8.

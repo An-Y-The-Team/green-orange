@@ -39,10 +39,9 @@ type BadgeVariant =
 
 type Label = { label: string; variant: BadgeVariant };
 
-// The 9 lifecycle stages, in display order — the workspace stepper.
+// The 8 lifecycle stages, in display order — the workspace stepper.
 export const projectStageOrder: ProjectStage[] = [
   ProjectStage.REQUEST,
-  ProjectStage.SURVEY,
   ProjectStage.QUOTE,
   ProjectStage.CONTRACT,
   ProjectStage.PAPERWORK,
@@ -53,8 +52,10 @@ export const projectStageOrder: ProjectStage[] = [
 ];
 
 export const projectStage: Record<ProjectStage, Label> = {
-  [ProjectStage.REQUEST]: { label: "Yêu cầu", variant: "secondary" },
-  [ProjectStage.SURVEY]: { label: "Khảo sát", variant: "secondary" },
+  [ProjectStage.REQUEST]: {
+    label: "Yêu cầu & Khảo sát",
+    variant: "secondary",
+  },
   [ProjectStage.QUOTE]: { label: "Báo giá", variant: "default" },
   [ProjectStage.CONTRACT]: { label: "Hợp đồng", variant: "default" },
   [ProjectStage.PAPERWORK]: { label: "Chuẩn bị hồ sơ", variant: "warning" },

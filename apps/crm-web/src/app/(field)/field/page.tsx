@@ -24,12 +24,15 @@ export default async function FieldPage() {
   const today = new Date().toISOString().slice(0, 10);
   const projectById = new Map(projects.map((p) => [p.id, p]));
 
-  // Hôm nay — new requests with a survey appointment today (dashboard filter).
+  // Hôm nay — appointments today not yet visited (dashboard filter). Stage 1
+  // spans request AND survey, so `!visit_date` marks "still to meet".
   // Refetch each as detail: the list endpoint omits working_contact, which the
   // [Gọi] tel: link needs; GET /projects/:id includes it.
   const todayRefs = projects.filter(
     (p) =>
-      p.stage === ProjectStage.REQUEST && p.appointment_at?.startsWith(today)
+      p.stage === ProjectStage.REQUEST &&
+      !p.visit_date &&
+      p.appointment_at?.startsWith(today)
   );
   const todayAppointments = (
     await Promise.all(todayRefs.map((p) => getProject(p.id)))

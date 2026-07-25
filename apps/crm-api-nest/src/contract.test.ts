@@ -6,7 +6,7 @@ import { describe, expect, test } from "bun:test";
 import { formatCode } from "./common/code";
 import { toBig } from "./common/coerce";
 import { normalize } from "./common/serialize.interceptor";
-import { shouldAdvance } from "./common/stage";
+import { STAGE_ORDER, shouldAdvance } from "./common/stage";
 
 describe("formatCode", () => {
   test("first sequence is CT-2026-001", () => {
@@ -74,5 +74,12 @@ describe("shouldAdvance (forward-only auto-advance)", () => {
   });
   test("closed projects never auto-advance", () => {
     expect(shouldAdvance("closed", "settlement")).toBe(false);
+  });
+  // 2026-07-25: survey merged into request — 8 stages, and re-adding one
+  // would silently shift every later index (advanceStage compares indices).
+  test("8 stages, survey merged into request", () => {
+    expect(STAGE_ORDER).toHaveLength(8);
+    expect(STAGE_ORDER).not.toContain("survey");
+    expect(STAGE_ORDER[0]).toBe("request");
   });
 });

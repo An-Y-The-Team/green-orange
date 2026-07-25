@@ -1,9 +1,10 @@
 import { PrismaService } from "../prisma/prisma.service";
 
-// The 9 lifecycle stages, in order (prisma/schema.prisma Project.stage).
+// The 8 lifecycle stages, in order (prisma/schema.prisma Project.stage).
+// 2026-07-25: "survey" merged into "request" — the appointment IS the survey
+// visit, so it's one stage; `visit_date` marks where inside it we are.
 export const STAGE_ORDER = [
   "request",
-  "survey",
   "quote",
   "contract",
   "paperwork",

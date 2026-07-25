@@ -5,8 +5,13 @@ Design spec for rebuilding `apps/crm-web` against the v2 backend
 does) and `crm-database-schema.md` (the contract + EN↔VN glossary).
 
 **Status: stage design pass COMPLETE, backend deltas APPLIED
-(2026-07-23).** All 9 stage panels confirmed one by one (sections below);
+(2026-07-23).** All stage panels confirmed one by one (sections below);
 the Backend-deltas migration + module changes are live in `crm-api-nest`.
+
+**2026-07-25 — pipeline is 8 stages, BUILT:** Yêu cầu + Khảo sát merged into
+one "Yêu cầu & Khảo sát" panel (the appointment _is_ the survey visit). Panels
+renumbered below; implemented in both apps — see "Stage merge delta" and
+phase 7 in `crm-ui-implementation-plan.md`.
 Next: frontend build phase 1 (contract layer). Non-stage screens
 (dashboard, clients, crew, receivables) carry the baseline spec and get
 refined during build.
@@ -22,7 +27,7 @@ refined during build.
 
 ## Principles
 
-- **The pipeline is the common flow, not the only one.** The 9 stages are how
+- **The pipeline is the common flow, not the only one.** The 8 stages are how
   a typical job progresses, but work happens opportunistically — clients,
   quotes, contracts, crew are created directly from their own pages, and jobs
   can be entered mid-pipeline (backfill). Every screen still answers "what
@@ -91,8 +96,8 @@ The center of the app. Three zones:
 │ Công ty TNHH An Phát · Toà nhà A — Q.1    (Vệ sinh)          │
 │ Liên hệ: Trần Văn B (0903…)  ·  Quyết định: Trần Văn B       │
 │                                                              │
-│ ①──②──③──●④──⑤──⑥──⑦──⑧──⑨        [Hoãn ▾] [Hủy]         │
-│ Yêu cầu … Hợp đồng … Đã đóng                                 │
+│ ①──②──●③──④──⑤──⑥──⑦──⑧           [Hoãn ▾] [Hủy]         │
+│ Yêu cầu & Khảo sát … Hợp đồng … Đã đóng                      │
 ├──────────────────────────────────────────────────────────────┤
 │ ZONE 2 — panel of the CURRENT stage (see per-stage specs)    │
 ├──────────────────────────────────────────────────────────────┤
@@ -102,11 +107,11 @@ The center of the app. Three zones:
 ```
 
 - **Zone 1 — header.** Code, name, status badge, client → location →
-  contacts, type tags. The 9-step stepper reflects where the job _is_,
+  contacts, type tags. The 8-step stepper reflects where the job _is_,
   derived from the work done: completed steps filled, current highlighted,
   future dimmed. Most advances happen automatically as artifacts are created
-  (quote → 3, cọc → 5, works-done → 7, settlement signed → 8…); where there's
-  no artifact (Đã gặp khách 1→2) the current panel carries the button.
+  (quote → 2, cọc → 4, works-done → 6, settlement signed → 7…); stage 1 has no
+  artifact, so its panel carries the exit button ([Đủ dữ liệu — lập báo giá]).
   Clicking a step lets you jump there manually — a forward jump that skips
   unfinished work shows a soft warning, never a hard block. `Hoãn` asks for a
   follow-up date; `Hủy` asks for the required reason. Parked/cancelled
@@ -116,24 +121,23 @@ The center of the app. Three zones:
   panel = gate checklist (live from the same data the server gates on) +
   the stage's own fields/actions.
 - **Zone 3 — entity tabs.** Always available regardless of stage (paperwork
-  can start during stage 4, crew can be assigned early). Tabs reuse the same
+  can start during stage 3, crew can be assigned early). Tabs reuse the same
   components the stage panels embed.
 
 ### Per-stage panels (first-pass draft — each stage confirmed below, one by one)
 
 | #   | Stage                   | Panel contents                      | Auto-advance trigger (soft, forward-only) |
 | --- | ----------------------- | ----------------------------------- | ----------------------------------------- |
-| 1   | Yêu cầu                 | ✅ confirmed — see "Stage 1" below. | —                                         |
-| 2   | Khảo sát                | ✅ confirmed — see "Stage 2" below. | —                                         |
-| 3   | Báo giá                 | ✅ confirmed — see "Stage 3" below. | latest quote `deal`                       |
-| 4   | Hợp đồng                | ✅ confirmed — see "Stage 4" below. | — (gates apply to _entering_ 6)           |
-| 5   | Chuẩn bị hồ sơ          | ✅ confirmed — see "Stage 5" below. | all items `approved` + stage-4 gates      |
-| 6   | Thi công                | ✅ confirmed — see "Stage 6" below. | —                                         |
-| 7   | Nghiệm thu              | ✅ confirmed — see "Stage 7" below. | sub-status `passed`                       |
-| 8   | Quyết toán & Thanh toán | ✅ confirmed — see "Stage 8" below. | all milestones + bills `paid`             |
-| 9   | Đã đóng                 | ✅ confirmed — see "Stage 9" below. | terminal (reopen → stage 8)               |
+| 1   | Yêu cầu & Khảo sát      | ✅ confirmed — see "Stage 1" below. | — (panel's own exit button)               |
+| 2   | Báo giá                 | ✅ confirmed — see "Stage 2" below. | latest quote `deal`                       |
+| 3   | Hợp đồng                | ✅ confirmed — see "Stage 3" below. | — (gates apply to _entering_ 5)           |
+| 4   | Chuẩn bị hồ sơ          | ✅ confirmed — see "Stage 4" below. | all items `approved` + stage-3 gates      |
+| 5   | Thi công                | ✅ confirmed — see "Stage 5" below. | —                                         |
+| 6   | Nghiệm thu              | ✅ confirmed — see "Stage 6" below. | sub-status `passed`                       |
+| 7   | Quyết toán & Thanh toán | ✅ confirmed — see "Stage 7" below. | all milestones + bills `paid`             |
+| 8   | Đã đóng                 | ✅ confirmed — see "Stage 8" below. | terminal (reopen → stage 7)               |
 
-### Stage 1 — Yêu cầu (confirmed 2026-07-23; entry decoupled 2026-07-24)
+### Stage 1 — Yêu cầu & Khảo sát (confirmed 2026-07-23; entry decoupled 2026-07-24; merged 2026-07-25)
 
 **A project does not have to start as a request.** `/projects/new` is one
 create page with a **starting-stage selector** (default `Yêu cầu`), reached
@@ -185,16 +189,21 @@ stage and lands on its workspace.
   itself — reuse what the workspace already has.
 - **Creating at a stage asserts state, it does not transition** — the
   forward-move gates (chốt quote, cọc, paperwork approved…) are **not run on
-  create**, so a backfilled stage-6 job doesn't 400 on gates it never passed
+  create**, so a backfilled stage-5 job doesn't 400 on gates it never passed
   through in-app. Auto-seed paperwork still fires (harmless).
-- Backfilling an already-**finished** job hits the stage-9 close lock:
-  create at stage 8, or reopen to edit.
+- Backfilling an already-**finished** job hits the stage-8 close lock:
+  create at stage 7, or reopen to edit.
   `// ponytail: revisit if backfilling closed jobs becomes common`
 
-**Stage-1 panel:**
+**Stage-1 panel** — one panel, two halves. The survey half is **revealed by
+`visit_date`**, not by a stage move: before the visit it's the appointment
+card alone, after the [Đã gặp khách] tap the measurement/notes/photos section
+appears below it.
+
+Before the visit:
 
 ```text
-┌ GIAI ĐOẠN 1 · YÊU CẦU ─────────────────────────┐
+┌ GIAI ĐOẠN 1 · YÊU CẦU & KHẢO SÁT ──────────────┐
 │ Yêu cầu: "Vệ sinh kính mặt ngoài toà A"        │
 │ Nguồn: giới thiệu (chị Hoa)                    │
 │ 📅 Hẹn gặp: Hôm nay 15:00 · Toà nhà A [Dời hẹn]│
@@ -204,17 +213,19 @@ stage and lands on its workspace.
 ```
 
 - **Dời hẹn** edits `appointment_at` in place — no reschedule history.
-- The button sets `visit_date` (today, editable) and moves to stage 2 in
-  one action.
+- The button sets `visit_date` (today, editable) and **stays in stage 1** —
+  it reveals the survey half, it no longer moves the stage.
 - No stage-specific cancel: no-show/dead lead uses the header's global
   **Hủy** (reason required).
 
-### Stage 2 — Khảo sát (confirmed 2026-07-23)
+After the visit (same panel, survey half added):
 
 ```text
-┌ GIAI ĐOẠN 2 · KHẢO SÁT ────────────────────────┐
+┌ GIAI ĐOẠN 1 · YÊU CẦU & KHẢO SÁT ──────────────┐
+│ Yêu cầu: "Vệ sinh kính mặt ngoài toà A"        │
+│ 📅 Hẹn gặp: 23/07 15:00 · Toà nhà A            │
 │ Đã gặp khách: 23/07/2026  [sửa]                │
-│                                                │
+│ ─────────────────────────────────────────────  │
 │ Hạng mục đo đạc                    [+ Thêm dòng]│
 │ ┌ Hạng mục          │ SL   │ ĐV │ Ghi chú ────┐│
 │ │ Kính mặt ngoài    │ 320  │ m² │ tầng 12–18  ││
@@ -241,16 +252,16 @@ unit, note}[]`) — inline-editable rows; they **prefill quote line items**
 - **Photos: metadata-only is fine for launch** — attachments record
   filename + note, actual files stay on the phone/Zalo until the S3
   session. No upload work pulled forward.
-- Exit button moves to stage 3 **and** navigates to the quote-builder page
+- Exit button moves to stage 2 **and** navigates to the quote-builder page
   prefilled from the measurement rows.
 
-### Stage 3 — Báo giá (confirmed 2026-07-23)
+### Stage 2 — Báo giá (confirmed 2026-07-23)
 
 **Panel = versions rail**, latest on top carrying the live status; older
 versions frozen as "Đã thay thế" with their printable kept:
 
 ```text
-┌ GIAI ĐOẠN 3 · BÁO GIÁ ─────────────────────────┐
+┌ GIAI ĐOẠN 2 · BÁO GIÁ ─────────────────────────┐
 │ BG-2026-012 · v2   [Chờ duyệt]    36.000.000₫  │
 │   Gửi: Zalo 23/07 (Thư ký) · In 23/07          │
 │   [Chốt ✓] [Hoãn] [Hủy]   [Gửi lại] [Tạo v3]   │
@@ -298,12 +309,12 @@ parking chore.
   authoritative.
 - **VAT exposed and editable** per quote, default 8% (`vat_rate`).
 - **Điều khoản & ghi chú** = existing `Quote.note`, rendered as the terms
-  block on the printable. **No backend deltas for stage 3.**
+  block on the printable. **No backend deltas for stage 2.**
 
-### Stage 4 — Hợp đồng (confirmed 2026-07-23)
+### Stage 3 — Hợp đồng (confirmed 2026-07-23)
 
 ```text
-┌ GIAI ĐOẠN 4 · HỢP ĐỒNG ────────────────────────┐
+┌ GIAI ĐOẠN 3 · HỢP ĐỒNG ────────────────────────┐
 │ Điều kiện hoàn thành                            │
 │ ☑ Báo giá đã chốt         v2 · 36.000.000₫     │
 │ ☐ Khách ký xác nhận       [Ghi nhận đã ký]     │
@@ -327,13 +338,13 @@ parking chore.
   `DocumentShell`; "Đánh dấu đã ký" stamps `signed_date` (today default).
 - **Chaining:** marking a contract Đã ký auto-sets `client_signed_date`
   (if empty) — both sides signing the contract IS the client confirmation.
-  UI-orchestrated, same as stage-3 chaining.
+  UI-orchestrated, same as stage-2 chaining.
 - No backend deltas.
 
-### Stage 5 — Chuẩn bị hồ sơ (confirmed 2026-07-23)
+### Stage 4 — Chuẩn bị hồ sơ (confirmed 2026-07-23)
 
 ```text
-┌ GIAI ĐOẠN 5 · CHUẨN BỊ HỒ SƠ ──────────────────┐
+┌ GIAI ĐOẠN 4 · CHUẨN BỊ HỒ SƠ ──────────────────┐
 │ Hồ sơ (2/4 đã duyệt)                [+ Thêm mục]│
 │                                                 │
 │ Giấy phép thi công   ●──●──●  Đã duyệt          │
@@ -360,10 +371,10 @@ parking chore.
   printable worker list (DocumentShell) from current assignments. No
   equipment model for Danh sách thiết bị (YAGNI).
 
-### Stage 6 — Thi công (confirmed 2026-07-23)
+### Stage 5 — Thi công (confirmed 2026-07-23)
 
 ```text
-┌ GIAI ĐOẠN 6 · THI CÔNG ────────────────────────┐
+┌ GIAI ĐOẠN 5 · THI CÔNG ────────────────────────┐
 │ Khởi công ●──● Dựng rào ──○ Thi công            │
 │                    [→ Bắt đầu thi công]         │
 │                                                 │
@@ -394,12 +405,12 @@ parking chore.
   invented rules create fake conflicts.
 - Worker list = assignment summary (count + overlap chip), editing in the
   Nhân sự tab. Approaches = free text (`approaches`).
-- Exit stamps `works_done_at` → stage 7; optional image-log attachments.
+- Exit stamps `works_done_at` → stage 6; optional image-log attachments.
 
-### Stage 7 — Nghiệm thu (confirmed 2026-07-23)
+### Stage 6 — Nghiệm thu (confirmed 2026-07-23)
 
 ```text
-┌ GIAI ĐOẠN 7 · NGHIỆM THU ──────────────────────┐
+┌ GIAI ĐOẠN 6 · NGHIỆM THU ──────────────────────┐
 │ Gửi yêu cầu ●──● Nghiệm thu ⇄ Bổ sung ──○ Đạt   │
 │                                                 │
 │ Trạng thái: Đang nghiệm thu                     │
@@ -413,7 +424,7 @@ parking chore.
 └─────────────────────────────────────────────────┘
 ```
 
-- Entering stage 7 sets `request_sent` automatically — the stage starts by
+- Entering stage 6 sets `request_sent` automatically — the stage starts by
   requesting; no extra tap.
 - **Formal printable request** — [In thư yêu cầu] renders a DocumentShell
   letter (letterhead, signature blocks) listing the three asks: lịch
@@ -421,19 +432,19 @@ parking chore.
 - Transition buttons: "Khách đã hẹn lịch" (→ inspecting) · "Khách báo lỗi
   → Bổ sung" (→ rework, **note required** — what the client found) ·
   "Bổ sung xong — nghiệm thu lại" (→ inspecting) · "Đạt" (→ passed,
-  **stamps `acceptance_passed_date`**, unlocks stage 8). Notes land in
+  **stamps `acceptance_passed_date`**, unlocks stage 7). Notes land in
   the ProjectNote timeline; the rework history shown is those notes
   filtered.
 - Signed biên bản = attachment (metadata) on Đạt.
 
-### Stage 8 — Quyết toán & Thanh toán (confirmed 2026-07-23)
+### Stage 7 — Quyết toán & Thanh toán (confirmed 2026-07-23)
 
 **Settling happens in phases** (sometimes corrections) — the panel is a
 list of settlement cards, newest/active on top, each card owning its bill
 and that bill's milestones:
 
 ```text
-┌ GIAI ĐOẠN 8 · QUYẾT TOÁN & THANH TOÁN ─────────┐
+┌ GIAI ĐOẠN 7 · QUYẾT TOÁN & THANH TOÁN ─────────┐
 │ ▼ QT-2026-004 · Đợt 1     Nháp ─● Đã gửi ─○ Ký  │
 │   38.500.000₫  [Sửa] [In] [Đã gửi] [✓ Đã ký]    │
 │   ② Hóa đơn HĐ-004 · Nháp (chính thức khi ký)   │
@@ -466,10 +477,10 @@ and that bill's milestones:
   `/receivables`.
 - Gate to Đã đóng: all bills + all milestones paid (server-enforced).
 
-### Stage 9 — Đã đóng (confirmed 2026-07-23)
+### Stage 8 — Đã đóng (confirmed 2026-07-23)
 
 ```text
-┌ GIAI ĐOẠN 9 · ĐÃ ĐÓNG ─────────────────────────┐
+┌ GIAI ĐOẠN 8 · ĐÃ ĐÓNG ─────────────────────────┐
 │ ✓ Hoàn thành · Đã thu đủ 38.500.000₫            │
 │                                                 │
 │ Hẹn gặp 20/07 → Đóng 20/08 (31 ngày)            │
@@ -485,7 +496,7 @@ and that bill's milestones:
   links to all printables. No new fields.
 - **Locked on close**: entities of a closed project reject edits (server-
   enforced); viewing/printing always works, notes stay allowed. **[Mở
-  lại]** returns the project to stage 8 and unlocks — corrections usually
+  lại]** returns the project to stage 7 and unlocks — corrections usually
   mean another settlement phase anyway.
 - **[+ Công trình mới tại địa điểm này]** — repeat-business shortcut:
   opens intake prefilled with this client/location/contacts; a completely
@@ -497,15 +508,15 @@ and that bill's milestones:
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | Project        | `request_note String?`                                                                                                                                                                                               | 1          |
 | Project        | `referral_source String?`                                                                                                                                                                                            | 1          |
-| Project        | `survey_items Json?` — `{name, quantity, unit, note}[]` (scratch input for quote prefill; JSON, not a table — never queried across projects)                                                                         | 2          |
-| PaperworkItem  | `due_date DateTime? @db.Date` — overdue derived, never stored                                                                                                                                                        | 5          |
-| (behavior)     | `POST /projects` auto-creates the 4 default paperwork items (replaces the manual `/paperwork-items/defaults` call; endpoint can stay for re-seeding)                                                                 | 5          |
-| (behavior)     | `execution_sub_status`: allow `kickoff → works` directly (Dựng rào skippable) — verify current PATCH validation permits it                                                                                           | 6          |
-| Project        | `acceptance_passed_date DateTime? @db.Date` — stamped on sub-status → `passed`                                                                                                                                       | 7          |
-| SettlementItem | new table mirroring QuoteItem (`settlement_id`, `description`, `unit`, `quantity`, `unit_price`, `amount`, `sort_order`) — prefilled from quote items, quantities adjusted to actuals; server computes amounts/total | 8          |
-| Settlement     | `total_amount BigInt` (server-computed from items; copied to bill on sign)                                                                                                                                           | 8          |
-| (behavior)     | on settlement sign: attach unallocated cọc milestone (`bill_id` null, paid) to the new official bill + auto-create one milestone for the remaining balance                                                           | 8          |
-| (behavior)     | closed projects are locked: mutations on the project + its entities rejected (except ProjectNote and the reopen action `stage: closed → settlement`)                                                                 | 9          |
+| Project        | `survey_items Json?` — `{name, quantity, unit, note}[]` (scratch input for quote prefill; JSON, not a table — never queried across projects)                                                                         | 1          |
+| PaperworkItem  | `due_date DateTime? @db.Date` — overdue derived, never stored                                                                                                                                                        | 4          |
+| (behavior)     | `POST /projects` auto-creates the 4 default paperwork items (replaces the manual `/paperwork-items/defaults` call; endpoint can stay for re-seeding)                                                                 | 4          |
+| (behavior)     | `execution_sub_status`: allow `kickoff → works` directly (Dựng rào skippable) — verify current PATCH validation permits it                                                                                           | 5          |
+| Project        | `acceptance_passed_date DateTime? @db.Date` — stamped on sub-status → `passed`                                                                                                                                       | 6          |
+| SettlementItem | new table mirroring QuoteItem (`settlement_id`, `description`, `unit`, `quantity`, `unit_price`, `amount`, `sort_order`) — prefilled from quote items, quantities adjusted to actuals; server computes amounts/total | 7          |
+| Settlement     | `total_amount BigInt` (server-computed from items; copied to bill on sign)                                                                                                                                           | 7          |
+| (behavior)     | on settlement sign: attach unallocated cọc milestone (`bill_id` null, paid) to the new official bill + auto-create one milestone for the remaining balance                                                           | 7          |
+| (behavior)     | closed projects are locked: mutations on the project + its entities rejected (except ProjectNote and the reopen action `stage: closed → settlement`)                                                                 | 8          |
 
 ## Backend deltas — ✅ APPLIED 2026-07-24 (migration `20260724050124_soft_gates_auto_advance_standalone`)
 
@@ -516,11 +527,11 @@ helper in `src/common/stage.ts`; `checkStageGate` removed):
 | Model / behavior | Change                                                                                                                                                                                                                                                                       | From |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
 | (behavior)       | `POST /projects` accepts optional `stage` (default `yeu_cau`); creating at a stage **asserts state** and does NOT run forward-move gates (direct create / pre-CRM backfill)                                                                                                  | 1    |
-| (behavior)       | stage transitions become **auto-advance, forward-only** — `stage = max(stage, triggered)` on the artifact action (quote → 3, cọc → 5, works-done → 7, settlement signed → 8…). No gate 400s; manual moves allowed (soft warning). Replaces the server-enforced gate rejects. | all  |
-| Quote            | `project_id` **nullable** — standalone quotes (walk-in / speculative), attachable to a project later; attaching auto-advances that project to Báo giá                                                                                                                        | 3    |
-| Contract         | `project_id` **nullable** — standalone contracts; attaching auto-advances that project to Hợp đồng                                                                                                                                                                           | 4    |
+| (behavior)       | stage transitions become **auto-advance, forward-only** — `stage = max(stage, triggered)` on the artifact action (quote → 2, cọc → 4, works-done → 6, settlement signed → 7…). No gate 400s; manual moves allowed (soft warning). Replaces the server-enforced gate rejects. | all  |
+| Quote            | `project_id` **nullable** — standalone quotes (walk-in / speculative), attachable to a project later; attaching auto-advances that project to Báo giá                                                                                                                        | 2    |
+| Contract         | `project_id` **nullable** — standalone contracts; attaching auto-advances that project to Hợp đồng                                                                                                                                                                           | 3    |
 
-The stage-9 **closed-project lock stays** (it's an edit lock, not a transition gate); only the _trigger_ to close (final payment) becomes auto/soft like the rest.
+The stage-8 **closed-project lock stays** (it's an edit lock, not a transition gate); only the _trigger_ to close (final payment) becomes auto/soft like the rest.
 
 **Frontend (2026-07-24):** `/quotes` gains "+ Báo giá mới" → `/quotes/new`
 (reuses the quote builder with an optional project picker; standalone → quote
@@ -530,6 +541,28 @@ project-scoped editor). Standalone list rows show "—" for no project.
 Deferred: project-_less_ contract authoring (the editor's live preview merges
 project/client/quote data) — backend accepts null, UI comes on real need.
 
+## Stage merge delta — ✅ APPLIED 2026-07-25
+
+`request` + `survey` → one `request` stage (migration
+`20260725000000_merge_request_survey_stage`; see `crm-database-schema.md`).
+Full file list + findings in `crm-ui-implementation-plan.md` phase 7. Shape as
+built:
+
+| Piece                               | Change                                                                                                                                   |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `panels/request.tsx`                | renders the appointment half, then `{project.visit_date ? <SurveyPanel/> : <đã-gặp-khách input>}` — no new component, no rewritten panel |
+| `panels/survey.tsx`                 | now a **bare body** (dispatcher-free, like `ContractPanel`); keeps its own "Đã gặp khách: … [sửa]" row and its `stage: quote` exit       |
+| `panels/request.tsx` [Đã gặp khách] | PATCHes `{visit_date}` only — the stage move is gone                                                                                     |
+| `stage-panel.tsx`                   | `survey` case deleted; contract case's hardcoded "Giai đoạn 4" now computed                                                              |
+| `stage-stepper.tsx`                 | 8 steps + "n/8" pill came free from `projectStageOrder` — untouched                                                                      |
+| `/dashboard` + `/field` "Hôm nay"   | filters gained `!visit_date` — a visited job now **stays** in stage 1, so the stage alone no longer means "still to meet"                |
+| `/field`                            | "Bắt đầu khảo sát" stops moving the stage, same `{visit_date}`-only PATCH                                                                |
+
+`ponytail: two stacked halves in one panel, not a rewritten merged panel — the survey UI is already built and correct`
+
+The dashboard pipeline block described above no longer exists in code (removed
+in `02501ac`); its "8 columns" line stays as spec for whenever it returns.
+
 ## Other desktop screens
 
 ### Tổng quan (`/dashboard`)
@@ -538,7 +571,7 @@ Four blocks, all v2-derived — replaces the v1 rollup cards:
 
 1. **Hôm nay** — appointments today (stage-1 projects with `appointment_at`
    today), tap-through to workspace.
-2. **Pipeline** — 9 columns with project counts + total quoted value per
+2. **Pipeline** — 8 columns with project counts + total quoted value per
    stage (active projects only).
 3. **Công nợ** — milestones `awaiting_payment` + derived overdue, bills
    `sent` unpaid; sum + top rows, link to `/receivables`.
@@ -630,8 +663,8 @@ route group with its own minimal layout (no sidebar; bottom bar).
 
 Scope (only what happens away from the desk): today's appointments with
 one-tap "Bắt đầu khảo sát", quick request intake, survey notes + photo
-capture, quote decide buttons, stage-6 sub-status bumps + "Xác nhận hoàn
-tất", stage-7 sub-status bumps. Everything else deep-links to the desktop
+capture, quote decide buttons, stage-5 sub-status bumps + "Xác nhận hoàn
+tất", stage-6 sub-status bumps. Everything else deep-links to the desktop
 pages (which remain usable, just not optimized, on mobile).
 
 ## Contract wiring (how the frontend meets v2)
@@ -664,9 +697,10 @@ pages (which remain usable, just not optimized, on mobile).
    fields. Creation/editing returns as dedicated pages in later phases.
 2. **Clients + Projects list + workspace shell** (header, stepper, status
    actions, Zone 3 tabs with notes/attachments).
-3. **Stage panels 1–5** (appointment, survey, quotes component, contract
-   gates, paperwork checklist) — the pre-execution pipeline end-to-end.
-4. **Stage panels 6–9 + receivables** (execution, acceptance, settlement,
+3. **Stage panels 1–4** (appointment + survey in one panel, quotes component,
+   contract gates, paperwork checklist) — the pre-execution pipeline
+   end-to-end.
+4. **Stage panels 5–8 + receivables** (execution, acceptance, settlement,
    bills, milestones).
 5. **Crew** (roster, roles, assignments, timekeeping) + dashboard v2 +
    settings.
@@ -674,7 +708,7 @@ pages (which remain usable, just not optimized, on mobile).
 
 ## Open questions
 
-- Stepper on small screens: horizontal scroll vs compact "4/9 · Hợp đồng"
+- Stepper on small screens: horizontal scroll vs compact "3/8 · Hợp đồng"
   pill (proposal: pill below `md` breakpoint).
 - Quote print letterhead variants — reuse existing `letterhead/national`
   as-is? (assumed yes)
@@ -735,6 +769,13 @@ pages (which remain usable, just not optimized, on mobile).
   project auto-advances it. New pending-deltas backend section added (not yet
   applied). Principles + Zone-1 stepper + per-stage table header + contract-
   wiring errors reframed accordingly.
+- 2026-07-25 — **pipeline down to 8 stages**: Yêu cầu + Khảo sát merged into
+  one panel (the appointment _is_ the survey visit). [Đã gặp khách] now only
+  stamps `visit_date` and reveals the survey half in place — it no longer
+  moves the stage; the panel's exit button ([Đủ dữ liệu — lập báo giá]) is the
+  stage-1 → Báo giá move. Panels 3–9 renumbered 2–8, stepper/pipeline/pill
+  counts updated. **Built the same day** — see "Stage merge delta" above and
+  phase 7 in the implementation plan.
 - 2026-07-23 — backend deltas applied: migration `ui_design_deltas` +
   module changes (auto-seed paperwork, sub-status skip rule,
   acceptance date stamp, SettlementItem + sign choreography, closed-

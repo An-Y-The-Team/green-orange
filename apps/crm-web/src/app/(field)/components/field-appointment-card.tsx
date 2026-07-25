@@ -11,7 +11,6 @@ import {
 import { Button } from "@yan/ui/components/button";
 
 import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
-import { ProjectStage } from "@/app/(dashboard)/projects/enums";
 import type { Project } from "@/app/(dashboard)/projects/types";
 
 const initialState: ServerActionState = { success: false };
@@ -71,9 +70,7 @@ export function FieldAppointmentCard({ project }: { project: Project }) {
           className="flex-1"
           disabled={isPending}
           onClick={() =>
-            startTransition(() =>
-              formAction({ visit_date: today(), stage: ProjectStage.SURVEY })
-            )
+            startTransition(() => formAction({ visit_date: today() }))
           }
         >
           Bắt đầu khảo sát

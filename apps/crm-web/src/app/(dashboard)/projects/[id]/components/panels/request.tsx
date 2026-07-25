@@ -28,8 +28,8 @@ import { formatDate } from "@/lib/format";
 import { projectStage, projectStageOrder } from "@/lib/labels";
 
 import { updateProject } from "../../../actions/update-project";
-import { ProjectStage } from "../../../enums";
-import type { Project } from "../../../types";
+import type { Attachment, Project } from "../../../types";
+import { SurveyPanel } from "./survey";
 
 const initialState: ServerActionState = { success: false };
 
@@ -41,7 +41,16 @@ function today() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function RequestPanel({ project }: { project: Project }) {
+// Stage 1 = Yêu cầu & Khảo sát: the appointment IS the survey visit, so one
+// panel with two halves. `visit_date` (set by "Đã gặp khách") reveals the
+// survey half in place — it is NOT a stage move.
+export function RequestPanel({
+  project,
+  attachments,
+}: {
+  project: Project;
+  attachments: Attachment[];
+}) {
   const [state, formAction] = useActionState(
     updateProject.bind(null, project.id),
     initialState
@@ -150,26 +159,28 @@ export function RequestPanel({ project }: { project: Project }) {
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="visit-date">Ngày gặp khách</Label>
-            <Input
-              id="visit-date"
-              type="date"
-              className="w-auto"
-              value={visitDate}
-              onChange={(e) => setVisitDate(e.target.value)}
-            />
+        {project.visit_date ? (
+          <SurveyPanel project={project} attachments={attachments} />
+        ) : (
+          <div className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="visit-date">Ngày gặp khách</Label>
+              <Input
+                id="visit-date"
+                type="date"
+                className="w-auto"
+                value={visitDate}
+                onChange={(e) => setVisitDate(e.target.value)}
+              />
+            </div>
+            <Button
+              disabled={isPending || !visitDate}
+              onClick={() => run({ visit_date: visitDate })}
+            >
+              ✓ Đã gặp khách — bắt đầu khảo sát
+            </Button>
           </div>
-          <Button
-            disabled={isPending || !visitDate}
-            onClick={() =>
-              run({ visit_date: visitDate, stage: ProjectStage.SURVEY })
-            }
-          >
-            ✓ Đã gặp khách — bắt đầu khảo sát
-          </Button>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
