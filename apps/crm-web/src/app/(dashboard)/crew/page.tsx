@@ -1,7 +1,7 @@
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
 import { listProjects } from "../projects/queries";
-import { CrewTabs } from "./components/crew-tabs";
+import { CrewTabs } from "./components/crew-tabs/crew-tabs";
 import { CrewMemberStatus } from "./enums";
 import { listCrew, listCrewRoles } from "./queries";
 

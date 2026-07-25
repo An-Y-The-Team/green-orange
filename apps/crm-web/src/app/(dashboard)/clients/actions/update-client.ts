@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { clients } from "@/data/mock/clients";
-import { API_URL, apiSend } from "@/lib/http";
+import { API_URL, apiSend } from "@/utils/http/http";
 
 import { ClientType } from "../enums";
 import { type UpdateClientFormValues, updateClientSchema } from "../schema";

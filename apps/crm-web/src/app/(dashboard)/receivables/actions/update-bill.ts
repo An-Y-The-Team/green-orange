@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/lib/http";
+import { API_URL, apiSend } from "@/utils/http/http";
 
 import { BillStatus } from "../enums";
 import type { Bill } from "../types";

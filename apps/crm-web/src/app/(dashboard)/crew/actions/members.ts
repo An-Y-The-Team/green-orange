@@ -6,7 +6,7 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { crew } from "@/data/mock/crew";
 import { crewRoles } from "@/data/mock/crew-roles";
-import { API_URL, apiSend, nextId } from "@/lib/http";
+import { API_URL, apiSend, nextId } from "@/utils/http/http";
 
 import { CrewMemberStatus } from "../enums";
 import {

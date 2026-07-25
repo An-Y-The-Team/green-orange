@@ -12,9 +12,9 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { PageHeader } from "@/components/page-header";
-import { formatDate } from "@/lib/format";
-import { clientType } from "@/lib/labels";
+import { PageHeader } from "@/components/page-header/page-header";
+import { clientType } from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
 
 import { ClientType } from "./enums";
 import { listClients } from "./queries";

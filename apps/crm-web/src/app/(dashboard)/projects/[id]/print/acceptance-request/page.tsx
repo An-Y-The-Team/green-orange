@@ -2,9 +2,12 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { DocumentShell, SignatureBlocks } from "@/components/document-shell";
+import {
+  DocumentShell,
+  SignatureBlocks,
+} from "@/components/document-shell/document-shell";
 import { company } from "@/config/company";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/utils/format-date/format-date";
 
 import { getProject } from "../../../queries";
 
@@ -35,7 +38,6 @@ export default async function AcceptanceRequestPage({
       <DocumentShell
         title="THƯ YÊU CẦU NGHIỆM THU"
         subtitle={`${project.code} · ${project.name}`}
-        headerVariant="letterhead"
       >
         <div className="space-y-4 text-sm leading-relaxed text-zinc-800">
           <p className="text-right text-xs text-zinc-600">

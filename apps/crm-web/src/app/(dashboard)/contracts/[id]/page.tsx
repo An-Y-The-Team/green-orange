@@ -2,12 +2,18 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { DocumentShell, SignatureBlocks } from "@/components/document-shell";
-import { DocxExportButton } from "@/components/editor/docx-export-button";
-import { LexicalDocument } from "@/components/editor/lexical-document";
+import {
+  DocumentShell,
+  SignatureBlocks,
+} from "@/components/document-shell/document-shell";
+import { DocxExportButton } from "@/components/editor/docx-export-button/docx-export-button";
+import { LexicalDocument } from "@/components/editor/lexical-document/lexical-document";
 import { company } from "@/config/company";
-import { formatDate, formatVND, quoteTotals } from "@/lib/format";
-import { buildContractContext } from "@/lib/merge-template";
+import { DEFAULT_HEADER_VARIANT } from "@/constants/header-variant";
+import { formatDate } from "@/utils/format-date/format-date";
+import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { buildContractContext } from "@/utils/merge-template/merge-template";
+import { quoteTotals } from "@/utils/quote-totals/quote-totals";
 
 import { getDealQuote } from "../../quotes/queries";
 import { getContract, getContractTemplate } from "../queries";
@@ -49,7 +55,7 @@ export default async function ContractDocumentPage({
   if (body) {
     const ctx = buildContractContext(contract, quote);
     const docTitle = template?.doc_title ?? "HỢP ĐỒNG";
-    const headerVariant = template?.header_style ?? "letterhead";
+    const headerVariant = template?.header_style ?? DEFAULT_HEADER_VARIANT;
     const lineItems = quote
       ? { items: quote.items, vatRate: quote.vat_rate }
       : null;

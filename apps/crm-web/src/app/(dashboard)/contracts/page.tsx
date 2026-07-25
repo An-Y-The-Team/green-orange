@@ -13,9 +13,9 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { PageHeader } from "@/components/page-header";
-import { formatDate } from "@/lib/format";
-import { contractStatus } from "@/lib/labels";
+import { PageHeader } from "@/components/page-header/page-header";
+import { contractStatus } from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
 
 import { ContractStatus } from "./enums";
 import { listContracts } from "./queries";

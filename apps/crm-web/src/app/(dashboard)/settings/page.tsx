@@ -9,10 +9,10 @@ import {
   CardTitle,
 } from "@yan/ui/components/card";
 
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
 import { listProjectTypes } from "../projects/queries";
-import { ProjectTypesManager } from "./project-types-manager";
+import { ProjectTypesManager } from "./project-types-manager/project-types-manager";
 
 export default async function SettingsPage() {
   const projectTypes = await listProjectTypes();

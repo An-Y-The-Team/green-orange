@@ -5,13 +5,13 @@ import { notFound, redirect } from "next/navigation";
 import { getDealQuote } from "@/app/(dashboard)/quotes/queries";
 import { SettlementStatus } from "@/app/(dashboard)/receivables/enums";
 import { getProjectSettlements } from "@/app/(dashboard)/receivables/queries";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
 import { getProject } from "../../../queries";
 import {
   SettlementBuilderForm,
   type SettlementBuilderInitial,
-} from "../settlement-builder-form";
+} from "../settlement-builder-form/settlement-builder-form";
 
 // Settlement builder — stage-8 quyết toán. New settlements prefill their line
 // items from the chốt (deal) quote: quantities carried as editable khối lượng

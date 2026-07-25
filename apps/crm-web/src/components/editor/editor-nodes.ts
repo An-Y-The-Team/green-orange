@@ -9,7 +9,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
 import type { Klass, LexicalNode } from "lexical";
 
-import { LineItemsNode } from "./line-items-node";
+import { LineItemsNode } from "./line-items-node/line-items-node";
 import { MergeFieldNode } from "./merge-field-node";
 
 export const editorNodes: ReadonlyArray<Klass<LexicalNode>> = [

@@ -12,9 +12,9 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { PageHeader } from "@/components/page-header";
-import { formatDate } from "@/lib/format";
-import { projectStage, projectStatus } from "@/lib/labels";
+import { PageHeader } from "@/components/page-header/page-header";
+import { projectStage, projectStatus } from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
 
 import { ProjectStatus } from "./enums";
 import { listProjects } from "./queries";

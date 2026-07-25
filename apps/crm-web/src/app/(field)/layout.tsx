@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
 import { authEnabled } from "@/auth.config";
-import { LoginOverlay } from "@/components/login-overlay";
-import { SessionWatch } from "@/components/session-watch";
-import { formatDate } from "@/lib/format";
+import { LoginOverlay } from "@/components/login-overlay/login-overlay";
+import { SessionWatch } from "@/components/session-watch/session-watch";
+import { formatDate } from "@/utils/format-date/format-date";
 
-import { FieldBottomBar } from "./components/field-bottom-bar";
+import { FieldBottomBar } from "./components/field-bottom-bar/field-bottom-bar";
 
 // Mirror (dashboard)/layout.tsx: CRM_API_URL is runtime-only and the data layer
 // reads it at module load, so force-dynamic per request (else prod serves the

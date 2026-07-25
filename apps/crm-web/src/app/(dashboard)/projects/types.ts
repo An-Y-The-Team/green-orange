@@ -8,6 +8,7 @@ import type { Quote } from "@/app/(dashboard)/quotes/types";
 
 import type {
   AcceptanceSubStatus,
+  AttachmentKind,
   ExecutionSubStatus,
   PaperworkStatus,
   ProjectStage,
@@ -112,7 +113,7 @@ export interface ProjectNote {
 export interface Attachment {
   id: number;
   project_id: number;
-  kind: string; // survey | site_log | finish_image | signed_contract | acceptance_report | settlement | paperwork | other
+  kind: AttachmentKind;
   paperwork_item_id?: number | null;
   s3_key: string;
   note?: string | null;

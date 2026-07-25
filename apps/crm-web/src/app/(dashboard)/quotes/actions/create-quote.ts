@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { quotes } from "@/data/mock/quotes";
-import { API_URL, apiSend, nextId } from "@/lib/http";
+import { API_URL, apiSend, nextId } from "@/utils/http/http";
 
 import { QuoteStatus } from "../enums";
 import { type CreateQuoteInput, createQuoteSchema } from "../schema";

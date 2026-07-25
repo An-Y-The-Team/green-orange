@@ -4,9 +4,9 @@ import Link from "next/link";
 import {
   QuoteBuilderForm,
   type QuoteBuilderInitial,
-} from "@/app/(dashboard)/projects/[id]/quotes/new/quote-builder-form";
+} from "@/app/(dashboard)/projects/[id]/quotes/new/quote-builder-form/quote-builder-form";
 import { listProjects } from "@/app/(dashboard)/projects/queries";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
 // Standalone quote builder (crm-ui-redesign.md, 2026-07-24). Reuses the
 // project-scoped builder with no project; the optional picker lets the author

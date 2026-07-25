@@ -14,9 +14,9 @@ import type { Project } from "@/app/(dashboard)/projects/types";
 import { QuoteStatus } from "@/app/(dashboard)/quotes/enums";
 import { listQuotes } from "@/app/(dashboard)/quotes/queries";
 
-import { FieldAppointmentCard } from "../components/field-appointment-card";
-import { FieldQuoteCard } from "../components/field-quote-card";
-import { FieldSubStatusCard } from "../components/field-sub-status-card";
+import { FieldAppointmentCard } from "../components/field-appointment-card/field-appointment-card";
+import { FieldQuoteCard } from "../components/field-quote-card/field-quote-card";
+import { FieldSubStatusCard } from "../components/field-sub-status-card/field-sub-status-card";
 
 export default async function FieldPage() {
   const [projects, quotes] = await Promise.all([listProjects(), listQuotes()]);

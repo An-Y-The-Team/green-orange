@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
 import { listContractTemplates } from "../queries";
 

@@ -9,15 +9,20 @@ import {
   getProjectBills,
   getProjectMilestones,
 } from "@/app/(dashboard)/receivables/queries";
-import { DocumentShell, SignatureBlocks } from "@/components/document-shell";
+import {
+  DocumentShell,
+  SignatureBlocks,
+} from "@/components/document-shell/document-shell";
 import { company } from "@/config/company";
-import { formatDate, formatVND, isOverdue } from "@/lib/format";
 import {
   billStatus,
   milestoneStatus,
   milestoneType,
   overdue,
-} from "@/lib/labels";
+} from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
+import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { isOverdue } from "@/utils/is-overdue/is-overdue";
 
 import { getProject } from "../../../../queries";
 

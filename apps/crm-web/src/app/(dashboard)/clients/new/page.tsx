@@ -1,9 +1,9 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
-import { ClientForm } from "./client-form";
+import { ClientForm } from "./client-form/client-form";
 
 export default function NewClientPage() {
   return (

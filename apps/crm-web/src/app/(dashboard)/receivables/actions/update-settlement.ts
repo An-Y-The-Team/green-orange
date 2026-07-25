@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/lib/http";
+import { API_URL, apiSend } from "@/utils/http/http";
 
 import { updateSettlementSchema } from "../schema";
 import type { Settlement } from "../types";

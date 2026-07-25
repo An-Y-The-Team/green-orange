@@ -1,7 +1,7 @@
 import { clients } from "@/data/mock/clients";
 import { contacts } from "@/data/mock/contacts";
 import { locations } from "@/data/mock/locations";
-import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
+import { API_URL, apiFetch, apiFetchSafe } from "@/utils/http/http";
 
 import type { ClientDetail, ClientListItem } from "./types";
 

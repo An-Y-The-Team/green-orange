@@ -9,9 +9,11 @@ import {
   CardTitle,
 } from "@yan/ui/components/card";
 
-import { PageHeader } from "@/components/page-header";
-import { formatDate, formatVND, isOverdue } from "@/lib/format";
-import { overdue } from "@/lib/labels";
+import { PageHeader } from "@/components/page-header/page-header";
+import { overdue } from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
+import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { isOverdue } from "@/utils/is-overdue/is-overdue";
 
 import {
   PaperworkStatus,

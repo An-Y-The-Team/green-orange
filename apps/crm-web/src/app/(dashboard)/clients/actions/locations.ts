@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { locations } from "@/data/mock/locations";
-import { API_URL, apiSend, nextId } from "@/lib/http";
+import { API_URL, apiSend, nextId } from "@/utils/http/http";
 
 import { type LocationFormValues, locationSchema } from "../schema";
 import type { Location } from "../types";

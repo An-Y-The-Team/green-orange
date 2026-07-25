@@ -1,9 +1,9 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
-import { CrewForm } from "../crew-form";
+import { CrewForm } from "../crew-form/crew-form";
 import { listCrewRoles } from "../queries";
 
 export default async function NewCrewMemberPage() {

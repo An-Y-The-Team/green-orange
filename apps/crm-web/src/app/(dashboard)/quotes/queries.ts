@@ -1,5 +1,5 @@
 import { quotes } from "@/data/mock/quotes";
-import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
+import { API_URL, apiFetch, apiFetchSafe } from "@/utils/http/http";
 
 import { QuoteStatus } from "./enums";
 import type { Quote } from "./types";

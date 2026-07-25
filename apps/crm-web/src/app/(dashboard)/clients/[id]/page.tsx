@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getClient } from "../queries";
-import { ClientDetailView } from "./client-detail";
+import { ClientDetailView } from "./client-detail/client-detail";
 
 export default async function ClientDetailPage({
   params,

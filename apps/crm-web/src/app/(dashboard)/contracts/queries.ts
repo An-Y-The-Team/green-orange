@@ -1,6 +1,6 @@
 import { contractTemplates } from "@/data/mock/contract-templates";
 import { contracts } from "@/data/mock/contracts";
-import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
+import { API_URL, apiFetch, apiFetchSafe } from "@/utils/http/http";
 
 import type { Contract, ContractTemplate } from "./types";
 

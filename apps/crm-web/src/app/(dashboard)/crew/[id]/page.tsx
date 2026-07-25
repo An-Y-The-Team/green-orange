@@ -18,15 +18,15 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { formatDate } from "@/lib/format";
 import {
   crewMemberStatus,
   employmentType,
   timekeepingSource,
-} from "@/lib/labels";
+} from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
 
 import { getCrewMember, listTimekeeping } from "../queries";
-import { MemberActions } from "./member-actions";
+import { MemberActions } from "./member-actions/member-actions";
 
 // Hồ sơ nhân sự — read-only (phase 1): member card, assignment history with
 // the non-blocking "Trùng lịch" chip, timekeeping records.

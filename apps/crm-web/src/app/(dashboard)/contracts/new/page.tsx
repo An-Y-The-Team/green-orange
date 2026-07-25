@@ -2,9 +2,9 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 import { listProjects } from "@/app/(dashboard)/projects/queries";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
-import { ContractProjectPicker } from "./contract-project-picker";
+import { ContractProjectPicker } from "./contract-project-picker/contract-project-picker";
 
 // "+ Hợp đồng mới" entry (crm-ui-redesign.md, 2026-07-24): pick the project,
 // then author in the existing project-scoped editor.

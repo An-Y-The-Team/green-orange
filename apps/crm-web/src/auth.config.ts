@@ -3,13 +3,14 @@ import { CredentialsSignin } from "next-auth";
 import Authentik from "next-auth/providers/authentik";
 import Credentials from "next-auth/providers/credentials";
 
-import { headlessLogin } from "@/lib/authentik-flow";
+import { LoginFailureReason } from "@/constants/login-failure-reason";
+import { headlessLogin } from "@/utils/authentik-flow/authentik-flow";
 
-// Surfaces the headless-login failure reason to the client as `res.code`
-// ("invalid_credentials" | "unsupported_stage" | "error") so the overlay can
-// tell "wrong password" apart from "this account needs the hosted login".
+// Surfaces the headless-login failure reason to the client as `res.code` so the
+// overlay can tell "wrong password" apart from "this account needs the hosted
+// login". See LoginFailureReason for the values.
 class HeadlessLoginError extends CredentialsSignin {
-  constructor(code: string) {
+  constructor(code: LoginFailureReason) {
     super();
     this.code = code;
   }
@@ -54,7 +55,9 @@ export default {
             const username = creds?.username;
             const password = creds?.password;
             if (typeof username !== "string" || typeof password !== "string") {
-              throw new HeadlessLoginError("invalid_credentials");
+              throw new HeadlessLoginError(
+                LoginFailureReason.INVALID_CREDENTIALS
+              );
             }
             const result = await headlessLogin(username, password);
             if (!result.ok) throw new HeadlessLoginError(result.reason);

@@ -2,7 +2,7 @@ import { attachments } from "@/data/mock/attachments";
 import { paperworkItems } from "@/data/mock/paperwork-items";
 import { projectTypes } from "@/data/mock/project-types";
 import { projects } from "@/data/mock/projects";
-import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
+import { API_URL, apiFetch, apiFetchSafe } from "@/utils/http/http";
 
 import type { Attachment, PaperworkItem, Project, ProjectType } from "./types";
 

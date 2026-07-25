@@ -2,7 +2,7 @@ import { assignments } from "@/data/mock/assignments";
 import { crew } from "@/data/mock/crew";
 import { crewRoles } from "@/data/mock/crew-roles";
 import { timekeeping } from "@/data/mock/timekeeping";
-import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
+import { API_URL, apiFetch, apiFetchSafe } from "@/utils/http/http";
 
 import type {
   Assignment,

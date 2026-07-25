@@ -1,7 +1,7 @@
 import { bills } from "@/data/mock/bills";
 import { paymentMilestones } from "@/data/mock/payment-milestones";
 import { settlements } from "@/data/mock/settlements";
-import { API_URL, apiFetchSafe } from "@/lib/http";
+import { API_URL, apiFetchSafe } from "@/utils/http/http";
 
 import type { Bill, PaymentMilestone, Settlement } from "./types";
 

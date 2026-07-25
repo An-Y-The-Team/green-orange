@@ -3,13 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getQuote } from "@/app/(dashboard)/quotes/queries";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
 import { getProject } from "../../../queries";
 import {
   QuoteBuilderForm,
   type QuoteBuilderInitial,
-} from "./quote-builder-form";
+} from "./quote-builder-form/quote-builder-form";
 
 // Quote builder — stage-3 báo giá. Three prefill modes via searchParams:
 //   ?from=survey  → seed rows from the project's survey_items (unit_price 0)

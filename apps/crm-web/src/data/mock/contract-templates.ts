@@ -1,5 +1,13 @@
 import type { ContractTemplate } from "@/app/(dashboard)/contracts/types";
-import { doc, h2, lineItems, mf, p, t } from "@/lib/lexical-build";
+import { HeaderVariant } from "@/constants/header-variant";
+import {
+  doc,
+  h2,
+  lineItems,
+  mf,
+  p,
+  t,
+} from "@/utils/lexical-build/lexical-build";
 
 // Mẫu hợp đồng — reusable boilerplate authored in the rich-text editor. Bodies
 // are stored as Lexical editorState JSON (string form); the merge-field chips
@@ -11,7 +19,7 @@ export const contractTemplates: ContractTemplate[] = [
     id: 1,
     name: "Hợp đồng dịch vụ vệ sinh",
     doc_title: "HỢP ĐỒNG DỊCH VỤ VỆ SINH",
-    header_style: "national",
+    header_style: HeaderVariant.NATIONAL,
     is_active: true,
     body: doc(
       p(t("Hôm nay, ngày "), mf("signed_date"), t(", hai bên gồm có:")),
@@ -63,7 +71,7 @@ export const contractTemplates: ContractTemplate[] = [
     id: 2,
     name: "Hợp đồng thi công cửa hàng",
     doc_title: "HỢP ĐỒNG THI CÔNG",
-    header_style: "national",
+    header_style: HeaderVariant.NATIONAL,
     is_active: true,
     body: doc(
       p(t("Hôm nay, ngày "), mf("signed_date"), t(", hai bên gồm có:")),

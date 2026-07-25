@@ -6,7 +6,7 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { bills } from "@/data/mock/bills";
 import { settlements } from "@/data/mock/settlements";
-import { API_URL, apiSend, nextId } from "@/lib/http";
+import { API_URL, apiSend, nextId } from "@/utils/http/http";
 
 import { BillStatus, SettlementStatus } from "../enums";
 import { type CreateSettlementInput, createSettlementSchema } from "../schema";

@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { paymentMilestones } from "@/data/mock/payment-milestones";
-import { API_URL, apiSend, nextId } from "@/lib/http";
+import { API_URL, apiSend, nextId } from "@/utils/http/http";
 
 import { MilestoneStatus, MilestoneType } from "../enums";
 import type { PaymentMilestone } from "../types";

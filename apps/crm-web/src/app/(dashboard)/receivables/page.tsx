@@ -7,13 +7,13 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { PageHeader } from "@/components/page-header";
-import { isOverdue } from "@/lib/format";
+import { PageHeader } from "@/components/page-header/page-header";
+import { isOverdue } from "@/utils/is-overdue/is-overdue";
 
 import { listProjects } from "../projects/queries";
 import { MilestoneStatus } from "./enums";
 import { listBills, listPaymentMilestones } from "./queries";
-import { BillRow, MilestoneRow } from "./receivable-rows";
+import { BillRow, MilestoneRow } from "./receivable-rows/receivable-rows";
 
 // Thu & công nợ — the secretary's daily money screen. Read-only columns plus
 // row actions (record payment, mark bill sent/paid) driven by the write phase.

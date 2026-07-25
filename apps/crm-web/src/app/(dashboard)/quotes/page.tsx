@@ -12,9 +12,10 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { PageHeader } from "@/components/page-header";
-import { formatDate, formatVND } from "@/lib/format";
-import { quoteChannel, quoteStatus, quoteSuperseded } from "@/lib/labels";
+import { PageHeader } from "@/components/page-header/page-header";
+import { quoteChannel, quoteStatus, quoteSuperseded } from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
+import { formatVND } from "@/utils/format-vnd/format-vnd";
 
 import { QuoteStatus } from "./enums";
 import { listQuotes } from "./queries";

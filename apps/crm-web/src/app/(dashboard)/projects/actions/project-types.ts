@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { projectTypes } from "@/data/mock/project-types";
-import { API_URL, apiSend, nextId } from "@/lib/http";
+import { API_URL, apiSend, nextId } from "@/utils/http/http";
 
 import type { ProjectType } from "../types";
 

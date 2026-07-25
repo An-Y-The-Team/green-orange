@@ -5,9 +5,13 @@ import { notFound } from "next/navigation";
 import { Badge } from "@yan/ui/components/badge";
 
 import { getProjectSettlements } from "@/app/(dashboard)/receivables/queries";
-import { DocumentShell, SignatureBlocks } from "@/components/document-shell";
-import { formatDate, formatVND } from "@/lib/format";
-import { settlementStatus } from "@/lib/labels";
+import {
+  DocumentShell,
+  SignatureBlocks,
+} from "@/components/document-shell/document-shell";
+import { settlementStatus } from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
+import { formatVND } from "@/utils/format-vnd/format-vnd";
 
 import { getProject } from "../../../../queries";
 

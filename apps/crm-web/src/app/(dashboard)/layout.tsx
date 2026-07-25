@@ -5,9 +5,9 @@ import { ThemeSwitcher } from "@yan/ui/components/theme-switcher";
 
 import { auth, signOut } from "@/auth";
 import { authEnabled } from "@/auth.config";
-import { AppSidebar } from "@/components/app-sidebar";
-import { LoginOverlay } from "@/components/login-overlay";
-import { SessionWatch } from "@/components/session-watch";
+import { AppSidebar } from "@/components/app-sidebar/app-sidebar";
+import { LoginOverlay } from "@/components/login-overlay/login-overlay";
+import { SessionWatch } from "@/components/session-watch/session-watch";
 
 // CRM_API_URL is runtime-only, but the data layer chooses mock-vs-live by reading
 // it at module load. Without this, Next prerenders every dashboard page at BUILD

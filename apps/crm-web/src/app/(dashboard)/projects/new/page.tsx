@@ -1,12 +1,12 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
 import { loadClient } from "../../clients/actions/load-client";
 import { listClients } from "../../clients/queries";
 import { getProject, listProjectTypes } from "../queries";
-import { IntakeForm } from "./intake-form";
+import { IntakeForm } from "./intake-form/intake-form";
 
 export default async function NewProjectPage({
   searchParams,

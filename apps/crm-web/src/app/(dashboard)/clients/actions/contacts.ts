@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { contacts } from "@/data/mock/contacts";
-import { API_URL, apiSend, nextId } from "@/lib/http";
+import { API_URL, apiSend, nextId } from "@/utils/http/http";
 
 import { type ContactFormValues, contactSchema } from "../schema";
 import type { Contact } from "../types";

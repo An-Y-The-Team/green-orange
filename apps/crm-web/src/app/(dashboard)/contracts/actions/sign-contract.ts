@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
-import { API_URL, apiSend } from "@/lib/http";
+import { API_URL, apiSend } from "@/utils/http/http";
 
 import type { Contract } from "../types";
 

@@ -9,7 +9,7 @@ import {
 import { getProject } from "@/app/(dashboard)/projects/queries";
 import { getDealQuote } from "@/app/(dashboard)/quotes/queries";
 
-import { ContractEditor } from "./contract-editor";
+import { ContractEditor } from "./contract-editor/contract-editor";
 
 // Stage-4 contract authoring — born from a project. `?edit=<id>` loads an
 // existing draft; otherwise a fresh contract seeded from a chosen template.

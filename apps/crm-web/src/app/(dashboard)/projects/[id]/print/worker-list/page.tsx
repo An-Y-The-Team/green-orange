@@ -12,8 +12,8 @@ import {
 } from "@yan/ui/components/table";
 
 import { listAssignments } from "@/app/(dashboard)/crew/queries";
-import { DocumentShell } from "@/components/document-shell";
-import { formatDate } from "@/lib/format";
+import { DocumentShell } from "@/components/document-shell/document-shell";
+import { formatDate } from "@/utils/format-date/format-date";
 
 import { getProject } from "../../../queries";
 

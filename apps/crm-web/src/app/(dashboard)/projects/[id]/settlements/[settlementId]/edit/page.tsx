@@ -4,13 +4,13 @@ import { notFound } from "next/navigation";
 
 import { SettlementStatus } from "@/app/(dashboard)/receivables/enums";
 import { getProjectSettlements } from "@/app/(dashboard)/receivables/queries";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
 import { getProject } from "../../../../queries";
 import {
   SettlementBuilderForm,
   type SettlementBuilderInitial,
-} from "../../settlement-builder-form";
+} from "../../settlement-builder-form/settlement-builder-form";
 
 // Edit a DRAFT settlement — loads its items into the builder (PATCH via
 // updateSettlement). Non-drafts (items frozen) are not editable → 404.

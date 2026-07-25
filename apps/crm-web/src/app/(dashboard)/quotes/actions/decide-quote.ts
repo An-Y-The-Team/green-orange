@@ -5,9 +5,10 @@ import { revalidatePath } from "next/cache";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { ProjectStatus } from "@/app/(dashboard)/projects/enums";
-import { API_URL, apiSend } from "@/lib/http";
+import { API_URL, apiSend } from "@/utils/http/http";
 
 import { updateProject } from "../../projects/actions/update-project";
+import { type QuoteDecision, QuoteStatus } from "../enums";
 import { decideQuoteSchema } from "../schema";
 import type { Quote } from "../types";
 
@@ -22,7 +23,7 @@ export async function decideQuote(
   id: number,
   _prev: ServerActionState,
   input: {
-    status: "deal" | "on_hold" | "rejected";
+    status: QuoteDecision;
     projectId: number;
     version: number;
     follow_up_date?: string;
@@ -48,7 +49,7 @@ export async function decideQuote(
       quote = await apiSend<Quote>(`/quotes/${id}/decide`, "POST", { status });
     }
 
-    if (status === "on_hold") {
+    if (status === QuoteStatus.ON_HOLD) {
       await updateProject(
         projectId,
         { success: false },
@@ -57,7 +58,7 @@ export async function decideQuote(
           follow_up_date,
         }
       );
-    } else if (status === "rejected") {
+    } else if (status === QuoteStatus.REJECTED) {
       await updateProject(
         projectId,
         { success: false },
@@ -71,10 +72,11 @@ export async function decideQuote(
     revalidatePath("/projects/[id]", "page");
     revalidatePath("/quotes");
 
-    const messages = {
-      deal: "Đã chốt báo giá.",
-      on_hold: "Đã hoãn — công trình chuyển sang trạng thái Hoãn.",
-      rejected: "Đã hủy — công trình chuyển sang trạng thái Hủy.",
+    const messages: Record<QuoteDecision, string> = {
+      [QuoteStatus.DEAL]: "Đã chốt báo giá.",
+      [QuoteStatus.ON_HOLD]:
+        "Đã hoãn — công trình chuyển sang trạng thái Hoãn.",
+      [QuoteStatus.REJECTED]: "Đã hủy — công trình chuyển sang trạng thái Hủy.",
     };
 
     return { success: true, message: messages[status], data: quote };

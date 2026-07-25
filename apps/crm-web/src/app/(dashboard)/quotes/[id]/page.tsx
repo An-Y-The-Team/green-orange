@@ -4,9 +4,14 @@ import { notFound } from "next/navigation";
 
 import { Badge } from "@yan/ui/components/badge";
 
-import { DocumentShell, SignatureBlocks } from "@/components/document-shell";
-import { formatDate, formatVND, quoteTotals } from "@/lib/format";
-import { quoteChannel, quoteStatus, quoteSuperseded } from "@/lib/labels";
+import {
+  DocumentShell,
+  SignatureBlocks,
+} from "@/components/document-shell/document-shell";
+import { quoteChannel, quoteStatus, quoteSuperseded } from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
+import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { quoteTotals } from "@/utils/quote-totals/quote-totals";
 
 import { getProjectQuotes, getQuote } from "../queries";
 

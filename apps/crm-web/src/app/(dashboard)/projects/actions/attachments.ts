@@ -6,13 +6,14 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { attachments } from "@/data/mock/attachments";
-import { API_URL, apiSend, nextId } from "@/lib/http";
+import { API_URL, apiSend, nextId } from "@/utils/http/http";
 
+import { AttachmentKind } from "../enums";
 import type { Attachment } from "../types";
 
 // Metadata-only: the user types a filename; we store it as s3_key (no upload).
 const addAttachmentSchema = z.object({
-  kind: z.string().min(1),
+  kind: z.nativeEnum(AttachmentKind),
   filename: z.string().min(1, "Nhập tên tệp."),
   note: z.string().optional(),
 });

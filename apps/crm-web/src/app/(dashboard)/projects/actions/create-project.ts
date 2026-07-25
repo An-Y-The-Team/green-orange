@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { projects } from "@/data/mock/projects";
-import { API_URL, apiSend, nextId, seq } from "@/lib/http";
+import { API_URL, apiSend, nextId, seq } from "@/utils/http/http";
 
 import { type CreateProjectFormValues, createProjectSchema } from "../schema";
 import type { Project } from "../types";

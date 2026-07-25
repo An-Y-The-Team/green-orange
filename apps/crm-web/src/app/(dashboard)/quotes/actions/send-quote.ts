@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/lib/http";
+import { API_URL, apiSend } from "@/utils/http/http";
 
 import { sendQuoteSchema } from "../schema";
 import type { Quote } from "../types";

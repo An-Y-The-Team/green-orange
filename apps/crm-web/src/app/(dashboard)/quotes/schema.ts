@@ -3,6 +3,8 @@
 // client only sends description/unit/quantity/unit_price + a VAT fraction.
 import { z } from "zod";
 
+import { QUOTE_DECISIONS, QuoteChannel } from "./enums";
+
 const quoteItemSchema = z.object({
   description: z.string().min(1, "Nhập hạng mục"),
   unit: z.string().optional(),
@@ -29,13 +31,13 @@ export const updateQuoteSchema = z.object({
 });
 
 export const sendQuoteSchema = z.object({
-  channels: z.array(z.enum(["zalo", "email", "print"])).min(1, "Chọn kênh gửi"),
+  channels: z.array(z.nativeEnum(QuoteChannel)).min(1, "Chọn kênh gửi"),
   sent_by: z.string().min(1, "Nhập người gửi"),
   follow_up_ref: z.string().optional(),
 });
 
 export const decideQuoteSchema = z.object({
-  status: z.enum(["deal", "on_hold", "rejected"]),
+  status: z.enum(QUOTE_DECISIONS),
   projectId: z.number().int().positive(),
   version: z.number().int().positive(),
   follow_up_date: z.string().optional(),

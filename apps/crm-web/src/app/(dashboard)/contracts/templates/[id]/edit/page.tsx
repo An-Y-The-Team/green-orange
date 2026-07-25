@@ -2,10 +2,10 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
 import { getContractTemplate } from "../../../queries";
-import { TemplateEditor } from "../../template-editor";
+import { TemplateEditor } from "../../template-editor/template-editor";
 
 export default async function EditContractTemplatePage({
   params,

@@ -1,3 +1,5 @@
+import type { HeaderVariant } from "@/constants/header-variant";
+
 import type { ContractStatus } from "./enums";
 
 // Hợp đồng — v2. Optional entity (0..n per project); the party/value data
@@ -31,8 +33,7 @@ export interface ContractTemplate {
   name: string; // internal name, e.g. "Hợp đồng vệ sinh định kỳ"
   doc_title: string; // printed heading, e.g. "HỢP ĐỒNG DỊCH VỤ VỆ SINH"
   body: string; // Lexical editorState JSON (string form); see lib/lexical-build.ts
-  // Printed header style: "national" = CHXHCN VN motto (legal contracts),
-  // "letterhead" = company branding. Defaults to "letterhead" when unset.
-  header_style?: "letterhead" | "national";
+  // Printed header style; defaults to letterhead when unset.
+  header_style?: HeaderVariant;
   is_active: boolean;
 }

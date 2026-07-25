@@ -33,10 +33,10 @@ import {
   listProjectTypes,
 } from "../queries";
 import type { Attachment } from "../types";
-import { StagePanel } from "./components/stage-panel";
-import { StageStepper } from "./components/stage-stepper";
-import { WorkspaceHeader } from "./components/workspace-header";
-import { WorkspaceTabs } from "./components/workspace-tabs";
+import { StagePanel } from "./components/stage-panel/stage-panel";
+import { StageStepper } from "./components/stage-stepper/stage-stepper";
+import { WorkspaceHeader } from "./components/workspace-header/workspace-header";
+import { WorkspaceTabs } from "./components/workspace-tabs/workspace-tabs";
 
 // Guided "Công Trình workspace" — header (Zone 1), stage rail (Zone 2),
 // stage panel + tabs (Zone 3). Only the current stage's panel renders, so

@@ -1,9 +1,9 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
 
-import { TemplateEditor } from "../template-editor";
+import { TemplateEditor } from "../template-editor/template-editor";
 
 export default function NewContractTemplatePage() {
   return (
