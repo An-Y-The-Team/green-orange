@@ -25,6 +25,7 @@ import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
+import { nowHHmm, todayISO } from "@/utils/today-iso/today-iso";
 
 import { loadClient } from "../../../clients/actions/load-client";
 import { ClientType } from "../../../clients/enums";
@@ -45,7 +46,6 @@ import type {
   Prefill,
   QuickCreateResult,
 } from "./types";
-import { localDateISO, localTimeHHmm } from "./utils/local-now/local-now";
 
 export function IntakeForm({
   clients,
@@ -70,8 +70,8 @@ export function IntakeForm({
   );
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [nameTouched, setNameTouched] = useState(false);
-  const [apptDate, setApptDate] = useState(localDateISO);
-  const [apptTime, setApptTime] = useState(localTimeHHmm);
+  const [apptDate, setApptDate] = useState(todayISO);
+  const [apptTime, setApptTime] = useState(nowHHmm);
   const [, startDetail] = useTransition();
 
   const [state, formAction] = useActionState(
