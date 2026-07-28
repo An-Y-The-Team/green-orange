@@ -55,6 +55,15 @@ const assertStep = (order: string[], from: string, to: string) => {
     throw new BadRequestException(`Invalid status transition: ${from} → ${to}`);
 };
 
+// F40: the cross-project money lists print a công trình code, and the only way
+// to get one used to be fetching /projects and joining in JS — a paginated
+// window, so any row outside it rendered `#id`. Same idea as quotes.module.ts /
+// contracts.module.ts PROJECT_INCLUDE, minus the fields these tables never
+// print. List paths only: a per-project read already knows its project.
+const PROJECT_INCLUDE = {
+  project: { select: { id: true, code: true } },
+};
+
 // ── Settlements (Quyết toán) ────────────────────────────────────────────────
 const SETTLEMENT_INCLUDE = {
   bill: true,
@@ -356,7 +365,7 @@ class BillsController {
   ) {
     return this.prisma.bill.findMany({
       where: { project_id: projectId, status },
-      include: { milestones: true },
+      include: { milestones: true, ...PROJECT_INCLUDE },
       // Was unordered: paging an unordered query overlaps and drops rows.
       orderBy: { id: "asc" },
       ...pageArgs(page),
@@ -456,6 +465,7 @@ export class PaymentMilestonesController {
   ) {
     return this.prisma.paymentMilestone.findMany({
       where: { project_id: projectId, bill_id: billId, status },
+      include: PROJECT_INCLUDE,
       // Was unordered: paging an unordered query overlaps and drops rows.
       orderBy: { id: "asc" },
       ...pageArgs(page),

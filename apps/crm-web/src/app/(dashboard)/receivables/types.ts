@@ -9,6 +9,15 @@ import type {
   SettlementStatus,
 } from "./enums";
 
+// Narrow project relation, exactly as crm-api-nest includes it on the
+// cross-project lists (GET /bills, GET /payment-milestones) so those tables can
+// print a code instead of `#id` (F40). Optional: the per-project reads
+// (?project_id=) don't carry it — the caller already knows the project.
+export interface ProjectRef {
+  id: number;
+  code: string;
+}
+
 export interface SettlementItem {
   id: number;
   settlement_id: number;
@@ -40,6 +49,7 @@ export interface Bill {
   sent_date?: string | null;
   paid_date?: string | null;
   milestones?: PaymentMilestone[]; // include on GET /bills
+  project?: ProjectRef; // include on the LIST path only — see ProjectRef
 }
 
 export interface PaymentMilestone {
@@ -51,4 +61,5 @@ export interface PaymentMilestone {
   due_date?: string | null;
   status: MilestoneStatus; // overdue is DERIVED (isOverdue), never stored
   paid_date?: string | null;
+  project?: ProjectRef; // include on the LIST path only — see ProjectRef
 }

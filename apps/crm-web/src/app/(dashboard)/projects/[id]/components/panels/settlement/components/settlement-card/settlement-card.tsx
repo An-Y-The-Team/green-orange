@@ -4,6 +4,7 @@ import { Printer } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
@@ -22,7 +23,12 @@ import {
   signSettlement,
   unsignSettlement,
 } from "@/app/(dashboard)/receivables/actions/settlement-status";
-import { SettlementStatus } from "@/app/(dashboard)/receivables/enums";
+import {
+  BillStatus,
+  MilestoneStatus,
+  MilestoneType,
+  SettlementStatus,
+} from "@/app/(dashboard)/receivables/enums";
 import type {
   Bill,
   PaymentMilestone,
@@ -39,10 +45,30 @@ import { BillRow } from "../bill-row/bill-row";
 import { MilestoneRow } from "../milestone-row/milestone-row";
 import { SettlementStepper } from "../settlement-stepper/settlement-stepper";
 
+// The server refuses un-signing in English and apiSend wraps it in the raw HTTP
+// line; this UI is Vietnamese-only, so map it before the toast. Only reachable
+// in a race (a payment recorded while this page is stale) — the button below is
+// disabled whenever we can already see the collected đợt.
+const COLLECTED_ERROR = "payments have already been collected";
+const COLLECTED_MESSAGE =
+  "Không thể mở lại quyết toán: hóa đơn đã thu tiền ở đợt ngoài cọc.";
+
+const unsignInVietnamese = async (
+  settlementId: number,
+  prev: ServerActionState
+): Promise<ServerActionState> => {
+  const state = await unsignSettlement(settlementId, prev);
+  if (!state?.success && state?.message?.includes(COLLECTED_ERROR)) {
+    return { ...state, message: COLLECTED_MESSAGE };
+  }
+  return state;
+};
+
 /**
  * The single quyết toán for a công trình (1:1), its hóa đơn, and its đợt
  * thanh toán. Signing is the money-minting step; un-signing is the correction
- * path (there's no second settlement to supersede this one).
+ * path (there's no second settlement to supersede this one) — available only
+ * until a đợt beyond the cọc is collected.
  */
 export function SettlementCard({
   settlement,
@@ -74,7 +100,7 @@ export function SettlementCard({
     () => setSignOpen(false)
   );
   const [unsignPending, runUnsign] = useRun(
-    unsignSettlement.bind(null, settlement.id),
+    unsignInVietnamese.bind(null, settlement.id),
     () => setUnsignOpen(false)
   );
   const [deletePending, runDelete] = useRun(
@@ -84,6 +110,17 @@ export function SettlementCard({
   const busy = sendPending || signPending || unsignPending || deletePending;
 
   const milestones = [...extraMilestones, ...billMilestones];
+
+  // Mirrors the server's un-sign guard (receivables.module.ts): once the bill is
+  // paid, or any đợt other than the cọc is collected, un-signing is refused —
+  // so don't offer it. Correcting a partly-collected quyết toán needs an
+  // adjustment đợt, not a re-open.
+  const collected =
+    bill?.status === BillStatus.PAID ||
+    billMilestones.some(
+      (m) =>
+        m?.status === MilestoneStatus.PAID && m?.type !== MilestoneType.DEPOSIT
+    );
 
   return (
     <div
@@ -160,14 +197,22 @@ export function SettlementCard({
           </Button>
         ) : null}
         {isSigned ? (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={() => setUnsignOpen(true)}
-          >
-            Sửa lại (bỏ ký)
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy || collected}
+              onClick={() => setUnsignOpen(true)}
+            >
+              Sửa lại (bỏ ký)
+            </Button>
+            {collected ? (
+              <span className="self-center text-xs text-muted-foreground">
+                Đã thu tiền ở đợt ngoài cọc nên không mở lại được — điều chỉnh
+                bằng một đợt thanh toán mới.
+              </span>
+            ) : null}
+          </>
         ) : null}
       </div>
 
@@ -236,9 +281,9 @@ export function SettlementCard({
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             Mỗi công trình chỉ có một quyết toán, nên sai số được sửa trên QT #
-            {settlement.id} này. Hóa đơn quay về nháp và các đợt chưa thu bị
-            xóa; đợt cọc và các đợt đã thu được giữ lại. Không mở lại được nếu
-            hóa đơn đã có tiền về.
+            {settlement.id} này. Hóa đơn quay về nháp và các đợt thanh toán của
+            hóa đơn bị xóa; đợt cọc được giữ lại và tự gắn lại khi ký lần nữa.
+            Chỉ mở lại được khi chưa thu tiền ở đợt nào ngoài đợt cọc.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setUnsignOpen(false)}>

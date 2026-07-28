@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -31,7 +32,9 @@ import { assertProjectOpen } from "../common/project-lock";
 import { PrismaService } from "../prisma/prisma.service";
 
 const EMPLOYMENT_TYPE = ["permanent", "day_hire"];
-const CREW_STATUS = ["working", "on_leave", "left"];
+// Only a working member can take a NEW assignment — see assertAssignmentRefs.
+const CREW_STATUS_WORKING = "working";
+const CREW_STATUS = [CREW_STATUS_WORKING, "on_leave", "left"];
 const TIMEKEEPING_SOURCE = ["manual", "zalo_app"];
 
 // GET /timekeeping has all-optional filters over the fastest-growing table (one
@@ -230,6 +233,35 @@ class UpdateAssignmentDto {
   @IsOptional() @IsDateString() to_date?: string;
 }
 
+// Both FKs, one place, so create and update can never drift. Without this an
+// unknown id reaches Prisma and P2003 surfaces as 409 "record is still
+// referenced by related records" — the opposite of what happened. The status
+// rule is the server half of the picker filter: a member who has left must not
+// land on a new phân công (and from there on the printed worker list).
+// Exported for the unit test — not a route, no decorator.
+export const assertAssignmentRefs = async (
+  prisma: PrismaService,
+  refs: { crew_member_id?: number; role_id?: number | null }
+) => {
+  if (refs.crew_member_id !== undefined) {
+    const member = await prisma.crewMember.findUnique({
+      where: { id: refs.crew_member_id },
+    });
+    if (!member) throw new BadRequestException("crew_member_id does not exist");
+    if (member.status !== CREW_STATUS_WORKING)
+      throw new BadRequestException(
+        `crew_member_id must be a crew member with status "${CREW_STATUS_WORKING}"`
+      );
+  }
+  // null clears the role override — only a given id needs to exist.
+  if (refs.role_id != null) {
+    const role = await prisma.crewRole.findUnique({
+      where: { id: refs.role_id },
+    });
+    if (!role) throw new BadRequestException("role_id does not exist");
+  }
+};
+
 @Controller("assignments")
 class AssignmentsController {
   constructor(private readonly prisma: PrismaService) {}
@@ -256,6 +288,7 @@ class AssignmentsController {
   @HttpCode(201)
   async create(@Body() dto: CreateAssignmentDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
+    await assertAssignmentRefs(this.prisma, dto);
     const row = await this.prisma.assignment.create({
       data: {
         project_id: dto.project_id,
@@ -277,6 +310,10 @@ class AssignmentsController {
     const exists = await this.prisma.assignment.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException("Assignment not found");
     await assertProjectOpen(this.prisma, exists.project_id);
+    // Same assertions as create. Only the fields actually sent are checked, so
+    // fixing the dates of an old assignment whose member has since left still
+    // works — the status rule applies to who you assign, not to editing history.
+    await assertAssignmentRefs(this.prisma, dto);
     const data: Record<string, unknown> = { ...dto };
     if (dto.from_date !== undefined) data.from_date = toDate(dto.from_date);
     if ("to_date" in dto) data.to_date = toDate(dto.to_date);

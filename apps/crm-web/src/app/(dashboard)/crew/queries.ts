@@ -5,6 +5,7 @@ import { crewRoles } from "@/data/mock/crew-roles";
 import { timekeeping } from "@/data/mock/timekeeping";
 import type { DateRange } from "@/utils/date-range/date-range";
 import { API_URL, apiFetch, apiFetchSafe } from "@/utils/http/http";
+import { pageQuery } from "@/utils/page-param/page-param";
 
 import type {
   Assignment,
@@ -20,8 +21,20 @@ export async function listCrewRoles(): Promise<CrewRole[]> {
   return API_URL ? apiFetchSafe<CrewRole[]>("/crew-roles", []) : crewRoles;
 }
 
-export async function listCrew(): Promise<CrewMember[]> {
-  return API_URL ? apiFetchSafe<CrewMember[]>("/crew", []) : crew;
+// GET /crew pages at DEFAULT_PAGE_SIZE=100 / MAX_PAGE_SIZE=500 (F17) — a window,
+// never the whole roster, so callers using it as a lookup pass an explicit limit.
+export async function listCrew({
+  limit,
+  offset,
+}: { limit?: number; offset?: number } = {}): Promise<CrewMember[]> {
+  if (API_URL) {
+    return apiFetchSafe<CrewMember[]>(
+      `/crew${pageQuery({ limit, offset })}`,
+      []
+    );
+  }
+  const start = offset ?? 0;
+  return crew.slice(start, limit ? start + limit : undefined);
 }
 
 /** GET /crew/:id — includes default_role + assignments (with project ref). */

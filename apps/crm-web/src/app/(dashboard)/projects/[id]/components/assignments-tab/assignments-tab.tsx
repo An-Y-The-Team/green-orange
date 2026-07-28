@@ -26,6 +26,7 @@ import {
 } from "@yan/ui/components/table";
 
 import { selectClass } from "@/components/form-bits/form-bits";
+import { crewMemberStatus } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import {
@@ -33,6 +34,7 @@ import {
   deleteAssignment,
   updateAssignment,
 } from "../../../../crew/actions/assignments";
+import { CrewMemberStatus } from "../../../../crew/enums";
 import type { Assignment, CrewMember, CrewRole } from "../../../../crew/types";
 
 type Fields = {
@@ -259,6 +261,15 @@ function AssignmentForm({
     onSuccess: onSaved,
   });
 
+  // Only currently-working members can take a phân công — POST /assignments
+  // refuses the rest. The member already on the row stays in the list even if
+  // they have since left, otherwise editing a historical row would blank the
+  // select (and silently reassign on save).
+  const options = crew.filter(
+    (c) =>
+      c.status === CrewMemberStatus.WORKING || String(c.id) === f.crew_member_id
+  );
+
   const submit = () =>
     startTransition(() =>
       formAction({
@@ -279,9 +290,12 @@ function AssignmentForm({
           onChange={(e) => setF({ ...f, crew_member_id: e.target.value })}
         >
           <option value="">— Chọn —</option>
-          {crew.map((c) => (
+          {options.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
+              {c.status === CrewMemberStatus.WORKING
+                ? ""
+                : ` (${crewMemberStatus[c.status]?.label})`}
             </option>
           ))}
         </select>

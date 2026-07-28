@@ -19,7 +19,6 @@ import { auth } from "@/auth";
 import { authEnabled } from "@/auth.config";
 
 export const API_URL = process.env.CRM_API_URL;
-export const isLiveMode = Boolean(API_URL);
 
 // Local dev credentials used to auto-mint a token in AUTH_MODE=local. Never used
 // when Authentik/OIDC is enabled or CRM_API_TOKEN is set. Seeded user is admin/admin.

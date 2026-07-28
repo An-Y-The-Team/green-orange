@@ -13,20 +13,42 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header/page-header";
+import { TablePager } from "@/components/table-pager/table-pager";
 import { clientType } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
+import { pageFromParam } from "@/utils/page-param/page-param";
 
 import { ClientType } from "./enums";
 import { listClients } from "./queries";
 
-export default async function ClientsPage() {
-  const clients = await listClients();
+// Rows per page. Explicit rather than leaning on the API's default so the pager
+// and the offsets it builds agree with what is actually rendered.
+const PAGE_ROWS = 100;
+
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const page = pageFromParam((await searchParams)?.page);
+  // One row more than we render: GET /clients returns a bare array with no
+  // total, so an extra row is the only honest way to know a next page exists.
+  const rows = await listClients({
+    limit: PAGE_ROWS + 1,
+    offset: (page - 1) * PAGE_ROWS,
+  });
+  const hasNext = rows.length > PAGE_ROWS;
+  const clients = rows.slice(0, PAGE_ROWS);
+
+  // Page-scoped count whenever more than one page exists — same treatment as
+  // quotes/page.tsx: say which page rather than imply a total the API never sent.
+  const counts = `${clients.length} khách hàng`;
 
   return (
     <>
       <PageHeader
         title="Khách hàng"
-        description={`${clients.length} khách hàng`}
+        description={hasNext || page > 1 ? `Trang ${page} · ${counts}` : counts}
         action={
           <Button size="sm" render={<Link href="/clients/new" />}>
             + Khách hàng mới
@@ -80,6 +102,7 @@ export default async function ClientsPage() {
           </TableBody>
         </Table>
       </Card>
+      <TablePager page={page} hasNext={hasNext} basePath="/clients" />
     </>
   );
 }

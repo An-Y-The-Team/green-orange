@@ -4,6 +4,7 @@ import { projectTypes } from "@/data/mock/project-types";
 import { projects } from "@/data/mock/projects";
 import { API_URL, apiFetch, apiFetchSafe } from "@/utils/http/http";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
+import { pageQuery } from "@/utils/page-param/page-param";
 
 import { PaperworkStatus } from "./enums";
 import type { Attachment, PaperworkItem, Project, ProjectType } from "./types";
@@ -14,14 +15,20 @@ import type { Attachment, PaperworkItem, Project, ProjectType } from "./types";
  * result as a lookup table must pass an explicit `limit` and treat a miss as a
  * miss — this is a window, never the whole table.
  */
-export async function listProjects({ limit }: { limit?: number } = {}): Promise<
-  Project[]
-> {
+export async function listProjects({
+  limit,
+  offset,
+}: { limit?: number; offset?: number } = {}): Promise<Project[]> {
   if (API_URL) {
-    const path = limit ? `/projects?limit=${limit}` : "/projects";
-    return apiFetchSafe<Project[]>(path, []);
+    return apiFetchSafe<Project[]>(
+      `/projects${pageQuery({ limit, offset })}`,
+      []
+    );
   }
-  return limit ? projects.slice(0, limit) : projects;
+  // Mock mode pages the same way, so local dev exercises the pager instead of
+  // hiding it behind a single unbounded array.
+  const start = offset ?? 0;
+  return projects.slice(start, limit ? start + limit : undefined);
 }
 
 export async function getProject(id: number): Promise<Project | undefined> {

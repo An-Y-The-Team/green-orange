@@ -112,77 +112,75 @@ export function SettlementBuilderForm({
     <Card>
       <CardContent className="space-y-5">
         <form onSubmit={handleSubmit(onValid)} className="space-y-5">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-48">Hạng mục</TableHead>
-                  <TableHead className="w-20">ĐV</TableHead>
-                  <TableHead className="w-24">Khối lượng</TableHead>
-                  <TableHead className="w-36">Đơn giá</TableHead>
-                  <TableHead className="w-36 text-right">Thành tiền</TableHead>
-                  <TableHead className="w-10" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {fields.map((field, i) => {
-                  const amount = itemAmount(rows[i]);
-                  return (
-                    <TableRow key={field.id}>
-                      <TableCell>
-                        <Input
-                          placeholder="Vệ sinh sau xây dựng"
-                          {...register(`items.${i}.description`)}
-                        />
-                        {fieldError(formState.errors.items?.[i]?.description)}
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          placeholder="m²"
-                          {...register(`items.${i}.unit`)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="any"
-                          {...register(`items.${i}.quantity`, {
-                            valueAsNumber: true,
-                          })}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="any"
-                          {...register(`items.${i}.unit_price`, {
-                            valueAsNumber: true,
-                          })}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatVND(amount)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          disabled={fields.length === 1}
-                          onClick={() => remove(i)}
-                          aria-label="Xóa dòng"
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-48">Hạng mục</TableHead>
+                <TableHead className="w-20">ĐV</TableHead>
+                <TableHead className="w-24">Khối lượng</TableHead>
+                <TableHead className="w-36">Đơn giá</TableHead>
+                <TableHead className="w-36 text-right">Thành tiền</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {fields.map((field, i) => {
+                const amount = itemAmount(rows[i]);
+                return (
+                  <TableRow key={field.id}>
+                    <TableCell>
+                      <Input
+                        placeholder="Vệ sinh sau xây dựng"
+                        {...register(`items.${i}.description`)}
+                      />
+                      {fieldError(formState.errors.items?.[i]?.description)}
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        placeholder="m²"
+                        {...register(`items.${i}.unit`)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="any"
+                        {...register(`items.${i}.quantity`, {
+                          valueAsNumber: true,
+                        })}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="any"
+                        {...register(`items.${i}.unit_price`, {
+                          valueAsNumber: true,
+                        })}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatVND(amount)}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={fields.length === 1}
+                        onClick={() => remove(i)}
+                        aria-label="Xóa dòng"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
 
           <Button
             type="button"

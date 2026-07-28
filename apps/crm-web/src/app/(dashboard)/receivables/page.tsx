@@ -8,13 +8,12 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header/page-header";
-import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 
-import { listProjects } from "../projects/queries";
 import { MilestoneStatus } from "./enums";
 import { listBills, listPaymentMilestones } from "./queries";
 import { BillRow, MilestoneRow } from "./receivable-rows/receivable-rows";
+import type { ProjectRef } from "./types";
 
 // Rows per table. Explicit rather than leaning on the server's default page size,
 // so the notice below is accurate instead of a guess.
@@ -33,20 +32,19 @@ function PageLimitNotice({ shown }: { shown: number }) {
   );
 }
 
+// Công trình column. Both lists carry the code as a narrow `project` include
+// (F40), so no projects fetch and no id → code map: the old map came from one
+// paginated /projects window, and any row outside it printed `#id`.
+const projectCode = (row: { project_id: number; project?: ProjectRef }) =>
+  row?.project?.code ?? `#${row?.project_id}`;
+
 // Thu & công nợ — the secretary's daily money screen. Read-only columns plus
 // row actions (record payment, mark bill sent/paid) driven by the write phase.
 export default async function ReceivablesPage() {
-  const [milestones, bills, projects] = await Promise.all([
+  const [milestones, bills] = await Promise.all([
     listPaymentMilestones({ limit: PAGE_ROWS }),
     listBills({ limit: PAGE_ROWS }),
-    // Project index for the Công trình column.
-    // ponytail: a window, not the table — a row whose project falls outside it
-    // prints `#id`. The real fix is a narrow `project: { select: { code } }`
-    // include on GET /payment-milestones and GET /bills; neither returns it today.
-    listProjects({ limit: MAX_PAGE_SIZE }),
   ]);
-  const codeById = new Map(projects.map((p) => [p?.id, p?.code]));
-  const projectCode = (id: number) => codeById.get(id) ?? `#${id}`;
 
   const milestoneOverdue = (m: (typeof milestones)[number]) =>
     isOverdue(m?.due_date, m?.status === MilestoneStatus.PAID);
@@ -84,7 +82,7 @@ export default async function ReceivablesPage() {
                 <MilestoneRow
                   key={m?.id}
                   milestone={m}
-                  projectCode={projectCode(m?.project_id)}
+                  projectCode={projectCode(m)}
                 />
               ))}
             </TableBody>
@@ -109,11 +107,7 @@ export default async function ReceivablesPage() {
             </TableHeader>
             <TableBody>
               {bills.map((b) => (
-                <BillRow
-                  key={b?.id}
-                  bill={b}
-                  projectCode={projectCode(b?.project_id)}
-                />
+                <BillRow key={b?.id} bill={b} projectCode={projectCode(b)} />
               ))}
             </TableBody>
           </Table>

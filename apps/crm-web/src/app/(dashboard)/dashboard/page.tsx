@@ -68,11 +68,10 @@ export default async function DashboardPage() {
   // paperwork rule, and the two statuses the debt panel renders. Nothing here
   // fetches a whole table to throw most of it away in JS (F20).
   const [projects, milestones, bills, overduePaperwork] = await Promise.all([
-    // Project index for the today/follow-up panels and the code lookup.
-    // ponytail: a window, not the table — a debt or paperwork row whose project
-    // falls outside it prints `#id`. The real fix is a narrow
-    // `project: { select: { code } }` include on GET /bills and
-    // GET /payment-milestones, which neither endpoint returns today.
+    // The today/follow-up panels render projects themselves, so this list is not
+    // just a code lookup. Debt rows no longer read it — they carry their own
+    // `project` include (F40) — but paperwork items still have no such include,
+    // so an overdue hồ sơ whose project falls outside this window prints `#id`.
     listProjects({ limit: MAX_PAGE_SIZE }),
     listPaymentMilestones({
       status: MilestoneStatus.AWAITING_PAYMENT,
@@ -83,6 +82,8 @@ export default async function DashboardPage() {
   ]);
 
   const today = todayISO();
+  // Paperwork items are the last rows without a `project` include, so they are
+  // the only reason this map survives.
   const codeById = new Map(projects.map((p) => [p?.id, p?.code]));
   const codeOf = (id: number) => codeById.get(id) ?? `#${id}`;
 
@@ -114,7 +115,7 @@ export default async function DashboardPage() {
   const debtMilestones: DebtRow[] = milestones.map((m) => ({
     key: `m-${m?.id}`,
     project_id: m?.project_id,
-    code: codeOf(m?.project_id),
+    code: m?.project?.code ?? `#${m?.project_id}`,
     amount: m?.amount,
     due_date: m?.due_date,
     overdue: isOverdue(m?.due_date, false),
@@ -122,7 +123,7 @@ export default async function DashboardPage() {
   const debtBills: DebtRow[] = bills.map((b) => ({
     key: `b-${b?.id}`,
     project_id: b?.project_id,
-    code: codeOf(b?.project_id),
+    code: b?.project?.code ?? `#${b?.project_id}`,
     amount: b?.total_amount,
     due_date: null,
     overdue: false,

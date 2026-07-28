@@ -99,6 +99,11 @@ export default {
           refreshToken: account.refresh_token,
         };
       }
+      // Already flagged dead → never retry. The refresh token is revoked or
+      // expired, so re-POSTing the same doomed grant on every SessionWatch poll
+      // is pure noise on Authentik and feeds its brute-force/policy engine.
+      // Signing in again through the overlay mints a fresh token regardless.
+      if (token.error) return token;
       // Still valid → reuse.
       if (token.expiresAt && Date.now() < token.expiresAt * 1000) {
         return token;

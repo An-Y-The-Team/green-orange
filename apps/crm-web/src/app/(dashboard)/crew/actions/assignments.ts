@@ -23,6 +23,24 @@ const createSchema = z.object({
 // PATCH — every field optional.
 const updateSchema = createSchema.partial();
 
+// The API refuses a member who is not `working` and an unknown crew_member_id /
+// role_id (assertAssignmentRefs in crew.module.ts), in English, wrapped by
+// apiSend in the raw HTTP line. This UI is Vietnamese-only, so map the known
+// refusals. Only reachable in a race — the picker hides non-working members.
+const BACKEND_MESSAGES: Record<string, string> = {
+  'status "working"': "Nhân viên này đã nghỉ nên không thể phân công.",
+  "crew_member_id does not exist": "Không tìm thấy nhân viên đã chọn.",
+  "role_id does not exist": "Không tìm thấy vai trò đã chọn.",
+};
+
+function errorMessage(error: unknown, fallback: string): string {
+  const raw = error instanceof Error ? error.message : "";
+  const mapped = Object.entries(BACKEND_MESSAGES).find(([needle]) =>
+    raw.includes(needle)
+  );
+  return mapped?.[1] ?? (raw || fallback);
+}
+
 // Mock-mode overlap computation so the "Trùng lịch" warning demos offline the
 // same way the API computes it: same member, intersecting [from, to] (null=∞).
 // ponytail: O(n) scan over bundled mock rows — fine for a demo dataset.
@@ -95,8 +113,7 @@ export async function createAssignment(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : "Không thể thêm phân công.",
+      message: errorMessage(error, "Không thể thêm phân công."),
     };
   }
 }
@@ -149,10 +166,7 @@ export async function updateAssignment(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Không thể cập nhật phân công.",
+      message: errorMessage(error, "Không thể cập nhật phân công."),
     };
   }
 }

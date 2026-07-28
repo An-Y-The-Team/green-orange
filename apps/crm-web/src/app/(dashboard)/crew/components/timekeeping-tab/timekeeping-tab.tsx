@@ -182,92 +182,90 @@ export function TimekeepingTab({
               ) : null}
             </div>
 
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-40">Nhân sự</TableHead>
+                  {days.map((d, i) => (
+                    <TableHead key={d} className="text-center">
+                      {WEEKDAYS[i]}
+                      <div className="text-xs font-normal text-muted-foreground">
+                        {formatDate(d).slice(0, 5)}
+                      </div>
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-center">Tổng</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.length === 0 ? (
                   <TableRow>
-                    <TableHead className="min-w-40">Nhân sự</TableHead>
-                    {days.map((d, i) => (
-                      <TableHead key={d} className="text-center">
-                        {WEEKDAYS[i]}
-                        <div className="text-xs font-normal text-muted-foreground">
-                          {formatDate(d).slice(0, 5)}
-                        </div>
-                      </TableHead>
-                    ))}
-                    <TableHead className="text-center">Tổng</TableHead>
+                    <TableCell
+                      colSpan={days.length + 2}
+                      className="text-center text-muted-foreground"
+                    >
+                      Không có nhân sự đang làm.
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={days.length + 2}
-                        className="text-center text-muted-foreground"
-                      >
-                        Không có nhân sự đang làm.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    rows.map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="font-medium">{m.name}</TableCell>
-                        {days.map((d) => {
-                          const { manual, zalo } = cellFor(m.id, d);
-                          const readOnly = zalo && !manual;
-                          return (
-                            <TableCell key={d} className="p-1 text-center">
-                              {readOnly ? (
-                                <div className="flex flex-col items-center gap-0.5">
-                                  <span className="text-sm">{zalo.hours}</span>
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-[10px]"
-                                  >
-                                    {timekeepingSource[zalo.source]}
-                                  </Badge>
-                                </div>
-                              ) : (
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  step={0.5}
-                                  // key pins the initial value to the loaded record;
-                                  // remounts on project / week / record change.
-                                  key={`${projectId}-${m.id}-${d}-${manual?.id ?? "new"}`}
-                                  defaultValue={manual ? manual.hours : ""}
-                                  disabled={isSaving}
-                                  className="h-8 w-14 text-center"
-                                  onBlur={commit(m.id, d)}
-                                />
-                              )}
-                            </TableCell>
-                          );
-                        })}
-                        <TableCell className="text-center font-medium">
-                          {rowTotal(m.id)}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-                {rows.length > 0 ? (
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">Tổng ngày</TableCell>
-                      {days.map((d) => (
-                        <TableCell key={d} className="text-center font-medium">
-                          {dayTotal(d)}
-                        </TableCell>
-                      ))}
+                ) : (
+                  rows.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell className="font-medium">{m.name}</TableCell>
+                      {days.map((d) => {
+                        const { manual, zalo } = cellFor(m.id, d);
+                        const readOnly = zalo && !manual;
+                        return (
+                          <TableCell key={d} className="p-1 text-center">
+                            {readOnly ? (
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="text-sm">{zalo.hours}</span>
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[10px]"
+                                >
+                                  {timekeepingSource[zalo.source]}
+                                </Badge>
+                              </div>
+                            ) : (
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.5}
+                                // key pins the initial value to the loaded record;
+                                // remounts on project / week / record change.
+                                key={`${projectId}-${m.id}-${d}-${manual?.id ?? "new"}`}
+                                defaultValue={manual ? manual.hours : ""}
+                                disabled={isSaving}
+                                className="h-8 w-14 text-center"
+                                onBlur={commit(m.id, d)}
+                              />
+                            )}
+                          </TableCell>
+                        );
+                      })}
                       <TableCell className="text-center font-medium">
-                        {days.reduce((s, d) => s + dayTotal(d), 0)}
+                        {rowTotal(m.id)}
                       </TableCell>
                     </TableRow>
-                  </TableBody>
-                ) : null}
-              </Table>
-            </div>
+                  ))
+                )}
+              </TableBody>
+              {rows.length > 0 ? (
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium">Tổng ngày</TableCell>
+                    {days.map((d) => (
+                      <TableCell key={d} className="text-center font-medium">
+                        {dayTotal(d)}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center font-medium">
+                      {days.reduce((s, d) => s + dayTotal(d), 0)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              ) : null}
+            </Table>
           </>
         )}
       </CardContent>
