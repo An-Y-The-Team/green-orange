@@ -31,8 +31,21 @@ export default async function QuoteDocumentPage({
   const versions = quote.project_id
     ? await getProjectQuotes(quote.project_id)
     : [quote];
-  const superseded = versions.some((v) => v.version > quote.version);
-  const badge = superseded ? quoteSuperseded : quoteStatus[quote.status];
+  const superseded = versions.some((v) => v?.version > quote.version);
+  // Status is a raw wire value — an unmapped one must not crash the printable.
+  const badge = superseded
+    ? quoteSuperseded
+    : (quoteStatus?.[quote?.status] ?? {
+        label: quote?.status,
+        variant: "secondary" as const,
+      });
+  // Goes to the customer: the project code + name, never a raw id.
+  const project = quote?.project;
+  const projectLabel = project
+    ? `${project?.code} · ${project?.name}`
+    : quote?.project_id != null
+      ? `Công trình #${quote.project_id}`
+      : null;
   // Saved quote → the server's stored Σ, so the lines below sum to it and the
   // printable agrees with the /quotes list.
   const { subtotal, vat, total } = storedTotals(quote);
@@ -53,8 +66,8 @@ export default async function QuoteDocumentPage({
       <DocumentShell
         title="BÁO GIÁ DỊCH VỤ"
         subtitle={
-          quote.project_id
-            ? `Phiên bản ${quote.version} · Công trình #${quote.project_id}`
+          projectLabel
+            ? `Phiên bản ${quote.version} · ${projectLabel}`
             : `Phiên bản ${quote.version} · Báo giá độc lập`
         }
       >
@@ -73,27 +86,33 @@ export default async function QuoteDocumentPage({
 
           {/* Meta */}
           <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
-            {quote.project_id ? (
+            {projectLabel ? (
               <p>
                 <span className="text-zinc-500">Công trình: </span>
-                <span className="font-medium">#{quote.project_id}</span>
+                <span className="font-medium">{projectLabel}</span>
+              </p>
+            ) : null}
+            {project?.client?.name ? (
+              <p>
+                <span className="text-zinc-500">Khách hàng: </span>
+                <span className="font-medium">{project.client?.name}</span>
               </p>
             ) : null}
             <p>
               <span className="text-zinc-500">Phiên bản: </span>v{quote.version}
             </p>
-            {quote.send_logs.length > 0 && (
+            {quote?.send_logs?.length ? (
               <p>
                 <span className="text-zinc-500">Đã gửi: </span>
                 {quote.send_logs
                   .map(
                     (l) =>
-                      `${quoteChannel[l.channel]} ${formatDate(l.sent_at)} (${l.sent_by})`
+                      `${quoteChannel?.[l?.channel] ?? l?.channel} ${formatDate(l?.sent_at)} (${l?.sent_by})`
                   )
                   .join(" · ")}
               </p>
-            )}
-            {quote.decided_date && (
+            ) : null}
+            {quote?.decided_date && (
               <p>
                 <span className="text-zinc-500">Ngày quyết định: </span>
                 {formatDate(quote.decided_date)}
@@ -114,7 +133,7 @@ export default async function QuoteDocumentPage({
               </tr>
             </thead>
             <tbody>
-              {quote.items.map((item, index) => (
+              {quote?.items?.map((item, index) => (
                 <tr key={index} className="border-b border-zinc-200">
                   <td className="px-2 py-2">{index + 1}</td>
                   <td className="px-2 py-2">{item.description}</td>

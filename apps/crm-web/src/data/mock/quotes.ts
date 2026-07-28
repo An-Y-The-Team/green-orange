@@ -4,11 +4,35 @@ import type { Quote } from "@/app/(dashboard)/quotes/types";
 // Báo giá — v2 shapes, exactly as GET /quotes serializes them. Project 1 shows
 // the bargaining loop (v1 rejected + superseded by v2 waiting); projects 2 and
 // 3 each have a single chốt (deal) version driving their contract/settlement.
+
+// Slim project embeds mirroring the Nest include, so the list and the printable
+// render the same in mock and live mode. Ids/codes match mock projects.
+const anPhat = { id: 1, name: "Công ty TNHH An Phát" };
+const ct001 = {
+  id: 1,
+  code: "CT-2026-001",
+  name: "Vệ sinh kính mặt ngoài Toà nhà A",
+  client: anPhat,
+};
+const ct002 = {
+  id: 2,
+  code: "CT-2026-002",
+  name: "Thi công cải tạo sảnh Toà nhà B",
+  client: anPhat,
+};
+const ct003 = {
+  id: 3,
+  code: "CT-2026-003",
+  name: "Tháo dỡ và vệ sinh nhà phố Q.3",
+  client: { id: 2, name: "Chị Hoa" },
+};
+
 export const quotes: Quote[] = [
   // CT-2026-001 · v1 — first offer, bargained down and superseded by v2.
   {
     id: 1,
     project_id: 1,
+    project: ct001,
     version: 1,
     status: QuoteStatus.REJECTED,
     total_amount: 40_000_000,
@@ -40,6 +64,7 @@ export const quotes: Quote[] = [
   {
     id: 2,
     project_id: 1,
+    project: ct001,
     version: 2,
     status: QuoteStatus.WAITING,
     total_amount: 36_050_000,
@@ -78,6 +103,7 @@ export const quotes: Quote[] = [
   {
     id: 3,
     project_id: 2,
+    project: ct002,
     version: 1,
     status: QuoteStatus.DEAL,
     total_amount: 213_600_000,
@@ -125,6 +151,7 @@ export const quotes: Quote[] = [
   {
     id: 4,
     project_id: 3,
+    project: ct003,
     version: 1,
     status: QuoteStatus.DEAL,
     total_amount: 39_000_000,

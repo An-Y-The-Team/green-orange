@@ -29,8 +29,8 @@ import type { Project } from "@/app/(dashboard)/projects/types";
 import { selectClass } from "@/components/form-bits/form-bits";
 import { timekeepingSource } from "@/constants/labels";
 import { addDays } from "@/utils/add-days/add-days";
+import { mondayOfThisWeek, weekRange } from "@/utils/date-range/date-range";
 import { formatDate } from "@/utils/format-date/format-date";
-import { todayISO } from "@/utils/today-iso/today-iso";
 
 import {
   loadProjectTimekeeping,
@@ -42,12 +42,6 @@ import type { CrewMember, TimekeepingRecord } from "../../types";
 const emptyState = { success: false } as ServerActionState;
 const toastOpts = { successToastTitle: "Thành công", errorToastTitle: "Lỗi" };
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-
-/** Monday (Mon-start week) of the week containing today, as YYYY-MM-DD. */
-function mondayOfThisWeek(): string {
-  const offset = (new Date().getDay() + 6) % 7; // Sun=0 → 6, Mon=1 → 0 …
-  return addDays(todayISO(), -offset);
-}
 
 export function TimekeepingTab({
   crew,
@@ -61,8 +55,21 @@ export function TimekeepingTab({
   const [weekStart, setWeekStart] = useState<string>(() => mondayOfThisWeek());
 
   const [isLoading, startLoad] = useTransition();
-  const reload = (id: number) =>
-    startLoad(async () => setRecords(await loadProjectTimekeeping(id)));
+  // Fetches exactly the 7 days the grid renders — the backend's dateless default
+  // is the last 31 days, so an older week only arrives if we ask for it. Every
+  // change of project or week therefore reloads (no useEffect: the handlers do it).
+  const reload = ({
+    projectId: id,
+    weekStart: start,
+  }: {
+    projectId: number;
+    weekStart: string;
+  }) =>
+    startLoad(async () =>
+      setRecords(
+        await loadProjectTimekeeping({ projectId: id, range: weekRange(start) })
+      )
+    );
 
   const [saveState, saveAction] = useActionState(
     upsertTimekeeping.bind(null, projectId ?? 0),
@@ -74,14 +81,23 @@ export function TimekeepingTab({
     ...toastOpts,
     silent: true,
     onSuccess: () => {
-      if (projectId) reload(projectId);
+      if (projectId) reload({ projectId, weekStart });
     },
   });
 
   const pickProject = (id: number) => {
     setProjectId(id || null);
     setRecords([]);
-    if (id) reload(id);
+    if (id) reload({ projectId: id, weekStart });
+  };
+
+  // Week navigation is a refetch, not just a re-render: the new week's rows are
+  // outside the window we already hold.
+  const shiftWeek = (weeks: number) => () => {
+    const next = addDays(weekStart, weeks * 7);
+    setWeekStart(next);
+    setRecords([]);
+    if (projectId) reload({ projectId, weekStart: next });
   };
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -150,22 +166,14 @@ export function TimekeepingTab({
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setWeekStart((w) => addDays(w, -7))}
-              >
+              <Button size="sm" variant="outline" onClick={shiftWeek(-1)}>
                 <ChevronLeft className="size-4" />
                 Tuần trước
               </Button>
               <span className="text-sm text-muted-foreground">
                 {formatDate(weekStart)} – {formatDate(addDays(weekStart, 6))}
               </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setWeekStart((w) => addDays(w, 7))}
-              >
+              <Button size="sm" variant="outline" onClick={shiftWeek(1)}>
                 Tuần sau
                 <ChevronRight className="size-4" />
               </Button>

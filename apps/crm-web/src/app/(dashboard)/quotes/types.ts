@@ -31,6 +31,27 @@ export interface Quote {
   vat_rate: number; // e.g. 0.08
   decided_date?: string | null; // YYYY-MM-DD
   note?: string | null; // terms block on the printable
+  // Slim project relation, exactly as crm-api-nest includes it on the list AND
+  // the detail response. Absent on standalone quotes (project_id: null) — the
+  // denormalized `client` / `project_code` columns are gone, so this is the only
+  // way to print anything but a raw id. Same shape as contracts/types.ts.
+  project?: {
+    id: number;
+    code: string;
+    name: string;
+    client: { id: number; name: string };
+  };
   items: QuoteItem[];
   send_logs: QuoteSendLog[];
 }
+
+/**
+ * One row of the CROSS-PROJECT list (`GET /quotes` with no `project_id`): that
+ * response carries no `items` and selects only the send-log `channel`. Typing it
+ * as a full {@link Quote} would let a money path read `.items` and silently see
+ * an empty array. Project-scoped reads (getProjectQuotes / getDealQuote) still
+ * return the full `Quote`.
+ */
+export type QuoteListRow = Omit<Quote, "items" | "send_logs"> & {
+  send_logs: Pick<QuoteSendLog, "channel">[];
+};

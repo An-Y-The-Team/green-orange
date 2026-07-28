@@ -24,13 +24,28 @@ import {
   MinLength,
 } from "class-validator";
 
+import { businessToday } from "../common/business-date";
 import { toDate } from "../common/coerce";
+import { type PageQuery, pageArgs } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { PrismaService } from "../prisma/prisma.service";
 
 const EMPLOYMENT_TYPE = ["permanent", "day_hire"];
 const CREW_STATUS = ["working", "on_leave", "left"];
 const TIMEKEEPING_SOURCE = ["manual", "zalo_app"];
+
+// GET /timekeeping has all-optional filters over the fastest-growing table (one
+// row per member per work day per source), so a dateless call used to sort the
+// whole table. Callers that care about older records must send `from`/`to`.
+const DEFAULT_TIMEKEEPING_WINDOW_DAYS = 31;
+
+// businessToday() (not `new Date()`) so the window lines up with the business
+// calendar day the @db.Date work_date column stores.
+const defaultWindowStart = (): Date => {
+  const start = businessToday();
+  start.setUTCDate(start.getUTCDate() - DEFAULT_TIMEKEEPING_WINDOW_DAYS);
+  return start;
+};
 
 // ── Crew roles (vai trò) — user-managed name list ───────────────────────────
 class CreateCrewRoleDto {
@@ -113,6 +128,7 @@ class CrewController {
 
   @Get()
   list(
+    @Query() page: PageQuery,
     @Query("status") status?: string,
     @Query("employment_type") employmentType?: string
   ) {
@@ -122,7 +138,9 @@ class CrewController {
         ...(employmentType ? { employment_type: employmentType } : {}),
       },
       include: { default_role: true },
-      orderBy: { name: "asc" },
+      // Namesakes are common on a roster — id breaks the tie so pages are stable.
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+      ...pageArgs(page),
     });
   }
 
@@ -218,6 +236,7 @@ class AssignmentsController {
 
   @Get()
   list(
+    @Query() page: PageQuery,
     @Query("project_id") projectId?: string,
     @Query("crew_member_id") crewMemberId?: string
   ) {
@@ -227,7 +246,9 @@ class AssignmentsController {
         ...(crewMemberId ? { crew_member_id: Number(crewMemberId) } : {}),
       },
       include: { crew_member: true, role: true },
-      orderBy: { from_date: "desc" },
+      // A crew intake shares one from_date across rows — id breaks the tie.
+      orderBy: [{ from_date: "desc" }, { id: "desc" }],
+      ...pageArgs(page),
     });
   }
 
@@ -313,8 +334,12 @@ class CreateTimekeepingDto {
 class TimekeepingController {
   constructor(private readonly prisma: PrismaService) {}
 
+  // A dateless call gets the last DEFAULT_TIMEKEEPING_WINDOW_DAYS, not all time:
+  // the weekly grid renders 7 days and refetches after every cell save, so the
+  // window is what it actually needs. Send `from`/`to` for anything older.
   @Get()
   list(
+    @Query() page: PageQuery,
     @Query("project_id") projectId?: string,
     @Query("crew_member_id") crewMemberId?: string,
     @Query("from") from?: string,
@@ -331,9 +356,11 @@ class TimekeepingController {
                 ...(to ? { lte: toDate(to)! } : {}),
               },
             }
-          : {}),
+          : { work_date: { gte: defaultWindowStart() } }),
       },
-      orderBy: { work_date: "desc" },
+      // Several members share a work_date — id breaks the tie.
+      orderBy: [{ work_date: "desc" }, { id: "desc" }],
+      ...pageArgs(page),
     });
   }
 

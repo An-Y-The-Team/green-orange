@@ -8,6 +8,7 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header/page-header";
+import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 
 import { listProjects } from "../projects/queries";
@@ -15,19 +16,40 @@ import { MilestoneStatus } from "./enums";
 import { listBills, listPaymentMilestones } from "./queries";
 import { BillRow, MilestoneRow } from "./receivable-rows/receivable-rows";
 
+// Rows per table. Explicit rather than leaning on the server's default page size,
+// so the notice below is accurate instead of a guess.
+const PAGE_ROWS = 100;
+
+// Both tables show one page, and the overdue-first sort below runs in JS over
+// that page — so an overdue row on page 2 never surfaces. Say so rather than
+// implying the table is complete. Goes away with URL-driven paging (F17/F30) or
+// a server-side overdue-first order.
+function PageLimitNotice({ shown }: { shown: number }) {
+  if (shown < PAGE_ROWS) return null;
+  return (
+    <p className="px-6 text-xs text-muted-foreground">
+      Đang xem {PAGE_ROWS} dòng đầu — còn dòng chưa hiển thị.
+    </p>
+  );
+}
+
 // Thu & công nợ — the secretary's daily money screen. Read-only columns plus
 // row actions (record payment, mark bill sent/paid) driven by the write phase.
 export default async function ReceivablesPage() {
   const [milestones, bills, projects] = await Promise.all([
-    listPaymentMilestones(),
-    listBills(),
-    listProjects(),
+    listPaymentMilestones({ limit: PAGE_ROWS }),
+    listBills({ limit: PAGE_ROWS }),
+    // Project index for the Công trình column.
+    // ponytail: a window, not the table — a row whose project falls outside it
+    // prints `#id`. The real fix is a narrow `project: { select: { code } }`
+    // include on GET /payment-milestones and GET /bills; neither returns it today.
+    listProjects({ limit: MAX_PAGE_SIZE }),
   ]);
-  const projectCode = (id: number) =>
-    projects.find((p) => p.id === id)?.code ?? `#${id}`;
+  const codeById = new Map(projects.map((p) => [p?.id, p?.code]));
+  const projectCode = (id: number) => codeById.get(id) ?? `#${id}`;
 
   const milestoneOverdue = (m: (typeof milestones)[number]) =>
-    isOverdue(m.due_date, m.status === MilestoneStatus.PAID);
+    isOverdue(m?.due_date, m?.status === MilestoneStatus.PAID);
   // Derived overdue on top (design doc), everything else in API order.
   const sorted = [...milestones].sort(
     (a, b) => Number(milestoneOverdue(b)) - Number(milestoneOverdue(a))
@@ -60,13 +82,14 @@ export default async function ReceivablesPage() {
             <TableBody>
               {sorted.map((m) => (
                 <MilestoneRow
-                  key={m.id}
+                  key={m?.id}
                   milestone={m}
-                  projectCode={projectCode(m.project_id)}
+                  projectCode={projectCode(m?.project_id)}
                 />
               ))}
             </TableBody>
           </Table>
+          <PageLimitNotice shown={sorted.length} />
         </Card>
 
         <Card className="gap-3 py-4">
@@ -87,13 +110,14 @@ export default async function ReceivablesPage() {
             <TableBody>
               {bills.map((b) => (
                 <BillRow
-                  key={b.id}
+                  key={b?.id}
                   bill={b}
-                  projectCode={projectCode(b.project_id)}
+                  projectCode={projectCode(b?.project_id)}
                 />
               ))}
             </TableBody>
           </Table>
+          <PageLimitNotice shown={bills.length} />
         </Card>
       </div>
     </>

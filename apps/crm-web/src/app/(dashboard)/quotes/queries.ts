@@ -1,11 +1,20 @@
+import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import { quotes } from "@/data/mock/quotes";
 import { API_URL, apiFetch, apiFetchSafe } from "@/utils/http/http";
 
 import { QuoteStatus } from "./enums";
-import type { Quote } from "./types";
+import type { Quote, QuoteListRow } from "./types";
 
-export async function listQuotes(): Promise<Quote[]> {
-  return API_URL ? apiFetchSafe<Quote[]>("/quotes", []) : quotes;
+/**
+ * Cross-project list. Rows carry no line items (F22) — use {@link getQuote} for
+ * a single quote's items. Asks for the biggest page the API allows because the
+ * list page derives "Đã thay thế" and its counts from the whole array; a row
+ * count of MAX_PAGE_SIZE means the answer was cut off.
+ */
+export async function listQuotes(): Promise<QuoteListRow[]> {
+  return API_URL
+    ? apiFetchSafe<QuoteListRow[]>(`/quotes?limit=${MAX_PAGE_SIZE}`, [])
+    : quotes;
 }
 
 export async function getQuote(id: number): Promise<Quote | undefined> {

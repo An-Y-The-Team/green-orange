@@ -78,9 +78,11 @@ export interface Project {
   created_at: string;
   updated_at: string;
 
-  // Relations. GET /projects includes client, location, types; GET
-  // /projects/:id also includes contacts, paperwork_items, notes (and quotes,
-  // left untyped here — the quotes feature owns that shape).
+  // Relations. GET /projects includes client, location, types and
+  // working_contact (narrowed to id/name/phone — F19: the field page's [Gọi]
+  // link needed it, and refetching the detail per row to get it was an N+1);
+  // GET /projects/:id also includes decision_maker, paperwork_items, notes (and
+  // quotes, left untyped here — the quotes feature owns that shape).
   types: ProjectType[];
   client?: ProjectClient;
   location?: ProjectLocation;

@@ -39,6 +39,7 @@ import {
 
 import { businessToday } from "../common/business-date";
 import { toBig, toDate } from "../common/coerce";
+import { type PageQuery, pageArgs } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
@@ -129,12 +130,16 @@ export class SettlementsController {
 
   @Get()
   list(
+    @Query() page: PageQuery,
     @Query("project_id", new ParseIntPipe({ optional: true }))
     projectId?: number
   ) {
     return this.prisma.settlement.findMany({
       where: { project_id: projectId },
       include: SETTLEMENT_INCLUDE,
+      // Was unordered: paging an unordered query overlaps and drops rows.
+      orderBy: { id: "asc" },
+      ...pageArgs(page),
     });
   }
 
@@ -344,6 +349,7 @@ class BillsController {
 
   @Get()
   list(
+    @Query() page: PageQuery,
     @Query("project_id", new ParseIntPipe({ optional: true }))
     projectId?: number,
     @Query("status") status?: string
@@ -351,6 +357,9 @@ class BillsController {
     return this.prisma.bill.findMany({
       where: { project_id: projectId, status },
       include: { milestones: true },
+      // Was unordered: paging an unordered query overlaps and drops rows.
+      orderBy: { id: "asc" },
+      ...pageArgs(page),
     });
   }
 
@@ -439,6 +448,7 @@ export class PaymentMilestonesController {
 
   @Get()
   list(
+    @Query() page: PageQuery,
     @Query("project_id", new ParseIntPipe({ optional: true }))
     projectId?: number,
     @Query("bill_id", new ParseIntPipe({ optional: true })) billId?: number,
@@ -446,6 +456,9 @@ export class PaymentMilestonesController {
   ) {
     return this.prisma.paymentMilestone.findMany({
       where: { project_id: projectId, bill_id: billId, status },
+      // Was unordered: paging an unordered query overlaps and drops rows.
+      orderBy: { id: "asc" },
+      ...pageArgs(page),
     });
   }
 

@@ -21,7 +21,9 @@ import {
   MinLength,
 } from "class-validator";
 
+import { businessToday } from "../common/business-date";
 import { toDate } from "../common/coerce";
+import { type PageQuery, pageArgs } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -60,11 +62,27 @@ class SeedDefaultsDto {
 class PaperworkItemsController {
   constructor(private readonly prisma: PrismaService) {}
 
+  // The due_date filter is `overdue=true` rather than a raw date bound: overdue
+  // is DERIVED (due_date < today && status != approved) and belongs on the
+  // server, or every consumer rebuilds the rule — which is exactly what the
+  // dashboard did while fetching every project's checklist (F20). It already
+  // implies a status, so it replaces `status=` instead of contradicting it.
   @Get()
-  list(@Query("project_id") projectId?: string) {
+  list(
+    @Query() page: PageQuery,
+    @Query("project_id") projectId?: string,
+    @Query("status") status?: string,
+    @Query("overdue") overdue?: string
+  ) {
     return this.prisma.paperworkItem.findMany({
-      where: projectId ? { project_id: Number(projectId) } : undefined,
+      where: {
+        project_id: projectId ? Number(projectId) : undefined,
+        ...(overdue === "true"
+          ? { due_date: { lt: businessToday() }, status: { not: "approved" } }
+          : { status: status || undefined }),
+      },
       orderBy: { id: "asc" },
+      ...pageArgs(page),
     });
   }
 

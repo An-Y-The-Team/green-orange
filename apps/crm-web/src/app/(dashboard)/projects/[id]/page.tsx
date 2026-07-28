@@ -23,6 +23,7 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import { localDateOf, todayISO } from "@/utils/today-iso/today-iso";
 
 import { loadClient } from "../../clients/actions/load-client";
 import { ProjectStage } from "../enums";
@@ -97,7 +98,16 @@ export default async function ProjectDetailPage({
       ? getDealQuote(project.id)
       : Promise.resolve<Quote | undefined>(undefined),
     isExecution
-      ? getProjectTimekeeping(project.id)
+      ? // The execution panel totals a project's hours, so it asks for the
+        // project's own lifetime — GET /timekeeping would otherwise answer with
+        // its default last-31-days window and undercount.
+        getProjectTimekeeping({
+          projectId: project.id,
+          range: {
+            from: project.start_date ?? localDateOf(project.created_at),
+            to: todayISO(),
+          },
+        })
       : Promise.resolve<TimekeepingRecord[]>([]),
     getProjectAssignments(project.id),
     needsMoneyDocs

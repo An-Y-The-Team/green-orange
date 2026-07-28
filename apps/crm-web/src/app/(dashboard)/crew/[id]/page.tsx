@@ -23,10 +23,17 @@ import {
   employmentType,
   timekeepingSource,
 } from "@/constants/labels";
+import { addDays } from "@/utils/add-days/add-days";
 import { formatDate } from "@/utils/format-date/format-date";
+import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { getCrewMember, listTimekeeping } from "../queries";
 import { MemberActions } from "./member-actions/member-actions";
+
+// A dateless GET /timekeeping only answers with the last 31 days, and the whole
+// history of a permanent worker is an unbounded read either way — so this view
+// asks for one explicit window and says so in the card heading.
+const TIMEKEEPING_WINDOW_DAYS = 90;
 
 // Hồ sơ nhân sự — read-only (phase 1): member card, assignment history with
 // the non-blocking "Trùng lịch" chip, timekeeping records.
@@ -40,7 +47,11 @@ export default async function CrewDetailPage({
   const member = await getCrewMember(Number(id));
   if (!member) notFound();
 
-  const records = await listTimekeeping(member.id);
+  const to = todayISO();
+  const records = await listTimekeeping({
+    crewMemberId: member.id,
+    range: { from: addDays(to, -TIMEKEEPING_WINDOW_DAYS), to },
+  });
   const assignments = member.assignments ?? [];
 
   const fields: [string, string][] = [
@@ -156,12 +167,15 @@ export default async function CrewDetailPage({
         <Card className={records.length === 0 ? undefined : "gap-3 py-4"}>
           {records.length === 0 ? (
             <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              Chưa có dữ liệu chấm công.
+              Chưa có dữ liệu chấm công trong {TIMEKEEPING_WINDOW_DAYS} ngày gần
+              nhất.
             </CardContent>
           ) : (
             <>
               <CardHeader>
-                <CardTitle className="text-base">Chấm công</CardTitle>
+                <CardTitle className="text-base">
+                  Chấm công · {TIMEKEEPING_WINDOW_DAYS} ngày gần nhất
+                </CardTitle>
               </CardHeader>
               <Table>
                 <TableHeader>

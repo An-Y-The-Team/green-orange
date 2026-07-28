@@ -30,6 +30,7 @@ import {
 
 import { businessToday } from "../common/business-date";
 import { toBig } from "../common/coerce";
+import { type PageQuery, pageArgs } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
@@ -37,9 +38,32 @@ import { PrismaService } from "../prisma/prisma.service";
 const CHANNEL = ["zalo", "email", "print"];
 const DECISION = ["deal", "on_hold", "rejected"];
 
-const INCLUDE = {
+// F23: `client` and `project_code` used to be denormalized onto Quote; both were
+// dropped, so consumers need the relation to print anything but `#12`. Same shape
+// as contracts.module.ts PROJECT_INCLUDE. Optional — standalone quotes have no
+// project (project_id: null).
+const PROJECT_INCLUDE = {
+  project: {
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      client: { select: { id: true, name: true } },
+    },
+  },
+} as const;
+
+const DETAIL_INCLUDE = {
+  ...PROJECT_INCLUDE,
   items: { orderBy: { sort_order: "asc" as const } },
   send_logs: true,
+};
+
+// F22: the list renders header fields plus the sent-channel chips, so it must not
+// eager-load line items — that made the response grow with total line-item count.
+const LIST_INCLUDE = {
+  ...PROJECT_INCLUDE,
+  send_logs: { select: { channel: true } },
 };
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
@@ -102,20 +126,29 @@ const computeItems = (items: QuoteItemDto[]) => {
 class QuotesController {
   constructor(private readonly prisma: PrismaService) {}
 
+  // F22 applies to the CROSS-PROJECT list only. Scoped to one project this
+  // endpoint returns that project's version history — bounded by a single parent
+  // — and getDealQuote() reads `items` off it to prefill a settlement and print
+  // a contract's line-item block, so narrowing that path would empty both.
   @Get()
-  list(@Query("project_id") projectId?: string) {
-    return this.prisma.quote.findMany({
+  list(@Query() page: PageQuery, @Query("project_id") projectId?: string) {
+    const args = {
       where: projectId ? { project_id: Number(projectId) } : undefined,
-      include: INCLUDE,
-      orderBy: { version: "desc" },
-    });
+      // Every project restarts at version 1, so version alone is not a total
+      // order across projects — id breaks the tie.
+      orderBy: [{ version: "desc" as const }, { id: "desc" as const }],
+      ...pageArgs(page),
+    };
+    return projectId
+      ? this.prisma.quote.findMany({ ...args, include: DETAIL_INCLUDE })
+      : this.prisma.quote.findMany({ ...args, include: LIST_INCLUDE });
   }
 
   @Get(":id")
   async get(@Param("id", ParseIntPipe) id: number) {
     const row = await this.prisma.quote.findUnique({
       where: { id },
-      include: INCLUDE,
+      include: DETAIL_INCLUDE,
     });
     if (!row) throw new NotFoundException("Quote not found");
     return row;
@@ -147,7 +180,7 @@ class QuotesController {
         items: { create: rows },
         // status defaults to "draft" in the schema
       },
-      include: INCLUDE,
+      include: DETAIL_INCLUDE,
     });
     await advanceStage(this.prisma, dto.project_id, "quote");
     return quote;
@@ -173,12 +206,16 @@ class QuotesController {
         this.prisma.quote.update({
           where: { id },
           data: { ...data, items: { create: rows } },
-          include: INCLUDE,
+          include: DETAIL_INCLUDE,
         }),
       ]);
       return updated;
     }
-    return this.prisma.quote.update({ where: { id }, data, include: INCLUDE });
+    return this.prisma.quote.update({
+      where: { id },
+      data,
+      include: DETAIL_INCLUDE,
+    });
   }
 
   @Post(":id/send")
@@ -216,7 +253,7 @@ class QuotesController {
     return this.prisma.quote.update({
       where: { id },
       data: { status: dto.status, decided_date: businessToday() },
-      include: INCLUDE,
+      include: DETAIL_INCLUDE,
     });
   }
 
@@ -244,7 +281,7 @@ class QuotesController {
           })),
         },
       },
-      include: INCLUDE,
+      include: DETAIL_INCLUDE,
     });
     await advanceStage(this.prisma, quote.project_id, "quote");
     return revised;

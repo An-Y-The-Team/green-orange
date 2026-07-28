@@ -9,10 +9,10 @@ import {
 } from "@yan/ui/components/card";
 
 import { ProjectStage } from "@/app/(dashboard)/projects/enums";
-import { getProject, listProjects } from "@/app/(dashboard)/projects/queries";
-import type { Project } from "@/app/(dashboard)/projects/types";
+import { listProjects } from "@/app/(dashboard)/projects/queries";
 import { QuoteStatus } from "@/app/(dashboard)/quotes/enums";
 import { listQuotes } from "@/app/(dashboard)/quotes/queries";
+import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import { localDateOf, todayISO } from "@/utils/today-iso/today-iso";
 
 import { FieldAppointmentCard } from "../components/field-appointment-card/field-appointment-card";
@@ -20,39 +20,42 @@ import { FieldQuoteCard } from "../components/field-quote-card/field-quote-card"
 import { FieldSubStatusCard } from "../components/field-sub-status-card/field-sub-status-card";
 
 export default async function FieldPage() {
-  const [projects, quotes] = await Promise.all([listProjects(), listQuotes()]);
+  // One /projects read feeds the appointment and on-site panels.
+  // ponytail: a window, not the table — a project older than one page drops off
+  // both. Bound goes away with a server-side stage / appointment_date filter.
+  const [projects, quotes] = await Promise.all([
+    listProjects({ limit: MAX_PAGE_SIZE }),
+    listQuotes(),
+  ]);
 
   const today = todayISO();
-  const projectById = new Map(projects.map((p) => [p.id, p]));
 
   // Hôm nay — appointments today not yet visited (dashboard filter). Stage 1
-  // spans request AND survey, so `!visit_date` marks "still to meet".
-  // Refetch each as detail: the list endpoint omits working_contact, which the
-  // [Gọi] tel: link needs; GET /projects/:id includes it.
-  const todayRefs = projects.filter(
+  // spans request AND survey, so `!visit_date` marks "still to meet". The list
+  // endpoint now carries working_contact, so no per-row detail refetch (F19).
+  const todayAppointments = projects.filter(
     (p) =>
-      p.stage === ProjectStage.REQUEST &&
-      !p.visit_date &&
-      p.appointment_at != null &&
+      p?.stage === ProjectStage.REQUEST &&
+      !p?.visit_date &&
+      p?.appointment_at != null &&
       localDateOf(p.appointment_at) === today
   );
-  const todayAppointments = (
-    await Promise.all(todayRefs.map((p) => getProject(p.id)))
-  ).filter((p): p is Project => Boolean(p));
 
-  // Chờ quyết định — waiting quotes joined to their project.
-  const waitingQuotes = quotes
-    .filter((q) => q.status === QuoteStatus.WAITING)
-    .map((q) => ({
-      quote: q,
-      project: q.project_id != null ? projectById.get(q.project_id) : undefined,
-    }))
-    .filter((x) => x.project);
+  // Chờ quyết định — waiting quotes. GET /quotes carries its own slim `project`
+  // relation (F23), so this no longer joins against the project page above: a
+  // quote whose project sits outside that window keeps its card. flatMap rather
+  // than filter+map so `project` narrows to non-null without an assertion.
+  const waitingQuotes = quotes.flatMap((q) =>
+    q?.status === QuoteStatus.WAITING && q?.project
+      ? [{ quote: q, project: q.project }]
+      : []
+  );
 
   // Đang thi công / nghiệm thu.
   const onSite = projects.filter(
     (p) =>
-      p.stage === ProjectStage.EXECUTION || p.stage === ProjectStage.ACCEPTANCE
+      p?.stage === ProjectStage.EXECUTION ||
+      p?.stage === ProjectStage.ACCEPTANCE
   );
 
   return (
@@ -99,12 +102,12 @@ export default async function FieldPage() {
           ) : (
             waitingQuotes.map(({ quote, project }) => (
               <FieldQuoteCard
-                key={quote.id}
-                quoteId={quote.id}
-                projectId={project!.id}
-                code={project!.code}
-                version={quote.version}
-                total={quote.total_amount}
+                key={quote?.id}
+                quoteId={quote?.id}
+                projectId={project?.id}
+                code={project?.code}
+                version={quote?.version}
+                total={quote?.total_amount}
               />
             ))
           )}

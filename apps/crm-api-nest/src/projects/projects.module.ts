@@ -32,6 +32,7 @@ import {
 import { businessToday } from "../common/business-date";
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
+import { type PageQuery, pageArgs } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { STAGE_ORDER } from "../common/stage";
 import { DEFAULT_PAPERWORK } from "../paperwork/paperwork.module";
@@ -197,6 +198,7 @@ export class ProjectsController {
 
   @Get()
   list(
+    @Query() page: PageQuery,
     @Query("client_id") clientId?: string,
     @Query("stage") stage?: string,
     @Query("status") status?: string
@@ -207,8 +209,17 @@ export class ProjectsController {
         stage: stage || undefined,
         status: status || undefined,
       },
-      include: { client: true, location: true, types: true },
+      include: {
+        client: true,
+        location: true,
+        types: true,
+        // F19: the field page needs the site contact per appointment and used to
+        // refetch GET /projects/:id once per row for it. A `select` keeps the
+        // list payload from growing into the detail response.
+        working_contact: { select: { id: true, name: true, phone: true } },
+      },
       orderBy: { id: "desc" },
+      ...pageArgs(page),
     });
   }
 
@@ -414,10 +425,13 @@ class ProjectNotesController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list(@Query("project_id") projectId?: string) {
+  list(@Query() page: PageQuery, @Query("project_id") projectId?: string) {
     return this.prisma.projectNote.findMany({
       where: projectId ? { project_id: Number(projectId) } : undefined,
-      orderBy: { created_at: "desc" },
+      // created_at repeats within a bulk insert — id breaks the tie so pages
+      // don't overlap or drop rows.
+      orderBy: [{ created_at: "desc" }, { id: "desc" }],
+      ...pageArgs(page),
     });
   }
 
@@ -452,13 +466,18 @@ export class AttachmentsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list(@Query("project_id") projectId?: string, @Query("kind") kind?: string) {
+  list(
+    @Query() page: PageQuery,
+    @Query("project_id") projectId?: string,
+    @Query("kind") kind?: string
+  ) {
     return this.prisma.attachment.findMany({
       where: {
         project_id: projectId ? Number(projectId) : undefined,
         kind: kind || undefined,
       },
-      orderBy: { created_at: "desc" },
+      orderBy: [{ created_at: "desc" }, { id: "desc" }],
+      ...pageArgs(page),
     });
   }
 

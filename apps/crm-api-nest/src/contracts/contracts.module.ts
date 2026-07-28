@@ -26,6 +26,7 @@ import {
 import { businessToday } from "../common/business-date";
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
+import { type PageQuery, pageArgs } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
@@ -68,6 +69,7 @@ class ContractsController {
 
   @Get()
   list(
+    @Query() page: PageQuery,
     @Query("project_id") projectId?: string,
     @Query("status") status?: string
   ) {
@@ -77,6 +79,9 @@ class ContractsController {
         status: status || undefined,
       },
       include: PROJECT_INCLUDE,
+      // Was unordered: paging an unordered query overlaps and drops rows.
+      orderBy: { id: "asc" },
+      ...pageArgs(page),
     });
   }
 

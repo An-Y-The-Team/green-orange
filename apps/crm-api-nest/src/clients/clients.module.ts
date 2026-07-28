@@ -24,6 +24,7 @@ import {
   ValidateIf,
 } from "class-validator";
 
+import { type PageQuery, pageArgs } from "../common/pagination";
 import { PrismaService } from "../prisma/prisma.service";
 
 const CLIENT_TYPE = ["company", "individual"];
@@ -58,9 +59,12 @@ class ClientsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list() {
+  list(@Query() page: PageQuery) {
     return this.prisma.client.findMany({
       include: { _count: { select: { locations: true, projects: true } } },
+      // Was unordered: paging an unordered query overlaps and drops rows.
+      orderBy: { id: "asc" },
+      ...pageArgs(page),
     });
   }
 
@@ -175,9 +179,11 @@ class ContactsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list(@Query("client_id") clientId?: string) {
+  list(@Query() page: PageQuery, @Query("client_id") clientId?: string) {
     return this.prisma.contact.findMany({
       where: clientId ? { client_id: Number(clientId) } : undefined,
+      orderBy: { id: "asc" },
+      ...pageArgs(page),
     });
   }
 
@@ -252,10 +258,12 @@ class LocationsController {
   }
 
   @Get()
-  list(@Query("client_id") clientId?: string) {
+  list(@Query() page: PageQuery, @Query("client_id") clientId?: string) {
     return this.prisma.location.findMany({
       where: clientId ? { client_id: Number(clientId) } : undefined,
       include: { manager: true },
+      orderBy: { id: "asc" },
+      ...pageArgs(page),
     });
   }
 

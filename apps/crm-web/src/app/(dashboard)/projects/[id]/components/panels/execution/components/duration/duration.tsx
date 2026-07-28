@@ -27,6 +27,7 @@ import {
 
 import type { TimekeepingRecord } from "@/app/(dashboard)/crew/types";
 import { overdue, timekeepingSource } from "@/constants/labels";
+import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -44,6 +45,12 @@ type DurationField = "est_duration_days" | "actual_duration_days";
 /**
  * start_date / est / actual — one action state, patches the changed field.
  * `actual_duration_days` is the source of truth; timekeeping is shown as-is.
+ *
+ * `timekeeping` arrives already bounded to the project's lifetime (start_date →
+ * today, see the workspace page). One page is all the API serves, so a full page
+ * means the totals below undercount and are labelled as incomplete instead of
+ * being passed off as final. ponytail: a `SUM(hours)` endpoint is the real fix if
+ * projects routinely exceed MAX_PAGE_SIZE rows.
  */
 export function Duration({
   project,
@@ -77,9 +84,15 @@ export function Duration({
 
   const totalHours = timekeeping.reduce((sum, t) => sum + t.hours, 0);
   const recordedDays = new Set(timekeeping.map((t) => t.work_date)).size;
-  // No 8h=1day conversion — compare the two day counts directly.
+  // A full page came back cut off, so both figures are lower bounds.
+  const partial = timekeeping.length >= MAX_PAGE_SIZE;
+  // No 8h=1day conversion — compare the two day counts directly. Skipped while
+  // partial: an undercounted day count would flag a difference that isn't one.
   const disagree =
-    actual !== "" && recordedDays > 0 && Number(actual) !== recordedDays;
+    !partial &&
+    actual !== "" &&
+    recordedDays > 0 &&
+    Number(actual) !== recordedDays;
 
   // Commits an integer duration on blur; ignores blank/NaN so a cleared field
   // doesn't patch the row to 0.
@@ -143,7 +156,12 @@ export function Duration({
           />
         </div>
         <span className="flex items-center gap-2 pb-1.5 text-muted-foreground">
-          Chấm công: {totalHours} giờ / {recordedDays} ngày có ghi nhận
+          Chấm công (từ ngày bắt đầu đến nay): {partial ? "≥ " : ""}
+          {totalHours} giờ / {partial ? "≥ " : ""}
+          {recordedDays} ngày có ghi nhận
+          {partial ? (
+            <Badge variant={overdue.variant}>⚠ dữ liệu chưa đầy đủ</Badge>
+          ) : null}
           {disagree ? (
             <>
               <Badge variant={overdue.variant}>⚠</Badge>
