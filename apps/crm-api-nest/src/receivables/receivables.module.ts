@@ -103,6 +103,26 @@ const computeItems = (items: SettlementItemDto[]) => {
   return { rows, total };
 };
 
+// Balance đợt on sign = settlement total − EVERY unallocated cọc.
+// Deliberately status-blind: đợt thanh toán are a payment SCHEDULE, so
+// sum(bill's đợt) must equal bill.total_amount. An unpaid `not_due` cọc is
+// still a scheduled obligation — subtracting only the paid ones would bill the
+// full balance next to it and double-bill the client. Do not "fix" this by
+// filtering `status: "paid"`.
+// (exported for the unit test in receivables.test.ts)
+export const settlementRemainder = (
+  total: bigint,
+  deposits: { amount: bigint }[]
+): bigint => {
+  const allocated = deposits.reduce((sum, d) => sum + d.amount, 0n);
+  const remainder = total - allocated;
+  if (remainder < 0n)
+    throw new ConflictException(
+      `cọc already scheduled (${allocated}) exceeds the settlement total (${total}) — correct the đợt thanh toán before signing`
+    );
+  return remainder;
+};
+
 @Controller("settlements")
 export class SettlementsController {
   constructor(private readonly prisma: PrismaService) {}
@@ -203,32 +223,35 @@ export class SettlementsController {
         // auto-creates one milestone for the remaining balance.
         data.signed_date = toDate(dto.signed_date) ?? businessToday();
         await this.prisma.$transaction(async (tx) => {
-          await tx.settlement.update({ where: { id }, data });
+          // Read the total off the UPDATED row: a PATCH carrying both `items`
+          // and status:"signed" recomputed it above, so `row` is stale.
+          const signed = await tx.settlement.update({ where: { id }, data });
           const bill = await tx.bill.findFirst({
             where: { settlement_id: id },
           });
           if (!bill) return;
           await tx.bill.update({
             where: { id: bill.id },
-            data: { status: "official", total_amount: row.total_amount },
+            data: { status: "official", total_amount: signed.total_amount },
           });
-          const deposit = await tx.paymentMilestone.findFirst({
+          // All of them: a leftover cọc would stay unallocated and unsubtracted.
+          const deposits = await tx.paymentMilestone.findMany({
             where: {
-              project_id: row.project_id,
+              project_id: signed.project_id,
               type: "deposit",
               bill_id: null,
             },
           });
-          if (deposit)
-            await tx.paymentMilestone.update({
-              where: { id: deposit.id },
+          const remainder = settlementRemainder(signed.total_amount, deposits);
+          if (deposits.length)
+            await tx.paymentMilestone.updateMany({
+              where: { id: { in: deposits.map((d) => d.id) } },
               data: { bill_id: bill.id },
             });
-          const remainder = row.total_amount - (deposit?.amount ?? 0n);
           if (remainder > 0n)
             await tx.paymentMilestone.create({
               data: {
-                project_id: row.project_id,
+                project_id: signed.project_id,
                 bill_id: bill.id,
                 type: "progress",
                 amount: remainder,
@@ -378,11 +401,25 @@ class BillsController {
 }
 
 // ── Payment milestones (Đợt thanh toán) ─────────────────────────────────────
+// A đợt's bill must belong to the same công trình: the printed "Đề nghị thanh
+// toán" joins on bill_id alone, so a foreign bill renders one client's payment
+// schedule on another's request (and corrupts unsign's "already collected").
+const assertBillBelongsToProject = async (
+  prisma: PrismaService,
+  billId: number,
+  projectId: number
+) => {
+  const bill = await prisma.bill.findUnique({ where: { id: billId } });
+  if (!bill || bill.project_id !== projectId)
+    throw new BadRequestException("bill_id does not belong to project_id");
+};
+
 class CreateMilestoneDto {
   @IsInt() project_id: number;
   @IsOptional() @IsInt() bill_id?: number; // null for the stage-4 deposit
   @IsIn(MILESTONE_TYPE) type: string;
   @IsNumber() @Min(0) amount: number;
+  @IsOptional() @IsIn(MILESTONE_STATUS) status?: string;
   @IsOptional() @IsDateString() due_date?: string;
 }
 
@@ -423,17 +460,31 @@ class PaymentMilestonesController {
   @HttpCode(201)
   async create(@Body() dto: CreateMilestoneDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
-    // Starts as not_due (schema default). "overdue" is derived at read time,
-    // never stored.
-    return this.prisma.paymentMilestone.create({
+    if (dto.bill_id != null)
+      await assertBillBelongsToProject(
+        this.prisma,
+        dto.bill_id,
+        dto.project_id
+      );
+    // Defaults to not_due (schema default); "overdue" is derived at read time,
+    // never stored. An explicit initial status is NOT a transition, so no
+    // assertStep — recording an already-received cọc has to be one write, or a
+    // failed follow-up PATCH leaves an orphan the operator's retry duplicates.
+    const created = await this.prisma.paymentMilestone.create({
       data: {
         project_id: dto.project_id,
         bill_id: dto.bill_id,
         type: dto.type,
         amount: toBig(dto.amount)!,
+        status: dto.status,
         due_date: toDate(dto.due_date),
+        paid_date: dto.status === "paid" ? businessToday() : undefined,
       },
     });
+    // Same rule as PATCH: cọc received closes stage 4 → paperwork.
+    if (dto.status === "paid" && dto.type === "deposit")
+      await advanceStage(this.prisma, dto.project_id, "paperwork");
+    return created;
   }
 
   @Patch(":id")
@@ -444,6 +495,12 @@ class PaymentMilestonesController {
     const row = await this.get(id);
     await assertProjectOpen(this.prisma, row.project_id);
     const data: Record<string, unknown> = {};
+    if (dto.bill_id != null)
+      await assertBillBelongsToProject(
+        this.prisma,
+        dto.bill_id,
+        row.project_id
+      );
     if (dto.bill_id !== undefined) data.bill_id = dto.bill_id;
     if (dto.amount !== undefined) data.amount = toBig(dto.amount);
     if (dto.due_date !== undefined) data.due_date = toDate(dto.due_date);

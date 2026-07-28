@@ -201,8 +201,11 @@ class CreateAssignmentDto {
   @IsOptional() @IsDateString() to_date?: string;
 }
 
+// No project_id: moving an assignment between projects is delete-and-recreate,
+// not an edit. Allowing it here would write into the *destination* project
+// while update() only holds the closed-project lock on the source, so a PATCH
+// could drop crew into a settled job and change its printed worker list.
 class UpdateAssignmentDto {
-  @IsOptional() @IsInt() project_id?: number;
   @IsOptional() @IsInt() crew_member_id?: number;
   @IsOptional() @IsInt() role_id?: number;
   @IsOptional() @IsDateString() from_date?: string;

@@ -129,8 +129,17 @@ class ClientsController {
   @HttpCode(204)
   async remove(@Param("id", ParseIntPipe) id: number) {
     await this.get(id);
+    // A project can reference this client only through one of its contacts;
+    // that FK still blocks the contact delete below — count it, or the
+    // transaction raises a raw Prisma error as a 500 instead of this 409.
     const projects = await this.prisma.project.count({
-      where: { client_id: id },
+      where: {
+        OR: [
+          { client_id: id },
+          { working_contact: { client_id: id } },
+          { decision_maker: { client_id: id } },
+        ],
+      },
     });
     if (projects)
       throw new ConflictException("Client has projects and cannot be deleted");

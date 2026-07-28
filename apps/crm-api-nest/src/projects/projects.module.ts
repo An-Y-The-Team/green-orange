@@ -127,6 +127,9 @@ class CreateProjectDto {
   @IsOptional() @IsIn(STAGE) stage?: string;
   @IsOptional() @IsString() request_note?: string;
   @IsOptional() @IsString() referral_source?: string;
+  // Accepted on create so the intake form is one write — a failed follow-up
+  // PATCH used to report failure on an already-committed project (F14).
+  @IsOptional() @IsDateString() appointment_at?: string;
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -173,8 +176,24 @@ const DATE_FIELDS = [
 ] as const;
 
 @Controller("projects")
-class ProjectsController {
+export class ProjectsController {
   constructor(private readonly prisma: PrismaService) {}
+
+  // Contacts are owned by a client; a foreign one would show on the project
+  // header and printed documents, and block the client delete with a raw FK.
+  private async assertContactBelongsTo(
+    clientId: number,
+    contactId: number,
+    field: string
+  ) {
+    const contact = await this.prisma.contact.findUnique({
+      where: { id: contactId },
+    });
+    if (!contact || contact.client_id !== clientId)
+      throw new BadRequestException(
+        `${field} must be a contact of the same client`
+      );
+  }
 
   @Get()
   list(
@@ -220,6 +239,19 @@ class ProjectsController {
     });
     if (!location || location.client_id !== dto.client_id)
       throw new BadRequestException("location_id does not belong to client_id");
+    // location.manager_contact_id is known-good; only client-supplied ids need it.
+    if (dto.working_contact_id != null)
+      await this.assertContactBelongsTo(
+        dto.client_id,
+        dto.working_contact_id,
+        "working_contact_id"
+      );
+    if (dto.decision_maker_contact_id != null)
+      await this.assertContactBelongsTo(
+        dto.client_id,
+        dto.decision_maker_contact_id,
+        "decision_maker_contact_id"
+      );
     const working =
       dto.working_contact_id ?? location.manager_contact_id ?? null;
     if (working === null)
@@ -238,6 +270,7 @@ class ProjectsController {
           working_contact_id: working,
           decision_maker_contact_id: dto.decision_maker_contact_id ?? working,
           stage: dto.stage ?? "request",
+          appointment_at: toDate(dto.appointment_at),
           request_note: dto.request_note,
           referral_source: dto.referral_source,
           survey_items: dto.survey_items?.map((i) => ({ ...i })),
@@ -288,6 +321,20 @@ class ProjectsController {
     )
       throw new BadRequestException(
         "cancel_reason is required when cancelling a project"
+      );
+
+    // The client comes from the row — UpdateProjectDto cannot move a project.
+    if (dto.working_contact_id != null)
+      await this.assertContactBelongsTo(
+        current.client_id,
+        dto.working_contact_id,
+        "working_contact_id"
+      );
+    if (dto.decision_maker_contact_id != null)
+      await this.assertContactBelongsTo(
+        current.client_id,
+        dto.decision_maker_contact_id,
+        "decision_maker_contact_id"
       );
 
     // No stage gates (crm-ui-redesign.md, 2026-07-24): transitions are soft.
@@ -401,7 +448,7 @@ class CreateAttachmentDto {
 }
 
 @Controller("attachments")
-class AttachmentsController {
+export class AttachmentsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
@@ -419,6 +466,16 @@ class AttachmentsController {
   @HttpCode(201)
   async create(@Body() dto: CreateAttachmentDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
+    // Another project's checklist row would collect this file silently.
+    if (dto.paperwork_item_id != null) {
+      const item = await this.prisma.paperworkItem.findUnique({
+        where: { id: dto.paperwork_item_id },
+      });
+      if (!item || item.project_id !== dto.project_id)
+        throw new BadRequestException(
+          "paperwork_item_id does not belong to project_id"
+        );
+    }
     return this.prisma.attachment.create({
       data: {
         project_id: dto.project_id,
