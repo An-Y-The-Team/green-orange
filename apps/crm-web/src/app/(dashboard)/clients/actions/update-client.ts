@@ -48,6 +48,7 @@ export async function updateClient(
         updated_at: new Date().toISOString(),
       };
     }
+    revalidatePath("/clients");
     revalidatePath(`/clients/${id}`);
     return { success: true, message: "Đã cập nhật khách hàng.", data: client };
   } catch (error) {

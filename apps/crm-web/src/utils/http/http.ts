@@ -125,6 +125,11 @@ export async function apiSend<T>(
       `API ${method} ${path} failed: ${res.status} ${res.statusText}${detail ? ` — ${detail}` : ""}`
     );
   }
+  // DELETE handlers answer 204 with an empty body — res.json() would throw
+  // "Unexpected end of JSON input" after the row is already gone.
+  if (res.status === 204 || res.headers.get("content-length") === "0") {
+    return undefined as T;
+  }
   return res.json() as Promise<T>;
 }
 

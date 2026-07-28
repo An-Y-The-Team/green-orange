@@ -71,6 +71,7 @@ export async function recordDeposit(
     }
 
     revalidatePath(`/projects/${projectId}`);
+    revalidatePath("/receivables");
 
     return { success: true, message: "Đã ghi nhận cọc.", data: milestone };
   } catch (error) {

@@ -2,8 +2,8 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { nowHHmm, todayISO } from "./today-iso";
 
-process.env.TZ = "Asia/Ho_Chi_Minh";
-
+// TZ=Asia/Ho_Chi_Minh comes from vitest.config.ts — these assertions only fail
+// in a UTC+ zone.
 afterEach(() => vi.useRealTimers());
 
 // The bug this guards: toISOString() is UTC, so 01:00 in Vietnam reported

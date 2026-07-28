@@ -11,16 +11,15 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { listAssignments } from "@/app/(dashboard)/crew/queries";
+import { getProjectAssignments } from "@/app/(dashboard)/crew/queries";
 import { DocumentShell } from "@/components/document-shell/document-shell";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import { getProject } from "../../../queries";
 
 // Worker list ("Danh sách nhân sự") printed from stage-5 paperwork. Assignments
-// already exist (crew listAssignments + GET /assignments?project_id=), so this is
-// LIVE — no phase-5 stub needed. Rows are filtered client-side by project_id;
-// crew_member/role are API includes (present live; mock omits crew_member).
+// already exist (GET /assignments?project_id=), so this is LIVE — no phase-5 stub
+// needed. crew_member/role are API includes (present live; mock omits crew_member).
 export default async function WorkerListPage({
   params,
 }: {
@@ -30,9 +29,7 @@ export default async function WorkerListPage({
   const project = await getProject(Number(id));
   if (!project) notFound();
 
-  const rows = (await listAssignments()).filter(
-    (a) => a.project_id === project.id
-  );
+  const rows = await getProjectAssignments(project.id);
 
   return (
     <>

@@ -3,7 +3,8 @@ import { expect, test } from "vitest";
 import { addDays } from "./add-days";
 
 // The bug this guards: reading the result back via toISOString() shifted the
-// date backwards in any UTC+ timezone. Run under TZ=Asia/Ho_Chi_Minh to catch it.
+// date backwards in any UTC+ timezone. TZ=Asia/Ho_Chi_Minh is set suite-wide in
+// vitest.config.ts — without it these assertions pass even with the bug present.
 test("adding zero days is identity", () => {
   expect(addDays("2026-07-25", 0)).toBe("2026-07-25");
 });

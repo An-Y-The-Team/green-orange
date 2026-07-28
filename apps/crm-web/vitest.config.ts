@@ -10,5 +10,10 @@ export default defineConfig({
       "next/server": "next/server.js",
     },
   },
-  test: { server: { deps: { inline: ["next-auth"] } } },
+  // TZ is set suite-wide: the date utils are only wrong in a UTC+ zone, so a
+  // test running under UTC cannot catch the bug it guards.
+  test: {
+    env: { TZ: "Asia/Ho_Chi_Minh" },
+    server: { deps: { inline: ["next-auth"] } },
+  },
 });
