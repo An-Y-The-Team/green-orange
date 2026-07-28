@@ -421,6 +421,7 @@ class CreateMilestoneDto {
   @IsNumber() @Min(0) amount: number;
   @IsOptional() @IsIn(MILESTONE_STATUS) status?: string;
   @IsOptional() @IsDateString() due_date?: string;
+  @IsOptional() @IsDateString() paid_date?: string; // a cọc can be backdated
 }
 
 class UpdateMilestoneDto {
@@ -432,7 +433,8 @@ class UpdateMilestoneDto {
 }
 
 @Controller("payment-milestones")
-class PaymentMilestonesController {
+// (exported for the paid_date unit test in receivables.test.ts)
+export class PaymentMilestonesController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
@@ -466,6 +468,11 @@ class PaymentMilestonesController {
         dto.bill_id,
         dto.project_id
       );
+    // A date of payment on money that isn't paid is incoherent — reject rather
+    // than store it, so a caller sending the wrong status hears about it
+    // instead of leaving a not_due đợt that looks settled.
+    if (dto.paid_date != null && dto.status !== "paid")
+      throw new BadRequestException('paid_date requires status: "paid"');
     // Defaults to not_due (schema default); "overdue" is derived at read time,
     // never stored. An explicit initial status is NOT a transition, so no
     // assertStep — recording an already-received cọc has to be one write, or a
@@ -478,7 +485,11 @@ class PaymentMilestonesController {
         amount: toBig(dto.amount)!,
         status: dto.status,
         due_date: toDate(dto.due_date),
-        paid_date: dto.status === "paid" ? businessToday() : undefined,
+        // The operator can backdate a cọc that arrived last week; the server
+        // stamp is only the fallback.
+        paid_date:
+          toDate(dto.paid_date) ??
+          (dto.status === "paid" ? businessToday() : undefined),
       },
     });
     // Same rule as PATCH: cọc received closes stage 4 → paperwork.

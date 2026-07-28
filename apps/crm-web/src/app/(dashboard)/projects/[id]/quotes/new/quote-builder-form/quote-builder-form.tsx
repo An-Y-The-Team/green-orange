@@ -35,7 +35,7 @@ import {
 } from "@/app/(dashboard)/quotes/schema";
 import { fieldError, selectClass } from "@/components/form-bits/form-bits";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
-import { quoteTotals } from "@/utils/quote-totals/quote-totals";
+import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
 
 export interface QuoteBuilderInitial {
   projectId?: number; // undefined = standalone quote (created from /quotes/new)
@@ -178,8 +178,7 @@ export function QuoteBuilderForm({
                 </TableHeader>
                 <TableBody>
                   {fields.map((field, i) => {
-                    const amount =
-                      (rows[i]?.quantity ?? 0) * (rows[i]?.unit_price ?? 0);
+                    const amount = itemAmount(rows[i]);
                     return (
                       <TableRow key={field.id}>
                         <TableCell>

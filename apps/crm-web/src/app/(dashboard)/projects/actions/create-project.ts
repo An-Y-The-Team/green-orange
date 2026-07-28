@@ -24,19 +24,16 @@ export async function createProject(
     };
   }
 
-  // POST /projects takes everything (incl. optional `stage`) except
-  // appointment_at, which is only settable via PATCH (see NEST contract).
+  // POST /projects takes everything, incl. optional `stage` and appointment_at.
+  // One write only: a follow-up PATCH that failed used to report failure on an
+  // already-committed project, so the operator re-submitted and duplicated the
+  // CT code. `createBody` is the mock branch's shape (appointment_at split out).
   const { appointment_at, ...createBody } = parsed.data;
 
   try {
     let project: Project;
     if (API_URL) {
-      project = await apiSend<Project>("/projects", "POST", createBody);
-      if (appointment_at) {
-        project = await apiSend<Project>(`/projects/${project.id}`, "PATCH", {
-          appointment_at,
-        });
-      }
+      project = await apiSend<Project>("/projects", "POST", parsed.data);
     } else {
       const id = nextId(projects);
       project = {

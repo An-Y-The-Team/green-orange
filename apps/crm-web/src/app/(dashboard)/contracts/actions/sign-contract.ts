@@ -53,13 +53,26 @@ export async function signContract(
       contract = { id, signed_date: signedDate };
     }
 
-    // Chain the client confirmation onto the project when not already set.
-    if (!parsed.data.client_has_signed) {
-      await updateProject(projectId, _prev, { client_signed_date: signedDate });
-    }
-
+    // The contract is signed from here on — revalidate before the chain so a
+    // chained failure still shows it signed.
     revalidatePath(`/projects/${projectId}`);
     revalidatePath(`/contracts/${id}`);
+
+    // Chain the client confirmation onto the project when not already set.
+    // updateProject RETURNS failure instead of throwing, so an unchecked chain
+    // left the stage-4 checklist unticked under an "Đã ký hợp đồng" toast.
+    if (!parsed.data.client_has_signed) {
+      const chained = await updateProject(projectId, _prev, {
+        client_signed_date: signedDate,
+      });
+      if (!chained.success) {
+        return {
+          success: false,
+          message: `Đã ký hợp đồng nhưng chưa ghi được ngày khách ký lên công trình: ${chained.message ?? "Lỗi không xác định."} Vui lòng cập nhật ngày khách ký thủ công — không cần ký lại hợp đồng.`,
+          data: contract,
+        };
+      }
+    }
 
     return { success: true, message: "Đã ký hợp đồng.", data: contract };
   } catch (error) {

@@ -11,7 +11,7 @@ import {
 import { quoteChannel, quoteStatus, quoteSuperseded } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
-import { quoteTotals } from "@/utils/quote-totals/quote-totals";
+import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
 import { getProjectQuotes, getQuote } from "../queries";
 
@@ -33,7 +33,9 @@ export default async function QuoteDocumentPage({
     : [quote];
   const superseded = versions.some((v) => v.version > quote.version);
   const badge = superseded ? quoteSuperseded : quoteStatus[quote.status];
-  const { subtotal, vat, total } = quoteTotals(quote.items, quote.vat_rate);
+  // Saved quote → the server's stored Σ, so the lines below sum to it and the
+  // printable agrees with the /quotes list.
+  const { subtotal, vat, total } = storedTotals(quote);
 
   return (
     <>

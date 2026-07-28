@@ -18,6 +18,7 @@ import type { Quote } from "@/app/(dashboard)/quotes/types";
 import { company } from "@/config/company";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { storedTotals } from "@/utils/quote-totals/quote-totals";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
 /** Default VAT rate when no quote pins one. */
@@ -115,12 +116,9 @@ export function buildContractContext(
   contract: Contract,
   quote?: Pick<Quote, "total_amount" | "vat_rate"> | null
 ): MergeContext {
-  const beforeTax = quote?.total_amount;
+  // One VAT rule for screen, printable, .docx and these tokens.
+  const money = quote ? storedTotals(quote) : undefined;
   const vatRate = quote?.vat_rate ?? DEFAULT_VAT_RATE;
-  const vatAmount =
-    beforeTax === undefined ? undefined : Math.round(beforeTax * vatRate);
-  const total =
-    beforeTax === undefined ? undefined : beforeTax + (vatAmount ?? 0);
 
   return {
     code: contract.code,
@@ -142,11 +140,11 @@ export function buildContractContext(
     "company.bank_name": company.bank_name,
     "company.bank_branch": company.bank_branch,
     // Tài chính
-    value: total === undefined ? "" : formatVND(total),
-    value_before_tax: beforeTax === undefined ? "" : formatVND(beforeTax),
+    value: money ? formatVND(money.total) : "",
+    value_before_tax: money ? formatVND(money.subtotal) : "",
     vat_rate: `${Math.round(vatRate * 100)}%`,
-    vat_amount: vatAmount === undefined ? "" : formatVND(vatAmount),
-    value_in_words: total === undefined ? "" : vndInWords(total),
+    vat_amount: money ? formatVND(money.vat) : "",
+    value_in_words: money ? vndInWords(money.total) : "",
   };
 }
 

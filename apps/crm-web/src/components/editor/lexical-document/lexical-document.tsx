@@ -16,12 +16,13 @@ import { Fragment, type ReactNode } from "react";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { type LexNode, TEXT_FORMAT } from "@/utils/lexical-build/lexical-build";
 import type { MergeContext } from "@/utils/merge-template/merge-template";
-import { quoteTotals } from "@/utils/quote-totals/quote-totals";
+import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
 /**
  * Structured pricing for the line-items block (from the linked Quote). Only
  * the display fields — a real QuoteItem fits, and so do editor sample rows.
+ * `amount` is the server's per-line figure; absent on editor sample rows.
  */
 export type LineItemsData = {
   items: {
@@ -29,6 +30,7 @@ export type LineItemsData = {
     unit?: string | null;
     quantity: number;
     unit_price: number;
+    amount?: number;
   }[];
   vatRate: number;
 };
@@ -121,7 +123,7 @@ function LineItemsTable({ data }: { data: LineItemsData | null | undefined }) {
                 {formatVND(item.unit_price)}
               </td>
               <td className="px-2 py-1.5 text-right">
-                {formatVND(item.quantity * item.unit_price)}
+                {formatVND(itemAmount(item))}
               </td>
             </tr>
           ))}

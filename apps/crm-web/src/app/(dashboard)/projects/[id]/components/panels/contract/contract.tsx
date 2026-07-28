@@ -79,7 +79,8 @@ export function ContractPanel({
   milestones: PaymentMilestone[];
   dealQuote?: Quote;
 }) {
-  const quoteDeal = dealQuote?.status === "deal";
+  // getDealQuote is deal-only, so its presence IS the chốt condition.
+  const quoteDeal = Boolean(dealQuote);
   const clientSigned = Boolean(project.client_signed_date);
   const depositPaid = milestones.some(
     (m) => m.type === MilestoneType.DEPOSIT && m.status === MilestoneStatus.PAID
@@ -105,8 +106,10 @@ export function ContractPanel({
   );
   const [depPending, startDep] = useTransition();
   const [depOpen, setDepOpen] = useState(false);
+  // 60% of the chốt quote — blank when there is none, never a number from a
+  // quote the client did not agree to.
   const [depAmount, setDepAmount] = useState(
-    String(Math.round((dealQuote?.total_amount ?? 0) * 0.6))
+    dealQuote ? String(Math.round(dealQuote.total_amount * 0.6)) : ""
   );
   const [depDate, setDepDate] = useState(todayISO);
   useServerAction(depState, depPending, {
@@ -135,7 +138,7 @@ export function ContractPanel({
                 </span>
               ) : (
                 <span className="text-sm text-muted-foreground">
-                  Chưa có báo giá
+                  Chưa có báo giá chốt
                 </span>
               )
             }

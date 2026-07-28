@@ -16,7 +16,7 @@ import type { LineItemsData } from "@/components/editor/lexical-document/lexical
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { type LexNode, TEXT_FORMAT } from "@/utils/lexical-build/lexical-build";
 import type { MergeContext } from "@/utils/merge-template/merge-template";
-import { quoteTotals } from "@/utils/quote-totals/quote-totals";
+import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
 export async function exportDocx({
@@ -103,7 +103,7 @@ export async function exportDocx({
             textCell(item.unit ?? ""),
             textCell(String(item.quantity)),
             textCell(formatVND(item.unit_price)),
-            textCell(formatVND(item.quantity * item.unit_price)),
+            textCell(formatVND(itemAmount(item))),
           ],
         })
     );

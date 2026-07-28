@@ -33,6 +33,7 @@ import {
 } from "@/app/(dashboard)/receivables/schema";
 import { fieldError } from "@/components/form-bits/form-bits";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { itemAmount } from "@/utils/quote-totals/quote-totals";
 
 export interface SettlementBuilderInitial {
   projectId: number;
@@ -89,7 +90,8 @@ export function SettlementBuilderForm({
     quantity: Number(it?.quantity) || 0,
     unit_price: Number(it?.unit_price) || 0,
   }));
-  const total = rows.reduce((s, r) => s + r.quantity * r.unit_price, 0);
+  // Σ of rounded lines, like the server — not a rounded Σ of float products.
+  const total = rows.reduce((s, r) => s + itemAmount(r), 0);
 
   const onValid = (values: SettlementFormValues) => {
     const payload = {
@@ -124,8 +126,7 @@ export function SettlementBuilderForm({
               </TableHeader>
               <TableBody>
                 {fields.map((field, i) => {
-                  const amount =
-                    (rows[i]?.quantity ?? 0) * (rows[i]?.unit_price ?? 0);
+                  const amount = itemAmount(rows[i]);
                   return (
                     <TableRow key={field.id}>
                       <TableCell>

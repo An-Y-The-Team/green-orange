@@ -18,9 +18,11 @@ const recordDepositSchema = z.object({
 export type RecordDepositFormValues = z.infer<typeof recordDepositSchema>;
 
 /**
- * Record the stage-4 deposit (Tạm ứng): a pre-bill deposit milestone marked
- * paid. Live mode POSTs the milestone then advances it one step at a time
- * (server enforces not_due → awaiting_payment → paid). Mock synths a paid row.
+ * Record the stage-4 deposit (Tạm ứng): a pre-bill deposit milestone created
+ * already paid. ONE write — the server takes the initial `status` (setting it is
+ * not a transition, so `assertStep` stays out of the way). Chaining PATCHes here
+ * used to leave an orphan milestone whose retry duplicated the cọc. Mock synths
+ * the same row.
  */
 export async function recordDeposit(
   projectId: number,
@@ -42,20 +44,16 @@ export async function recordDeposit(
   try {
     let milestone: PaymentMilestone;
     if (API_URL) {
-      const created = await apiSend<PaymentMilestone>(
+      milestone = await apiSend<PaymentMilestone>(
         "/payment-milestones",
         "POST",
-        { project_id: projectId, type: MilestoneType.DEPOSIT, amount }
-      );
-      await apiSend<PaymentMilestone>(
-        `/payment-milestones/${created.id}`,
-        "PATCH",
-        { status: MilestoneStatus.AWAITING_PAYMENT }
-      );
-      milestone = await apiSend<PaymentMilestone>(
-        `/payment-milestones/${created.id}`,
-        "PATCH",
-        { status: MilestoneStatus.PAID, paid_date: received_date }
+        {
+          project_id: projectId,
+          type: MilestoneType.DEPOSIT,
+          amount,
+          status: MilestoneStatus.PAID,
+          paid_date: received_date,
+        }
       );
     } else {
       milestone = {

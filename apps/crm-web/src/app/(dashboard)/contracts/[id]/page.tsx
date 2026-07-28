@@ -2,6 +2,8 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Button } from "@yan/ui/components/button";
+
 import {
   DocumentShell,
   SignatureBlocks,
@@ -13,7 +15,7 @@ import { DEFAULT_HEADER_VARIANT } from "@/constants/header-variant";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { buildContractContext } from "@/utils/merge-template/merge-template";
-import { quoteTotals } from "@/utils/quote-totals/quote-totals";
+import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
 import { getDealQuote } from "../../quotes/queries";
 import { getContract, getContractTemplate } from "../queries";
@@ -44,6 +46,35 @@ export default async function ContractDocumentPage({
   const quote = contract.project_id
     ? await getDealQuote(contract.project_id)
     : undefined;
+
+  // A project-linked contract takes its giá trị from the chốt quote. Without
+  // one there is no agreed figure, so refuse the printable rather than emit a
+  // blank one. (Standalone contracts never had a quote — unchanged.)
+  if (contract.project_id && !quote) {
+    return (
+      <>
+        {backLink}
+
+        <div className="rounded-lg border border-border bg-muted/40 p-6 text-sm">
+          <p className="font-medium">Chưa có báo giá chốt</p>
+          <p className="mt-1 text-muted-foreground">
+            Hợp đồng {contract.code} chỉ in được khi công trình đã có báo giá ở
+            trạng thái Chốt — giá trị hợp đồng lấy từ báo giá đó.
+          </p>
+          <Button
+            className="mt-4"
+            size="sm"
+            variant="outline"
+            render={
+              <Link href={`/projects/${contract.project_id}`}>
+                Mở công trình để chốt báo giá
+              </Link>
+            }
+          />
+        </div>
+      </>
+    );
+  }
 
   // The contract's own rich body wins (edited per contract); otherwise seed from
   // its template body; otherwise fall back to the built-in hard-coded layout.
@@ -132,7 +163,7 @@ export default async function ContractDocumentPage({
             <div>
               <dt className="text-zinc-500">Giá trị (theo báo giá đã chốt)</dt>
               <dd className="font-semibold">
-                {formatVND(quoteTotals(quote.items, quote.vat_rate).total)}
+                {formatVND(storedTotals(quote).total)}
               </dd>
             </div>
           )}

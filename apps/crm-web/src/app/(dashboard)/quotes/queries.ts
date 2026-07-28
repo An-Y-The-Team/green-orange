@@ -27,11 +27,12 @@ export async function getProjectQuotes(projectId: number): Promise<Quote[]> {
 
 /**
  * The chốt (deal) quote for a project — drives a contract's line-items block
- * and money merge tokens. Falls back to the latest version when none is deal.
+ * and money merge tokens. Strictly deal-only: a rejected or draft version must
+ * never supply a figure that gets printed on (and spelled out in) a contract.
  */
 export async function getDealQuote(
   projectId: number
 ): Promise<Quote | undefined> {
   const versions = await getProjectQuotes(projectId);
-  return versions.find((q) => q.status === QuoteStatus.DEAL) ?? versions[0];
+  return versions.find((q) => q.status === QuoteStatus.DEAL);
 }
