@@ -14,6 +14,7 @@ import { overdue } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
+import { localDateOf, todayISO } from "@/utils/today-iso/today-iso";
 
 import {
   PaperworkStatus,
@@ -68,7 +69,7 @@ export default async function DashboardPage() {
     listAllPaperworkItems(),
   ]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const codeOf = (id: number) =>
     projects.find((p) => p.id === id)?.code ?? `#${id}`;
 
@@ -78,7 +79,8 @@ export default async function DashboardPage() {
     (p) =>
       p.stage === ProjectStage.REQUEST &&
       !p.visit_date &&
-      p.appointment_at?.startsWith(today)
+      p.appointment_at != null &&
+      localDateOf(p.appointment_at) === today
   );
 
   // Cần theo dõi — parked jobs whose follow-up date has arrived …

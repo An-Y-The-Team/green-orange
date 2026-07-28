@@ -28,6 +28,7 @@ import {
   ValidateNested,
 } from "class-validator";
 
+import { businessToday } from "../common/business-date";
 import { toBig } from "../common/coerce";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
@@ -214,7 +215,7 @@ class QuotesController {
       throw new ConflictException("only waiting quotes can be decided");
     return this.prisma.quote.update({
       where: { id },
-      data: { status: dto.status, decided_date: new Date() },
+      data: { status: dto.status, decided_date: businessToday() },
       include: INCLUDE,
     });
   }

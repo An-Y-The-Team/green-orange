@@ -1,10 +1,3 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@yan/ui/components/card";
-
 import type { Contract } from "@/app/(dashboard)/contracts/types";
 import type {
   Assignment,
@@ -16,7 +9,6 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
-import { projectStage, projectStageOrder } from "@/constants/labels";
 
 import { ProjectStage } from "../../../enums";
 import type { Attachment, PaperworkItem, Project } from "../../../types";
@@ -28,6 +20,7 @@ import { PaperworkPanel } from "../panels/paperwork/paperwork";
 import { QuotePanel } from "../panels/quote/quote";
 import { RequestPanel } from "../panels/request/request";
 import { SettlementPanel } from "../panels/settlement/settlement";
+import { StageCard } from "../stage-card/stage-card";
 
 // Dispatch to the current stage's panel. Every panel brings its own Card +
 // "Giai đoạn N" header except ContractPanel (a bare body), which is wrapped here.
@@ -62,22 +55,14 @@ export function StagePanel({
       return <QuotePanel project={project} />;
     case ProjectStage.CONTRACT:
       return (
-        <Card id="stage-contract" className="mb-6 scroll-mt-4">
-          <CardHeader>
-            <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">
-              Giai đoạn {projectStageOrder.indexOf(project.stage) + 1} ·{" "}
-              {projectStage[project.stage].label}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ContractPanel
-              project={project}
-              contracts={contracts}
-              milestones={milestones}
-              dealQuote={dealQuote}
-            />
-          </CardContent>
-        </Card>
+        <StageCard project={project}>
+          <ContractPanel
+            project={project}
+            contracts={contracts}
+            milestones={milestones}
+            dealQuote={dealQuote}
+          />
+        </StageCard>
       );
     case ProjectStage.PAPERWORK:
       return (

@@ -29,6 +29,7 @@ import {
   ValidateNested,
 } from "class-validator";
 
+import { businessToday } from "../common/business-date";
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
 import { assertProjectOpen } from "../common/project-lock";
@@ -304,17 +305,53 @@ class ProjectsController {
       dto.acceptance_sub_status === "passed" &&
       !current.acceptance_passed_date
     )
-      data.acceptance_passed_date = new Date();
+      data.acceptance_passed_date = businessToday();
     return this.prisma.project.update({ where: { id }, data });
   }
 
+  // Every child relation is required, so Prisma defaults to Restrict — a bare
+  // project.delete() raised P2003 and surfaced as a 500 for EVERY project (all
+  // of them are seeded with 4 paperwork items on create). Refuse with a reason
+  // when real records exist; cancel (status: cancelled) is the intended path.
   @Delete(":id")
   @HttpCode(204)
   async remove(@Param("id", ParseIntPipe) id: number) {
-    const row = await this.prisma.project.findUnique({ where: { id } });
+    const row = await this.prisma.project.findUnique({
+      where: { id },
+      select: {
+        settlement: { select: { id: true } },
+        _count: {
+          select: {
+            quotes: true,
+            contracts: true,
+            bills: true,
+            payment_milestones: true,
+            assignments: true,
+            timekeeping: true,
+            attachments: true,
+          },
+        },
+      },
+    });
     if (!row) throw new NotFoundException("Project not found");
     await assertProjectOpen(this.prisma, id);
-    await this.prisma.project.delete({ where: { id } });
+
+    const blocking = Object.entries(row._count).filter(([, n]) => n > 0);
+    if (row.settlement) blocking.push(["settlement", 1]);
+    if (blocking.length > 0)
+      throw new ConflictException(
+        `cannot delete project: it still has ${blocking
+          .map(([name, n]) => `${name} (${n})`)
+          .join(", ")} — cancel it instead`
+      );
+
+    // Only the incidental children cascade: paperwork items are auto-seeded on
+    // create, notes are annotations. Anything with business meaning blocks above.
+    await this.prisma.$transaction([
+      this.prisma.paperworkItem.deleteMany({ where: { project_id: id } }),
+      this.prisma.projectNote.deleteMany({ where: { project_id: id } }),
+      this.prisma.project.delete({ where: { id } }),
+    ]);
   }
 }
 

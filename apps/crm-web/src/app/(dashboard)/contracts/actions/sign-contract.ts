@@ -7,6 +7,7 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
 import { API_URL, apiSend } from "@/utils/http/http";
+import { todayISO } from "@/utils/today-iso/today-iso";
 
 import type { Contract } from "../types";
 
@@ -39,8 +40,7 @@ export async function signContract(
     };
   }
 
-  const signedDate =
-    parsed.data.signed_date || new Date().toISOString().slice(0, 10);
+  const signedDate = parsed.data.signed_date || todayISO();
 
   try {
     let contract: Contract | { id: number; signed_date: string };

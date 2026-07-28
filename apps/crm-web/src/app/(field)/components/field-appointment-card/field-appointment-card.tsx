@@ -12,16 +12,10 @@ import { Button } from "@yan/ui/components/button";
 
 import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
 import type { Project } from "@/app/(dashboard)/projects/types";
+import { todayISO } from "@/utils/today-iso/today-iso";
 
 const initialState: ServerActionState = { success: false };
 const toastOpts = { successToastTitle: "Thành công", errorToastTitle: "Lỗi" };
-
-// Local-date today (matches the request panel's visit_date default).
-function today() {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
 
 export function FieldAppointmentCard({ project }: { project: Project }) {
   const [state, formAction] = useActionState(
@@ -70,7 +64,7 @@ export function FieldAppointmentCard({ project }: { project: Project }) {
           className="flex-1"
           disabled={isPending}
           onClick={() =>
-            startTransition(() => formAction({ visit_date: today() }))
+            startTransition(() => formAction({ visit_date: todayISO() }))
           }
         >
           Bắt đầu khảo sát

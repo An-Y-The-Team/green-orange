@@ -6,12 +6,6 @@ import { useState } from "react";
 
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@yan/ui/components/card";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
@@ -39,6 +33,7 @@ import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 
 import type { Project } from "../../../../types";
+import { StageCard } from "../../stage-card/stage-card";
 
 function SendHistory({ quote }: { quote: Quote }) {
   if (quote.send_logs?.length === 0) return null;
@@ -317,61 +312,52 @@ export function QuotePanel({ project }: { project: Project }) {
   const [latest, ...older] = versions;
 
   return (
-    <Card id="stage-quote" className="mb-6 scroll-mt-4">
-      <CardHeader>
-        <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">
-          Giai đoạn 3 · Báo giá
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {latest ? (
-          <LatestVersion quote={latest} project={project} />
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Chưa có báo giá.</p>
-            <Button
-              size="sm"
-              render={
-                <Link
-                  href={`/projects/${project.id}/quotes/new${
-                    project.survey_items?.length ? "?from=survey" : ""
-                  }`}
-                />
-              }
-            >
-              Lập báo giá
-            </Button>
-          </div>
-        )}
+    <StageCard project={project} contentClassName="space-y-4">
+      {latest ? (
+        <LatestVersion quote={latest} project={project} />
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">Chưa có báo giá.</p>
+          <Button
+            size="sm"
+            render={
+              <Link
+                href={`/projects/${project.id}/quotes/new${
+                  project.survey_items?.length ? "?from=survey" : ""
+                }`}
+              />
+            }
+          >
+            Lập báo giá
+          </Button>
+        </div>
+      )}
 
-        {older.length > 0 ? (
-          <div className="space-y-2">
-            <Separator />
-            {older.map((q) => (
-              <div
-                key={q.id}
-                className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
+      {older.length > 0 ? (
+        <div className="space-y-2">
+          <Separator />
+          {older.map((q) => (
+            <div
+              key={q.id}
+              className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
+            >
+              <span>v{q.version}</span>
+              <Badge variant={quoteSuperseded.variant}>
+                {quoteSuperseded.label}
+              </Badge>
+              <span className="tabular-nums">{formatVND(q.total_amount)}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto"
+                render={<Link href={`/quotes/${q.id}`} />}
               >
-                <span>v{q.version}</span>
-                <Badge variant={quoteSuperseded.variant}>
-                  {quoteSuperseded.label}
-                </Badge>
-                <span className="tabular-nums">
-                  {formatVND(q.total_amount)}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto"
-                  render={<Link href={`/quotes/${q.id}`} />}
-                >
-                  Xem bản in
-                </Button>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+                Xem bản in
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </StageCard>
   );
 }

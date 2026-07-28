@@ -37,6 +37,7 @@ import {
   ValidateNested,
 } from "class-validator";
 
+import { businessToday } from "../common/business-date";
 import { toBig, toDate } from "../common/coerce";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
@@ -200,7 +201,7 @@ export class SettlementsController {
         // Doc rule (stage 8): signing officializes the bill with the
         // settlement total, attaches the unallocated cọc milestone, and
         // auto-creates one milestone for the remaining balance.
-        data.signed_date = toDate(dto.signed_date) ?? new Date();
+        data.signed_date = toDate(dto.signed_date) ?? businessToday();
         await this.prisma.$transaction(async (tx) => {
           await tx.settlement.update({ where: { id }, data });
           const bill = await tx.bill.findFirst({
@@ -365,8 +366,8 @@ class BillsController {
           `Invalid status transition: ${row.status} → ${dto.status}`
         );
       data.status = dto.status;
-      if (dto.status === "sent") data.sent_date ??= new Date();
-      if (dto.status === "paid") data.paid_date ??= new Date();
+      if (dto.status === "sent") data.sent_date ??= businessToday();
+      if (dto.status === "paid") data.paid_date ??= businessToday();
     }
     return this.prisma.bill.update({
       where: { id },
@@ -450,7 +451,7 @@ class PaymentMilestonesController {
     if (dto.status !== undefined && dto.status !== row.status) {
       assertStep(MILESTONE_STATUS, row.status, dto.status);
       data.status = dto.status;
-      if (dto.status === "paid") data.paid_date ??= new Date();
+      if (dto.status === "paid") data.paid_date ??= businessToday();
     }
     const updated = await this.prisma.paymentMilestone.update({
       where: { id },

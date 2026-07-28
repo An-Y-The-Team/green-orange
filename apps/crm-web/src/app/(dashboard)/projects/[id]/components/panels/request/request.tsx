@@ -7,12 +7,6 @@ import {
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@yan/ui/components/card";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
   Dialog,
@@ -25,22 +19,15 @@ import {
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
-import { projectStage, projectStageOrder } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
+import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { updateProject } from "../../../../actions/update-project";
 import type { Attachment, Project } from "../../../../types";
+import { StageCard } from "../../stage-card/stage-card";
 import { SurveyPanel } from "../survey/survey";
 
 const initialState: ServerActionState = { success: false };
-
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-function today() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
 
 // Stage 1 = Yêu cầu & Khảo sát: the appointment IS the survey visit, so one
 // panel with two halves. `visit_date` (set by "Đã gặp khách") reveals the
@@ -67,120 +54,111 @@ export function RequestPanel({
 
   // Dời hẹn dialog — edit appointment_at in place (no history).
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
-  const initialDate = project.appointment_at?.slice(0, 10) ?? today();
+  const initialDate = project.appointment_at?.slice(0, 10) ?? todayISO();
   const initialTime = project.appointment_at?.slice(11, 16) ?? "09:00";
   const [apptDate, setApptDate] = useState(initialDate);
   const [apptTime, setApptTime] = useState(initialTime);
 
   // "Đã gặp khách" — visit date defaults to today, editable inline.
-  const [visitDate, setVisitDate] = useState(today());
-
-  const n = projectStageOrder.indexOf(project.stage) + 1;
+  const [visitDate, setVisitDate] = useState(todayISO);
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">
-          Giai đoạn {n} · {projectStage[project.stage].label}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
-          {project.request_note ? (
-            <div className="contents">
-              <dt className="text-muted-foreground">Yêu cầu</dt>
-              <dd>{project.request_note}</dd>
-            </div>
-          ) : null}
-          {project.referral_source ? (
-            <div className="contents">
-              <dt className="text-muted-foreground">Nguồn</dt>
-              <dd>{project.referral_source}</dd>
-            </div>
-          ) : null}
-        </dl>
-
-        {project.appointment_at ? (
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span>
-              📅 Hẹn gặp {formatDate(project.appointment_at)}
-              {project.location ? ` · ${project.location.name}` : ""}
-            </span>
-            <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0"
-                onClick={() => setRescheduleOpen(true)}
-              >
-                Dời hẹn
-              </Button>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Dời hẹn gặp</DialogTitle>
-                </DialogHeader>
-                <div className="flex gap-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="appt-date">Ngày</Label>
-                    <DateInput
-                      id="appt-date"
-                      value={apptDate}
-                      onChange={setApptDate}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="appt-time">Giờ</Label>
-                    <Input
-                      id="appt-time"
-                      type="time"
-                      value={apptTime}
-                      onChange={(e) => setApptTime(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <DialogClose render={<Button variant="ghost">Đóng</Button>} />
-                  <Button
-                    disabled={isPending || !apptDate}
-                    onClick={() => {
-                      run({
-                        appointment_at: new Date(
-                          `${apptDate}T${apptTime || "00:00"}`
-                        ).toISOString(),
-                      });
-                      setRescheduleOpen(false);
-                    }}
-                  >
-                    Lưu
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+    <StageCard project={project} contentClassName="space-y-4">
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
+        {project.request_note ? (
+          <div className="contents">
+            <dt className="text-muted-foreground">Yêu cầu</dt>
+            <dd>{project.request_note}</dd>
           </div>
         ) : null}
-
-        {project.visit_date ? (
-          <SurveyPanel project={project} attachments={attachments} />
-        ) : (
-          <div className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="visit-date">Ngày gặp khách</Label>
-              <DateInput
-                id="visit-date"
-                className="w-auto"
-                value={visitDate}
-                onChange={setVisitDate}
-              />
-            </div>
-            <Button
-              disabled={isPending || !visitDate}
-              onClick={() => run({ visit_date: visitDate })}
-            >
-              ✓ Đã gặp khách — bắt đầu khảo sát
-            </Button>
+        {project.referral_source ? (
+          <div className="contents">
+            <dt className="text-muted-foreground">Nguồn</dt>
+            <dd>{project.referral_source}</dd>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        ) : null}
+      </dl>
+
+      {project.appointment_at ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span>
+            📅 Hẹn gặp {formatDate(project.appointment_at)}
+            {project.location ? ` · ${project.location.name}` : ""}
+          </span>
+          <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0"
+              onClick={() => setRescheduleOpen(true)}
+            >
+              Dời hẹn
+            </Button>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Dời hẹn gặp</DialogTitle>
+              </DialogHeader>
+              <div className="flex gap-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="appt-date">Ngày</Label>
+                  <DateInput
+                    id="appt-date"
+                    value={apptDate}
+                    onChange={setApptDate}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="appt-time">Giờ</Label>
+                  <Input
+                    id="appt-time"
+                    type="time"
+                    value={apptTime}
+                    onChange={(e) => setApptTime(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose render={<Button variant="ghost">Đóng</Button>} />
+                <Button
+                  disabled={isPending || !apptDate}
+                  onClick={() => {
+                    run({
+                      appointment_at: new Date(
+                        `${apptDate}T${apptTime || "00:00"}`
+                      ).toISOString(),
+                    });
+                    setRescheduleOpen(false);
+                  }}
+                >
+                  Lưu
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      ) : null}
+
+      {project.visit_date ? (
+        <SurveyPanel project={project} attachments={attachments} />
+      ) : (
+        <div className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="visit-date">Ngày gặp khách</Label>
+            <DateInput
+              id="visit-date"
+              className="w-auto"
+              value={visitDate}
+              onChange={setVisitDate}
+            />
+          </div>
+          <Button
+            disabled={isPending || !visitDate}
+            onClick={() => run({ visit_date: visitDate })}
+          >
+            ✓ Đã gặp khách — bắt đầu khảo sát
+          </Button>
+        </div>
+      )}
+    </StageCard>
   );
 }

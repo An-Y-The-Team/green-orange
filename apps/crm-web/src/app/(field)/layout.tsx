@@ -3,6 +3,7 @@ import { authEnabled } from "@/auth.config";
 import { LoginOverlay } from "@/components/login-overlay/login-overlay";
 import { SessionWatch } from "@/components/session-watch/session-watch";
 import { formatDate } from "@/utils/format-date/format-date";
+import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { FieldBottomBar } from "./components/field-bottom-bar/field-bottom-bar";
 
@@ -27,7 +28,7 @@ export default async function FieldLayout({
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
         <span className="text-sm font-semibold">GreenOrange</span>
         <span className="text-sm text-muted-foreground">
-          {formatDate(new Date().toISOString())}
+          {formatDate(todayISO())}
         </span>
       </header>
       <main className="flex-1 p-4 pb-24">

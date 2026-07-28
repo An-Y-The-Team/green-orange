@@ -28,7 +28,9 @@ import {
 import type { Project } from "@/app/(dashboard)/projects/types";
 import { selectClass } from "@/components/form-bits/form-bits";
 import { timekeepingSource } from "@/constants/labels";
+import { addDays } from "@/utils/add-days/add-days";
 import { formatDate } from "@/utils/format-date/format-date";
+import { todayISO } from "@/utils/today-iso/today-iso";
 
 import {
   loadProjectTimekeeping,
@@ -41,26 +43,10 @@ const emptyState = { success: false } as ServerActionState;
 const toastOpts = { successToastTitle: "Thành công", errorToastTitle: "Lỗi" };
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
-/** Local YYYY-MM-DD (avoids the UTC day-shift of toISOString). */
-function isoDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-/** Monday (Mon-start week) of the week containing `d`, as YYYY-MM-DD. */
-function mondayOf(d: Date): string {
-  const x = new Date(d);
-  const offset = (x.getDay() + 6) % 7; // Sun=0 → 6, Mon=1 → 0 …
-  x.setDate(x.getDate() - offset);
-  return isoDate(x);
-}
-
-function shiftDays(iso: string, days: number): string {
-  const d = new Date(`${iso}T00:00:00`);
-  d.setDate(d.getDate() + days);
-  return isoDate(d);
+/** Monday (Mon-start week) of the week containing today, as YYYY-MM-DD. */
+function mondayOfThisWeek(): string {
+  const offset = (new Date().getDay() + 6) % 7; // Sun=0 → 6, Mon=1 → 0 …
+  return addDays(todayISO(), -offset);
 }
 
 export function TimekeepingTab({
@@ -72,9 +58,7 @@ export function TimekeepingTab({
 }) {
   const [projectId, setProjectId] = useState<number | null>(null);
   const [records, setRecords] = useState<TimekeepingRecord[]>([]);
-  const [weekStart, setWeekStart] = useState<string>(() =>
-    mondayOf(new Date())
-  );
+  const [weekStart, setWeekStart] = useState<string>(() => mondayOfThisWeek());
 
   const [isLoading, startLoad] = useTransition();
   const reload = (id: number) =>
@@ -100,7 +84,7 @@ export function TimekeepingTab({
     if (id) reload(id);
   };
 
-  const days = Array.from({ length: 7 }, (_, i) => shiftDays(weekStart, i));
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   // Rows = currently-working members (day-hires included). Left members hidden.
   const rows = crew.filter((m) => m.status === CrewMemberStatus.WORKING);
@@ -169,18 +153,18 @@ export function TimekeepingTab({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setWeekStart((w) => shiftDays(w, -7))}
+                onClick={() => setWeekStart((w) => addDays(w, -7))}
               >
                 <ChevronLeft className="size-4" />
                 Tuần trước
               </Button>
               <span className="text-sm text-muted-foreground">
-                {formatDate(weekStart)} – {formatDate(shiftDays(weekStart, 6))}
+                {formatDate(weekStart)} – {formatDate(addDays(weekStart, 6))}
               </span>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setWeekStart((w) => shiftDays(w, 7))}
+                onClick={() => setWeekStart((w) => addDays(w, 7))}
               >
                 Tuần sau
                 <ChevronRight className="size-4" />

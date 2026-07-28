@@ -13,6 +13,7 @@ import { getProject, listProjects } from "@/app/(dashboard)/projects/queries";
 import type { Project } from "@/app/(dashboard)/projects/types";
 import { QuoteStatus } from "@/app/(dashboard)/quotes/enums";
 import { listQuotes } from "@/app/(dashboard)/quotes/queries";
+import { localDateOf, todayISO } from "@/utils/today-iso/today-iso";
 
 import { FieldAppointmentCard } from "../components/field-appointment-card/field-appointment-card";
 import { FieldQuoteCard } from "../components/field-quote-card/field-quote-card";
@@ -21,7 +22,7 @@ import { FieldSubStatusCard } from "../components/field-sub-status-card/field-su
 export default async function FieldPage() {
   const [projects, quotes] = await Promise.all([listProjects(), listQuotes()]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const projectById = new Map(projects.map((p) => [p.id, p]));
 
   // Hôm nay — appointments today not yet visited (dashboard filter). Stage 1
@@ -32,7 +33,8 @@ export default async function FieldPage() {
     (p) =>
       p.stage === ProjectStage.REQUEST &&
       !p.visit_date &&
-      p.appointment_at?.startsWith(today)
+      p.appointment_at != null &&
+      localDateOf(p.appointment_at) === today
   );
   const todayAppointments = (
     await Promise.all(todayRefs.map((p) => getProject(p.id)))

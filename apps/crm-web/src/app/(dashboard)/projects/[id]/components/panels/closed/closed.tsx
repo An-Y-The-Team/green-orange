@@ -10,12 +10,6 @@ import {
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@yan/ui/components/card";
-import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -30,14 +24,15 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
-import { projectStage } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { MilestoneStatus } from "../../../../../receivables/enums";
 import { updateProject } from "../../../../actions/update-project";
 import { ProjectStage } from "../../../../enums";
 import type { Project } from "../../../../types";
+import { StageCard } from "../../stage-card/stage-card";
 
 const emptyState = { success: false } as ServerActionState;
 
@@ -125,96 +120,95 @@ export function ClosedPanel({
   settlements: Settlement[];
   contracts: Contract[];
 }) {
-  // Collected total: bills carry the settlement total on sign; fall back to
-  // paid milestones (e.g. a deposit-only job that never billed).
-  const collected = bills.length
-    ? bills.reduce((sum, b) => sum + b.total_amount, 0)
-    : milestones
-        .filter((m) => m.status === MilestoneStatus.PAID)
-        .reduce((sum, m) => sum + m.amount, 0);
+  // Money actually received — paid milestones only. Never bill.total_amount:
+  // that is what was BILLED (copied from the settlement total on sign), so a
+  // signed-but-uncollected job would have claimed "đã thu đủ" for nothing.
+  const collected = milestones
+    .filter((m) => m.status === MilestoneStatus.PAID)
+    .reduce((sum, m) => sum + m.amount, 0);
+  const billed = bills.reduce((sum, b) => sum + b.total_amount, 0);
+  const fullyCollected = billed === 0 || collected >= billed;
 
   // Elapsed: first contact stamp → close (acceptance-passed proxy, else today).
   const firstStamp = project.appointment_at ?? project.visit_date ?? null;
-  const closeStamp =
-    project.acceptance_passed_date ?? new Date().toISOString().slice(0, 10);
+  const closeStamp = project.acceptance_passed_date ?? todayISO();
   const reworkCount =
     project.notes?.filter((n) => n.tag === "rework").length ?? 0;
 
   const quotes = project.quotes ?? [];
 
   return (
-    <Card id="stage-closed" className="mb-6 scroll-mt-4">
-      <CardHeader>
-        <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">
-          Giai đoạn 9 · {projectStage[ProjectStage.CLOSED].label}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4 text-sm">
+    <StageCard project={project} contentClassName="space-y-4 text-sm">
+      {fullyCollected ? (
         <p className="font-medium text-emerald-700 dark:text-emerald-400">
           ✓ Hoàn thành · Đã thu đủ {formatVND(collected)}
         </p>
+      ) : (
+        <p className="font-medium text-amber-700 dark:text-amber-400">
+          ✓ Hoàn thành · Đã thu {formatVND(collected)} / {formatVND(billed)}
+        </p>
+      )}
 
-        <div className="space-y-1 text-muted-foreground">
-          {firstStamp ? (
-            <p>
-              Hẹn gặp {formatDate(firstStamp)} → Đóng {formatDate(closeStamp)} (
-              {daysBetween(firstStamp, closeStamp)} ngày)
-            </p>
-          ) : null}
+      <div className="space-y-1 text-muted-foreground">
+        {firstStamp ? (
           <p>
-            {project.actual_duration_days != null
-              ? `Thi công: ${project.actual_duration_days} ngày`
-              : null}
-            {reworkCount > 0
-              ? `${project.actual_duration_days != null ? " · " : ""}Nghiệm thu: ${reworkCount} lần bổ sung`
-              : null}
+            Hẹn gặp {formatDate(firstStamp)} → Đóng {formatDate(closeStamp)} (
+            {daysBetween(firstStamp, closeStamp)} ngày)
           </p>
-        </div>
+        ) : null}
+        <p>
+          {project.actual_duration_days != null
+            ? `Thi công: ${project.actual_duration_days} ngày`
+            : null}
+          {reworkCount > 0
+            ? `${project.actual_duration_days != null ? " · " : ""}Nghiệm thu: ${reworkCount} lần bổ sung`
+            : null}
+        </p>
+      </div>
 
-        <div className="space-y-2">
-          <p className="font-medium text-foreground">Tài liệu</p>
-          <div className="flex flex-wrap gap-2">
-            {quotes.map((q) => (
-              <DocLink
-                key={`q-${q.id}`}
-                href={`/quotes/${q.id}`}
-                label={`Báo giá v${q.version}`}
-              />
-            ))}
-            {contracts.map((c) => (
-              <DocLink
-                key={`c-${c.id}`}
-                href={`/contracts/${c.id}`}
-                label={c.code}
-              />
-            ))}
-            {settlements.map((s) => (
-              <DocLink
-                key={`s-${s.id}`}
-                href={`/projects/${project.id}/print/settlement/${s.id}`}
-                label="Quyết toán"
-              />
-            ))}
+      <div className="space-y-2">
+        <p className="font-medium text-foreground">Tài liệu</p>
+        <div className="flex flex-wrap gap-2">
+          {quotes.map((q) => (
             <DocLink
-              href={`/projects/${project.id}/print/acceptance-request`}
-              label="BB nghiệm thu"
+              key={`q-${q.id}`}
+              href={`/quotes/${q.id}`}
+              label={`Báo giá v${q.version}`}
             />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 pt-2">
-          <Button
-            variant="outline"
-            render={
-              <Link href={`/projects/new?from=${project.id}`}>
-                <Plus className="size-4" />
-                Công trình mới tại địa điểm này
-              </Link>
-            }
+          ))}
+          {contracts.map((c) => (
+            <DocLink
+              key={`c-${c.id}`}
+              href={`/contracts/${c.id}`}
+              label={c.code}
+            />
+          ))}
+          {settlements.map((s) => (
+            <DocLink
+              key={`s-${s.id}`}
+              href={`/projects/${project.id}/print/settlement/${s.id}`}
+              label="Quyết toán"
+            />
+          ))}
+          <DocLink
+            href={`/projects/${project.id}/print/acceptance-request`}
+            label="BB nghiệm thu"
           />
-          <ReopenButton project={project} />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 pt-2">
+        <Button
+          variant="outline"
+          render={
+            <Link href={`/projects/new?from=${project.id}`}>
+              <Plus className="size-4" />
+              Công trình mới tại địa điểm này
+            </Link>
+          }
+        />
+        <ReopenButton project={project} />
+      </div>
+    </StageCard>
   );
 }

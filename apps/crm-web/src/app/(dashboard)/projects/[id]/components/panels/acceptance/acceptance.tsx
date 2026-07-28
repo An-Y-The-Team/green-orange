@@ -11,12 +11,6 @@ import {
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@yan/ui/components/card";
-import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -36,6 +30,7 @@ import { addAttachment } from "../../../../actions/attachments";
 import { updateProject } from "../../../../actions/update-project";
 import { AcceptanceSubStatus, AttachmentKind } from "../../../../enums";
 import type { Project } from "../../../../types";
+import { StageCard } from "../../stage-card/stage-card";
 
 const emptyState = { success: false } as ServerActionState;
 const toastOpts = { successToastTitle: "Thành công", errorToastTitle: "Lỗi" };
@@ -106,148 +101,142 @@ export function AcceptancePanel({ project }: { project: Project }) {
   const label = acceptanceSubStatus[sub];
 
   return (
-    <Card id="stage-acceptance" className="mb-6 scroll-mt-4">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between text-sm uppercase tracking-wide text-muted-foreground">
-          <span>Giai đoạn 7 · Nghiệm thu</span>
-          <Badge variant={label.variant}>{label.label}</Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {/* Progress line */}
-        <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          {PROGRESS.map((s, i) => (
-            <li key={s} className="flex items-center gap-2">
-              {i > 0 ? (
-                <span aria-hidden className="text-muted-foreground">
-                  {s === AcceptanceSubStatus.REWORK ? "⇄" : "→"}
-                </span>
-              ) : null}
-              <span
-                className={
-                  s === sub
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground"
-                }
-              >
-                {acceptanceSubStatus[s].label}
+    <StageCard
+      project={project}
+      contentClassName="space-y-5"
+      aside={<Badge variant={label.variant}>{label.label}</Badge>}
+    >
+      {/* Progress line */}
+      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        {PROGRESS.map((s, i) => (
+          <li key={s} className="flex items-center gap-2">
+            {i > 0 ? (
+              <span aria-hidden className="text-muted-foreground">
+                {s === AcceptanceSubStatus.REWORK ? "⇄" : "→"}
               </span>
-            </li>
-          ))}
-        </ol>
-
-        {/* Transition buttons driven by current sub-status */}
-        <div className="flex flex-wrap gap-2">
-          {sub === AcceptanceSubStatus.REQUEST_SENT ? (
-            <Button
-              variant="outline"
-              disabled={statusPending}
-              onClick={() => setStatus(AcceptanceSubStatus.INSPECTING)}
+            ) : null}
+            <span
+              className={
+                s === sub
+                  ? "font-medium text-foreground"
+                  : "text-muted-foreground"
+              }
             >
-              Khách đã hẹn lịch
-            </Button>
-          ) : null}
-
-          {sub === AcceptanceSubStatus.INSPECTING ? (
-            <>
-              <Dialog open={reworkOpen} onOpenChange={setReworkOpen}>
-                <Button variant="outline" onClick={() => setReworkOpen(true)}>
-                  Khách báo lỗi → Bổ sung
-                </Button>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Khách báo lỗi cần bổ sung</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="rework-note">
-                      Khách phản ánh gì (bắt buộc)
-                    </Label>
-                    <Textarea
-                      id="rework-note"
-                      rows={3}
-                      value={reworkBody}
-                      placeholder="VD: ố kính tầng 15, còn bụi khu vực sảnh…"
-                      onChange={(e) => setReworkBody(e.target.value)}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <DialogClose
-                      render={<Button variant="ghost">Đóng</Button>}
-                    />
-                    <Button
-                      disabled={reworkPending || !reworkBody.trim()}
-                      onClick={() =>
-                        startRework(() =>
-                          noteAction({ body: reworkBody.trim(), tag: "rework" })
-                        )
-                      }
-                    >
-                      Chuyển sang Bổ sung
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              <Button
-                disabled={statusPending}
-                onClick={() => setStatus(AcceptanceSubStatus.PASSED)}
-              >
-                <FileCheck2 className="size-4" />✓ Đạt — ký BB
-              </Button>
-            </>
-          ) : null}
-
-          {sub === AcceptanceSubStatus.REWORK ? (
-            <Button
-              variant="outline"
-              disabled={statusPending}
-              onClick={() => setStatus(AcceptanceSubStatus.INSPECTING)}
-            >
-              Bổ sung xong — nghiệm thu lại
-            </Button>
-          ) : null}
-
-          {passed && project.acceptance_passed_date ? (
-            <span className="flex items-center text-sm text-muted-foreground">
-              Nghiệm thu đạt {formatDate(project.acceptance_passed_date)}
+              {acceptanceSubStatus[s].label}
             </span>
-          ) : null}
-        </div>
+          </li>
+        ))}
+      </ol>
 
-        {/* Signed biên bản — optional attachment once passed */}
-        {passed ? <AcceptanceReport projectId={project.id} /> : null}
-
-        {/* Lịch sử — rework/acceptance notes, newest first */}
-        {history.length > 0 ? (
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium">Lịch sử</h3>
-            <ul className="space-y-1.5 text-sm">
-              {history.map((n) => (
-                <li key={n.id} className="flex gap-2">
-                  <span className="shrink-0 text-muted-foreground">
-                    {formatDate(n.created_at)}
-                  </span>
-                  <span>{n.body}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
+      {/* Transition buttons driven by current sub-status */}
+      <div className="flex flex-wrap gap-2">
+        {sub === AcceptanceSubStatus.REQUEST_SENT ? (
+          <Button
+            variant="outline"
+            disabled={statusPending}
+            onClick={() => setStatus(AcceptanceSubStatus.INSPECTING)}
+          >
+            Khách đã hẹn lịch
+          </Button>
         ) : null}
 
-        <Button
-          variant="outline"
-          render={
-            <Link
-              href={`/projects/${project.id}/print/acceptance-request`}
-              target="_blank"
+        {sub === AcceptanceSubStatus.INSPECTING ? (
+          <>
+            <Dialog open={reworkOpen} onOpenChange={setReworkOpen}>
+              <Button variant="outline" onClick={() => setReworkOpen(true)}>
+                Khách báo lỗi → Bổ sung
+              </Button>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Khách báo lỗi cần bổ sung</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-1.5">
+                  <Label htmlFor="rework-note">
+                    Khách phản ánh gì (bắt buộc)
+                  </Label>
+                  <Textarea
+                    id="rework-note"
+                    rows={3}
+                    value={reworkBody}
+                    placeholder="VD: ố kính tầng 15, còn bụi khu vực sảnh…"
+                    onChange={(e) => setReworkBody(e.target.value)}
+                  />
+                </div>
+                <DialogFooter>
+                  <DialogClose render={<Button variant="ghost">Đóng</Button>} />
+                  <Button
+                    disabled={reworkPending || !reworkBody.trim()}
+                    onClick={() =>
+                      startRework(() =>
+                        noteAction({ body: reworkBody.trim(), tag: "rework" })
+                      )
+                    }
+                  >
+                    Chuyển sang Bổ sung
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Button
+              disabled={statusPending}
+              onClick={() => setStatus(AcceptanceSubStatus.PASSED)}
             >
-              <Printer className="size-4" />
-              In thư yêu cầu nghiệm thu
-            </Link>
-          }
-        />
-      </CardContent>
-    </Card>
+              <FileCheck2 className="size-4" />✓ Đạt — ký BB
+            </Button>
+          </>
+        ) : null}
+
+        {sub === AcceptanceSubStatus.REWORK ? (
+          <Button
+            variant="outline"
+            disabled={statusPending}
+            onClick={() => setStatus(AcceptanceSubStatus.INSPECTING)}
+          >
+            Bổ sung xong — nghiệm thu lại
+          </Button>
+        ) : null}
+
+        {passed && project.acceptance_passed_date ? (
+          <span className="flex items-center text-sm text-muted-foreground">
+            Nghiệm thu đạt {formatDate(project.acceptance_passed_date)}
+          </span>
+        ) : null}
+      </div>
+
+      {/* Signed biên bản — optional attachment once passed */}
+      {passed ? <AcceptanceReport projectId={project.id} /> : null}
+
+      {/* Lịch sử — rework/acceptance notes, newest first */}
+      {history.length > 0 ? (
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium">Lịch sử</h3>
+          <ul className="space-y-1.5 text-sm">
+            {history.map((n) => (
+              <li key={n.id} className="flex gap-2">
+                <span className="shrink-0 text-muted-foreground">
+                  {formatDate(n.created_at)}
+                </span>
+                <span>{n.body}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <Button
+        variant="outline"
+        render={
+          <Link
+            href={`/projects/${project.id}/print/acceptance-request`}
+            target="_blank"
+          >
+            <Printer className="size-4" />
+            In thư yêu cầu nghiệm thu
+          </Link>
+        }
+      />
+    </StageCard>
   );
 }
 

@@ -23,6 +23,7 @@ import {
   MinLength,
 } from "class-validator";
 
+import { businessToday } from "../common/business-date";
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
 import { assertProjectOpen } from "../common/project-lock";
@@ -124,7 +125,7 @@ class ContractsController {
       dto.signed_date === undefined &&
       !row.signed_date
     )
-      data.signed_date = new Date();
+      data.signed_date = businessToday();
     return this.prisma.contract.update({
       where: { id },
       data,
