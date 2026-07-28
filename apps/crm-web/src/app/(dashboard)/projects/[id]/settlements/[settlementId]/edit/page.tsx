@@ -12,8 +12,8 @@ import {
   type SettlementBuilderInitial,
 } from "../../settlement-builder-form/settlement-builder-form";
 
-// Edit a DRAFT settlement — loads its items into the builder (PATCH via
-// updateSettlement). Non-drafts (items frozen) are not editable → 404.
+// Edit a nháp/đã gửi settlement — loads its items into the builder (PATCH via
+// updateSettlement). Signed ones (items frozen) are not editable → 404.
 export default async function EditSettlementPage({
   params,
 }: {
@@ -25,7 +25,7 @@ export default async function EditSettlementPage({
 
   const settlements = await getProjectSettlements(project.id);
   const settlement = settlements.find((s) => s.id === Number(settlementId));
-  if (!settlement || settlement.status !== SettlementStatus.DRAFT) notFound();
+  if (!settlement || settlement.status === SettlementStatus.SIGNED) notFound();
 
   const initial: SettlementBuilderInitial = {
     projectId: project.id,

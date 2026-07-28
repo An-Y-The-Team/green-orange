@@ -113,7 +113,7 @@ export function SettlementCard({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {isDraft ? (
+        {isDraft || isSent ? (
           <Button
             variant="outline"
             size="sm"

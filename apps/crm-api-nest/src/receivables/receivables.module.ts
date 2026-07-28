@@ -179,8 +179,12 @@ export class SettlementsController {
     if (dto.signed_date !== undefined)
       data.signed_date = toDate(dto.signed_date);
     if (dto.items) {
-      if (row.status !== "draft")
-        throw new BadRequestException("items are editable only while draft");
+      // Doc rule: editable while nháp/đã gửi. Signing derives the bill total +
+      // milestones, so a signed settlement is corrected by un-signing first.
+      if (row.status === "signed")
+        throw new BadRequestException(
+          "items are frozen once signed — un-sign to correct"
+        );
       const { rows, total } = computeItems(dto.items);
       data.total_amount = total;
       data.items = { deleteMany: {}, create: rows };

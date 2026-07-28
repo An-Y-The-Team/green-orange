@@ -215,7 +215,7 @@ export function SettlementBuilderForm({
 
           <div className="flex justify-end gap-2">
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Đang lưu…" : "Lưu nháp"}
+              {isPending ? "Đang lưu…" : initial.editId ? "Lưu" : "Lưu nháp"}
             </Button>
           </div>
         </form>
