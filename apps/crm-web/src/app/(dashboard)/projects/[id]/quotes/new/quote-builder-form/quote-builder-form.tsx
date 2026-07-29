@@ -56,10 +56,16 @@ const BLANK_ROW = { description: "", unit: "", quantity: 1, unit_price: 0 };
 export function QuoteBuilderForm({
   initial,
   projects,
+  readOnly,
 }: {
   initial: QuoteBuilderInitial;
   // When provided (standalone /quotes/new), shows an optional project picker.
   projects?: { id: number; label: string }[];
+  /**
+   * Frozen quote (sent/decided — the backend 409s on PATCH): same grid, every
+   * control disabled by the wrapping fieldset, no save buttons.
+   */
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -145,176 +151,185 @@ export function QuoteBuilderForm({
     <>
       <Card>
         <CardContent className="space-y-5">
-          <form onSubmit={handleSubmit(onValid)} className="space-y-5">
-            {projects ? (
-              <div className="space-y-1.5">
-                <Label htmlFor="project">Công trình (không bắt buộc)</Label>
-                <select
-                  id="project"
-                  className={SELECT_CLASS}
-                  value={projectId ?? ""}
-                  onChange={(e) =>
-                    setProjectId(
-                      e.target.value ? Number(e.target.value) : undefined
-                    )
-                  }
-                >
-                  <option value="">
-                    — Báo giá độc lập (không gắn công trình) —
-                  </option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
+          <form onSubmit={handleSubmit(onValid)}>
+            {/* Native disable of every control inside — no per-input plumbing. */}
+            <fieldset disabled={readOnly} className="space-y-5">
+              {projects ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="project">Công trình (không bắt buộc)</Label>
+                  <select
+                    id="project"
+                    className={SELECT_CLASS}
+                    value={projectId ?? ""}
+                    onChange={(e) =>
+                      setProjectId(
+                        e.target.value ? Number(e.target.value) : undefined
+                      )
+                    }
+                  >
+                    <option value="">
+                      — Báo giá độc lập (không gắn công trình) —
                     </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-48">Hạng mục</TableHead>
-                  <TableHead className="w-20">ĐV</TableHead>
-                  <TableHead className="w-24">SL</TableHead>
-                  <TableHead className="w-36">Đơn giá</TableHead>
-                  <TableHead className="w-36 text-right">Thành tiền</TableHead>
-                  <TableHead className="w-10" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {fields.map((field, i) => {
-                  const amount = itemAmount(rows[i]);
-                  return (
-                    <TableRow key={field.id}>
-                      <TableCell>
-                        <Input
-                          placeholder="Kính mặt ngoài"
-                          {...register(`items.${i}.description`)}
-                        />
-                        {fieldError(formState.errors.items?.[i]?.description)}
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          placeholder="m²"
-                          {...register(`items.${i}.unit`)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="any"
-                          {...register(`items.${i}.quantity`, {
-                            valueAsNumber: true,
-                          })}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Controller
-                          control={control}
-                          name={`items.${i}.unit_price`}
-                          render={({ field }) => (
-                            <MoneyInput
-                              value={field.value}
-                              // Empty box = 0 đồng, matching BLANK_ROW, so the
-                              // live total never reads NaN.
-                              onChange={(v) => field.onChange(v ?? 0)}
-                              onBlur={field.onBlur}
-                            />
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatVND(amount)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          disabled={fields.length === 1}
-                          onClick={() => remove(i)}
-                          aria-label="Xóa dòng"
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append(BLANK_ROW)}
-            >
-              + Thêm dòng
-            </Button>
-
-            <Separator />
-
-            {/* VAT + live totals */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="vat_percent">VAT</Label>
-                <Input
-                  id="vat_percent"
-                  type="number"
-                  min={0}
-                  max={100}
-                  step="any"
-                  className="w-20"
-                  {...register("vat_percent", { valueAsNumber: true })}
-                />
-                <span className="text-sm text-muted-foreground">%</span>
-              </div>
-              <dl className="ml-auto w-56 space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Tạm tính</dt>
-                  <dd className="tabular-nums">{formatVND(subtotal)}</dd>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">VAT</dt>
-                  <dd className="tabular-nums">{formatVND(vat)}</dd>
-                </div>
-                <div className="flex justify-between border-t pt-1 font-semibold">
-                  <dt>Tổng</dt>
-                  <dd className="tabular-nums">{formatVND(total)}</dd>
-                </div>
-              </dl>
-            </div>
+              ) : null}
 
-            <div className="space-y-1">
-              <Label htmlFor="note">Điều khoản & ghi chú</Label>
-              <Textarea
-                id="note"
-                rows={3}
-                placeholder="Báo giá hiệu lực 30 ngày…"
-                {...register("note")}
-              />
-            </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-48">Hạng mục</TableHead>
+                    <TableHead className="w-20">ĐV</TableHead>
+                    <TableHead className="w-24">SL</TableHead>
+                    <TableHead className="w-36">Đơn giá</TableHead>
+                    <TableHead className="w-36 text-right">
+                      Thành tiền
+                    </TableHead>
+                    <TableHead className="w-10" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fields.map((field, i) => {
+                    const amount = itemAmount(rows[i]);
+                    return (
+                      <TableRow key={field.id}>
+                        <TableCell>
+                          <Input
+                            placeholder="Kính mặt ngoài"
+                            {...register(`items.${i}.description`)}
+                          />
+                          {fieldError(formState.errors.items?.[i]?.description)}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            placeholder="m²"
+                            {...register(`items.${i}.unit`)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="any"
+                            {...register(`items.${i}.quantity`, {
+                              valueAsNumber: true,
+                            })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Controller
+                            control={control}
+                            name={`items.${i}.unit_price`}
+                            render={({ field }) => (
+                              <MoneyInput
+                                value={field.value}
+                                // Empty box = 0 đồng, matching BLANK_ROW, so the
+                                // live total never reads NaN.
+                                onChange={(v) => field.onChange(v ?? 0)}
+                                onBlur={field.onBlur}
+                              />
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatVND(amount)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            disabled={fields.length === 1}
+                            onClick={() => remove(i)}
+                            aria-label="Xóa dòng"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
 
-            <div className="flex justify-end gap-2">
               <Button
-                type="submit"
+                type="button"
                 variant="outline"
-                disabled={isPending}
-                onClick={() => (intentRef.current = QuoteSubmitIntent.DRAFT)}
+                size="sm"
+                onClick={() => append(BLANK_ROW)}
               >
-                {isPending ? "Đang lưu…" : "Lưu nháp"}
+                + Thêm dòng
               </Button>
-              <Button
-                type="submit"
-                disabled={isPending}
-                onClick={() => (intentRef.current = QuoteSubmitIntent.SEND)}
-              >
-                Lưu & gửi ngay
-              </Button>
-            </div>
+
+              <Separator />
+
+              {/* VAT + live totals */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="vat_percent">VAT</Label>
+                  <Input
+                    id="vat_percent"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="any"
+                    className="w-20"
+                    {...register("vat_percent", { valueAsNumber: true })}
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+                <dl className="ml-auto w-56 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Tạm tính</dt>
+                    <dd className="tabular-nums">{formatVND(subtotal)}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">VAT</dt>
+                    <dd className="tabular-nums">{formatVND(vat)}</dd>
+                  </div>
+                  <div className="flex justify-between border-t pt-1 font-semibold">
+                    <dt>Tổng</dt>
+                    <dd className="tabular-nums">{formatVND(total)}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="note">Điều khoản & ghi chú</Label>
+                <Textarea
+                  id="note"
+                  rows={3}
+                  placeholder="Báo giá hiệu lực 30 ngày…"
+                  {...register("note")}
+                />
+              </div>
+
+              {readOnly ? null : (
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    disabled={isPending}
+                    onClick={() =>
+                      (intentRef.current = QuoteSubmitIntent.DRAFT)
+                    }
+                  >
+                    {isPending ? "Đang lưu…" : "Lưu nháp"}
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isPending}
+                    onClick={() => (intentRef.current = QuoteSubmitIntent.SEND)}
+                  >
+                    Lưu & gửi ngay
+                  </Button>
+                </div>
+              )}
+            </fieldset>
           </form>
         </CardContent>
       </Card>

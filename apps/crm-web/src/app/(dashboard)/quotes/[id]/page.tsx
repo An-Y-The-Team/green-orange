@@ -16,13 +16,12 @@ import { labelOf } from "@/utils/label-of/label-of";
 import { ReviseQuoteButton } from "../components/revise-quote-button/revise-quote-button";
 import { QuoteStatus } from "../enums";
 import { getQuote, isSuperseded } from "../queries";
-import { QuoteDocument } from "./quote-document/quote-document";
 
 /**
- * A quote's own page. A draft opens in the builder — this is where a báo giá is
- * edited, no need to go through the project's stage panel. Sent/decided versions
- * are frozen (the backend 409s on PATCH), so those show the sheet plus "Tạo
- * phiên bản mới". The customer-facing printable is /quotes/[id]/print.
+ * A quote's own page — the line grid, editable in place. This is where a báo giá
+ * is worked on; no need to go through the project's stage panel. Sent/decided
+ * versions are frozen (the backend 409s on PATCH), so those render the same grid
+ * read-only with "Tạo phiên bản mới". The customer-facing sheet is /print.
  */
 export default async function QuotePage({
   params,
@@ -37,48 +36,13 @@ export default async function QuotePage({
   }
 
   const superseded = await isSuperseded(quote);
+  const frozen = quote.status !== QuoteStatus.DRAFT;
   const badge = superseded
     ? QUOTE_SUPERSEDED_LABEL
     : labelOf(QUOTE_STATUSES, quote.status);
-  const code = `BG-${String(quote.id).padStart(3, "0")}`;
-
-  const printBtn = (
-    <Button
-      variant="outline"
-      size="sm"
-      render={<Link href={`/quotes/${quote.id}/print`} />}
-    >
-      <Printer />
-      Bản in
-    </Button>
-  );
-
-  const header = (
-    <div className="mb-4 flex items-center justify-between">
-      <Link
-        href={quote.project_id ? `/projects/${quote.project_id}` : "/quotes"}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        {quote.project_id ? "Quay lại công trình" : "Quay lại danh sách"}
-      </Link>
-      <Badge variant={badge.variant}>{badge.label}</Badge>
-    </div>
-  );
-
-  // Frozen: the sheet is the view, and revising is the only way to change it.
-  if (quote.status !== QuoteStatus.DRAFT) {
-    return (
-      <>
-        {header}
-        <QuoteDocument
-          quote={quote}
-          superseded={superseded}
-          actions={superseded ? null : <ReviseQuoteButton quoteId={quote.id} />}
-        />
-      </>
-    );
-  }
+  const label = quote.project
+    ? quote.project.code
+    : `BG-${String(quote.id).padStart(3, "0")}`;
 
   const initial: QuoteBuilderInitial = {
     projectId: quote.project_id ?? undefined,
@@ -96,19 +60,42 @@ export default async function QuotePage({
 
   return (
     <>
-      {header}
+      <div className="mb-4 flex items-center justify-between">
+        <Link
+          href={quote.project_id ? `/projects/${quote.project_id}` : "/quotes"}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          {quote.project_id ? "Quay lại công trình" : "Quay lại danh sách"}
+        </Link>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
+      </div>
 
       <PageHeader
         title="Báo giá"
         description={
-          quote.project
-            ? `${quote.project.code} · v${quote.version}`
-            : `${code} · v${quote.version}`
+          frozen
+            ? `${label} · v${quote.version} · chỉ đọc — tạo phiên bản mới để sửa`
+            : `${label} · v${quote.version}`
         }
-        action={printBtn}
+        action={
+          <div className="flex gap-2">
+            {frozen && !superseded ? (
+              <ReviseQuoteButton quoteId={quote.id} />
+            ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href={`/quotes/${quote.id}/print`} />}
+            >
+              <Printer />
+              Bản in
+            </Button>
+          </div>
+        }
       />
 
-      <QuoteBuilderForm initial={initial} />
+      <QuoteBuilderForm initial={initial} readOnly={frozen} />
     </>
   );
 }
