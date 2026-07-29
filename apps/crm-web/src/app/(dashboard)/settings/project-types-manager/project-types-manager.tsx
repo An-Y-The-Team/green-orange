@@ -6,6 +6,7 @@ import {
   type ServerActionState,
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
+import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import {
   Dialog,
@@ -33,6 +34,25 @@ const initialState: ServerActionState = {
 
 const toastTitles = { successToastTitle: "Thành công", errorToastTitle: "Lỗi" };
 
+/**
+ * Action payloads arrive as `unknown`; a loại công trình row is `{ id, name }`.
+ * Anything else is dropped so the list never gains a blank entry.
+ */
+function toProjectType(data: unknown): ProjectType | null {
+  if (!isObject(data)) return null;
+  const { id, name } = data;
+  return typeof id === "number" && typeof name === "string"
+    ? { id, name }
+    : null;
+}
+
+/** Delete echoes back just the removed row's id. */
+function toDeletedId(data: unknown): number | null {
+  if (!isObject(data)) return null;
+  const { id } = data;
+  return typeof id === "number" ? id : null;
+}
+
 export function ProjectTypesManager({
   types: initial,
 }: {
@@ -47,12 +67,18 @@ export function ProjectTypesManager({
     initialState
   );
   const [createPending, startCreate] = useTransition();
+
+  // Append the row the server created and clear the input.
+  const handleCreated = (data?: unknown) => {
+    const type = toProjectType(data);
+    if (!type) return;
+    setTypes((prev) => [...prev, type]);
+    setNewName("");
+  };
+
   useServerAction(createState, createPending, {
     ...toastTitles,
-    onSuccess: (data) => {
-      setTypes((prev) => [...prev, data as ProjectType]);
-      setNewName("");
-    },
+    onSuccess: handleCreated,
   });
 
   // --- rename (payload carries the row id) ---------------------------------
@@ -64,16 +90,18 @@ export function ProjectTypesManager({
     initialState
   );
   const [renamePending, startRename] = useTransition();
+
+  // Swap in the renamed row and close the inline input.
+  const handleRenamed = (data?: unknown) => {
+    const renamed = toProjectType(data);
+    if (!renamed) return;
+    setTypes((prev) => prev.map((t) => (t.id === renamed.id ? renamed : t)));
+    setEditingId(null);
+  };
+
   useServerAction(renameState, renamePending, {
     ...toastTitles,
-    onSuccess: (data) => {
-      setTypes((prev) =>
-        prev.map((t) =>
-          t.id === (data as ProjectType).id ? (data as ProjectType) : t
-        )
-      );
-      setEditingId(null);
-    },
+    onSuccess: handleRenamed,
   });
 
   // --- delete (tiny confirm) -----------------------------------------------
@@ -83,17 +111,45 @@ export function ProjectTypesManager({
     initialState
   );
   const [deletePending, startDelete] = useTransition();
+
+  // Drop the removed row and close the confirm dialog.
+  const handleDeleted = (data?: unknown) => {
+    const removedId = toDeletedId(data);
+    if (removedId === null) return;
+    setTypes((prev) => prev.filter((t) => t.id !== removedId));
+    setConfirmId(null);
+  };
+
   useServerAction(deleteState, deletePending, {
     ...toastTitles,
-    onSuccess: (data) => {
-      setTypes((prev) =>
-        prev.filter((t) => t.id !== (data as { id: number }).id)
-      );
-      setConfirmId(null);
-    },
+    onSuccess: handleDeleted,
   });
 
   const confirmType = types.find((t) => t.id === confirmId);
+
+  // Row actions take the id/row so the list below allocates no closure per item.
+  const saveRename = (id: number) =>
+    startRename(() => renameAction({ id, name: editName.trim() }));
+
+  const startEdit = (type: ProjectType) => {
+    setEditingId(type.id);
+    setEditName(type.name);
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const addType = () =>
+    startCreate(() => createAction({ name: newName.trim() }));
+
+  const confirmDelete = () => {
+    if (confirmId === null) return;
+    startDelete(() => deleteAction(confirmId));
+  };
+
+  // Dialog closes on backdrop/escape as well as the buttons.
+  const handleConfirmOpenChange = (open: boolean) => {
+    if (!open) setConfirmId(null);
+  };
 
   return (
     <div className="space-y-3">
@@ -111,33 +167,18 @@ export function ProjectTypesManager({
                 <Button
                   size="sm"
                   disabled={renamePending || !editName.trim()}
-                  onClick={() =>
-                    startRename(() =>
-                      renameAction({ id: t.id, name: editName.trim() })
-                    )
-                  }
+                  onClick={() => saveRename(t.id)}
                 >
                   Lưu
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setEditingId(null)}
-                >
+                <Button size="sm" variant="ghost" onClick={cancelEdit}>
                   Hủy
                 </Button>
               </>
             ) : (
               <>
                 <span className="flex-1 text-sm">{t.name}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setEditingId(t.id);
-                    setEditName(t.name);
-                  }}
-                >
+                <Button size="sm" variant="ghost" onClick={() => startEdit(t)}>
                   Sửa
                 </Button>
                 <Button
@@ -170,21 +211,14 @@ export function ProjectTypesManager({
         <Button
           size="sm"
           disabled={createPending || !newName.trim()}
-          onClick={() =>
-            startCreate(() => createAction({ name: newName.trim() }))
-          }
+          onClick={addType}
         >
           {createPending ? "Đang thêm..." : "Thêm"}
         </Button>
       </div>
 
       {/* delete confirm */}
-      <Dialog
-        open={confirmId !== null}
-        onOpenChange={(open) => {
-          if (!open) setConfirmId(null);
-        }}
-      >
+      <Dialog open={confirmId !== null} onOpenChange={handleConfirmOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Xóa loại công trình</DialogTitle>
@@ -198,9 +232,7 @@ export function ProjectTypesManager({
             <Button
               variant="destructive"
               disabled={deletePending || confirmId === null}
-              onClick={() =>
-                confirmId !== null && startDelete(() => deleteAction(confirmId))
-              }
+              onClick={confirmDelete}
             >
               {deletePending ? "Đang xóa..." : "Xóa"}
             </Button>

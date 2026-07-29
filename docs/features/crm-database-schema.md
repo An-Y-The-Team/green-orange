@@ -8,7 +8,7 @@ strings, money as `BigInt` VND, dates serialized `YYYY-MM-DD`).
 
 **Language rule: the database is 100% English** — table names, columns,
 enum values. Vietnamese exists in exactly one place: the display-label map
-(`apps/crm-web/src/lib/labels.ts`). See the [glossary](#glossary-english--vietnamese)
+(`apps/crm-web/src/constants/labels.ts`). See the [glossary](#glossary-english--vietnamese)
 for the full mapping. The business-flow doc keeps speaking Vietnamese; this
 doc is its technical counterpart.
 
@@ -31,7 +31,7 @@ UPDATE "Project" SET "stage" = 'request' WHERE "stage" = 'survey';
 `survey` is also gone from `STAGE_ORDER` (`src/common/stage.ts`, which feeds
 the `@IsIn` DTO validation), `ProjectStage` in
 `apps/crm-web/src/app/(dashboard)/projects/enums.ts`, and `projectStageOrder` +
-the label map in `src/lib/labels.ts`. No columns were added or removed —
+the label map in `src/constants/labels.ts`. No columns were added or removed —
 `visit_date`, `survey_note`, `survey_items` keep their names and meaning, they
 just live inside stage 1 now. `attachment.kind = 'survey'` is a file category,
 unrelated to the stage enum, and stays.
@@ -248,10 +248,10 @@ never insert a second settlement.
 | ------------ | ------------------- | ------------------------------------------------------------------------------------------------- |
 | id           | bigserial PK        |                                                                                                   |
 | project_id   | FK → project unique | **one settlement per project**                                                                    |
-| status       | text         | `draft` \| `sent` \| `signed`                                                                     |
-| total_amount | bigint       | VND, server-computed from settlement_item rows; copied to the bill on sign (2026-07-23 UI deltas) |
-| signed_date  | date null    |                                                                                                   |
-| note         | text null    | papers → attachment                                                                               |
+| status       | text                | `draft` \| `sent` \| `signed`                                                                     |
+| total_amount | bigint              | VND, server-computed from settlement_item rows; copied to the bill on sign (2026-07-23 UI deltas) |
+| signed_date  | date null           |                                                                                                   |
+| note         | text null           | papers → attachment                                                                               |
 
 ### settlement_item (2026-07-23 UI deltas)
 

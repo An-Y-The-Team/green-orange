@@ -1,4 +1,4 @@
-// Hợp đồng — v2 contract values (English); labels in src/lib/labels.ts.
+// Hợp đồng — v2 contract values (English); labels in src/constants/labels.ts.
 // Optional entity (0..n per project); everything after signing lives on
 // the project.
 

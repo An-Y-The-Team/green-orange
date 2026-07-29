@@ -62,6 +62,17 @@ export function RequestPanel({
   // "Đã gặp khách" — visit date defaults to today, editable inline.
   const [visitDate, setVisitDate] = useState(todayISO);
 
+  // Dời hẹn — combines the date + time inputs into one ISO instant, then closes
+  // the dialog; the toast reports the outcome.
+  const handleReschedule = () => {
+    run({
+      appointment_at: new Date(
+        `${apptDate}T${apptTime || "00:00"}`
+      ).toISOString(),
+    });
+    setRescheduleOpen(false);
+  };
+
   return (
     <StageCard project={project} contentClassName="space-y-4">
       <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
@@ -121,14 +132,7 @@ export function RequestPanel({
                 <DialogClose render={<Button variant="ghost">Đóng</Button>} />
                 <Button
                   disabled={isPending || !apptDate}
-                  onClick={() => {
-                    run({
-                      appointment_at: new Date(
-                        `${apptDate}T${apptTime || "00:00"}`
-                      ).toISOString(),
-                    });
-                    setRescheduleOpen(false);
-                  }}
+                  onClick={handleReschedule}
                 >
                   Lưu
                 </Button>

@@ -34,8 +34,9 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 
 // Inline (headless) Authentik login: credentials go to the server-side flow
-// executor driver (lib/authentik-flow.ts), so the user never leaves the page
-// they deep-linked to — after sign-in the same URL re-renders authenticated.
+// executor driver (src/utils/authentik-flow/authentik-flow.ts), so the user
+// never leaves the page they deep-linked to — after sign-in the same URL
+// re-renders authenticated.
 // The hosted /login stays reachable for anything headless can't do (MFA…).
 export function LoginOverlay({ expired }: { expired?: boolean }) {
   const router = useRouter();

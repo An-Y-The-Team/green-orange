@@ -91,6 +91,28 @@ export function WorkspaceHeader({
   const run = (input: UpdateProjectFormValues) =>
     startTransition(() => formAction(input));
 
+  // Chip toggle — adds/removes one type id in the edit draft.
+  const handleTypeToggle = (typeId: number) =>
+    setDraft((prev) => ({
+      ...prev,
+      type_ids: prev.type_ids.includes(typeId)
+        ? prev.type_ids.filter((id) => id !== typeId)
+        : [...prev.type_ids, typeId],
+    }));
+
+  // Hoãn — freeze the project at its current stage, then close the dialog; the
+  // toast reports the outcome.
+  const confirmHold = () => {
+    run({ status: ProjectStatus.ON_HOLD, follow_up_date: followUp });
+    setHoldOpen(false);
+  };
+
+  // Hủy — same shape as Hoãn, with the required reason instead of a date.
+  const confirmCancel = () => {
+    run({ status: ProjectStatus.CANCELLED, cancel_reason: reason.trim() });
+    setCancelOpen(false);
+  };
+
   const frozen =
     project.status === ProjectStatus.ON_HOLD ||
     project.status === ProjectStatus.CANCELLED;
@@ -116,27 +138,17 @@ export function WorkspaceHeader({
       <div className="space-y-1.5">
         <Label>Loại công trình</Label>
         <div className="flex flex-wrap gap-2">
-          {projectTypes.map((t) => {
-            const active = draft.type_ids.includes(t.id);
-            return (
-              <Button
-                key={t.id}
-                type="button"
-                size="sm"
-                variant={active ? "default" : "outline"}
-                onClick={() =>
-                  setDraft({
-                    ...draft,
-                    type_ids: active
-                      ? draft.type_ids.filter((id) => id !== t.id)
-                      : [...draft.type_ids, t.id],
-                  })
-                }
-              >
-                {t.name}
-              </Button>
-            );
-          })}
+          {projectTypes.map((t) => (
+            <Button
+              key={t.id}
+              type="button"
+              size="sm"
+              variant={draft.type_ids.includes(t.id) ? "default" : "outline"}
+              onClick={() => handleTypeToggle(t.id)}
+            >
+              {t.name}
+            </Button>
+          ))}
         </div>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -289,13 +301,7 @@ export function WorkspaceHeader({
                       />
                       <Button
                         disabled={isPending || !followUp}
-                        onClick={() => {
-                          run({
-                            status: ProjectStatus.ON_HOLD,
-                            follow_up_date: followUp,
-                          });
-                          setHoldOpen(false);
-                        }}
+                        onClick={confirmHold}
                       >
                         Xác nhận hoãn
                       </Button>
@@ -334,13 +340,7 @@ export function WorkspaceHeader({
                       <Button
                         variant="destructive"
                         disabled={isPending || !reason.trim()}
-                        onClick={() => {
-                          run({
-                            status: ProjectStatus.CANCELLED,
-                            cancel_reason: reason.trim(),
-                          });
-                          setCancelOpen(false);
-                        }}
+                        onClick={confirmCancel}
                       >
                         Xác nhận hủy
                       </Button>

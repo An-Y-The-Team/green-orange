@@ -31,6 +31,7 @@ import { quoteChannel, quoteStatus, quoteSuperseded } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import type { Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
@@ -41,7 +42,10 @@ function SendHistory({ quote }: { quote: Quote }) {
     <p className="text-xs text-muted-foreground">
       Gửi:{" "}
       {quote.send_logs
-        ?.map((l) => `${quoteChannel[l.channel]} ${formatDate(l.sent_at)}`)
+        ?.map(
+          (l) =>
+            `${quoteChannel[l.channel] ?? l.channel} ${formatDate(l.sent_at)}`
+        )
         .join(" · ")}
     </p>
   );
@@ -83,6 +87,20 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
       ...extra,
     });
 
+  const statusBadge = labelOf(quoteStatus, quote.status);
+
+  // Hoãn — sends the follow-up date with the decision, then closes the dialog.
+  const handleConfirmHold = () => {
+    decide(QuoteStatus.ON_HOLD, { follow_up_date: followUp });
+    setHoldOpen(false);
+  };
+
+  // Hủy — sends the cancel reason with the decision, then closes the dialog.
+  const handleConfirmCancel = () => {
+    decide(QuoteStatus.REJECTED, { cancel_reason: reason.trim() });
+    setCancelOpen(false);
+  };
+
   const printBtn = (
     <Button
       variant="ghost"
@@ -115,9 +133,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
         <span className="font-medium">
           {project.code} · v{quote.version}
         </span>
-        <Badge variant={quoteStatus[quote.status].variant}>
-          {quoteStatus[quote.status].label}
-        </Badge>
+        <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
         <span className="ml-auto font-semibold tabular-nums">
           {formatVND(quote.total_amount)}
         </span>
@@ -233,13 +249,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
             <Button variant="outline" onClick={() => setHoldOpen(false)}>
               Đóng
             </Button>
-            <Button
-              disabled={busy || !followUp}
-              onClick={() => {
-                decide(QuoteStatus.ON_HOLD, { follow_up_date: followUp });
-                setHoldOpen(false);
-              }}
-            >
+            <Button disabled={busy || !followUp} onClick={handleConfirmHold}>
               Xác nhận hoãn
             </Button>
           </DialogFooter>
@@ -267,10 +277,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
             <Button
               variant="destructive"
               disabled={busy || !reason.trim()}
-              onClick={() => {
-                decide(QuoteStatus.REJECTED, { cancel_reason: reason.trim() });
-                setCancelOpen(false);
-              }}
+              onClick={handleConfirmCancel}
             >
               Xác nhận hủy
             </Button>

@@ -38,6 +38,7 @@ import { settlementStatus } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { labelOf } from "@/utils/label-of/label-of";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { AddMilestone } from "../add-milestone/add-milestone";
@@ -91,6 +92,7 @@ export function SettlementCard({
   const isDraft = settlement.status === SettlementStatus.DRAFT;
   const isSent = settlement.status === SettlementStatus.SENT;
   const isSigned = settlement.status === SettlementStatus.SIGNED;
+  const badge = labelOf(settlementStatus, settlement.status);
 
   const [sendPending, runSend] = useRun(
     sendSettlement.bind(null, settlement.id)
@@ -133,9 +135,7 @@ export function SettlementCard({
       {/* Settlement row */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">QT #{settlement.id}</span>
-        <Badge variant={settlementStatus[settlement.status].variant}>
-          {settlementStatus[settlement.status].label}
-        </Badge>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
         <span className="ml-auto font-semibold tabular-nums">
           {formatVND(settlement.total_amount)}
         </span>

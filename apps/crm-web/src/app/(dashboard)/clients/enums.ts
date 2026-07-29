@@ -1,4 +1,4 @@
-// Khách hàng — v2 contract values (English); labels in src/lib/labels.ts.
+// Khách hàng — v2 contract values (English); labels in src/constants/labels.ts.
 
 export enum ClientType {
   COMPANY = "company", // Công ty — multi-site, Locations first-class

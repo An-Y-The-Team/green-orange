@@ -1,12 +1,18 @@
 "use client";
 
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useActionState, useState, useTransition } from "react";
+import {
+  type KeyboardEvent,
+  useActionState,
+  useState,
+  useTransition,
+} from "react";
 
 import {
   type ServerActionState,
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
+import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
@@ -16,6 +22,18 @@ import type { CrewRole } from "../../types";
 
 const initialState: ServerActionState = { success: false };
 
+/**
+ * Action payloads arrive as `unknown`; a vai trò row is just `{ id, name }`, so
+ * anything else is dropped here instead of putting a blank row in the list.
+ */
+function toRole(data: unknown): CrewRole | null {
+  if (!isObject(data)) return null;
+  const { id, name } = data;
+  return typeof id === "number" && typeof name === "string"
+    ? { id, name }
+    : null;
+}
+
 export function RolesTab({ roles: initial }: { roles: CrewRole[] }) {
   // Local list so inline add/rename/delete reflect immediately (revalidatePath
   // refreshes the server data too, but client state wouldn't otherwise reset).
@@ -24,13 +42,19 @@ export function RolesTab({ roles: initial }: { roles: CrewRole[] }) {
 
   const [state, formAction] = useActionState(createRole, initialState);
   const [isPending, startTransition] = useTransition();
+
+  // Append the row the server created and clear the input.
+  const handleCreated = (data?: unknown) => {
+    const role = toRole(data);
+    if (!role) return;
+    setRoles((prev) => [...prev, role]);
+    setNewName("");
+  };
+
   useServerAction(state, isPending, {
     successToastTitle: "Thành công",
     errorToastTitle: "Lỗi",
-    onSuccess: (data) => {
-      setRoles((prev) => [...prev, data as CrewRole]);
-      setNewName("");
-    },
+    onSuccess: handleCreated,
   });
 
   const add = () => {
@@ -38,6 +62,20 @@ export function RolesTab({ roles: initial }: { roles: CrewRole[] }) {
     if (!name) return;
     startTransition(() => formAction({ name }));
   };
+
+  // Enter submits the new-role input without submitting an enclosing form.
+  const handleNewNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    add();
+  };
+
+  // Row callbacks live here so the map below allocates no closure per role.
+  const handleRenamed = (role: CrewRole) =>
+    setRoles((prev) => prev.map((x) => (x.id === role.id ? role : x)));
+
+  const handleDeleted = (id: number) =>
+    setRoles((prev) => prev.filter((x) => x.id !== id));
 
   return (
     <Card>
@@ -47,12 +85,8 @@ export function RolesTab({ roles: initial }: { roles: CrewRole[] }) {
             <RoleRow
               key={role.id}
               role={role}
-              onRenamed={(r) =>
-                setRoles((prev) => prev.map((x) => (x.id === r.id ? r : x)))
-              }
-              onDeleted={(id) =>
-                setRoles((prev) => prev.filter((x) => x.id !== id))
-              }
+              onRenamed={handleRenamed}
+              onDeleted={handleDeleted}
             />
           ))}
         </ul>
@@ -62,12 +96,7 @@ export function RolesTab({ roles: initial }: { roles: CrewRole[] }) {
             placeholder="Tên vai trò mới…"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                add();
-              }
-            }}
+            onKeyDown={handleNewNameKeyDown}
           />
           <Button
             size="sm"
@@ -100,13 +129,19 @@ function RoleRow({
     initialState
   );
   const [renamePending, startRename] = useTransition();
+
+  // Push the renamed row back up to the list, then close the inline input.
+  const handleRenamed = (data?: unknown) => {
+    const role = toRole(data);
+    if (!role) return;
+    onRenamed(role);
+    setEditing(false);
+  };
+
   useServerAction(renameState, renamePending, {
     successToastTitle: "Thành công",
     errorToastTitle: "Lỗi",
-    onSuccess: (data) => {
-      onRenamed(data as CrewRole);
-      setEditing(false);
-    },
+    onSuccess: handleRenamed,
   });
 
   const [deleteState, deleteAction] = useActionState(
@@ -126,6 +161,19 @@ function RoleRow({
     startRename(() => renameAction({ name: next }));
   };
 
+  // Enter saves the rename without submitting an enclosing form.
+  const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    save();
+  };
+
+  // Discard the edit: restore the row's stored name and close the input.
+  const cancelEdit = () => {
+    setName(role.name);
+    setEditing(false);
+  };
+
   return (
     <li className="flex items-center gap-2 py-2">
       {editing ? (
@@ -133,12 +181,7 @@ function RoleRow({
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                save();
-              }
-            }}
+            onKeyDown={handleNameKeyDown}
             className="h-8"
           />
           <Button
@@ -149,14 +192,7 @@ function RoleRow({
           >
             <Check className="size-4" />
           </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => {
-              setName(role.name);
-              setEditing(false);
-            }}
-          >
+          <Button size="icon" variant="ghost" onClick={cancelEdit}>
             <X className="size-4" />
           </Button>
         </>

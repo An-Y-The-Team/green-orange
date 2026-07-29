@@ -98,5 +98,16 @@ export function StagePanel({
           contracts={contracts}
         />
       );
+    // A stage the enum doesn't know (a legacy row, or one the backend added)
+    // used to fall out of the switch as `undefined`, which React throws on —
+    // the same crash the label maps had. StageCard prints the raw value.
+    default:
+      return (
+        <StageCard project={project}>
+          <p className="text-sm text-muted-foreground">
+            Giai đoạn này chưa được hỗ trợ trong ứng dụng.
+          </p>
+        </StageCard>
+      );
   }
 }

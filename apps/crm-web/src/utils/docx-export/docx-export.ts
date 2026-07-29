@@ -11,6 +11,9 @@
  *
  * Fidelity is "good-enough structured" by design — headings, paragraphs, lists,
  * and bold/italic/underline marks; complex Word layouts won't round-trip.
+ *
+ * Throws (no file is written) when a merge field can't be resolved — an
+ * unresolved token must never reach a customer-facing file.
  */
 import type { LineItemsData } from "@/components/editor/lexical-document/lexical-document";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -18,6 +21,20 @@ import { type LexNode, TEXT_FORMAT } from "@/utils/lexical-build/lexical-build";
 import type { MergeContext } from "@/utils/merge-template/merge-template";
 import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
+
+/**
+ * Thrown when a merge field has no value in the context — *before* any file is
+ * produced. The .docx is customer-facing, so refusing is the only safe outcome:
+ * a placeholder in a Word file reads as content once the file has been mailed,
+ * and unlike the on-screen preview nobody can see that it is wrong. The
+ * on-screen document still marks the token in red so the author can find it.
+ */
+const unresolvedTokensError = (tokens: string[]) =>
+  new Error(
+    `Không thể xuất .docx: các trường trộn sau chưa có dữ liệu (${tokens
+      .map((t) => `{{${t}}}`)
+      .join(", ")}). Hãy sửa mẫu hợp đồng rồi thử lại.`
+  );
 
 export async function exportDocx({
   body,
@@ -46,10 +63,18 @@ export async function exportDocx({
     WidthType,
   } = await import("docx");
 
+  // Collected while walking, checked once the whole body is built and before a
+  // single byte is packed — an unresolved token aborts the export, it never
+  // reaches the file (the marker is for the on-screen preview only).
+  const unresolved = new Set<string>();
+
   const tokenText = (node: LexNode): string => {
     const token = node.token ?? "";
-    if (ctx) return token in ctx ? ctx[token] : `⟨${token}?⟩`;
-    return `{{${token}}}`;
+    // No ctx = exporting a reusable template: literal {{token}} is the point.
+    if (!ctx) return `{{${token}}}`;
+    if (token in ctx) return ctx[token];
+    unresolved.add(token);
+    return "";
   };
 
   const textRun = (node: LexNode) => {
@@ -198,6 +223,8 @@ export async function exportDocx({
   }
 
   const bodyParagraphs = (root?.children ?? []).flatMap(blocksFrom);
+
+  if (unresolved.size > 0) throw unresolvedTokensError([...unresolved]);
 
   const doc = new Document({
     numbering: {

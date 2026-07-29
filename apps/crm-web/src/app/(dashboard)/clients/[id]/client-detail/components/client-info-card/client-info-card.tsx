@@ -7,6 +7,7 @@ import {
   type ServerActionState,
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
+import { isObject } from "@yan/shared/utils";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 import {
@@ -54,18 +55,26 @@ export function ClientInfoCard({
     INITIAL_ACTION_STATE
   );
   const [pending, start] = useTransition();
+
+  // The action echoes the saved client back as an untyped payload; read the four
+  // fields this card shows off it and keep the form open on anything unreadable
+  // rather than blanking the header.
+  const applySaved = (data?: unknown) => {
+    if (!isObject(data)) return;
+    const { name, tax_code, email, note } = data;
+    if (typeof name !== "string") return;
+    setInfo({
+      name,
+      tax_code: typeof tax_code === "string" ? tax_code : "",
+      email: typeof email === "string" ? email : "",
+      note: typeof note === "string" ? note : "",
+    });
+    setEditing(false);
+  };
+
   useServerAction(state, pending, {
     ...ACTION_TOAST_TITLES,
-    onSuccess: (data) => {
-      const saved = data as Client;
-      setInfo({
-        name: saved.name,
-        tax_code: saved.tax_code ?? "",
-        email: saved.email ?? "",
-        note: saved.note ?? "",
-      });
-      setEditing(false);
-    },
+    onSuccess: applySaved,
   });
 
   // Seed the draft from the last-saved values, then reveal the form.

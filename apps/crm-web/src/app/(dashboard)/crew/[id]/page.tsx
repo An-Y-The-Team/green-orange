@@ -25,6 +25,7 @@ import {
 } from "@/constants/labels";
 import { addDays } from "@/utils/add-days/add-days";
 import { formatDate } from "@/utils/format-date/format-date";
+import { labelOf } from "@/utils/label-of/label-of";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { getCrewMember, listTimekeeping } from "../queries";
@@ -54,8 +55,12 @@ export default async function CrewDetailPage({
   });
   const assignments = member.assignments ?? [];
 
+  const statusBadge = labelOf(crewMemberStatus, member.status);
   const fields: [string, string][] = [
-    ["Hình thức", employmentType[member.employment_type]],
+    [
+      "Hình thức",
+      employmentType[member.employment_type] ?? member.employment_type,
+    ],
     ["Số điện thoại / Zalo", member.phone ?? "—"],
     ["Vai trò mặc định", member.default_role?.name ?? "—"],
     ["Ngày tạo", formatDate(member.created_at)],
@@ -76,9 +81,7 @@ export default async function CrewDetailPage({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <CardTitle className="text-lg">{member.name}</CardTitle>
-                <Badge variant={crewMemberStatus[member.status].variant}>
-                  {crewMemberStatus[member.status].label}
-                </Badge>
+                <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
               </div>
               <MemberActions id={member.id} status={member.status} />
             </div>
@@ -192,7 +195,7 @@ export default async function CrewDetailPage({
                       <TableCell>{formatDate(r.work_date)}</TableCell>
                       <TableCell className="text-right">{r.hours}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {timekeepingSource[r.source]}
+                        {timekeepingSource[r.source] ?? r.source}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {r.note ?? ""}

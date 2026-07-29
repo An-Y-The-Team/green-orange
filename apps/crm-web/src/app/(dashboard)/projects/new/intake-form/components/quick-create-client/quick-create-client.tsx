@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { FormLabel } from "@yan/ui/components/form";
 import { Input } from "@yan/ui/components/input";
@@ -23,7 +24,51 @@ import {
   quickClientSchema,
 } from "../../../../schema";
 import { DEFAULT_QUICK_CLIENT_VALUES } from "../../constants";
-import type { QuickCreateResult } from "../../types";
+import type { ClientOption, QuickCreateResult } from "../../types";
+
+/** Nullable string field off an untyped payload — mirrors the API's `| null`. */
+const str = (value: unknown) => (typeof value === "string" ? value : null);
+
+/**
+ * The create actions hand back `ServerActionState.data`, which is `unknown`, so
+ * each row is rebuilt from the fields this flow reads. A payload without a
+ * numeric id is rejected here instead of surfacing as a blank select later.
+ */
+function toClientOption(data: unknown): ClientOption | null {
+  if (!isObject(data)) return null;
+  const { id, name } = data;
+  if (typeof id !== "number" || typeof name !== "string") return null;
+  return { id, name };
+}
+
+function toContact(data: unknown, clientId: number): Contact | null {
+  if (!isObject(data)) return null;
+  const { id, client_id } = data;
+  if (typeof id !== "number") return null;
+  return {
+    id,
+    client_id: typeof client_id === "number" ? client_id : clientId,
+    name: str(data.name) ?? "",
+    phone: str(data.phone),
+    email: str(data.email),
+    title: str(data.title),
+    note: str(data.note),
+  };
+}
+
+function toLocation(data: unknown, clientId: number): Location | null {
+  if (!isObject(data)) return null;
+  const { id, client_id, manager_contact_id } = data;
+  if (typeof id !== "number") return null;
+  return {
+    id,
+    client_id: typeof client_id === "number" ? client_id : clientId,
+    name: str(data.name) ?? "",
+    address: str(data.address) ?? "",
+    manager_contact_id:
+      typeof manager_contact_id === "number" ? manager_contact_id : null,
+  };
+}
 
 /**
  * Inline "tạo nhanh khách hàng" block. Creates the client and — for a company —
@@ -55,13 +100,13 @@ export function QuickCreateClient({
         type: values.type,
         address: isCompany ? undefined : values.address,
       });
-      if (!clientRes.success || !clientRes.data) {
+      const client = clientRes.success ? toClientOption(clientRes.data) : null;
+      if (!client) {
         toast.error("Lỗi", {
           description: clientRes.message ?? "Không thể tạo khách hàng.",
         });
         return;
       }
-      const client = clientRes.data as { id: number; name: string };
       form.reset();
 
       if (!isCompany) {
@@ -81,7 +126,9 @@ export function QuickCreateClient({
           address: values.location_address ?? "",
         }),
       ]);
-      if (!contactRes.data || !locationRes.data) {
+      const contact = toContact(contactRes.data, client.id);
+      const location = toLocation(locationRes.data, client.id);
+      if (!contact || !location) {
         // Client exists but a dependent failed — report the client alone and let
         // the user fill the rest via the selects.
         toast.error("Lỗi", {
@@ -94,12 +141,7 @@ export function QuickCreateClient({
         return;
       }
 
-      onCreated({
-        client,
-        type: values.type,
-        contact: contactRes.data as Contact,
-        location: locationRes.data as Location,
-      });
+      onCreated({ client, type: values.type, contact, location });
     });
   };
 

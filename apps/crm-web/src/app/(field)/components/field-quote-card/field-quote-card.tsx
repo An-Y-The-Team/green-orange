@@ -47,6 +47,19 @@ export function FieldQuoteCard({
     extra?: { follow_up_date?: string; cancel_reason?: string }
   ) => runDecide({ status, projectId, version, ...extra });
 
+  // Hoãn — records the follow-up date, then closes the dialog; the toast from
+  // useRun reports the outcome.
+  const confirmHold = () => {
+    decide(QuoteStatus.ON_HOLD, { follow_up_date: followUp });
+    setHoldOpen(false);
+  };
+
+  // Hủy — same shape as Hoãn, with the required reason instead of a date.
+  const confirmCancel = () => {
+    decide(QuoteStatus.REJECTED, { cancel_reason: reason.trim() });
+    setCancelOpen(false);
+  };
+
   return (
     <div className="space-y-3 rounded-lg border p-3">
       <div className="flex items-center justify-between gap-2">
@@ -99,13 +112,7 @@ export function FieldQuoteCard({
             <Button variant="outline" onClick={() => setHoldOpen(false)}>
               Đóng
             </Button>
-            <Button
-              disabled={isPending || !followUp}
-              onClick={() => {
-                decide(QuoteStatus.ON_HOLD, { follow_up_date: followUp });
-                setHoldOpen(false);
-              }}
-            >
+            <Button disabled={isPending || !followUp} onClick={confirmHold}>
               Xác nhận hoãn
             </Button>
           </DialogFooter>
@@ -132,10 +139,7 @@ export function FieldQuoteCard({
             <Button
               variant="destructive"
               disabled={isPending || !reason.trim()}
-              onClick={() => {
-                decide(QuoteStatus.REJECTED, { cancel_reason: reason.trim() });
-                setCancelOpen(false);
-              }}
+              onClick={confirmCancel}
             >
               Xác nhận hủy
             </Button>

@@ -1,4 +1,4 @@
-// Nhân sự — v2 contract values (English); labels in src/lib/labels.ts.
+// Nhân sự — v2 contract values (English); labels in src/constants/labels.ts.
 // Roles are a user-managed DB entity (CrewRole rows), NOT an enum.
 
 export enum EmploymentType {

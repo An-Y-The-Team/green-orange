@@ -19,6 +19,7 @@ import {
 import { cn } from "@yan/ui/lib/utils";
 
 import { projectStage, projectStageOrder } from "@/constants/labels";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import { updateProject } from "../../../actions/update-project";
 import { ProjectStage, ProjectStatus } from "../../../enums";
@@ -67,7 +68,8 @@ export function StageStepper({ project }: { project: Project }) {
           <DialogHeader>
             <DialogTitle>
               Quay lại giai đoạn &ldquo;
-              {backTarget ? projectStage[backTarget].label : ""}&rdquo;?
+              {backTarget ? labelOf(projectStage, backTarget).label : ""}
+              &rdquo;?
             </DialogTitle>
             <DialogDescription>
               Dữ liệu đã nhập ở các giai đoạn sau sẽ được giữ nguyên.
@@ -88,7 +90,7 @@ export function StageStepper({ project }: { project: Project }) {
       <div className="flex items-center gap-3 md:hidden">
         <span className="text-sm font-medium">
           {currentIndex + 1}/{projectStageOrder.length} ·{" "}
-          {projectStage[project.stage].label}
+          {labelOf(projectStage, project.stage).label}
         </span>
         {canGoBackTo(prevStage) ? (
           <Button
@@ -97,7 +99,7 @@ export function StageStepper({ project }: { project: Project }) {
             disabled={isPending}
             onClick={() => goBack(prevStage)}
           >
-            ← {projectStage[prevStage].label}
+            ← {labelOf(projectStage, prevStage).label}
           </Button>
         ) : null}
         {canAdvance ? (
@@ -108,7 +110,7 @@ export function StageStepper({ project }: { project: Project }) {
               startTransition(() => formAction({ stage: nextStage }))
             }
           >
-            → {projectStage[nextStage].label}
+            → {labelOf(projectStage, nextStage).label}
           </Button>
         ) : null}
       </div>
@@ -139,7 +141,7 @@ export function StageStepper({ project }: { project: Project }) {
                     : "text-muted-foreground"
                 )}
               >
-                {projectStage[stage].label}
+                {labelOf(projectStage, stage).label}
               </span>
             </>
           );
@@ -149,7 +151,7 @@ export function StageStepper({ project }: { project: Project }) {
                 <button
                   type="button"
                   disabled={isPending}
-                  title={`Quay lại: ${projectStage[stage].label}`}
+                  title={`Quay lại: ${labelOf(projectStage, stage).label}`}
                   onClick={() => goBack(stage)}
                   className="flex cursor-pointer items-center gap-2 hover:opacity-80"
                 >
@@ -174,7 +176,7 @@ export function StageStepper({ project }: { project: Project }) {
             disabled={isPending}
             onClick={() => goBack(prevStage)}
           >
-            ← {projectStage[prevStage].label}
+            ← {labelOf(projectStage, prevStage).label}
           </Button>
         ) : null}
         {canAdvance ? (
@@ -186,7 +188,7 @@ export function StageStepper({ project }: { project: Project }) {
               startTransition(() => formAction({ stage: nextStage }))
             }
           >
-            Chuyển sang: {projectStage[nextStage].label}
+            Chuyển sang: {labelOf(projectStage, nextStage).label}
           </Button>
         ) : null}
       </div>

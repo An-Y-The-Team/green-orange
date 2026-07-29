@@ -6,6 +6,7 @@ import {
   type ServerActionState,
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
+import { isArray, isObject } from "@yan/shared/utils";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
@@ -51,6 +52,8 @@ const EMPTY: Fields = {
   to_date: "",
 };
 
+const INITIAL_STATE: ServerActionState = { success: false };
+
 export function AssignmentsTab({
   projectId,
   assignments,
@@ -71,15 +74,22 @@ export function AssignmentsTab({
     Object.fromEntries(
       assignments
         .filter((a) => a.overlaps?.length)
-        .map((a) => [a.id, a.overlaps as Assignment[]])
+        .map((a) => [a.id, a.overlaps ?? []])
     )
   );
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formKey, setFormKey] = useState(0); // bump to reset the add form
 
-  const onSaved = (data: unknown) => {
-    const a = data as Assignment;
-    setOverlapsById((prev) => ({ ...prev, [a.id]: a.overlaps ?? [] }));
+  // create/update echo the saved phân công back as an untyped payload; its id
+  // keys the overlap warnings, so a payload without one is ignored.
+  const onSaved = (data?: unknown) => {
+    if (!isObject(data)) return;
+    const { id, overlaps } = data;
+    if (typeof id !== "number") return;
+    setOverlapsById((prev) => ({
+      ...prev,
+      [id]: isArray<Assignment>(overlaps) ? overlaps : [],
+    }));
     setEditingId(null);
     setFormKey((k) => k + 1);
   };
@@ -164,7 +174,7 @@ function AssignmentRow({
   const [confirm, setConfirm] = useState(false);
   const [state, formAction] = useActionState(
     deleteAssignment.bind(null, a.id, projectId),
-    { success: false } as ServerActionState
+    INITIAL_STATE
   );
   const [isPending, startTransition] = useTransition();
   useServerAction(state, isPending, {
@@ -244,16 +254,14 @@ function AssignmentForm({
   crew: CrewMember[];
   roles: CrewRole[];
   initial: Fields;
-  onSaved: (data: unknown) => void;
+  onSaved: (data?: unknown) => void;
   onCancel?: () => void;
 }) {
   const [f, setF] = useState<Fields>(initial);
   const action = assignmentId
     ? updateAssignment.bind(null, assignmentId, projectId)
     : createAssignment.bind(null, projectId);
-  const [state, formAction] = useActionState(action, {
-    success: false,
-  } as ServerActionState);
+  const [state, formAction] = useActionState(action, INITIAL_STATE);
   const [isPending, startTransition] = useTransition();
   useServerAction(state, isPending, {
     successToastTitle: "Thành công",

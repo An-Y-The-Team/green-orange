@@ -35,6 +35,7 @@ import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
 import { contractStatus, quoteStatus } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { labelOf } from "@/utils/label-of/label-of";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import type { Project } from "../../../../types";
@@ -81,6 +82,7 @@ export function ContractPanel({
 }) {
   // getDealQuote is deal-only, so its presence IS the chốt condition.
   const quoteDeal = Boolean(dealQuote);
+  const dealBadge = dealQuote && labelOf(quoteStatus, dealQuote.status);
   const clientSigned = Boolean(project.client_signed_date);
   const depositPaid = milestones.some(
     (m) => m.type === MilestoneType.DEPOSIT && m.status === MilestoneStatus.PAID
@@ -132,9 +134,7 @@ export function ContractPanel({
                   <span className="text-muted-foreground">
                     v{dealQuote.version} · {formatVND(dealQuote.total_amount)}
                   </span>
-                  <Badge variant={quoteStatus[dealQuote.status].variant}>
-                    {quoteStatus[dealQuote.status].label}
-                  </Badge>
+                  <Badge variant={dealBadge?.variant}>{dealBadge?.label}</Badge>
                 </span>
               ) : (
                 <span className="text-sm text-muted-foreground">
@@ -314,13 +314,12 @@ function ContractRow({
   });
 
   const signed = contract.status === "signed";
+  const badge = labelOf(contractStatus, contract.status);
 
   return (
     <li className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">
       <span className="font-medium">{contract.code}</span>
-      <Badge variant={contractStatus[contract.status].variant}>
-        {contractStatus[contract.status].label}
-      </Badge>
+      <Badge variant={badge.variant}>{badge.label}</Badge>
       {contract.signed_date ? (
         <span className="text-muted-foreground">
           {formatDate(contract.signed_date)}

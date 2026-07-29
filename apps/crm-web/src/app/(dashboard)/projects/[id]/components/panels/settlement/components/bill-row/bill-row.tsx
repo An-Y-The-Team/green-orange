@@ -13,6 +13,7 @@ import type { Bill } from "@/app/(dashboard)/receivables/types";
 import { billStatus } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { labelOf } from "@/utils/label-of/label-of";
 
 /**
  * The settlement's hóa đơn. A draft bill has no advance buttons — it only turns
@@ -28,14 +29,13 @@ export function BillRow({
   const idx = BILL_ORDER.indexOf(bill.status);
   const [pending, run] = useRun(updateBill.bind(null, bill.id, projectId));
   const official = idx >= BILL_ORDER.indexOf(BillStatus.OFFICIAL);
+  const badge = labelOf(billStatus, bill.status);
 
   return (
     <div className="space-y-1 rounded-lg border p-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-medium">Hóa đơn HĐ #{bill.id}</span>
-        <Badge variant={billStatus[bill.status].variant}>
-          {billStatus[bill.status].label}
-        </Badge>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
         {bill.status === BillStatus.DRAFT ? (
           <span className="text-muted-foreground">(chính thức khi ký)</span>
         ) : (

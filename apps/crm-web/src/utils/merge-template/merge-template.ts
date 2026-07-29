@@ -18,6 +18,9 @@ import type { Quote } from "@/app/(dashboard)/quotes/types";
 import { company } from "@/config/company";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+// Type-only (erased at runtime), so this does not close the import cycle with
+// lexical-build, which imports CONTRACT_TOKENS from here.
+import type { LexNode } from "@/utils/lexical-build/lexical-build";
 import { storedTotals } from "@/utils/quote-totals/quote-totals";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
@@ -151,4 +154,44 @@ export function buildContractContext(
 /** Stand-in values for the editor preview, derived from the token examples. */
 export function previewContext(): MergeContext {
   return Object.fromEntries(CONTRACT_TOKENS.map((t) => [t.token, t.example]));
+}
+
+/** The whitelist as a lookup — CONTRACT_TOKENS stays the single source. */
+const KNOWN_TOKENS: ReadonlySet<string> = new Set(
+  CONTRACT_TOKENS.map((t) => t.token)
+);
+
+/** How an unresolved token is shown. Editor/preview only — never in a .docx. */
+export const unresolvedMarker = (token: string) => `⟨${token}?⟩`;
+
+/**
+ * Merge tokens a stored Lexical `body` uses that are NOT in
+ * {@link CONTRACT_TOKENS} — i.e. tokens nothing can ever resolve, which would
+ * otherwise print as {@link unresolvedMarker} on a signed contract.
+ *
+ * The token palette only inserts whitelisted tokens, so these arrive from an
+ * imported .docx, a hand-edited body, or a token retired after the body was
+ * authored. Deduplicated, in first-seen order. Unparsable body → `[]` (the
+ * schema's `lexicalPlainText` check already rejects that).
+ */
+export function unknownTokens(body: string): string[] {
+  let root: LexNode | undefined;
+  try {
+    root = (JSON.parse(body) as { root?: LexNode }).root;
+  } catch {
+    return [];
+  }
+
+  const found = new Set<string>();
+  const walk = (node: LexNode | undefined) => {
+    if (!node) return;
+    if (node.type === "merge-field") {
+      const token = node.token ?? "";
+      if (!KNOWN_TOKENS.has(token)) found.add(token);
+    }
+    node.children?.forEach(walk);
+  };
+  walk(root);
+
+  return [...found];
 }

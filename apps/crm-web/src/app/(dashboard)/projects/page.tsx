@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/page-header/page-header";
 import { TablePager } from "@/components/table-pager/table-pager";
 import { projectStage, projectStatus } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
+import { labelOf } from "@/utils/label-of/label-of";
 import { pageFromParam } from "@/utils/page-param/page-param";
 
 import { ProjectStatus } from "./enums";
@@ -76,49 +77,49 @@ export default async function ProjectsPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visible.map((project) => (
-              <TableRow key={project.id}>
-                <TableCell className="font-medium">
-                  <Link
-                    href={`/projects/${project.id}`}
-                    className="hover:underline"
-                  >
-                    {project.code}
-                  </Link>
-                </TableCell>
-                <TableCell>{project.name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {project.client?.name ?? `#${project.client_id}`}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {project.location?.name ?? `#${project.location_id}`}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {project.types.map((type) => (
-                      <Badge key={type.id} variant="outline">
-                        {type.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={projectStage[project.stage].variant}>
-                    {projectStage[project.stage].label}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={projectStatus[project.status].variant}>
-                    {projectStatus[project.status].label}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {project.appointment_at
-                    ? formatDate(project.appointment_at)
-                    : "—"}
-                </TableCell>
-              </TableRow>
-            ))}
+            {visible.map((project) => {
+              const stage = labelOf(projectStage, project.stage);
+              const status = labelOf(projectStatus, project.status);
+              return (
+                <TableRow key={project.id}>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/projects/${project.id}`}
+                      className="hover:underline"
+                    >
+                      {project.code}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{project.name}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {project.client?.name ?? `#${project.client_id}`}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {project.location?.name ?? `#${project.location_id}`}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {project.types.map((type) => (
+                        <Badge key={type.id} variant="outline">
+                          {type.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={stage.variant}>{stage.label}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={status.variant}>{status.label}</Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {project.appointment_at
+                      ? formatDate(project.appointment_at)
+                      : "—"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Card>

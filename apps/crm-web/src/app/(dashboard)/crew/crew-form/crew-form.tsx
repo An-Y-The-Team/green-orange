@@ -9,6 +9,7 @@ import {
   type ServerActionState,
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
+import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
@@ -59,11 +60,19 @@ export function CrewForm({
   });
   const { errors } = form.formState;
 
+  // Edit stays on the member being edited; create follows the id the server
+  // assigned. An untyped payload without one falls back to the roster.
+  const goToMember = (data?: unknown) => {
+    const createdId =
+      isObject(data) && typeof data.id === "number" ? data.id : null;
+    const id = member?.id ?? createdId;
+    router.push(id === null ? "/crew" : `/crew/${id}`);
+  };
+
   useServerAction(state, isPending, {
     successToastTitle: "Thành công",
     errorToastTitle: "Lỗi",
-    onSuccess: (data) =>
-      router.push(`/crew/${member?.id ?? (data as CrewMember).id}`),
+    onSuccess: goToMember,
   });
 
   const onValid = (values: CreateCrewMemberFormValues) =>

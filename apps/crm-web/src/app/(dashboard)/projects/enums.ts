@@ -1,6 +1,6 @@
 // Công Trình — closed value sets, 1:1 with the v2 backend contract
 // (docs/features/crm-database-schema.md). English values; Vietnamese labels
-// live only in src/lib/labels.ts. Project types are a user-managed tag
+// live only in src/constants/labels.ts. Project types are a user-managed tag
 // entity in v2, not an enum.
 
 // The 8 lifecycle stages, in order. The workspace stepper renders these.
@@ -44,6 +44,14 @@ export enum PaperworkStatus {
   PREPARING = "preparing", // Chưa xong
   SUBMITTED = "submitted", // Đã nộp
   APPROVED = "approved", // Đã duyệt
+}
+
+// Stage-5 numeric duration columns a PATCH can target. The VALUES are real
+// `projects` column names (see types.ts / update-project.ts) — renaming a column
+// means editing them here too, which is the point: one place, not two call sites.
+export enum DurationField {
+  ESTIMATED = "est_duration_days",
+  ACTUAL = "actual_duration_days",
 }
 
 // Attachment `kind` — which stage produced the file. Was a bare `string` with

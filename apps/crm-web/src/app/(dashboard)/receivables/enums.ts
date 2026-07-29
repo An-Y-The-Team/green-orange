@@ -1,4 +1,4 @@
-// Thu & công nợ — v2 contract values (English); labels in src/lib/labels.ts.
+// Thu & công nợ — v2 contract values (English); labels in src/constants/labels.ts.
 
 export enum SettlementStatus {
   DRAFT = "draft", // Nháp

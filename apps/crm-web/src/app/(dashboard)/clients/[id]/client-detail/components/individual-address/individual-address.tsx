@@ -7,6 +7,7 @@ import {
   type ServerActionState,
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
+import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import {
   Card,
@@ -46,12 +47,18 @@ export function IndividualAddress({
     INITIAL_ACTION_STATE
   );
   const [pending, start] = useTransition();
+
+  // The action echoes the saved location back as an untyped payload; only its
+  // address is displayed, so an unreadable one leaves the editor open.
+  const applySaved = (data?: unknown) => {
+    if (!isObject(data) || typeof data.address !== "string") return;
+    setAddress(data.address);
+    setEditing(false);
+  };
+
   useServerAction(state, pending, {
     ...ACTION_TOAST_TITLES,
-    onSuccess: (data) => {
-      setAddress((data as Location).address);
-      setEditing(false);
-    },
+    onSuccess: applySaved,
   });
 
   if (!location) return null;
@@ -60,20 +67,19 @@ export function IndividualAddress({
   const save = () =>
     start(() => action({ name: location.name, address: draft.trim() }));
 
+  // Seed the draft from the last-saved address, then reveal the input.
+  const startEdit = () => {
+    setDraft(address);
+    setEditing(true);
+  };
+
   return (
     <Card className="gap-3">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">Địa chỉ</CardTitle>
           {!editing ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setDraft(address);
-                setEditing(true);
-              }}
-            >
+            <Button size="sm" variant="ghost" onClick={startEdit}>
               <Pencil className="size-4" />
               Sửa
             </Button>

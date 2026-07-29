@@ -2,6 +2,7 @@
 
 import { FileDown } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@yan/ui/components/button";
 
@@ -36,6 +37,14 @@ export function DocxExportButton({
     setBusy(true);
     try {
       await exportDocx({ body, ctx, lineItems, title, fileName });
+    } catch (err) {
+      // exportDocx refuses rather than writing unresolved ⟨token?⟩ markers into a
+      // customer-facing file. Without this the throw was an unhandled rejection
+      // and the click looked like it simply did nothing.
+      toast.error("Không thể xuất .docx", {
+        description:
+          err instanceof Error ? err.message : "Lỗi không xác định khi xuất.",
+      });
     } finally {
       setBusy(false);
     }

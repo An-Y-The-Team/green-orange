@@ -37,10 +37,8 @@ import { formatDate } from "@/utils/format-date/format-date";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { updateProject } from "../../../../../../actions/update-project";
+import { DurationField } from "../../../../../../enums";
 import type { Project } from "../../../../../../types";
-
-/** Which numeric duration column a commit targets. */
-type DurationField = "est_duration_days" | "actual_duration_days";
 
 /**
  * start_date / est / actual — one action state, patches the changed field.
@@ -103,6 +101,13 @@ export function Duration({
     startTransition(() => formAction({ [field]: n }));
   };
 
+  // Start date — mirrors it locally and patches immediately. Clearing the field
+  // only empties the input; no patch is sent (same guard as commitInt).
+  const handleStartDateChange = (value: string) => {
+    setStart(value);
+    if (value) startTransition(() => formAction({ start_date: value }));
+  };
+
   return (
     <section className="space-y-3 text-sm">
       <div className="flex flex-wrap items-end gap-3">
@@ -113,11 +118,7 @@ export function Duration({
             value={start}
             disabled={isPending}
             className="h-8 w-auto"
-            onChange={(value) => {
-              setStart(value);
-              if (value)
-                startTransition(() => formAction({ start_date: value }));
-            }}
+            onChange={handleStartDateChange}
           />
         </div>
         <div className="space-y-1.5">
@@ -130,7 +131,7 @@ export function Duration({
             disabled={isPending}
             className="h-8 w-24"
             onChange={(e) => setEst(e.target.value)}
-            onBlur={(e) => commitInt("est_duration_days")(e.target.value)}
+            onBlur={(e) => commitInt(DurationField.ESTIMATED)(e.target.value)}
           />
         </div>
         {estEnd ? (
@@ -152,7 +153,7 @@ export function Duration({
             disabled={isPending}
             className="h-8 w-24"
             onChange={(e) => setActual(e.target.value)}
-            onBlur={(e) => commitInt("actual_duration_days")(e.target.value)}
+            onBlur={(e) => commitInt(DurationField.ACTUAL)(e.target.value)}
           />
         </div>
         <span className="flex items-center gap-2 pb-1.5 text-muted-foreground">

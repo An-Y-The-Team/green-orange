@@ -32,7 +32,7 @@ export interface ContractTemplate {
   id: number;
   name: string; // internal name, e.g. "Hợp đồng vệ sinh định kỳ"
   doc_title: string; // printed heading, e.g. "HỢP ĐỒNG DỊCH VỤ VỆ SINH"
-  body: string; // Lexical editorState JSON (string form); see lib/lexical-build.ts
+  body: string; // Lexical editorState JSON (string form); see src/utils/lexical-build/lexical-build.ts
   // Printed header style; defaults to letterhead when unset.
   header_style?: HeaderVariant;
   is_active: boolean;

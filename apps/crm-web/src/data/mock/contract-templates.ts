@@ -12,8 +12,9 @@ import {
 // Mẫu hợp đồng — reusable boilerplate authored in the rich-text editor. Bodies
 // are stored as Lexical editorState JSON (string form); the merge-field chips
 // (mf("token")) resolve against the contract + its project/chốt quote at
-// render time (see lib/merge-template.ts). Built with lib/lexical-build.ts
-// helpers so the JSON shape stays valid and readable.
+// render time (see src/utils/merge-template/merge-template.ts). Built with the
+// src/utils/lexical-build/lexical-build.ts helpers so the JSON shape stays
+// valid and readable.
 export const contractTemplates: ContractTemplate[] = [
   {
     id: 1,

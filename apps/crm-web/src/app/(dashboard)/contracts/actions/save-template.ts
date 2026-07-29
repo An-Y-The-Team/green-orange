@@ -6,6 +6,7 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { contractTemplates } from "@/data/mock/contract-templates";
 import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { unknownTokens } from "@/utils/merge-template/merge-template";
 
 import {
   type ContractTemplateFormValues,
@@ -18,6 +19,10 @@ import type { ContractTemplate } from "../types";
  * existing row; otherwise it POSTs a new one. In mock mode it just synthesises
  * the saved record (mutations aren't persisted across reloads) so the editor
  * flow is demoable without a backend.
+ *
+ * A body may only use tokens from CONTRACT_TOKENS. Anything else has no value to
+ * resolve to and would print as `⟨token?⟩` on a signed contract, so the save is
+ * refused here — the last place before the body becomes a legal document.
  */
 export async function saveTemplate(
   id: number | undefined,
@@ -31,6 +36,20 @@ export async function saveTemplate(
       success: false,
       message: "Vui lòng kiểm tra lại thông tin đã nhập.",
       errors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const unresolvable = unknownTokens(parsed.data.body);
+  if (unresolvable.length > 0) {
+    const list = unresolvable.map((t) => `{{${t}}}`).join(", ");
+    return {
+      success: false,
+      message: `Không thể lưu: mẫu dùng trường trộn không tồn tại (${list}).`,
+      errors: {
+        body: [
+          `Trường trộn không tồn tại: ${list}. Hãy xoá hoặc thay bằng trường trong danh sách bên phải — nếu để lại, hợp đồng in ra sẽ hiện ⟨…?⟩ thay vì dữ liệu.`,
+        ],
+      },
     };
   }
 

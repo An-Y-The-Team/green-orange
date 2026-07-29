@@ -618,6 +618,24 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 <ScrollArea className="h-full w-full">{content}</ScrollArea>;
 ```
 
+**Waiver — horizontal table scroll.** This rule targets scrollers whose _width_ a
+classic scrollbar can steal, reflowing their content: vertical scrollers inside a
+fixed-size container. It does not apply to a horizontal, auto-height scroller, where a
+classic scrollbar only adds height below the content and nothing is sized off it.
+
+In this monorepo the single horizontal table scroller is the container inside
+`packages/ui/src/components/table.tsx`, which `<Table>` provides for every consumer —
+pages must **not** add their own `overflow-x-auto` wrapper around a `<Table>`, because the
+inner container clips first and the outer one is dead. Wrapping a `<table>` in a
+`ScrollArea` is actively worse here: Base UI's viewport scrolls both axes with native
+scrollbars suppressed, which breaks sticky table headers, and it forces a client-component
+boundary into every server-rendered list page.
+
+Note also that this project's shared UI is `@yan/ui/components/*`; there is no
+`@/components/ui/scroll-area`. If a genuinely fixed-height **vertical** scroller is
+needed, build it on the already-installed `@base-ui/react/scroll-area` (the primitive the
+rest of `@yan/ui` uses) — do **not** add `@radix-ui/react-scroll-area`.
+
 ## Data Handling
 
 ### Date/Time

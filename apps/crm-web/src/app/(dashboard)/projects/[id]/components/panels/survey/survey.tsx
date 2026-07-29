@@ -106,6 +106,13 @@ export function SurveyPanel({
     },
   });
 
+  // Saves the edited visit date, then closes the dialog optimistically — the
+  // toast reports the outcome, so there's nothing left to see behind it.
+  const handleSaveVisitDate = () => {
+    save({ visit_date: visitDate });
+    setVisitOpen(false);
+  };
+
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [delState, delAction] = useActionState(
     (prev: ServerActionState, id: number) =>
@@ -119,6 +126,12 @@ export function SurveyPanel({
     onSuccess: (data: { id: number }) =>
       setRows((prev) => prev.filter((r) => r.id !== data.id)),
   });
+
+  // Remembers which row is going away so only that button shows as pending.
+  const handleDeleteAttachment = (id: number) => {
+    setDeletingId(id);
+    startDel(() => delAction(id));
+  };
 
   return (
     <div className="space-y-6 border-t border-border pt-4">
@@ -153,10 +166,7 @@ export function SurveyPanel({
               <DialogClose render={<Button variant="ghost">Đóng</Button>} />
               <Button
                 disabled={savePending || !visitDate}
-                onClick={() => {
-                  save({ visit_date: visitDate });
-                  setVisitOpen(false);
-                }}
+                onClick={handleSaveVisitDate}
               >
                 Lưu
               </Button>
@@ -284,10 +294,7 @@ export function SurveyPanel({
                   size="sm"
                   className="h-auto p-0"
                   disabled={delPending && deletingId === a.id}
-                  onClick={() => {
-                    setDeletingId(a.id);
-                    startDel(() => delAction(a.id));
-                  }}
+                  onClick={() => handleDeleteAttachment(a.id)}
                 >
                   Xoá
                 </Button>

@@ -8,6 +8,7 @@ import {
 } from "@yan/ui/components/card";
 
 import { projectStage, projectStageOrder } from "@/constants/labels";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import type { Project } from "../../../types";
 
@@ -38,7 +39,7 @@ export function StageCard({
         <CardTitle className="flex items-center justify-between text-sm uppercase tracking-wide text-muted-foreground">
           <span>
             Giai đoạn {projectStageOrder.indexOf(project.stage) + 1} ·{" "}
-            {projectStage[project.stage]?.label ?? project.stage}
+            {labelOf(projectStage, project.stage).label}
           </span>
           {aside}
         </CardTitle>

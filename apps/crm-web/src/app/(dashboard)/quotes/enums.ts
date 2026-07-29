@@ -1,4 +1,4 @@
-// Báo giá — v2 contract values (English); labels in src/lib/labels.ts.
+// Báo giá — v2 contract values (English); labels in src/constants/labels.ts.
 // Bargaining = new version; sent versions are never edited; the latest
 // version carries the live status. Quyết toán is its own entity now
 // (receivables feature), no more quote `type`.

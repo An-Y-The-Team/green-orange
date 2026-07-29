@@ -24,7 +24,7 @@ sát" (the appointment _is_ the survey visit, same day — two stages for one
 event was friction, not tracking).
 
 Enum: `ProjectStage` (`apps/crm-web/src/app/(dashboard)/projects/enums.ts`),
-display order in `src/lib/labels.ts` (`projectStageOrder`) — code still has
+display order in `src/constants/labels.ts` (`projectStageOrder`) — code still has
 the old 10 stages; update when implementing.
 
 ## Client model (confirmed)

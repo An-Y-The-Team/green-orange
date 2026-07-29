@@ -14,6 +14,7 @@ import {
 } from "@yan/ui/components/table";
 
 import { crewMemberStatus, employmentType } from "@/constants/labels";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import { EmploymentType } from "../../enums";
 import type { CrewMember } from "../../types";
@@ -39,37 +40,42 @@ export function RosterTab({ members }: { members: CrewMember[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {members.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell className="font-medium">
-                  <Link href={`/crew/${member.id}`} className="hover:underline">
-                    {member.name}
-                  </Link>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {member.phone ?? "—"}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {member.default_role?.name ?? "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      member.employment_type === EmploymentType.PERMANENT
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {employmentType[member.employment_type]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={crewMemberStatus[member.status].variant}>
-                    {crewMemberStatus[member.status].label}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
+            {members.map((member) => {
+              const status = labelOf(crewMemberStatus, member.status);
+              return (
+                <TableRow key={member.id}>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/crew/${member.id}`}
+                      className="hover:underline"
+                    >
+                      {member.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {member.phone ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {member.default_role?.name ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        member.employment_type === EmploymentType.PERMANENT
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {employmentType[member.employment_type] ??
+                        member.employment_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={status.variant}>{status.label}</Badge>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Card>

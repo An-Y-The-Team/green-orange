@@ -2,7 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useActionState, useState, useTransition } from "react";
+import {
+  type ChangeEvent,
+  useActionState,
+  useState,
+  useTransition,
+} from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { useServerAction } from "@yan/shared/hooks/use-server-actions";
@@ -36,7 +41,7 @@ import {
   type CreateProjectFormValues,
   createProjectSchema,
 } from "../../schema";
-import type { ProjectType } from "../../types";
+import type { Project, ProjectType } from "../../types";
 import { ClientCascadeSelects } from "./components/client-cascade-selects/client-cascade-selects";
 import { QuickCreateClient } from "./components/quick-create-client/quick-create-client";
 import { RequestFields } from "./components/request-fields/request-fields";
@@ -104,7 +109,7 @@ export function IntakeForm({
 
   useServerAction(state, isPending, {
     ...ACTION_TOAST_TITLES,
-    onSuccess: (data) => router.push(`/projects/${data.id}`),
+    onSuccess: (data: Project) => router.push(`/projects/${data?.id}`),
   });
 
   const isIndividual = detail?.type === ClientType.INDIVIDUAL;
@@ -278,58 +283,65 @@ export function IntakeForm({
             <FormField
               control={form.control}
               name="type_ids"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Loại công trình</FormLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {projectTypes.map((t) => {
-                      const active = field.value.includes(t.id);
-                      return (
+              render={({ field }) => {
+                // Chip toggle — adds/removes one type id, then re-suggests the
+                // project name from the (possibly new) first type.
+                const handleTypeToggle = (typeId: number) => {
+                  const next = field.value.includes(typeId)
+                    ? field.value.filter((id) => id !== typeId)
+                    : [...field.value, typeId];
+                  field.onChange(next);
+                  maybeSuggestName(next, form.getValues("location_id"));
+                };
+
+                return (
+                  <FormItem>
+                    <FormLabel>Loại công trình</FormLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {projectTypes.map((t) => (
                         <Button
                           key={t.id}
                           type="button"
                           size="sm"
-                          variant={active ? "default" : "outline"}
-                          onClick={() => {
-                            const next = active
-                              ? field.value.filter((id) => id !== t.id)
-                              : [...field.value, t.id];
-                            field.onChange(next);
-                            maybeSuggestName(
-                              next,
-                              form.getValues("location_id")
-                            );
-                          }}
+                          variant={
+                            field.value.includes(t.id) ? "default" : "outline"
+                          }
+                          onClick={() => handleTypeToggle(t.id)}
                         >
                           {t.name}
                         </Button>
-                      );
-                    })}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField
               control={form.control}
               name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tên công trình</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Vệ sinh Toà nhà A"
-                      {...field}
-                      onChange={(e) => {
-                        setNameTouched(true);
-                        field.onChange(e);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                // A manual edit stops the auto-suggestion from overwriting it.
+                const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+                  setNameTouched(true);
+                  field.onChange(e);
+                };
+
+                return (
+                  <FormItem>
+                    <FormLabel>Tên công trình</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Vệ sinh Toà nhà A"
+                        {...field}
+                        onChange={handleNameChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             {isRequest ? (

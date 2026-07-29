@@ -15,7 +15,10 @@ import { Fragment, type ReactNode } from "react";
 
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { type LexNode, TEXT_FORMAT } from "@/utils/lexical-build/lexical-build";
-import type { MergeContext } from "@/utils/merge-template/merge-template";
+import {
+  type MergeContext,
+  unresolvedMarker,
+} from "@/utils/merge-template/merge-template";
 import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
@@ -39,8 +42,22 @@ function inlineText(node: LexNode, ctx: MergeContext, key: number): ReactNode {
   let content: ReactNode;
   if (node.type === "merge-field") {
     const token = node.token ?? "";
-    // Unknown token stays visible as ⟨token?⟩ so typos surface (same as before).
-    content = token in ctx ? ctx[token] : `⟨${token}?⟩`;
+    if (token in ctx) {
+      content = ctx[token];
+    } else {
+      // Styled as a loud error, not as content: this is a token nothing can
+      // resolve, and the same renderer draws the printable contract. Saving a
+      // template with one is refused (contracts/actions/save-template.ts), so
+      // this only shows for bodies stored before that check existed.
+      content = (
+        <span
+          className="rounded border border-red-400 bg-red-100 px-1 font-semibold text-red-700 print:border-red-600"
+          title={`Trường trộn không tồn tại: ${token}. Sửa mẫu hợp đồng trước khi in.`}
+        >
+          {unresolvedMarker(token)}
+        </span>
+      );
+    }
   } else {
     content = node.text ?? "";
   }

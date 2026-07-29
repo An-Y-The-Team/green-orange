@@ -679,7 +679,7 @@ pages (which remain usable, just not optimized, on mobile).
   from `crm-database-schema.md` — English values (`ProjectStage.QUOTE`,
   `QuoteStatus.DEAL`, …), snake_case fields, `*_date` strings vs `*_at` ISO.
   Money and hours arrive as numbers. Delete all Vietnamese-valued enums.
-- **`labels.ts`:** rebuilt from the glossary — one map per enum:
+- **`src/constants/labels.ts`:** rebuilt from the glossary — one map per enum:
   `{ label: string; variant: BadgeVariant }`. The only Vietnamese in code.
 - **Data layer:** keep the current pattern — per-feature `queries.ts`
   (server components) + `"use server"` actions calling `apiSend`, zod

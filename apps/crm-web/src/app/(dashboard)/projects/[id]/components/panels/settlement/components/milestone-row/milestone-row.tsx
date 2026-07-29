@@ -22,6 +22,7 @@ import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
+import { labelOf } from "@/utils/label-of/label-of";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 /** One đợt thanh toán inside the settlement card, with an inline "đã thu" confirm. */
@@ -36,6 +37,7 @@ export function MilestoneRow({
   const [paidDate, setPaidDate] = useState(todayISO);
   const paid = milestone.status === MilestoneStatus.PAID;
   const late = isOverdue(milestone.due_date, paid);
+  const badge = late ? overdue : labelOf(milestoneStatus, milestone.status);
 
   const [pending, run] = useRun(
     markMilestonePaid.bind(null, milestone.id, projectId, milestone.status),
@@ -44,20 +46,16 @@ export function MilestoneRow({
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
-      <span className="font-medium">{milestoneType[milestone.type]}</span>
+      <span className="font-medium">
+        {milestoneType[milestone.type] ?? milestone.type}
+      </span>
       <span className="tabular-nums">{formatVND(milestone.amount)}</span>
       {milestone.due_date ? (
         <span className="text-muted-foreground">
           hạn {formatDate(milestone.due_date)}
         </span>
       ) : null}
-      {late ? (
-        <Badge variant={overdue.variant}>{overdue.label}</Badge>
-      ) : (
-        <Badge variant={milestoneStatus[milestone.status].variant}>
-          {milestoneStatus[milestone.status].label}
-        </Badge>
-      )}
+      <Badge variant={badge.variant}>{badge.label}</Badge>
       {paid && milestone.paid_date ? (
         <span className="text-muted-foreground">
           {formatDate(milestone.paid_date)}

@@ -70,6 +70,25 @@ function DateInput({
     setOpen(false);
   };
 
+  // Typing keeps `draft` as the visible text and only reports upward once the
+  // text parses to a real date — an empty box reports "" (cleared).
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setDraft(text);
+    if (text.trim() === "") {
+      onChange("");
+      return;
+    }
+    const iso = fromDisplay(text);
+    if (iso) onChange(iso);
+  };
+
+  // Reopening always lands on the selected month, never where the user browsed to.
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next) setViewMonth(null);
+  };
+
   return (
     <div className={cn("relative w-full", className)}>
       <Input
@@ -79,24 +98,10 @@ function DateInput({
         placeholder="dd/mm/yyyy"
         className="pr-8"
         value={draft ?? toDisplay(value)}
-        onChange={(e) => {
-          const text = e.target.value;
-          setDraft(text);
-          if (text.trim() === "") onChange("");
-          else {
-            const iso = fromDisplay(text);
-            if (iso) onChange(iso);
-          }
-        }}
+        onChange={handleTextChange}
         onBlur={() => setDraft(null)}
       />
-      <Popover.Root
-        open={open}
-        onOpenChange={(next) => {
-          setOpen(next);
-          if (next) setViewMonth(null);
-        }}
-      >
+      <Popover.Root open={open} onOpenChange={handleOpenChange}>
         <Popover.Trigger
           render={
             <Button
@@ -183,11 +188,7 @@ function DateInput({
                   size="xs"
                   type="button"
                   className="px-0 text-muted-foreground"
-                  onClick={() => {
-                    onChange("");
-                    setDraft(null);
-                    setOpen(false);
-                  }}
+                  onClick={() => pick("")}
                 >
                   Xoá
                 </Button>

@@ -3,15 +3,25 @@ import { toast } from "sonner";
 
 import { buildServerActionErrorMessage } from "../../utils/build-server-action-error-message/build-server-action-error-message";
 
-export interface ServerActionState {
+/**
+ * `TData` is the action's success payload. It defaults to `unknown` so an action
+ * that declares nothing forces its consumer to narrow before reading fields.
+ */
+export interface ServerActionState<TData = unknown> {
   success: boolean;
   message?: string | null;
   errors?: Record<string, string[]>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any;
+  data?: TData;
 }
 
 interface UseServerActionOptions {
+  /**
+   * Receives `ServerActionState.data`. Still `any` rather than the state's
+   * `TData`: `quote-builder-form.tsx` reads `data?.id` off an untyped payload,
+   * so tightening this to `TData`/`unknown` is a separate change that has to
+   * land with a narrowing there. Annotate the parameter at the call site
+   * (`onSuccess: (data?: unknown) => …`) to get a checked payload today.
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSuccess?: (data?: any) => void;
   onError?: (error: string) => void;
