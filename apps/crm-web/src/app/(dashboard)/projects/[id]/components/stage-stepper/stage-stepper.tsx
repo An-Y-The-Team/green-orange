@@ -22,7 +22,7 @@ import { projectStage, projectStageOrder } from "@/constants/labels";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { updateProject } from "../../../actions/update-project";
-import { ProjectStage, ProjectStatus } from "../../../enums";
+import { ProjectStatus } from "../../../enums";
 import type { Project } from "../../../types";
 
 export function StageStepper({ project }: { project: Project }) {
@@ -42,33 +42,27 @@ export function StageStepper({ project }: { project: Project }) {
   // Frozen (on_hold/cancelled) jobs can't advance until reactivated.
   const canAdvance =
     project.status === ProjectStatus.ACTIVE && Boolean(nextStage);
+  // Only one step back, via the explicit button — chips are display-only, so a
+  // click can never move the stage (the old backward-only chips read as broken).
+  // Backend allows closed → settlement (reopen), which is exactly prevStage.
   const canGoBack =
     project.status === ProjectStatus.ACTIVE && Boolean(prevStage);
-  // Backend only allows closed → settlement (reopen); other closed moves 409.
-  const canGoBackTo = (stage: ProjectStage) =>
-    canGoBack &&
-    (project.stage !== ProjectStage.CLOSED ||
-      stage === ProjectStage.SETTLEMENT);
   // Soft guard for mistaken advances: moving back is always confirm-gated,
   // and data entered in later stages is kept (stages are soft, per design).
-  const [backTarget, setBackTarget] = useState<ProjectStage | null>(null);
-  const goBack = (stage: ProjectStage) => setBackTarget(stage);
+  const [confirmBack, setConfirmBack] = useState(false);
   const confirmGoBack = () => {
-    if (backTarget) startTransition(() => formAction({ stage: backTarget }));
-    setBackTarget(null);
+    startTransition(() => formAction({ stage: prevStage }));
+    setConfirmBack(false);
   };
 
   return (
     <div className="mb-6">
-      <Dialog
-        open={backTarget !== null}
-        onOpenChange={(open) => !open && setBackTarget(null)}
-      >
+      <Dialog open={confirmBack} onOpenChange={setConfirmBack}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
               Quay lại giai đoạn &ldquo;
-              {backTarget ? labelOf(projectStage, backTarget).label : ""}
+              {prevStage ? labelOf(projectStage, prevStage).label : ""}
               &rdquo;?
             </DialogTitle>
             <DialogDescription>
@@ -76,7 +70,7 @@ export function StageStepper({ project }: { project: Project }) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBackTarget(null)}>
+            <Button variant="outline" onClick={() => setConfirmBack(false)}>
               Hủy
             </Button>
             <Button disabled={isPending} onClick={confirmGoBack}>
@@ -92,12 +86,12 @@ export function StageStepper({ project }: { project: Project }) {
           {currentIndex + 1}/{projectStageOrder.length} ·{" "}
           {labelOf(projectStage, project.stage).label}
         </span>
-        {canGoBackTo(prevStage) ? (
+        {canGoBack ? (
           <Button
             size="sm"
             variant="outline"
             disabled={isPending}
-            onClick={() => goBack(prevStage)}
+            onClick={() => setConfirmBack(true)}
           >
             ← {labelOf(projectStage, prevStage).label}
           </Button>
@@ -120,8 +114,8 @@ export function StageStepper({ project }: { project: Project }) {
         {projectStageOrder.map((stage, i) => {
           const done = i < currentIndex;
           const current = i === currentIndex;
-          const pill = (
-            <>
+          return (
+            <div key={stage} className="flex items-center gap-2">
               <span
                 className={cn(
                   "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
@@ -143,38 +137,19 @@ export function StageStepper({ project }: { project: Project }) {
               >
                 {labelOf(projectStage, stage).label}
               </span>
-            </>
-          );
-          return (
-            <div key={stage} className="flex items-center gap-2">
-              {done && canGoBackTo(stage) ? (
-                <button
-                  type="button"
-                  disabled={isPending}
-                  title={`Quay lại: ${labelOf(projectStage, stage).label}`}
-                  onClick={() => goBack(stage)}
-                  className="flex cursor-pointer items-center gap-2 hover:opacity-80"
-                >
-                  {pill}
-                </button>
-              ) : (
-                <a href={`#stage-${stage}`} className="flex items-center gap-2">
-                  {pill}
-                </a>
-              )}
               {i < projectStageOrder.length - 1 && (
                 <span className="mx-0.5 h-px w-4 bg-border" aria-hidden />
               )}
             </div>
           );
         })}
-        {canGoBackTo(prevStage) ? (
+        {canGoBack ? (
           <Button
             size="sm"
             variant="outline"
             className="ml-2"
             disabled={isPending}
-            onClick={() => goBack(prevStage)}
+            onClick={() => setConfirmBack(true)}
           >
             ← {labelOf(projectStage, prevStage).label}
           </Button>
@@ -182,7 +157,7 @@ export function StageStepper({ project }: { project: Project }) {
         {canAdvance ? (
           <Button
             size="sm"
-            className={canGoBackTo(prevStage) ? undefined : "ml-2"}
+            className={canGoBack ? undefined : "ml-2"}
             disabled={isPending}
             onClick={() =>
               startTransition(() => formAction({ stage: nextStage }))
