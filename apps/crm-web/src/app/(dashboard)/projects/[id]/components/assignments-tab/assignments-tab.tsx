@@ -38,6 +38,7 @@ import {
 } from "../../../../crew/actions/assignments";
 import { CrewMemberStatus } from "../../../../crew/enums";
 import type { Assignment, CrewMember, CrewRole } from "../../../../crew/types";
+import { QuickCreateCrewMember } from "./components/quick-create-crew-member/quick-create-crew-member";
 
 type Fields = {
   crew_member_id: string;
@@ -80,6 +81,16 @@ export function AssignmentsTab({
   );
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formKey, setFormKey] = useState(0); // bump to reset the add form
+  // createCrewMember only revalidates /crew, so a member created from the
+  // quick-add below is merged into the picker here until this page refetches
+  // (the next phân công save revalidates /projects/:id and drops them again).
+  const [addedCrew, setAddedCrew] = useState<CrewMember[]>([]);
+
+  const knownIds = new Set(crew.map((c) => c.id));
+  const pickerCrew = [...crew, ...addedCrew.filter((c) => !knownIds.has(c.id))];
+
+  const handleMemberCreated = (member: CrewMember) =>
+    setAddedCrew((prev) => [...prev, member]);
 
   // create/update echo the saved phân công back as an untyped payload; its id
   // keys the overlap warnings, so a payload without one is ignored.
@@ -133,7 +144,7 @@ export function AssignmentsTab({
           key={editingId ?? `new-${formKey}`}
           projectId={projectId}
           assignmentId={editing?.id}
-          crew={crew}
+          crew={pickerCrew}
           roles={roles}
           initial={
             editing
@@ -147,6 +158,7 @@ export function AssignmentsTab({
           }
           onSaved={onSaved}
           onCancel={editing ? () => setEditingId(null) : undefined}
+          onMemberCreated={handleMemberCreated}
         />
       </div>
     </div>
@@ -249,6 +261,7 @@ function AssignmentForm({
   initial,
   onSaved,
   onCancel,
+  onMemberCreated,
 }: {
   projectId: number;
   assignmentId?: number;
@@ -257,8 +270,10 @@ function AssignmentForm({
   initial: Fields;
   onSaved: (data?: unknown) => void;
   onCancel?: () => void;
+  onMemberCreated: (member: CrewMember) => void;
 }) {
   const [f, setF] = useState<Fields>(initial);
+  const [quickCreate, setQuickCreate] = useState(false);
   const action = assignmentId
     ? updateAssignment.bind(null, assignmentId, projectId)
     : createAssignment.bind(null, projectId);
@@ -279,6 +294,14 @@ function AssignmentForm({
       c.status === CrewMemberStatus.WORKING || String(c.id) === f.crew_member_id
   );
 
+  // The new member lands in the picker (parent state) and is selected here, so
+  // the dates already typed into this form survive the quick-create.
+  const handleMemberCreated = (member: CrewMember) => {
+    onMemberCreated(member);
+    setF((prev) => ({ ...prev, crew_member_id: String(member.id) }));
+    setQuickCreate(false);
+  };
+
   const submit = () =>
     startTransition(() =>
       formAction({
@@ -290,70 +313,86 @@ function AssignmentForm({
     );
 
   return (
-    <div className="flex flex-wrap items-end gap-2">
-      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        Nhân viên
-        <select
-          className={SELECT_CLASS}
-          value={f.crew_member_id}
-          onChange={(e) => setF({ ...f, crew_member_id: e.target.value })}
-        >
-          <option value="">— Chọn —</option>
-          {options.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-              {c.status === CrewMemberStatus.WORKING
-                ? ""
-                : ` (${labelOf(CREW_MEMBER_STATUSES, c.status).label})`}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        Vai trò
-        <select
-          className={SELECT_CLASS}
-          value={f.role_id}
-          onChange={(e) => setF({ ...f, role_id: e.target.value })}
-        >
-          <option value="">— Mặc định —</option>
-          {roles.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        Từ ngày
-        <DateInput
-          className="w-auto"
-          value={f.from_date}
-          onChange={(v) => setF({ ...f, from_date: v })}
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        Đến ngày
-        <DateInput
-          className="w-auto"
-          value={f.to_date}
-          onChange={(v) => setF({ ...f, to_date: v })}
-        />
-      </label>
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          disabled={isPending || !f.crew_member_id || !f.from_date}
-          onClick={submit}
-        >
-          {isPending ? "Đang lưu…" : assignmentId ? "Lưu" : "Thêm"}
-        </Button>
-        {onCancel ? (
-          <Button variant="outline" size="sm" onClick={onCancel}>
-            Hủy
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          Nhân viên
+          <select
+            className={SELECT_CLASS}
+            value={f.crew_member_id}
+            onChange={(e) => setF({ ...f, crew_member_id: e.target.value })}
+          >
+            <option value="">— Chọn —</option>
+            {options.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+                {c.status === CrewMemberStatus.WORKING
+                  ? ""
+                  : ` (${labelOf(CREW_MEMBER_STATUSES, c.status).label})`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          Vai trò
+          <select
+            className={SELECT_CLASS}
+            value={f.role_id}
+            onChange={(e) => setF({ ...f, role_id: e.target.value })}
+          >
+            <option value="">— Mặc định —</option>
+            {roles.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          Từ ngày
+          <DateInput
+            className="w-auto"
+            value={f.from_date}
+            onChange={(v) => setF({ ...f, from_date: v })}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          Đến ngày
+          <DateInput
+            className="w-auto"
+            value={f.to_date}
+            onChange={(v) => setF({ ...f, to_date: v })}
+          />
+        </label>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            disabled={isPending || !f.crew_member_id || !f.from_date}
+            onClick={submit}
+          >
+            {isPending ? "Đang lưu…" : assignmentId ? "Lưu" : "Thêm"}
           </Button>
-        ) : null}
+          {onCancel ? (
+            <Button variant="outline" size="sm" onClick={onCancel}>
+              Hủy
+            </Button>
+          ) : null}
+        </div>
       </div>
+
+      <Button
+        type="button"
+        variant="link"
+        size="sm"
+        className="h-auto p-0"
+        onClick={() => setQuickCreate((v) => !v)}
+      >
+        + tạo nhanh nhân sự
+      </Button>
+
+      {quickCreate ? (
+        <QuickCreateCrewMember onCreated={handleMemberCreated} />
+      ) : null}
     </div>
   );
 }
