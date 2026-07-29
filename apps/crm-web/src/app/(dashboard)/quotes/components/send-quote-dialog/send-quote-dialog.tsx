@@ -91,7 +91,7 @@ export function SendQuoteDialog({
                     checked={channels.includes(c)}
                     onChange={() => toggle(c)}
                   />
-                  {quoteChannel[c]}
+                  {quoteChannel[c] ?? c}
                 </label>
               ))}
             </div>

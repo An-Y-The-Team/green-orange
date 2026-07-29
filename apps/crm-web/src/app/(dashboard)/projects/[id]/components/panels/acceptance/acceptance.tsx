@@ -24,6 +24,7 @@ import { Textarea } from "@yan/ui/components/textarea";
 
 import { acceptanceSubStatus } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import { addNote } from "../../../../actions/add-note";
 import { addAttachment } from "../../../../actions/attachments";
@@ -98,7 +99,7 @@ export function AcceptancePanel({ project }: { project: Project }) {
     .filter((n) => n.tag && ACCEPTANCE_TAGS.has(n.tag))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
-  const label = acceptanceSubStatus[sub];
+  const label = labelOf(acceptanceSubStatus, sub);
 
   return (
     <StageCard
@@ -122,7 +123,7 @@ export function AcceptancePanel({ project }: { project: Project }) {
                   : "text-muted-foreground"
               }
             >
-              {acceptanceSubStatus[s].label}
+              {labelOf(acceptanceSubStatus, s).label}
             </span>
           </li>
         ))}

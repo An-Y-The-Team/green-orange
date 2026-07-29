@@ -25,6 +25,7 @@ import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
+import { labelOf } from "@/utils/label-of/label-of";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { markMilestonePaid } from "../actions/milestones";
@@ -44,7 +45,7 @@ export function MilestoneRow({
   const [paidDate, setPaidDate] = useState(todayISO);
   const paid = milestone.status === MilestoneStatus.PAID;
   const late = isOverdue(milestone.due_date, paid);
-  const badge = late ? overdue : milestoneStatus[milestone.status];
+  const badge = late ? overdue : labelOf(milestoneStatus, milestone.status);
 
   const [pending, run] = useRun(
     markMilestonePaid.bind(
@@ -60,7 +61,7 @@ export function MilestoneRow({
     <TableRow>
       <TableCell className="font-medium">{projectCode}</TableCell>
       <TableCell className="text-muted-foreground">
-        {milestoneType[milestone.type]}
+        {milestoneType[milestone.type] ?? milestone.type}
       </TableCell>
       <TableCell className="text-right">
         {formatVND(milestone.amount)}
@@ -122,6 +123,7 @@ export function BillRow({
 }) {
   const idx = BILL_ORDER.indexOf(bill.status);
   const official = idx >= BILL_ORDER.indexOf(BillStatus.OFFICIAL);
+  const badge = labelOf(billStatus, bill.status);
   const [pending, run] = useRun(
     updateBill.bind(null, bill.id, bill.project_id)
   );
@@ -133,9 +135,7 @@ export function BillRow({
         {formatVND(bill.total_amount)}
       </TableCell>
       <TableCell>
-        <Badge variant={billStatus[bill.status].variant}>
-          {billStatus[bill.status].label}
-        </Badge>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
       </TableCell>
       <TableCell className="text-muted-foreground">
         {bill.sent_date ? formatDate(bill.sent_date) : "—"}

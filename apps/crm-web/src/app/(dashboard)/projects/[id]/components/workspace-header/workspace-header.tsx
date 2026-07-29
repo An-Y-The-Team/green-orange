@@ -25,6 +25,7 @@ import { Textarea } from "@yan/ui/components/textarea";
 
 import { projectStage, projectStatus } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import {
   type UpdateProjectFormValues,
@@ -116,6 +117,9 @@ export function WorkspaceHeader({
   const frozen =
     project.status === ProjectStatus.ON_HOLD ||
     project.status === ProjectStatus.CANCELLED;
+
+  // Same key both places it's shown — the header badge and the frozen banner.
+  const statusBadge = labelOf(projectStatus, project.status);
 
   const shownContacts = [
     project.working_contact,
@@ -236,9 +240,7 @@ export function WorkspaceHeader({
                 {project.code}
               </span>
               <h1 className="text-xl font-semibold">{project.name}</h1>
-              <Badge variant={projectStatus[project.status].variant}>
-                {projectStatus[project.status].label}
-              </Badge>
+              <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
             </div>
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
               <span>{project.client?.name ?? `#${project.client_id}`}</span>
@@ -359,12 +361,10 @@ export function WorkspaceHeader({
 
       {frozen ? (
         <div className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-2 text-sm">
-          <span className="font-medium">
-            {projectStatus[project.status].label}
-          </span>
+          <span className="font-medium">{statusBadge.label}</span>
           {" — đóng băng ở giai đoạn "}
           <span className="font-medium">
-            {projectStage[project.stage].label}
+            {labelOf(projectStage, project.stage).label}
           </span>
           {project.status === ProjectStatus.CANCELLED && project.cancel_reason
             ? `. Lý do: ${project.cancel_reason}`

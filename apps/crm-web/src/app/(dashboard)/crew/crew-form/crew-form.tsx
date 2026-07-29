@@ -18,6 +18,7 @@ import { Textarea } from "@yan/ui/components/textarea";
 
 import { fieldError, selectClass } from "@/components/form-bits/form-bits";
 import { crewMemberStatus, employmentType } from "@/constants/labels";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import { createCrewMember, updateCrewMember } from "../actions/members";
 import { CrewMemberStatus, EmploymentType } from "../enums";
@@ -102,7 +103,7 @@ export function CrewForm({
             >
               {Object.values(EmploymentType).map((t) => (
                 <option key={t} value={t}>
-                  {employmentType[t]}
+                  {employmentType[t] ?? t}
                 </option>
               ))}
             </select>
@@ -131,7 +132,7 @@ export function CrewForm({
             <select className={selectClass} {...form.register("status")}>
               {Object.values(CrewMemberStatus).map((s) => (
                 <option key={s} value={s}>
-                  {crewMemberStatus[s].label}
+                  {labelOf(crewMemberStatus, s).label}
                 </option>
               ))}
             </select>

@@ -18,6 +18,7 @@ import {
 } from "@/app/(dashboard)/projects/enums";
 import type { Project } from "@/app/(dashboard)/projects/types";
 import { acceptanceSubStatus, executionSubStatus } from "@/constants/labels";
+import { labelOf } from "@/utils/label-of/label-of";
 
 const initialState: ServerActionState = { success: false };
 const toastOpts = { successToastTitle: "Thành công", errorToastTitle: "Lỗi" };
@@ -50,8 +51,8 @@ export function FieldSubStatusCard({ project }: { project: Project }) {
   const acc = project.acceptance_sub_status ?? AcceptanceSubStatus.REQUEST_SENT;
 
   const currentLabel = isExecution
-    ? executionSubStatus[execCurrent]
-    : acceptanceSubStatus[acc];
+    ? labelOf(executionSubStatus, execCurrent)
+    : labelOf(acceptanceSubStatus, acc);
 
   return (
     <div className="space-y-3 rounded-lg border p-3">
@@ -74,7 +75,7 @@ export function FieldSubStatusCard({ project }: { project: Project }) {
                 disabled={isPending}
                 onClick={() => run({ execution_sub_status: target })}
               >
-                → {executionSubStatus[target].label}
+                → {labelOf(executionSubStatus, target).label}
               </Button>
             ))}
             <Button

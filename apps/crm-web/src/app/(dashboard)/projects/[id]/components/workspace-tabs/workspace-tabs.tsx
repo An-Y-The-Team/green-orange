@@ -22,6 +22,7 @@ import { overdue, paperworkStatus, quoteStatus } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import type { Assignment, CrewMember, CrewRole } from "../../../../crew/types";
 import { addNote } from "../../../actions/add-note";
@@ -100,20 +101,21 @@ function QuotesTab({ project }: { project: Project }) {
   if (quotes.length === 0) return <Stub text="Chưa có báo giá." />;
   return (
     <ul className="space-y-2">
-      {quotes.map((q) => (
-        <li
-          key={q.id}
-          className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm"
-        >
-          <span className="font-medium">
-            {project.code} · v{q.version}
-          </span>
-          <span>{formatVND(q.total_amount)}</span>
-          <Badge variant={quoteStatus[q.status].variant}>
-            {quoteStatus[q.status].label}
-          </Badge>
-        </li>
-      ))}
+      {quotes.map((q) => {
+        const badge = labelOf(quoteStatus, q.status);
+        return (
+          <li
+            key={q.id}
+            className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+          >
+            <span className="font-medium">
+              {project.code} · v{q.version}
+            </span>
+            <span>{formatVND(q.total_amount)}</span>
+            <Badge variant={badge.variant}>{badge.label}</Badge>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -131,30 +133,31 @@ function PaperworkTab({ items }: { items: PaperworkItem[] }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {items.map((item) => (
-          <TableRow key={item.id}>
-            <TableCell>{item.name}</TableCell>
-            <TableCell>
-              <div className="flex gap-1">
-                <Badge variant={paperworkStatus[item.status].variant}>
-                  {paperworkStatus[item.status].label}
-                </Badge>
-                {isOverdue(
-                  item.due_date,
-                  item.status === PaperworkStatus.APPROVED
-                ) ? (
-                  <Badge variant={overdue.variant}>{overdue.label}</Badge>
-                ) : null}
-              </div>
-            </TableCell>
-            <TableCell className="text-muted-foreground">
-              {item.due_date ? formatDate(item.due_date) : "—"}
-            </TableCell>
-            <TableCell className="text-muted-foreground">
-              {item.note ?? "—"}
-            </TableCell>
-          </TableRow>
-        ))}
+        {items.map((item) => {
+          const badge = labelOf(paperworkStatus, item.status);
+          return (
+            <TableRow key={item.id}>
+              <TableCell>{item.name}</TableCell>
+              <TableCell>
+                <div className="flex gap-1">
+                  <Badge variant={badge.variant}>{badge.label}</Badge>
+                  {isOverdue(
+                    item.due_date,
+                    item.status === PaperworkStatus.APPROVED
+                  ) ? (
+                    <Badge variant={overdue.variant}>{overdue.label}</Badge>
+                  ) : null}
+                </div>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {item.due_date ? formatDate(item.due_date) : "—"}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {item.note ?? "—"}
+              </TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );

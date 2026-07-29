@@ -23,6 +23,7 @@ import {
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import { getProject } from "../../../../queries";
 
@@ -47,7 +48,7 @@ export default async function BillDocumentPage({
     ? bill.milestones
     : allMilestones.filter((m) => m.bill_id === bill.id);
 
-  const badge = billStatus[bill.status];
+  const badge = labelOf(billStatus, bill.status);
 
   return (
     <>
@@ -94,11 +95,15 @@ export default async function BillDocumentPage({
               {milestones.map((m, index) => {
                 const paid = m.status === MilestoneStatus.PAID;
                 const late = isOverdue(m.due_date, paid);
-                const label = late ? overdue : milestoneStatus[m.status];
+                const label = late
+                  ? overdue
+                  : labelOf(milestoneStatus, m.status);
                 return (
                   <tr key={m.id} className="border-b border-zinc-200">
                     <td className="px-2 py-2">{index + 1}</td>
-                    <td className="px-2 py-2">{milestoneType[m.type]}</td>
+                    <td className="px-2 py-2">
+                      {milestoneType[m.type] ?? m.type}
+                    </td>
                     <td className="px-2 py-2">
                       {m.due_date ? formatDate(m.due_date) : "—"}
                     </td>

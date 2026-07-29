@@ -22,6 +22,7 @@ import { Textarea } from "@yan/ui/components/textarea";
 
 import { overdue, paperworkStatus } from "@/constants/labels";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import {
   createPaperworkItem,
@@ -70,7 +71,7 @@ function PaperworkRow({
   const [note, setNote] = useState(item.note ?? "");
 
   const next = NEXT[item.status];
-  const label = paperworkStatus[item.status];
+  const label = labelOf(paperworkStatus, item.status);
   const isLate = isOverdue(
     item.due_date,
     item.status === PaperworkStatus.APPROVED
@@ -95,7 +96,7 @@ function PaperworkRow({
               startTransition(() => updateAction({ status: next }))
             }
           >
-            → {paperworkStatus[next].label}
+            → {labelOf(paperworkStatus, next).label}
           </Button>
         ) : null}
 

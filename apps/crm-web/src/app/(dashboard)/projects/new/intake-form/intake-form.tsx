@@ -30,6 +30,7 @@ import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
+import { labelOf } from "@/utils/label-of/label-of";
 import { nowHHmm, todayISO } from "@/utils/today-iso/today-iso";
 
 import { loadClient } from "../../../clients/actions/load-client";
@@ -216,7 +217,7 @@ export function IntakeForm({
                     >
                       {projectStageOrder.map((s) => (
                         <option key={s} value={s}>
-                          {projectStage[s].label}
+                          {labelOf(projectStage, s).label}
                         </option>
                       ))}
                     </select>

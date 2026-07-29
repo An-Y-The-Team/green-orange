@@ -21,6 +21,7 @@ import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import { addNote } from "../../../../../../actions/add-note";
 import { updateProject } from "../../../../../../actions/update-project";
@@ -69,16 +70,15 @@ export function StatusStepper({ project }: { project: Project }) {
       <div className="flex flex-wrap items-center gap-2">
         {EXECUTION_STEPS.map((step, i) => {
           const reached = i <= currentIndex;
+          const badge = labelOf(executionSubStatus, step);
           return (
             <span key={step} className="flex items-center gap-2">
               {i > 0 ? <span className="text-muted-foreground">──</span> : null}
               <Badge
-                variant={
-                  reached ? executionSubStatus[step].variant : "secondary"
-                }
+                variant={reached ? badge.variant : "secondary"}
                 className={reached ? "" : "opacity-50"}
               >
-                {executionSubStatus[step].label}
+                {badge.label}
               </Badge>
             </span>
           );
@@ -95,7 +95,7 @@ export function StatusStepper({ project }: { project: Project }) {
               disabled={isPending}
               onClick={() => setPending(target)}
             >
-              → {executionSubStatus[target].label}
+              → {labelOf(executionSubStatus, target).label}
             </Button>
           ))}
         </div>
@@ -113,7 +113,8 @@ export function StatusStepper({ project }: { project: Project }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Chuyển sang: {pending ? executionSubStatus[pending].label : ""}
+              Chuyển sang:{" "}
+              {pending ? labelOf(executionSubStatus, pending).label : ""}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-1.5">

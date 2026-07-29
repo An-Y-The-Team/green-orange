@@ -204,7 +204,7 @@ export function Duration({
                   <TableCell>{t.hours}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {timekeepingSource[t.source]}
+                      {timekeepingSource[t.source] ?? t.source}
                     </Badge>
                   </TableCell>
                 </TableRow>

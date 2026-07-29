@@ -12,6 +12,7 @@ import {
 import { settlementStatus } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import { getProject } from "../../../../queries";
 
@@ -30,7 +31,7 @@ export default async function SettlementDocumentPage({
   const settlement = settlements.find((s) => s.id === Number(settlementId));
   if (!settlement) notFound();
 
-  const badge = settlementStatus[settlement.status];
+  const badge = labelOf(settlementStatus, settlement.status);
 
   return (
     <>

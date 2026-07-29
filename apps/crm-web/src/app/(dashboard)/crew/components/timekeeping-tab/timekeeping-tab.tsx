@@ -223,7 +223,8 @@ export function TimekeepingTab({
                                   variant="secondary"
                                   className="text-[10px]"
                                 >
-                                  {timekeepingSource[zalo.source]}
+                                  {timekeepingSource[zalo.source] ??
+                                    zalo.source}
                                 </Badge>
                               </div>
                             ) : (

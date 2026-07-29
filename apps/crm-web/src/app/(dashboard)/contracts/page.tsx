@@ -16,6 +16,7 @@ import {
 import { PageHeader } from "@/components/page-header/page-header";
 import { contractStatus } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import { ContractStatus } from "./enums";
 import { listContracts } from "./queries";
@@ -59,45 +60,46 @@ export default async function ContractsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {contracts.map((contract) => (
-              <TableRow key={contract.id}>
-                <TableCell className="font-medium">
-                  <Link
-                    href={`/contracts/${contract.id}`}
-                    className="hover:underline"
-                  >
-                    {contract.code}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  {contract.project_id ? (
+            {contracts.map((contract) => {
+              const status = labelOf(contractStatus, contract.status);
+              return (
+                <TableRow key={contract.id}>
+                  <TableCell className="font-medium">
                     <Link
-                      href={`/projects/${contract.project_id}`}
+                      href={`/contracts/${contract.id}`}
                       className="hover:underline"
                     >
-                      {contract.project
-                        ? `${contract.project.code} · ${contract.project.name}`
-                        : `Công trình #${contract.project_id}`}
+                      {contract.code}
                     </Link>
-                  ) : (
-                    "—"
-                  )}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {contract.project?.client.name ?? "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={contractStatus[contract.status].variant}>
-                    {contractStatus[contract.status].label}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {contract.signed_date
-                    ? formatDate(contract.signed_date)
-                    : "—"}
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>
+                    {contract.project_id ? (
+                      <Link
+                        href={`/projects/${contract.project_id}`}
+                        className="hover:underline"
+                      >
+                        {contract.project
+                          ? `${contract.project.code} · ${contract.project.name}`
+                          : `Công trình #${contract.project_id}`}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {contract.project?.client.name ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={status.variant}>{status.label}</Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {contract.signed_date
+                      ? formatDate(contract.signed_date)
+                      : "—"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Card>

@@ -29,6 +29,7 @@ import {
 import { selectClass } from "@/components/form-bits/form-bits";
 import { crewMemberStatus } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import {
   createAssignment,
@@ -303,7 +304,7 @@ function AssignmentForm({
               {c.name}
               {c.status === CrewMemberStatus.WORKING
                 ? ""
-                : ` (${crewMemberStatus[c.status]?.label})`}
+                : ` (${labelOf(crewMemberStatus, c.status).label})`}
             </option>
           ))}
         </select>
