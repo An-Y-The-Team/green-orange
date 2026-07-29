@@ -22,6 +22,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
 import { Type } from "class-transformer";
 import {
@@ -36,10 +37,11 @@ import {
   MinLength,
   ValidateNested,
 } from "class-validator";
+import type { Response } from "express";
 
 import { businessToday } from "../common/business-date";
 import { toBig, toDate } from "../common/coerce";
-import { type PageQuery, pageArgs } from "../common/pagination";
+import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
@@ -139,17 +141,24 @@ export class SettlementsController {
 
   @Get()
   list(
+    @Res({ passthrough: true }) res: Response,
     @Query() page: PageQuery,
     @Query("project_id", new ParseIntPipe({ optional: true }))
     projectId?: number
   ) {
-    return this.prisma.settlement.findMany({
-      where: { project_id: projectId },
-      include: SETTLEMENT_INCLUDE,
-      // Was unordered: paging an unordered query overlaps and drops rows.
-      orderBy: { id: "asc" },
-      ...pageArgs(page),
-    });
+    // One `where`, both queries — the count cannot drift from the rows.
+    const where = { project_id: projectId };
+    return withTotalCount(
+      res,
+      this.prisma.settlement.findMany({
+        where,
+        include: SETTLEMENT_INCLUDE,
+        // Was unordered: paging an unordered query overlaps and drops rows.
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.settlement.count({ where })
+    );
   }
 
   @Get(":id")
@@ -358,18 +367,24 @@ class BillsController {
 
   @Get()
   list(
+    @Res({ passthrough: true }) res: Response,
     @Query() page: PageQuery,
     @Query("project_id", new ParseIntPipe({ optional: true }))
     projectId?: number,
     @Query("status") status?: string
   ) {
-    return this.prisma.bill.findMany({
-      where: { project_id: projectId, status },
-      include: { milestones: true, ...PROJECT_INCLUDE },
-      // Was unordered: paging an unordered query overlaps and drops rows.
-      orderBy: { id: "asc" },
-      ...pageArgs(page),
-    });
+    const where = { project_id: projectId, status };
+    return withTotalCount(
+      res,
+      this.prisma.bill.findMany({
+        where,
+        include: { milestones: true, ...PROJECT_INCLUDE },
+        // Was unordered: paging an unordered query overlaps and drops rows.
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.bill.count({ where })
+    );
   }
 
   @Get(":id")
@@ -455,21 +470,41 @@ class UpdateMilestoneDto {
 export class PaymentMilestonesController {
   constructor(private readonly prisma: PrismaService) {}
 
+  // `overdue=true` mirrors GET /paperwork-items: overdue is DERIVED (due_date <
+  // today && status != paid — schema.prisma PaymentMilestone.status) and belongs
+  // on the server, or every consumer rebuilds the rule over whichever page it
+  // happened to fetch (F20). It already implies a status, so — same as paperwork
+  // — it REPLACES `status=` rather than fighting it for the same Prisma key.
   @Get()
   list(
+    @Res({ passthrough: true }) res: Response,
     @Query() page: PageQuery,
     @Query("project_id", new ParseIntPipe({ optional: true }))
     projectId?: number,
     @Query("bill_id", new ParseIntPipe({ optional: true })) billId?: number,
-    @Query("status") status?: string
+    @Query("status") status?: string,
+    @Query("overdue") overdue?: string
   ) {
-    return this.prisma.paymentMilestone.findMany({
-      where: { project_id: projectId, bill_id: billId, status },
-      include: PROJECT_INCLUDE,
-      // Was unordered: paging an unordered query overlaps and drops rows.
-      orderBy: { id: "asc" },
-      ...pageArgs(page),
-    });
+    // One `where`, both queries — so the count applies the same derived overdue
+    // rule as the rows instead of counting every đợt in the table.
+    const where = {
+      project_id: projectId,
+      bill_id: billId,
+      ...(overdue === "true"
+        ? { due_date: { lt: businessToday() }, status: { not: "paid" } }
+        : { status }),
+    };
+    return withTotalCount(
+      res,
+      this.prisma.paymentMilestone.findMany({
+        where,
+        include: PROJECT_INCLUDE,
+        // Was unordered: paging an unordered query overlaps and drops rows.
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.paymentMilestone.count({ where })
+    );
   }
 
   @Get(":id")

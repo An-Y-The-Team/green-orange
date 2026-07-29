@@ -108,7 +108,9 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T>(path: string): Promise<T> {
+// GET + the ApiError, shared by the two read helpers below. Returns the Response
+// itself so a caller can read headers, not just the body.
+async function get(path: string): Promise<Response> {
   const res = await fetchWithAuth(`${API_URL}${path}`, {});
   if (!res.ok) {
     throw new ApiError(
@@ -116,7 +118,38 @@ export async function apiFetch<T>(path: string): Promise<T> {
       `API ${path} failed: ${res.status} ${res.statusText}`
     );
   }
-  return res.json() as Promise<T>;
+  return res;
+}
+
+export async function apiFetch<T>(path: string): Promise<T> {
+  return (await get(path)).json() as Promise<T>;
+}
+
+/** Set by every paginated list endpoint — `crm-api-nest/src/common/pagination.ts`. */
+const TOTAL_COUNT_HEADER = "X-Total-Count";
+
+/**
+ * A list read that also reports how many rows the WHOLE filtered collection has,
+ * so a view can print a total instead of labelling one page's length as one.
+ * Same transport as {@link apiFetch} — bearer, 401 re-mint + retry, 30s timeout —
+ * it just keeps the Response instead of discarding it.
+ *
+ * A missing or non-numeric `X-Total-Count` falls back to `rows.length`: the
+ * page-scoped figure every list showed before the header existed. Deliberately
+ * not an error — an endpoint that doesn't send it (the Python sandbox) must still
+ * render, and the fallback is only ever an undercount, never an invented number.
+ */
+export async function apiFetchList<T>(
+  path: string
+): Promise<{ rows: T[]; total: number }> {
+  const res = await get(path);
+  const rows = (await res.json()) as T[];
+  const header = res.headers.get(TOTAL_COUNT_HEADER)?.trim();
+  const total = header ? Number(header) : NaN;
+  return {
+    rows,
+    total: Number.isInteger(total) && total >= 0 ? total : rows.length,
+  };
 }
 
 // The Python teaching sandbox answers 501 for endpoints students haven't built

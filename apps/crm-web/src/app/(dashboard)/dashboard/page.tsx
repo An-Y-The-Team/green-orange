@@ -64,28 +64,34 @@ type DebtRow = {
 };
 
 export default async function DashboardPage() {
-  // Every filter the panels need is now a server-side `where`: the overdue
-  // paperwork rule, and the two statuses the debt panel renders. Nothing here
+  // Every filter the panels need is a server-side `where`: both overdue rules
+  // (hồ sơ, đợt thanh toán) and the statuses the debt panel renders. Nothing here
   // fetches a whole table to throw most of it away in JS (F20).
-  const [projects, milestones, bills, overduePaperwork] = await Promise.all([
-    // The today/follow-up panels render projects themselves, so this list is not
-    // just a code lookup. Debt rows no longer read it — they carry their own
-    // `project` include (F40) — but paperwork items still have no such include,
-    // so an overdue hồ sơ whose project falls outside this window prints `#id`.
-    listProjects({ limit: MAX_PAGE_SIZE }),
-    listPaymentMilestones({
-      status: MilestoneStatus.AWAITING_PAYMENT,
-      limit: DEBT_FETCH_ROWS,
-    }),
-    listBills({ status: BillStatus.SENT, limit: DEBT_FETCH_ROWS }),
-    listAllPaperworkItems({ overdue: true, limit: PANEL_ROWS }),
-  ]);
+  const [projects, awaiting, overdueMilestones, bills, overduePaperwork] =
+    await Promise.all([
+      // The today/follow-up panels render projects themselves, so this list is a
+      // real data source, not a code lookup — every panel that only needed a code
+      // now gets one from its own `project` include (F40/F41).
+      listProjects({ limit: MAX_PAGE_SIZE }),
+      // Two reads, because `overdue` REPLACES `status` server-side: money owed is
+      // "đợt chờ thanh toán" ∪ "đợt quá hạn". The second is what F20 recorded as
+      // missing — a not_due đợt whose due date quietly passed.
+      listPaymentMilestones({
+        status: MilestoneStatus.AWAITING_PAYMENT,
+        limit: DEBT_FETCH_ROWS,
+      }),
+      listPaymentMilestones({ overdue: true, limit: DEBT_FETCH_ROWS }),
+      listBills({ status: BillStatus.SENT, limit: DEBT_FETCH_ROWS }),
+      listAllPaperworkItems({ overdue: true, limit: PANEL_ROWS }),
+    ]);
 
   const today = todayISO();
-  // Paperwork items are the last rows without a `project` include, so they are
-  // the only reason this map survives.
-  const codeById = new Map(projects.map((p) => [p?.id, p?.code]));
-  const codeOf = (id: number) => codeById.get(id) ?? `#${id}`;
+  // The two đợt reads overlap on an overdue awaiting_payment row — dedupe by id.
+  const milestones = [
+    ...new Map(
+      [...awaiting, ...overdueMilestones].map((m) => [m?.id, m])
+    ).values(),
+  ];
 
   // Hôm nay — appointments today not yet visited. Stage 1 spans request AND
   // survey, so `!visit_date` (not the stage) is what marks "still to meet".
@@ -106,12 +112,8 @@ export default async function DashboardPage() {
       p.follow_up_date <= today
   );
 
-  // Công nợ — money owed: đợt chờ thanh toán plus sent-but-unpaid hóa đơn, both
-  // server-filtered. `overdue` stays a derived read (never stored) for the badge.
-  // ponytail: a not_due milestone whose due date has quietly passed no longer
-  // shows here — that needs ?overdue=true on /payment-milestones, mirroring what
-  // /paperwork-items got. It was already unreliable, since the old JS scan only
-  // saw whichever page the unpaginated call happened to return.
+  // Công nợ — money owed: đợt chờ thanh toán or quá hạn, plus sent-but-unpaid
+  // hóa đơn, all server-filtered. `overdue` stays a derived read for the badge.
   const debtMilestones: DebtRow[] = milestones.map((m) => ({
     key: `m-${m?.id}`,
     project_id: m?.project_id,
@@ -176,7 +178,7 @@ export default async function DashboardPage() {
                         className="hover:underline"
                       >
                         <span className="font-medium">
-                          {codeOf(i?.project_id)}
+                          {i?.project?.code ?? `#${i?.project_id}`}
                         </span>{" "}
                         · {i?.name}
                       </Link>

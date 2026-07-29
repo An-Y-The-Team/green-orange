@@ -54,4 +54,11 @@ export interface Quote {
  */
 export type QuoteListRow = Omit<Quote, "items" | "send_logs"> & {
   send_logs: Pick<QuoteSendLog, "channel">[];
+  /**
+   * Server-computed: `false` = a newer version exists for the same project, i.e.
+   * "Đã thay thế". Only this shape carries it — a project-scoped read returns the
+   * full {@link Quote} (whole version set, no flag). Standalone quotes
+   * (`project_id: null`) have no siblings, so they are always `true`.
+   */
+  is_latest: boolean;
 };

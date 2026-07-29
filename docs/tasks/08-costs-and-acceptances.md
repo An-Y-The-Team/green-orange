@@ -6,26 +6,27 @@
 
 ## Background
 
-The **project detail page** has tabs that log what happens on-site: **Chi phí
-(Costs)** — materials, labour, equipment, and incidents/breakages — and **Nghiệm thu
-(Acceptances)** — the client hand-over/inspection that gates final payment. Both are
-**sub-resources of a project**: each row carries the parent's `project_code`.
+In the v1 domain model, a project logs what happens on-site through two
+sub-resources: **Chi phí (Costs)** — materials, labour, equipment, and
+incidents/breakages — and **Nghiệm thu (Acceptances)** — the client
+hand-over/inspection that gates final payment. Both are **sub-resources of a
+project**: each row carries the parent's `project_code`.
 
-The UI already calls `GET /costs`, `POST /costs`, `GET /acceptances`,
-`POST /acceptances` (see
-[`projects/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/projects/queries.ts>),
-[`add-cost.ts`](<../../apps/crm-web/src/app/(dashboard)/projects/actions/add-cost.ts>),
-[`add-acceptance.ts`](<../../apps/crm-web/src/app/(dashboard)/projects/actions/add-acceptance.ts>)).
-Types: `Cost` and `Acceptance` in
-[`src/types/index.ts`](../../apps/crm-web/src/types/index.ts).
+> **v1-only concept.** `/costs` and `/acceptances` are the one pair on this backlog
+> with no counterpart in crm-web at all: v2 replaced them with `/settlements` +
+> `/bills` and an acceptance sub-status on the project, so there is no UI code to
+> read and no page to watch. Build against the field tables below and verify in
+> `/docs` + `uv run pytest` — see
+> [00 — Choose your backend](00-choose-your-backend.md).
 
-The teaching twist: these list endpoints are queried **across all projects** and the
-UI joins them by `project_code`. Implement basic list + create (read/update/delete
-optional but encouraged), and add a **filter query param** `project_code`.
+The teaching twist: these list endpoints are queried **across all projects** and
+callers join them by `project_code`. Implement basic list + create
+(read/update/delete optional but encouraged), and add a **filter query param**
+`project_code`.
 
 ## Fields
 
-### Cost — match the `Cost` type
+### Cost
 
 | Field          | Type | Notes                                                        |
 | -------------- | ---- | ------------------------------------------------------------ |
@@ -37,7 +38,7 @@ optional but encouraged), and add a **filter query param** `project_code`.
 | `amount`       | int  | VND                                                          |
 | `is_incident`  | bool | true for `su_co` breakages                                   |
 
-### Acceptance — match the `Acceptance` type
+### Acceptance
 
 | Field          | Type | Notes                                                |
 | -------------- | ---- | ---------------------------------------------------- |
@@ -70,10 +71,8 @@ For **each** of `cost` and `acceptance`:
 
 - [ ] `GET/POST /costs` and `GET/POST /acceptances` work in `/docs`.
 - [ ] `GET /costs?project_code=CT-001` returns only that project's costs.
-- [ ] Field shapes match the `Cost` / `Acceptance` types 1:1.
+- [ ] Field shapes match the Cost / Acceptance tables above 1:1.
 - [ ] Both routers registered in `main.py`; migrations + tests committed and passing.
-- [ ] On a project detail page in crm-web (live mode), the **Chi phí** and **Nghiệm
-      thu** tabs show live rows for that project.
 
 ## Hints & references
 
@@ -85,6 +84,6 @@ For **each** of `cost` and `acceptance`:
 
 ## Definition of done
 
-The project detail tabs render live costs and acceptances.
-Next: [09 — Quotes / Báo giá](09-quotes-crud.md).
+`/costs` and `/acceptances` list + create (and filter by `project_code`) in `/docs`,
+with tests. Next: [09 — Quotes / Báo giá](09-quotes-crud.md).
 </content>

@@ -12,6 +12,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
 import {
   IsBoolean,
@@ -22,11 +23,12 @@ import {
   IsString,
   MinLength,
 } from "class-validator";
+import type { Response } from "express";
 
 import { businessToday } from "../common/business-date";
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
-import { type PageQuery, pageArgs } from "../common/pagination";
+import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
@@ -69,20 +71,27 @@ class ContractsController {
 
   @Get()
   list(
+    @Res({ passthrough: true }) res: Response,
     @Query() page: PageQuery,
     @Query("project_id") projectId?: string,
     @Query("status") status?: string
   ) {
-    return this.prisma.contract.findMany({
-      where: {
-        project_id: projectId ? Number(projectId) : undefined,
-        status: status || undefined,
-      },
-      include: PROJECT_INCLUDE,
-      // Was unordered: paging an unordered query overlaps and drops rows.
-      orderBy: { id: "asc" },
-      ...pageArgs(page),
-    });
+    // One `where`, both queries — the count cannot drift from the rows.
+    const where = {
+      project_id: projectId ? Number(projectId) : undefined,
+      status: status || undefined,
+    };
+    return withTotalCount(
+      res,
+      this.prisma.contract.findMany({
+        where,
+        include: PROJECT_INCLUDE,
+        // Was unordered: paging an unordered query overlaps and drops rows.
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.contract.count({ where })
+    );
   }
 
   @Get(":id")

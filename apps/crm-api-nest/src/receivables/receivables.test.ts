@@ -179,3 +179,96 @@ describe("milestone create paid_date", () => {
     expect(prisma.created).toEqual([]);
   });
 });
+
+// GET /payment-milestones?overdue=true is DERIVED (schema.prisma: due_date <
+// today && status != paid), so the boundary is what regresses: `lte` would call
+// a đợt due TODAY overdue, and copying paperwork's rule would exclude
+// "approved" instead of "paid".
+// ponytail: the fake applies the `where` with a 3-line evaluator that knows only
+// the two operators this filter uses — not a Prisma emulator. If the filter ever
+// grows an OR, this needs a real DB test instead.
+describe("payment milestone ?overdue=true", () => {
+  const today = businessToday();
+  const yesterday = new Date(today.getTime() - 86_400_000);
+  const rows = [
+    { id: 1, due_date: yesterday, status: "not_due" }, // the F20 gap
+    { id: 2, due_date: today, status: "awaiting_payment" },
+    { id: 3, due_date: yesterday, status: "paid" },
+    { id: 4, due_date: null, status: "awaiting_payment" },
+  ];
+
+  // Strict about the operators: an `lte` bound (or a `status` narrowed some other
+  // way) must fail loudly here, not read as "no filter" and quietly pass.
+  const matches = (where: any, row: any) => {
+    const { lt, ...restDate } = where.due_date ?? {};
+    const { not, ...restStatus } = where.status ?? {};
+    if (lt === undefined || not === undefined)
+      throw new Error(`overdue must be lt/not: ${JSON.stringify(where)}`);
+    if (Object.keys({ ...restDate, ...restStatus }).length > 0)
+      throw new Error(`unexpected operator: ${JSON.stringify(where)}`);
+    return row.due_date !== null && row.due_date < lt && row.status !== not;
+  };
+
+  // Captures both `where`s and the header, so the count can be checked against
+  // the very filter the rows were fetched with.
+  const listOverdue = async () => {
+    const wheres: any[] = [];
+    const headers: Record<string, unknown> = {};
+    const prisma: any = {
+      paymentMilestone: {
+        findMany: async ({ where }: any) => {
+          wheres.push(where);
+          return rows.filter((r) => matches(where, r));
+        },
+        // A count has no take/skip, so it sees every matching row — here that is
+        // one more than a 1-row page would return.
+        count: async ({ where }: any) => {
+          wheres.push(where);
+          return rows.filter((r) => matches(where, r)).length;
+        },
+      },
+    };
+    const found = await new PaymentMilestonesController(prisma).list(
+      { setHeader: (k: string, v: unknown) => (headers[k] = v) } as any,
+      {},
+      undefined,
+      undefined,
+      undefined,
+      "true"
+    );
+    return { ids: found.map((r) => r.id), wheres, headers };
+  };
+
+  const overdueIds = async () => (await listOverdue()).ids;
+
+  test("due yesterday and unpaid → included", async () => {
+    expect(await overdueIds()).toContain(1);
+  });
+
+  test("due today → not overdue yet", async () => {
+    expect(await overdueIds()).not.toContain(2);
+  });
+
+  test("paid, however late → excluded", async () => {
+    expect(await overdueIds()).not.toContain(3);
+  });
+
+  test("no due date → nothing to be overdue against", async () => {
+    expect(await overdueIds()).not.toContain(4);
+  });
+
+  // The divergence bug: a count built from its own `where` (or from no `where`)
+  // reports the whole table while the rows are filtered — a total that lies.
+  test("the count runs the SAME where as the rows", async () => {
+    const { wheres } = await listOverdue();
+    expect(wheres).toHaveLength(2);
+    expect(wheres[0]).toBe(wheres[1]); // literally one object, not a copy
+  });
+
+  test("X-Total-Count is the filtered total, not the table total", async () => {
+    const { ids, headers } = await listOverdue();
+    // 1 of the 4 rows is overdue; the header must say 1, never 4.
+    expect(headers["X-Total-Count"]).toBe(ids.length);
+    expect(headers["X-Total-Count"]).toBe(1);
+  });
+});

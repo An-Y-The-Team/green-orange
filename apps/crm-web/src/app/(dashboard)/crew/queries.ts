@@ -1,8 +1,9 @@
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import type { DateRange } from "@/utils/date-range/date-range";
-import { apiFetch, apiFetchSafe } from "@/utils/http/http";
+import { apiFetch, apiFetchList, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
 
+import type { CrewMemberStatus } from "./enums";
 import type {
   Assignment,
   CrewMember,
@@ -24,6 +25,31 @@ export async function listCrew({
   offset,
 }: { limit?: number; offset?: number } = {}): Promise<CrewMember[]> {
   return apiFetchSafe<CrewMember[]>(`/crew${pageQuery({ limit, offset })}`, []);
+}
+
+/**
+ * One page of the roster PLUS how many nhân sự exist in total, from the
+ * response's `X-Total-Count`. Separate from {@link listCrew} because that one is
+ * a picker window whose callers want rows and nothing else.
+ */
+export async function listCrewPage(page: {
+  limit: number;
+  offset: number;
+}): Promise<{ rows: CrewMember[]; total: number }> {
+  return apiFetchList<CrewMember>(`/crew${pageQuery(page)}`);
+}
+
+/**
+ * How many nhân sự have `status`, counted server-side — the roster page used to
+ * count the members on its page, which undercounts from page 2 on. `limit=1`
+ * because the API floors a smaller limit to its 100-row default and the answer is
+ * the header, not the body.
+ */
+export async function countCrew(status: CrewMemberStatus): Promise<number> {
+  const { total } = await apiFetchList<CrewMember>(
+    `/crew?status=${status}&limit=1`
+  );
+  return total;
 }
 
 /** GET /crew/:id — includes default_role + assignments (with project ref). */
@@ -81,5 +107,30 @@ export async function getProjectTimekeeping({
   return apiFetchSafe<TimekeepingRecord[]>(
     `/timekeeping?project_id=${projectId}&${rangeQuery(range)}`,
     []
+  );
+}
+
+/** Two numbers, not rows — what GET /timekeeping/summary answers. */
+export interface TimekeepingSummary {
+  project_id: number;
+  total_hours: number;
+  recorded_days: number;
+}
+
+/**
+ * GET /timekeeping/summary?project_id= — SUM(hours) + COUNT(DISTINCT work_date)
+ * for the WHOLE công trình, aggregated server-side with manual winning over
+ * zalo_app per member+day (the rule the weekly grid displays).
+ *
+ * Deliberately window-less and limit-less, unlike the row reads above: the
+ * response is two numbers however many rows the project has, so there is no page
+ * to fall off and no total to undercount.
+ */
+export async function getProjectTimekeepingSummary(
+  projectId: number
+): Promise<TimekeepingSummary> {
+  return apiFetchSafe<TimekeepingSummary>(
+    `/timekeeping/summary?project_id=${projectId}`,
+    { project_id: projectId, total_hours: 0, recorded_days: 0 }
   );
 }

@@ -20,7 +20,7 @@ import { labelOf } from "@/utils/label-of/label-of";
 import { pageFromParam } from "@/utils/page-param/page-param";
 
 import { ProjectStatus } from "./enums";
-import { listProjects } from "./queries";
+import { countProjects, listProjectsPage } from "./queries";
 
 // Rows per page. Explicit rather than leaning on the API's default so the pager
 // and the offsets it builds agree with what is actually rendered.
@@ -32,30 +32,25 @@ export default async function ProjectsPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   const page = pageFromParam((await searchParams)?.page);
-  // One row more than we render: GET /projects returns a bare array with no
-  // total, so an extra row is the only honest way to know a next page exists.
-  const rows = await listProjects({
-    limit: PAGE_ROWS + 1,
-    offset: (page - 1) * PAGE_ROWS,
-  });
-  const hasNext = rows.length > PAGE_ROWS;
+  // `total` counts EVERY công trình (X-Total-Count) — which is what the pager
+  // must page over, since the rows below are fetched unfiltered. `cancelled` is
+  // its own server-side count so the header can state the number the table
+  // actually shows.
+  const [{ rows, total }, cancelled] = await Promise.all([
+    listProjectsPage({ limit: PAGE_ROWS, offset: (page - 1) * PAGE_ROWS }),
+    countProjects(ProjectStatus.CANCELLED),
+  ]);
   // Cancelled jobs are hidden from the default list (still reachable by URL).
   // ponytail: filtered after paging because GET /projects only offers `status`
   // equality, not exclusion — so a page can show fewer than PAGE_ROWS rows. A
   // server-side `status_not` (or a saved filter in the URL) removes the wobble.
-  const visible = rows
-    .slice(0, PAGE_ROWS)
-    .filter((p) => p?.status !== ProjectStatus.CANCELLED);
-
-  // Page-scoped count whenever more than one page exists — same treatment as
-  // quotes/page.tsx: say which page rather than imply a total the API never sent.
-  const counts = `${visible.length} công trình`;
+  const visible = rows.filter((p) => p?.status !== ProjectStatus.CANCELLED);
 
   return (
     <>
       <PageHeader
         title="Công trình"
-        description={hasNext || page > 1 ? `Trang ${page} · ${counts}` : counts}
+        description={`${total - cancelled} công trình`}
         action={
           <Button render={<Link href="/projects/new" />}>
             + Thêm công trình
@@ -123,7 +118,12 @@ export default async function ProjectsPage({
           </TableBody>
         </Table>
       </Card>
-      <TablePager page={page} hasNext={hasNext} basePath="/projects" />
+      <TablePager
+        page={page}
+        total={total}
+        pageRows={PAGE_ROWS}
+        basePath="/projects"
+      />
     </>
   );
 }

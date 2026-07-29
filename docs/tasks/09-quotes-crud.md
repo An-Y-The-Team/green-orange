@@ -7,12 +7,13 @@
 ## Background
 
 **Báo giá (Quote)** is the priced offer sent to a client; a **Quyết toán** is the
-same shape reconciling actual costs (the `type` field discriminates them). The UI
-list + a **printable A4 document** are already built; the backend isn't, so the
-**Báo giá** sidebar page is empty in live mode. The UI calls `GET /quotes`,
-`GET /quotes/{id}`, `POST /quotes` (see
+same shape reconciling actual costs (the `type` field discriminates them). This is
+the v1 shape of that resource, and it is what you build here. crm-web does call
+`GET /quotes`, `GET /quotes/{id}`, `POST /quotes` (see
 [`quotes/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/quotes/queries.ts>) and
-[`add-quote.ts`](<../../apps/crm-web/src/app/(dashboard)/quotes/actions/add-quote.ts>)).
+[`create-quote.ts`](<../../apps/crm-web/src/app/(dashboard)/quotes/actions/create-quote.ts>)),
+but against the **v2** field shapes — read those files for flavour, not as your
+contract.
 
 **New concept:** a quote has a **list of line items** (`items: QuoteItem[]`). This is
 the first resource that isn't a flat row. You have two valid approaches — pick one
@@ -26,12 +27,13 @@ and note why in the PR:
   with a FK to `quote.id` and a SQLModel `Relationship`. Teaches one-to-many but
   needs nested create handling.
 
-Type: `Quote` + `QuoteItem` in
-[`src/types/index.ts`](../../apps/crm-web/src/types/index.ts).
+The field tables below **are** the contract for this task. (They used to be checked
+against `Quote` + `QuoteItem` types in crm-web; that file is gone — see
+[00 — Choose your backend](00-choose-your-backend.md).)
 
 ## Fields
 
-### Quote — match the `Quote` type
+### Quote
 
 | Field          | Type        | Notes                                                              |
 | -------------- | ----------- | ------------------------------------------------------------------ |
@@ -76,23 +78,22 @@ Type: `Quote` + `QuoteItem` in
 
 - [ ] Full CRUD on `/quotes` works in `/docs`, **including nested `items`** on create
       and read.
-- [ ] `QuotePublic` matches the `Quote` type 1:1 (`vat_rate` as a float; `items`
+- [ ] `QuotePublic` matches the Quote table above 1:1 (`vat_rate` as a float; `items`
       as an array of `{description, unit, quantity, unit_price}`).
 - [ ] Router registered; migration + test (with the multi-item case) committed and
       passing.
-- [ ] **Báo giá** list page shows live rows, and opening a quote renders the
-      printable document with its line items (live mode).
+- [ ] A `curl` round-trip creates a two-item quote and reads both items back.
 
 ## Hints & references
 
 - Approach A JSON column needs `from sqlalchemy import Column, JSON` and
   `from sqlmodel import Field`.
 - A `quyết toán` is just a quote with `type="quyet_toan"` — no separate model.
-- Don't compute totals server-side unless the UI expects them — match the type;
-  the document derives totals from `items` + `vat_rate`.
+- Don't compute totals server-side — match the field table; totals are derived from
+  `items` + `vat_rate` by whoever renders the document.
 
 ## Definition of done
 
-The Báo giá page and its printable document render live data, line items included.
+`/quotes` round-trips a quote with its line items in `/docs`, with a multi-item test.
 Next: [10 — Contracts / Hợp đồng](10-contracts-crud.md).
 </content>

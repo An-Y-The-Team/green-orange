@@ -19,7 +19,7 @@ import { formatDate } from "@/utils/format-date/format-date";
 import { pageFromParam } from "@/utils/page-param/page-param";
 
 import { ClientType } from "./enums";
-import { listClients } from "./queries";
+import { listClientsPage } from "./queries";
 
 // Rows per page. Explicit rather than leaning on the API's default so the pager
 // and the offsets it builds agree with what is actually rendered.
@@ -31,24 +31,18 @@ export default async function ClientsPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   const page = pageFromParam((await searchParams)?.page);
-  // One row more than we render: GET /clients returns a bare array with no
-  // total, so an extra row is the only honest way to know a next page exists.
-  const rows = await listClients({
-    limit: PAGE_ROWS + 1,
+  // `total` is the whole collection (X-Total-Count), so the header states a real
+  // total and the pager derives its page count — no +1 row probe needed.
+  const { rows: clients, total } = await listClientsPage({
+    limit: PAGE_ROWS,
     offset: (page - 1) * PAGE_ROWS,
   });
-  const hasNext = rows.length > PAGE_ROWS;
-  const clients = rows.slice(0, PAGE_ROWS);
-
-  // Page-scoped count whenever more than one page exists — same treatment as
-  // quotes/page.tsx: say which page rather than imply a total the API never sent.
-  const counts = `${clients.length} khách hàng`;
 
   return (
     <>
       <PageHeader
         title="Khách hàng"
-        description={hasNext || page > 1 ? `Trang ${page} · ${counts}` : counts}
+        description={`${total} khách hàng`}
         action={
           <Button size="sm" render={<Link href="/clients/new" />}>
             + Khách hàng mới
@@ -102,7 +96,12 @@ export default async function ClientsPage({
           </TableBody>
         </Table>
       </Card>
-      <TablePager page={page} hasNext={hasNext} basePath="/clients" />
+      <TablePager
+        page={page}
+        total={total}
+        pageRows={PAGE_ROWS}
+        basePath="/clients"
+      />
     </>
   );
 }

@@ -22,7 +22,7 @@ Browser → crm-web server actions/queries → Authentik /api/v3/  (service-acco
 
 - The token is **server-only** (no `NEXT_PUBLIC_` prefix), same pattern as
   `CRM_API_URL`.
-- All Authentik endpoint strings live in ONE file (`lib/authentik-admin.ts`) so
+- All Authentik endpoint strings live in ONE file (`utils/authentik-admin/`) so
   Authentik version bumps have a single blast radius. Pinned tag at design
   time: `2025.10`.
 
@@ -64,12 +64,12 @@ far expiry explicitly; a silently expired token bricks the page.
 New files, following the house feature pattern (feature-scoped types,
 `queries.ts` for reads, actions per mutation):
 
-| File                               | Contents                                                                                                                                     |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/authentik-admin.ts`       | ~40-line server-only fetch wrapper: `akFetch<T>(path, init?)` with token header; `usersEnabled = Boolean(process.env.AUTHENTIK_ADMIN_TOKEN)` |
-| `app/(dashboard)/users/page.tsx`   | **`force-dynamic`** (runtime-only env — the known build-freeze trap, see the force-dynamic rule), renders the table                          |
-| `app/(dashboard)/users/queries.ts` | `listUsers()` → `GET /core/users/?page_size=…&search=…`                                                                                      |
-| `app/(dashboard)/users/types.ts`   | `AkUser` type                                                                                                                                |
+| File                                           | Contents                                                                                                                                     |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/utils/authentik-admin/authentik-admin.ts` | ~40-line server-only fetch wrapper: `akFetch<T>(path, init?)` with token header; `usersEnabled = Boolean(process.env.AUTHENTIK_ADMIN_TOKEN)` |
+| `app/(dashboard)/users/page.tsx`               | **`force-dynamic`** (runtime-only env — the known build-freeze trap, see the force-dynamic rule), renders the table                          |
+| `app/(dashboard)/users/queries.ts`             | `listUsers()` → `GET /core/users/?page_size=…&search=…`                                                                                      |
+| `app/(dashboard)/users/types.ts`               | `AkUser` type                                                                                                                                |
 
 - Sidebar: "Người dùng" link in `AppSidebar`, rendered only when
   `usersEnabled` and the caller passes the gate.

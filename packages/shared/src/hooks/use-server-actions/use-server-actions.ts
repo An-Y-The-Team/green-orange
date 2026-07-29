@@ -14,16 +14,15 @@ export interface ServerActionState<TData = unknown> {
   data?: TData;
 }
 
-interface UseServerActionOptions {
+interface UseServerActionOptions<TData = unknown> {
   /**
-   * Receives `ServerActionState.data`. Still `any` rather than the state's
-   * `TData`: `quote-builder-form.tsx` reads `data?.id` off an untyped payload,
-   * so tightening this to `TData`/`unknown` is a separate change that has to
-   * land with a narrowing there. Annotate the parameter at the call site
-   * (`onSuccess: (data?: unknown) => …`) to get a checked payload today.
+   * Receives `ServerActionState.data`, typed by the state's `TData`. Declared
+   * with method syntax on purpose: that makes the parameter bivariant, so a
+   * caller whose action still resolves to `ServerActionState<unknown>` may
+   * annotate a narrower payload (`onSuccess: (data: Project) => …`) instead of
+   * narrowing. Actions that declare `ServerActionState<T>` get it checked.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSuccess?: (data?: any) => void;
+  onSuccess?(data?: TData): void;
   onError?: (error: string) => void;
   initialState?: unknown;
   successToastTitle?: string;
@@ -31,10 +30,10 @@ interface UseServerActionOptions {
   silent?: boolean;
 }
 
-export function useServerAction<T extends ServerActionState>(
-  serverState: T,
+export function useServerAction<TData = unknown>(
+  serverState: ServerActionState<TData>,
   isPending: boolean,
-  options: UseServerActionOptions = {}
+  options: UseServerActionOptions<TData> = {}
 ) {
   const [actionProcessed, setActionProcessed] = useState(false);
 

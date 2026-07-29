@@ -17,6 +17,7 @@ import { quoteChannel, quoteStatus, quoteSuperseded } from "@/constants/labels";
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { labelOf } from "@/utils/label-of/label-of";
 
 import { QuoteStatus } from "./enums";
 import { listQuotes } from "./queries";
@@ -33,24 +34,6 @@ function sentChannels(quote: QuoteListRow): string {
 export default async function QuotesPage() {
   const quotes = await listQuotes();
   const waiting = quotes.filter((q) => q.status === QuoteStatus.WAITING).length;
-
-  // Older-than-latest versions per project are "Đã thay thế" (derived).
-  // Correct on a paginated response only because GET /quotes orders by version
-  // desc from offset 0: a newer sibling always sorts BEFORE this row, so it is
-  // inside the same prefix we fetched.
-  // ponytail: that guarantee dies the moment this list sends an offset or the
-  // server reorders — the upgrade is a server-computed `is_latest` per row.
-  const maxVersion = new Map<number, number>();
-  for (const q of quotes) {
-    if (q?.project_id == null) continue; // standalone quotes have no siblings
-    maxVersion.set(
-      q.project_id,
-      Math.max(maxVersion.get(q.project_id) ?? 0, q.version)
-    );
-  }
-  const isSuperseded = (q: QuoteListRow) =>
-    q?.project_id != null &&
-    q.version < (maxVersion.get(q.project_id) ?? q.version);
 
   // ponytail: the endpoint returns rows, not a total, so a response that fills
   // the page can only honestly call itself a page — both counts below are
@@ -85,15 +68,15 @@ export default async function QuotesPage() {
           </TableHeader>
           <TableBody>
             {quotes.map((quote) => {
-              const superseded = isSuperseded(quote);
-              // Status is a raw wire value — an unmapped one must not crash the
-              // list, so fall back to showing the key.
+              // Server-computed (a newer version exists for this project), so it
+              // holds on any page. `=== false` on purpose: a response without the
+              // field must not paint every row "Đã thay thế".
+              const superseded = quote?.is_latest === false;
+              // Status is a raw wire value — labelOf degrades an unmapped one to
+              // a neutral badge instead of crashing the list.
               const badge = superseded
                 ? quoteSuperseded
-                : (quoteStatus?.[quote?.status] ?? {
-                    label: quote?.status,
-                    variant: "secondary" as const,
-                  });
+                : labelOf(quoteStatus, quote.status);
               return (
                 <TableRow key={quote.id}>
                   <TableCell className="font-medium">

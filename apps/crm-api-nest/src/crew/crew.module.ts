@@ -13,6 +13,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
 import {
   IsDateString,
@@ -24,10 +25,11 @@ import {
   Min,
   MinLength,
 } from "class-validator";
+import type { Response } from "express";
 
 import { businessToday } from "../common/business-date";
 import { toDate } from "../common/coerce";
-import { type PageQuery, pageArgs } from "../common/pagination";
+import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -35,7 +37,9 @@ const EMPLOYMENT_TYPE = ["permanent", "day_hire"];
 // Only a working member can take a NEW assignment — see assertAssignmentRefs.
 const CREW_STATUS_WORKING = "working";
 const CREW_STATUS = [CREW_STATUS_WORKING, "on_leave", "left"];
-const TIMEKEEPING_SOURCE = ["manual", "zalo_app"];
+// Manual is the source of truth for a member+day — see timekeepingSummary.
+const TIMEKEEPING_SOURCE_MANUAL = "manual";
+const TIMEKEEPING_SOURCE = [TIMEKEEPING_SOURCE_MANUAL, "zalo_app"];
 
 // GET /timekeeping has all-optional filters over the fastest-growing table (one
 // row per member per work day per source), so a dateless call used to sort the
@@ -126,25 +130,35 @@ class UpdateCrewDto {
 }
 
 @Controller("crew")
-class CrewController {
+// (exported for the X-Total-Count unit test in crew.test.ts)
+export class CrewController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
   list(
+    @Res({ passthrough: true }) res: Response,
     @Query() page: PageQuery,
     @Query("status") status?: string,
     @Query("employment_type") employmentType?: string
   ) {
-    return this.prisma.crewMember.findMany({
-      where: {
-        ...(status ? { status } : {}),
-        ...(employmentType ? { employment_type: employmentType } : {}),
-      },
-      include: { default_role: true },
-      // Namesakes are common on a roster — id breaks the tie so pages are stable.
-      orderBy: [{ name: "asc" }, { id: "asc" }],
-      ...pageArgs(page),
-    });
+    // One `where`, both queries — a filtered list reports its filtered total,
+    // never the whole roster.
+    const where = {
+      ...(status ? { status } : {}),
+      ...(employmentType ? { employment_type: employmentType } : {}),
+    };
+    return withTotalCount(
+      res,
+      this.prisma.crewMember.findMany({
+        where,
+        include: { default_role: true },
+        // Namesakes are common on a roster — id breaks the tie so pages are
+        // stable.
+        orderBy: [{ name: "asc" }, { id: "asc" }],
+        ...pageArgs(page),
+      }),
+      this.prisma.crewMember.count({ where })
+    );
   }
 
   @Get(":id")
@@ -268,20 +282,26 @@ class AssignmentsController {
 
   @Get()
   list(
+    @Res({ passthrough: true }) res: Response,
     @Query() page: PageQuery,
     @Query("project_id") projectId?: string,
     @Query("crew_member_id") crewMemberId?: string
   ) {
-    return this.prisma.assignment.findMany({
-      where: {
-        ...(projectId ? { project_id: Number(projectId) } : {}),
-        ...(crewMemberId ? { crew_member_id: Number(crewMemberId) } : {}),
-      },
-      include: { crew_member: true, role: true },
-      // A crew intake shares one from_date across rows — id breaks the tie.
-      orderBy: [{ from_date: "desc" }, { id: "desc" }],
-      ...pageArgs(page),
-    });
+    const where = {
+      ...(projectId ? { project_id: Number(projectId) } : {}),
+      ...(crewMemberId ? { crew_member_id: Number(crewMemberId) } : {}),
+    };
+    return withTotalCount(
+      res,
+      this.prisma.assignment.findMany({
+        where,
+        include: { crew_member: true, role: true },
+        // A crew intake shares one from_date across rows — id breaks the tie.
+        orderBy: [{ from_date: "desc" }, { id: "desc" }],
+        ...pageArgs(page),
+      }),
+      this.prisma.assignment.count({ where })
+    );
   }
 
   @Post()
@@ -367,6 +387,70 @@ class CreateTimekeepingDto {
   @IsOptional() @IsString() note?: string;
 }
 
+class TimekeepingSummaryQuery {
+  @IsInt() @Min(1) project_id: number;
+}
+
+/**
+ * One project's chấm công totals: hours summed and distinct work days counted,
+ * over EVERY row the project has. The execution panel used to reduce one page of
+ * GET /timekeeping, so past MAX_PAGE_SIZE rows it could only show a lower bound.
+ *
+ * Manual WINS over zalo_app per member+day — it does not sum. The weekly grid
+ * renders `manual?.hours ?? zalo?.hours` and shows a lone zalo_app cell
+ * read-only (timekeeping-tab.tsx `cellFor`/`hoursFor`), so a day whose zalo
+ * hours were corrected by hand holds two rows but displays one number; summing
+ * both would count it twice. `recorded_days` counts a day that has any row,
+ * matching the grid showing that cell filled.
+ *
+ * No from/to: the panel compares the figure against `actual_duration_days`,
+ * which is a whole-công-trình number. The list endpoint's default window exists
+ * to bound its PAGE; this returns two numbers whatever the range, so a window
+ * would only be a way to get a wrong total. Add one when a caller wants a month.
+ *
+ * Exported for the unit test — not a route, no decorator.
+ */
+export const timekeepingSummary = async (
+  prisma: PrismaService,
+  projectId: number
+) => {
+  // groupBy, not findMany: no page limit to get wrong, and only the three
+  // columns the rule needs leave Postgres (never ids or notes).
+  // ponytail: one group per member+day+source is still O(rows) into this
+  // process — a few tens of thousands of tiny rows for a multi-year công
+  // trình, which is fine. If it ever isn't, this becomes a $queryRaw with
+  // `DISTINCT ON (crew_member_id, work_date) ORDER BY source = 'manual' DESC`
+  // and the rule below moves into SQL.
+  const groups = await prisma.timekeepingRecord.groupBy({
+    by: ["crew_member_id", "work_date", "source"],
+    where: { project_id: projectId },
+    _sum: { hours: true },
+  });
+
+  // One entry per member+day. A manual group overwrites whatever a zalo_app one
+  // put there and blocks the reverse, so row order out of Postgres (unordered
+  // by definition) cannot change the answer.
+  const hoursPerMemberDay = new Map<string, number>();
+  const days = new Set<string>();
+  for (const group of groups) {
+    const day = group.work_date.toISOString().slice(0, 10);
+    days.add(day);
+    const key = `${group.crew_member_id}|${day}`;
+    const isManual = group.source === TIMEKEEPING_SOURCE_MANUAL;
+    if (!isManual && hoursPerMemberDay.has(key)) continue;
+    hoursPerMemberDay.set(key, Number(group._sum?.hours ?? 0));
+  }
+
+  const total = [...hoursPerMemberDay.values()].reduce((sum, h) => sum + h, 0);
+  return {
+    project_id: projectId,
+    // Hours are halves in practice, but float addition still produces
+    // 15.299999999999999 — round it before it reaches the panel.
+    total_hours: Math.round(total * 100) / 100,
+    recorded_days: days.size,
+  };
+};
+
 @Controller("timekeeping")
 class TimekeepingController {
   constructor(private readonly prisma: PrismaService) {}
@@ -376,29 +460,46 @@ class TimekeepingController {
   // window is what it actually needs. Send `from`/`to` for anything older.
   @Get()
   list(
+    @Res({ passthrough: true }) res: Response,
     @Query() page: PageQuery,
     @Query("project_id") projectId?: string,
     @Query("crew_member_id") crewMemberId?: string,
     @Query("from") from?: string,
     @Query("to") to?: string
   ) {
-    return this.prisma.timekeepingRecord.findMany({
-      where: {
-        ...(projectId ? { project_id: Number(projectId) } : {}),
-        ...(crewMemberId ? { crew_member_id: Number(crewMemberId) } : {}),
-        ...(from || to
-          ? {
-              work_date: {
-                ...(from ? { gte: toDate(from)! } : {}),
-                ...(to ? { lte: toDate(to)! } : {}),
-              },
-            }
-          : { work_date: { gte: defaultWindowStart() } }),
-      },
-      // Several members share a work_date — id breaks the tie.
-      orderBy: [{ work_date: "desc" }, { id: "desc" }],
-      ...pageArgs(page),
-    });
+    // One `where`, both queries — the total counts the same window as the rows,
+    // default included, not the whole (fastest-growing) table.
+    const where = {
+      ...(projectId ? { project_id: Number(projectId) } : {}),
+      ...(crewMemberId ? { crew_member_id: Number(crewMemberId) } : {}),
+      ...(from || to
+        ? {
+            work_date: {
+              ...(from ? { gte: toDate(from)! } : {}),
+              ...(to ? { lte: toDate(to)! } : {}),
+            },
+          }
+        : { work_date: { gte: defaultWindowStart() } }),
+    };
+    return withTotalCount(
+      res,
+      this.prisma.timekeepingRecord.findMany({
+        where,
+        // Several members share a work_date — id breaks the tie.
+        orderBy: [{ work_date: "desc" }, { id: "desc" }],
+        ...pageArgs(page),
+      }),
+      this.prisma.timekeepingRecord.count({ where })
+    );
+  }
+
+  // Literal segment, so it MUST stay above any ":id" route: Nest matches in
+  // declaration order and a `@Get(":id")` declared first would take "summary"
+  // as an id (ParseIntPipe → 400). There is no GET /timekeeping/:id today; this
+  // sits where one would go.
+  @Get("summary")
+  summary(@Query() query: TimekeepingSummaryQuery) {
+    return timekeepingSummary(this.prisma, query.project_id);
   }
 
   // Upsert: re-entering a day overwrites that source's row. Manual is source

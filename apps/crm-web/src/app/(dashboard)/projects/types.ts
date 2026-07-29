@@ -78,11 +78,12 @@ export interface Project {
   created_at: string;
   updated_at: string;
 
-  // Relations. GET /projects includes client, location, types and
-  // working_contact (narrowed to id/name/phone — F19: the field page's [Gọi]
-  // link needed it, and refetching the detail per row to get it was an N+1);
-  // GET /projects/:id also includes decision_maker, paperwork_items, notes (and
-  // quotes, left untyped here — the quotes feature owns that shape).
+  // Relations. GET /projects includes client, location, types, working_contact
+  // and decision_maker (both narrowed to id/name/phone — F19: the field page's
+  // [Gọi] link needed them, and refetching the detail per row was an N+1; F41
+  // added decision_maker, the phone fallback that card falls back to);
+  // GET /projects/:id also includes paperwork_items, notes (and quotes, left
+  // untyped here — the quotes feature owns that shape).
   types: ProjectType[];
   client?: ProjectClient;
   location?: ProjectLocation;
@@ -101,6 +102,12 @@ export interface PaperworkItem {
   status: PaperworkStatus;
   due_date?: string | null;
   note?: string | null;
+  /**
+   * Narrow project relation — GET /paperwork-items only (F41), so the
+   * cross-project overdue panel prints a code instead of `#id`. Absent on
+   * GET /paperwork-items/:id and on the GET /projects/:id include.
+   */
+  project?: Pick<Project, "id" | "code">;
 }
 
 export interface ProjectNote {

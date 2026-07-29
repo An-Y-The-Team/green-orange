@@ -89,17 +89,19 @@ Build the images and start the whole stack (Postgres + CMS + web + crm-api + crm
 docker compose -f docker-compose.local.yml up --build
 ```
 
-Add `-d` to run detached. Directus bootstraps + applies its schema, and crm-api
-applies its database migrations, automatically on startup. Once it's up:
+Add `-d` to run detached. Everything self-initialises on startup: Directus
+bootstraps + applies its schema, crm-api applies its migrations, and
+crm-api-nest migrates **and seeds** — so a fresh volume comes up with the demo
+dataset already loaded. Once it's up:
 
-| Service        | URL                          | Notes                                                                 |
-| -------------- | ---------------------------- | --------------------------------------------------------------------- |
-| `web`          | <http://localhost:3000>      | Public landing page / portfolio                                       |
-| `cms`          | <http://localhost:8055>      | Directus Studio (login with the bootstrap admin)                      |
-| `crm-web`      | <http://localhost:3002>      | CRM dashboard — wired to `crm-api-nest`; **seed it once** (see below) |
-| `crm-api-nest` | <http://localhost:8001>      | NestJS + Prisma backend (`admin` / `admin`)                           |
-| `crm-api`      | <http://localhost:8000/docs> | FastAPI Swagger UI (`admin` / `admin`)                                |
-| `postgres`     | `localhost:5432`             | `directus`, `cms`, `crm`, `crm_nest`, `authentik` databases           |
+| Service        | URL                          | Notes                                                               |
+| -------------- | ---------------------------- | ------------------------------------------------------------------- |
+| `web`          | <http://localhost:3000>      | Public landing page / portfolio                                     |
+| `cms`          | <http://localhost:8055>      | Directus Studio (login with the bootstrap admin)                    |
+| `crm-web`      | <http://localhost:3002>      | CRM dashboard — wired to `crm-api-nest`; seeded data, no setup step |
+| `crm-api-nest` | <http://localhost:8001>      | NestJS + Prisma backend (`admin` / `admin`)                         |
+| `crm-api`      | <http://localhost:8000/docs> | FastAPI Swagger UI (`admin` / `admin`)                              |
+| `postgres`     | `localhost:5432`             | `directus`, `cms`, `crm`, `crm_nest`, `authentik` databases         |
 
 Stop it with `Ctrl-C` (or `docker compose -f docker-compose.local.yml down` if
 detached). Add `-v` to `down` to also wipe the Postgres + media volumes.
@@ -139,17 +141,20 @@ docker compose -f docker-compose.local.yml logs -f cms
 docker compose -f docker-compose.local.yml exec cms sh
 ```
 
-> **Seed the CRM once:** the `crm-api-nest` container applies its migrations on
-> start but does **not** seed, so on a fresh volume the dashboard renders empty
-> lists. Load the demo dataset from the host — this stack publishes `5432` and
-> `apps/crm-api-nest/.env` already points there. (The one step that needs Bun
-> outside Docker: run `bun install` at the repo root first — the runtime image
-> ships the compiled server, not Bun.)
+> **The CRM seeds itself:** before starting the server the `crm-api-nest`
+> container runs `prisma migrate deploy` **and** `node dist/seed.js`, so a fresh
+> volume already has the demo user `admin`/`admin` and the whole dataset — no
+> host-side step, no Bun outside Docker. The seed upserts on stable ids, so
+> restarts converge instead of duplicating. This seed-on-start is a `command:`
+> override that exists **only** in `docker-compose.local.yml`; prod uses the
+> image's migrate-only `CMD` and never auto-seeds.
 >
 > ```bash
-> cd apps/crm-api-nest
-> cp .env.example .env     # DATABASE_URL → localhost:5432/crm_nest
-> bun run seed             # demo user admin/admin + 8 công trình, one per stage
+> # Re-seed after poking the data by hand:
+> docker compose -f docker-compose.local.yml restart crm-api-nest
+>
+> # Changed src/seed.ts? The image ships the compiled copy, so rebuild:
+> docker compose -f docker-compose.local.yml up --build -d crm-api-nest
 > ```
 >
 > `CRM_API_URL` is already set on the `crm-web` service (to
@@ -228,11 +233,12 @@ docker compose up -d postgres
 ### 3. Migrate and seed the CRM database
 
 Creates the `crm_nest` schema, then loads the demo dataset the UI was built
-against: **8 công trình — one per lifecycle stage** — with quotes (including a
-superseded pair), contracts, a signed settlement with a collected bill, payment
-milestones (one overdue), crew with a double-booked member, timekeeping,
-paperwork (one overdue), attachments, notes, and an appointment that is always
-**today**. Plus the backend user **`admin` / `admin`** — `crm-web` mints its token
+against: **9 công trình — one per lifecycle stage, plus a parked one** — with
+quotes (including a superseded pair and a standalone quote with no công trình),
+contracts, a signed settlement with a collected bill, payment milestones (one
+overdue), crew with a double-booked member, timekeeping, paperwork (one overdue),
+attachments, notes, an appointment that is always **today**, and a follow-up
+that is always **due**. Plus the backend user **`admin` / `admin`** — `crm-web` mints its token
 with it automatically, so there's no login screen unless you enable Authentik.
 
 ```bash

@@ -6,10 +6,8 @@ import { useRouter } from "next/navigation";
 import { useActionState, useRef, useState, useTransition } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
+import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
@@ -34,6 +32,7 @@ import {
   quoteFormSchema,
 } from "@/app/(dashboard)/quotes/schema";
 import { fieldError, selectClass } from "@/components/form-bits/form-bits";
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
 
@@ -75,9 +74,7 @@ export function QuoteBuilderForm({
   const action = initial.editId
     ? (updateQuote.bind(null, initial.editId) as typeof createQuote)
     : createQuote;
-  const [state, formAction] = useActionState(action, {
-    success: false,
-  } as ServerActionState);
+  const [state, formAction] = useActionState(action, INITIAL_ACTION_STATE);
 
   const form = useForm<QuoteFormValues>({
     resolver: zodResolver(quoteFormSchema),
@@ -95,8 +92,11 @@ export function QuoteBuilderForm({
     successToastTitle: "Thành công",
     errorToastTitle: "Lỗi",
     onSuccess: (data) => {
-      if (intentRef.current === QuoteSubmitIntent.SEND && data?.id) {
-        setSendId(data.id);
+      // The action echoes back the saved quote; narrow before reading its id.
+      const savedId =
+        isObject(data) && typeof data.id === "number" ? data.id : null;
+      if (intentRef.current === QuoteSubmitIntent.SEND && savedId) {
+        setSendId(savedId);
       } else {
         // Standalone → the quotes list (a newly-created quote's own detail
         // only exists in live mode; mock data isn't persisted).

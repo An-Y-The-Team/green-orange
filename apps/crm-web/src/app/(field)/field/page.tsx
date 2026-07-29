@@ -32,7 +32,8 @@ export default async function FieldPage() {
 
   // Hôm nay — appointments today not yet visited (dashboard filter). Stage 1
   // spans request AND survey, so `!visit_date` marks "still to meet". The list
-  // endpoint now carries working_contact, so no per-row detail refetch (F19).
+  // endpoint carries working_contact (F19) and decision_maker (F41 — the card's
+  // [Gọi] fallback), so no per-row detail refetch.
   const todayAppointments = projects.filter(
     (p) =>
       p?.stage === ProjectStage.REQUEST &&

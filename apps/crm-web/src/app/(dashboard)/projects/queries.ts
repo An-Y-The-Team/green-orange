@@ -1,6 +1,7 @@
-import { apiFetch, apiFetchSafe } from "@/utils/http/http";
+import { apiFetch, apiFetchList, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
 
+import type { ProjectStatus } from "./enums";
 import type { Attachment, PaperworkItem, Project, ProjectType } from "./types";
 
 /**
@@ -17,6 +18,30 @@ export async function listProjects({
     `/projects${pageQuery({ limit, offset })}`,
     []
   );
+}
+
+/**
+ * One page of the list PLUS how many công trình exist in total, from the
+ * response's `X-Total-Count`. Separate from {@link listProjects} because that one
+ * is a picker window whose callers want rows and nothing else.
+ */
+export async function listProjectsPage(page: {
+  limit: number;
+  offset: number;
+}): Promise<{ rows: Project[]; total: number }> {
+  return apiFetchList<Project>(`/projects${pageQuery(page)}`);
+}
+
+/**
+ * How many công trình match `status`, with no rows worth rendering — `limit=1`
+ * because the API floors a smaller limit to its 100-row default, and the answer
+ * is the header, not the body.
+ */
+export async function countProjects(status: ProjectStatus): Promise<number> {
+  const { total } = await apiFetchList<Project>(
+    `/projects?status=${status}&limit=1`
+  );
+  return total;
 }
 
 export async function getProject(id: number): Promise<Project | undefined> {

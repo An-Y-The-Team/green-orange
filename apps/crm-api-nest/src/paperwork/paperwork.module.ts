@@ -11,6 +11,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
 import {
   IsDateString,
@@ -20,14 +21,24 @@ import {
   IsString,
   MinLength,
 } from "class-validator";
+import type { Response } from "express";
 
 import { businessToday } from "../common/business-date";
 import { toDate } from "../common/coerce";
-import { type PageQuery, pageArgs } from "../common/pagination";
+import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { PrismaService } from "../prisma/prisma.service";
 
 const PAPERWORK_STATUS = ["preparing", "submitted", "approved"];
+
+// F41: the dashboard's "Hồ sơ quá hạn" panel prints a công trình code, and the
+// only way to get one was fetching /projects and joining in JS — a paginated
+// window, so an older project's row rendered `#id`. Same idea as
+// receivables.module.ts PROJECT_INCLUDE. List path only: a per-project read
+// (?project_id=) already knows its project.
+const PROJECT_INCLUDE = {
+  project: { select: { id: true, code: true } },
+};
 
 // Stage-5 checklist defaults — user-facing names stay Vietnamese (data, not enum).
 // Exported: POST /projects auto-seeds these on project creation.
@@ -69,21 +80,30 @@ class PaperworkItemsController {
   // implies a status, so it replaces `status=` instead of contradicting it.
   @Get()
   list(
+    @Res({ passthrough: true }) res: Response,
     @Query() page: PageQuery,
     @Query("project_id") projectId?: string,
     @Query("status") status?: string,
     @Query("overdue") overdue?: string
   ) {
-    return this.prisma.paperworkItem.findMany({
-      where: {
-        project_id: projectId ? Number(projectId) : undefined,
-        ...(overdue === "true"
-          ? { due_date: { lt: businessToday() }, status: { not: "approved" } }
-          : { status: status || undefined }),
-      },
-      orderBy: { id: "asc" },
-      ...pageArgs(page),
-    });
+    // One `where`, both queries — so the count applies the same derived overdue
+    // rule as the rows instead of counting the whole checklist table.
+    const where = {
+      project_id: projectId ? Number(projectId) : undefined,
+      ...(overdue === "true"
+        ? { due_date: { lt: businessToday() }, status: { not: "approved" } }
+        : { status: status || undefined }),
+    };
+    return withTotalCount(
+      res,
+      this.prisma.paperworkItem.findMany({
+        where,
+        include: PROJECT_INCLUDE,
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.paperworkItem.count({ where })
+    );
   }
 
   @Get(":id")

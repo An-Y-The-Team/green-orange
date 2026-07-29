@@ -11,22 +11,39 @@ import type { Bill, PaymentMilestone, Settlement } from "./types";
 // Cross-entity list reads. Both endpoints page at DEFAULT_PAGE_SIZE=100 /
 // MAX_PAGE_SIZE=500 (F17), so `status` and `limit` exist to make the request
 // match what the caller actually renders instead of paging blind.
-const listQuery = ({ status, limit }: { status?: string; limit?: number }) => {
+const listQuery = ({
+  status,
+  limit,
+  overdue,
+}: {
+  status?: string;
+  limit?: number;
+  overdue?: boolean;
+}) => {
   const params = new URLSearchParams();
   if (status) params.set("status", status);
   if (limit) params.set("limit", String(limit));
+  if (overdue) params.set("overdue", "true");
   const query = params.toString();
   return query ? `?${query}` : "";
 };
 
+/**
+ * `overdue` maps to `?overdue=true`, which the server expands to the derived
+ * rule (`due_date < today AND status != paid`) — the scan stays where the rows
+ * are (F20). It REPLACES `status` server-side, so pass one or the other.
+ */
 export async function listPaymentMilestones({
   status,
   limit,
-}: { status?: MilestoneStatus; limit?: number } = {}): Promise<
-  PaymentMilestone[]
-> {
+  overdue,
+}: {
+  status?: MilestoneStatus;
+  limit?: number;
+  overdue?: boolean;
+} = {}): Promise<PaymentMilestone[]> {
   return apiFetch<PaymentMilestone[]>(
-    `/payment-milestones${listQuery({ status, limit })}`
+    `/payment-milestones${listQuery({ status, limit, overdue })}`
   );
 }
 

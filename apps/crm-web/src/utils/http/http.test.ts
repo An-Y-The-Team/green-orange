@@ -5,7 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // stubbed fetch below only ever sees the request under test.
 process.env.CRM_API_URL = "http://api.test";
 process.env.CRM_API_TOKEN = "t";
-const { ApiError, apiFetch, apiFetchSafe } = await import("./http");
+const { ApiError, apiFetch, apiFetchList, apiFetchSafe } =
+  await import("./http");
 
 // The bug this guards: apiFetchSafe used to catch EVERYTHING and return the
 // fallback, so a dead backend rendered as an empty list — /projects answered
@@ -120,5 +121,64 @@ describe("apiFetch", () => {
     expect(reads).toBe(2);
 
     if (token !== undefined) process.env.CRM_API_TOKEN = token;
+  });
+});
+
+// The bug this guards: every list header used to label one page's length as a
+// total, because apiFetch discarded the Response and with it X-Total-Count.
+describe("apiFetchList", () => {
+  const stubList = (rows: unknown[], headers?: Record<string, string>) =>
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(JSON.stringify(rows), { status: 200, headers })
+        )
+      )
+    );
+
+  it("reads the total off X-Total-Count, not off the rows", async () => {
+    stubList([{ id: 1 }, { id: 2 }], { "X-Total-Count": "417" });
+    await expect(apiFetchList("/projects?limit=2")).resolves.toEqual({
+      rows: [{ id: 1 }, { id: 2 }],
+      total: 417,
+    });
+  });
+
+  it("falls back to the page length when the header is absent", async () => {
+    stubList([{ id: 1 }, { id: 2 }]);
+    await expect(apiFetchList("/projects")).resolves.toMatchObject({
+      total: 2,
+    });
+  });
+
+  it("falls back on a non-numeric header rather than yielding NaN", async () => {
+    stubList([{ id: 1 }], { "X-Total-Count": "lots" });
+    await expect(apiFetchList("/projects")).resolves.toMatchObject({
+      total: 1,
+    });
+  });
+
+  // Number("") and Number(null) are both 0, so an empty header must not read as
+  // "the collection is empty" while rows are on the wire.
+  it("falls back on an empty header instead of reporting 0", async () => {
+    stubList([{ id: 1 }], { "X-Total-Count": "" });
+    await expect(apiFetchList("/projects")).resolves.toMatchObject({
+      total: 1,
+    });
+  });
+
+  it("keeps a genuine 0 total", async () => {
+    stubList([], { "X-Total-Count": "0" });
+    await expect(apiFetchList("/projects")).resolves.toEqual({
+      rows: [],
+      total: 0,
+    });
+  });
+
+  // Same failure surface as apiFetch: no silent degradation to an empty list.
+  it("throws an ApiError on a non-2xx", async () => {
+    stubStatus(500);
+    await expect(apiFetchList("/projects")).rejects.toBeInstanceOf(ApiError);
   });
 });

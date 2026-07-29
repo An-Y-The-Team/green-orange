@@ -13,6 +13,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
 import {
   IsEmail,
@@ -23,8 +24,9 @@ import {
   MinLength,
   ValidateIf,
 } from "class-validator";
+import type { Response } from "express";
 
-import { type PageQuery, pageArgs } from "../common/pagination";
+import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { PrismaService } from "../prisma/prisma.service";
 
 const CLIENT_TYPE = ["company", "individual"];
@@ -59,13 +61,17 @@ class ClientsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list(@Query() page: PageQuery) {
-    return this.prisma.client.findMany({
-      include: { _count: { select: { locations: true, projects: true } } },
-      // Was unordered: paging an unordered query overlaps and drops rows.
-      orderBy: { id: "asc" },
-      ...pageArgs(page),
-    });
+  list(@Res({ passthrough: true }) res: Response, @Query() page: PageQuery) {
+    return withTotalCount(
+      res,
+      this.prisma.client.findMany({
+        include: { _count: { select: { locations: true, projects: true } } },
+        // Was unordered: paging an unordered query overlaps and drops rows.
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.client.count()
+    );
   }
 
   @Get(":id")
@@ -179,12 +185,22 @@ class ContactsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list(@Query() page: PageQuery, @Query("client_id") clientId?: string) {
-    return this.prisma.contact.findMany({
-      where: clientId ? { client_id: Number(clientId) } : undefined,
-      orderBy: { id: "asc" },
-      ...pageArgs(page),
-    });
+  list(
+    @Res({ passthrough: true }) res: Response,
+    @Query() page: PageQuery,
+    @Query("client_id") clientId?: string
+  ) {
+    // One `where`, both queries — the count cannot drift from the rows.
+    const where = clientId ? { client_id: Number(clientId) } : undefined;
+    return withTotalCount(
+      res,
+      this.prisma.contact.findMany({
+        where,
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.contact.count({ where })
+    );
   }
 
   @Get(":id")
@@ -258,13 +274,22 @@ class LocationsController {
   }
 
   @Get()
-  list(@Query() page: PageQuery, @Query("client_id") clientId?: string) {
-    return this.prisma.location.findMany({
-      where: clientId ? { client_id: Number(clientId) } : undefined,
-      include: { manager: true },
-      orderBy: { id: "asc" },
-      ...pageArgs(page),
-    });
+  list(
+    @Res({ passthrough: true }) res: Response,
+    @Query() page: PageQuery,
+    @Query("client_id") clientId?: string
+  ) {
+    const where = clientId ? { client_id: Number(clientId) } : undefined;
+    return withTotalCount(
+      res,
+      this.prisma.location.findMany({
+        where,
+        include: { manager: true },
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.location.count({ where })
+    );
   }
 
   @Get(":id")

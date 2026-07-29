@@ -32,3 +32,20 @@ export function pageQuery({
   const qs = query.toString();
   return qs ? `?${qs}` : "";
 }
+
+/**
+ * How many pages `total` rows make at `pageRows` each — `total` being the whole
+ * collection's count from the list response's `X-Total-Count`.
+ *
+ * Never 0: an empty list is one empty page, so callers can compare `page` against
+ * this without a second "is it empty" branch.
+ */
+export function pageCount({
+  total,
+  pageRows,
+}: {
+  total: number;
+  pageRows: number;
+}): number {
+  return Math.max(1, Math.ceil(total / pageRows));
+}

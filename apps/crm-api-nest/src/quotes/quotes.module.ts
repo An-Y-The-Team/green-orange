@@ -12,6 +12,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
 import { Type } from "class-transformer";
 import {
@@ -27,10 +28,11 @@ import {
   MinLength,
   ValidateNested,
 } from "class-validator";
+import type { Response } from "express";
 
 import { businessToday } from "../common/business-date";
 import { toBig } from "../common/coerce";
-import { type PageQuery, pageArgs } from "../common/pagination";
+import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
@@ -108,6 +110,47 @@ class DecideQuoteDto {
   @IsIn(DECISION) status: string;
 }
 
+type VersionedRow = { project_id: number | null; version: number };
+
+/**
+ * Adds `is_latest` per row: false = a newer version exists for the same project,
+ * which the UI paints as "Đã thay thế". Derived, never stored — the status still
+ * lives on the latest version only.
+ *
+ * ONE extra `groupBy` per request (never per row), restricted to the project ids
+ * actually present in `rows` and served by `@@unique([project_id, version])`. It
+ * asks the DB for the max version instead of the fetched page, so the answer
+ * holds under any `offset` or `orderBy` — a max-version map built from the page
+ * only works while the page is a prefix of `version desc`.
+ *
+ * Standalone quotes (`project_id: null`) have no sibling set — `@@unique` treats
+ * null as distinct, so nothing can supersede them: always latest.
+ */
+export async function withIsLatest<T extends VersionedRow>(
+  prisma: PrismaService,
+  rows: T[]
+): Promise<(T & { is_latest: boolean })[]> {
+  const projectIds = [
+    ...new Set(
+      rows.map((r) => r.project_id).filter((id): id is number => id !== null)
+    ),
+  ];
+  const groups = projectIds.length
+    ? await prisma.quote.groupBy({
+        by: ["project_id"],
+        where: { project_id: { in: projectIds } },
+        _max: { version: true },
+      })
+    : [];
+  const maxVersion = new Map(groups.map((g) => [g.project_id, g._max.version]));
+  return rows.map((row) => ({
+    ...row,
+    is_latest:
+      row.project_id === null ||
+      row.version >= (maxVersion.get(row.project_id) ?? row.version),
+  }));
+}
+
 // amount = round(quantity × unit_price) per item; total = Σ amounts.
 const computeItems = (items: QuoteItemDto[]) => {
   const rows = items.map((it, i) => ({
@@ -123,7 +166,7 @@ const computeItems = (items: QuoteItemDto[]) => {
 };
 
 @Controller("quotes")
-class QuotesController {
+export class QuotesController {
   constructor(private readonly prisma: PrismaService) {}
 
   // F22 applies to the CROSS-PROJECT list only. Scoped to one project this
@@ -131,17 +174,39 @@ class QuotesController {
   // — and getDealQuote() reads `items` off it to prefill a settlement and print
   // a contract's line-item block, so narrowing that path would empty both.
   @Get()
-  list(@Query() page: PageQuery, @Query("project_id") projectId?: string) {
+  async list(
+    @Res({ passthrough: true }) res: Response,
+    @Query() page: PageQuery,
+    @Query("project_id") projectId?: string
+  ) {
+    // One `where` for both queries — the count cannot drift from the rows.
+    const where = projectId ? { project_id: Number(projectId) } : undefined;
     const args = {
-      where: projectId ? { project_id: Number(projectId) } : undefined,
+      where,
       // Every project restarts at version 1, so version alone is not a total
       // order across projects — id breaks the tie.
       orderBy: [{ version: "desc" as const }, { id: "desc" as const }],
       ...pageArgs(page),
     };
-    return projectId
-      ? this.prisma.quote.findMany({ ...args, include: DETAIL_INCLUDE })
-      : this.prisma.quote.findMany({ ...args, include: LIST_INCLUDE });
+    const total = this.prisma.quote.count({ where });
+    // `is_latest` is for the cross-project list, whose rows are a page out of
+    // every project's history. A `?project_id=` read already returns that
+    // project's whole version set, and it feeds the money path (getDealQuote →
+    // contract/settlement), so it does not pay for a second query.
+    if (projectId)
+      return withTotalCount(
+        res,
+        this.prisma.quote.findMany({ ...args, include: DETAIL_INCLUDE }),
+        total
+      );
+    return withIsLatest(
+      this.prisma,
+      await withTotalCount(
+        res,
+        this.prisma.quote.findMany({ ...args, include: LIST_INCLUDE }),
+        total
+      )
+    );
   }
 
   @Get(":id")

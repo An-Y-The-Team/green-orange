@@ -8,11 +8,13 @@
 
 **Thanh toán theo đợt (Payment Milestones)** is the công nợ / receivables view: a
 contract is collected in stages — tạm ứng (advance), theo tiến độ (progress), on
-nghiệm thu (acceptance), and a retained amount held until warranty ends. The **Thu /
-Nợ** sidebar page is built but empty in live mode; it calls `GET /payment-milestones`
-and `POST /payment-milestones` (see
+nghiệm thu (acceptance), and a retained amount held until warranty ends. This is the
+v1 shape of that resource, and it is what you build here. crm-web does call
+`GET /payment-milestones` and `POST /payment-milestones` (see
 [`receivables/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/receivables/queries.ts>)
-and [`add-payment-milestone.ts`](<../../apps/crm-web/src/app/(dashboard)/receivables/actions/add-payment-milestone.ts>)).
+and [`receivables/actions/milestones.ts`](<../../apps/crm-web/src/app/(dashboard)/receivables/actions/milestones.ts>)),
+but against the **v2** field shapes — read those files for flavour, not as your
+contract.
 
 **New concept — a business rule, not just CRUD.** Some milestones are
 `gated_by_acceptance`: they **cannot be collected until the project's nghiệm thu is
@@ -20,10 +22,11 @@ done** (an `Acceptance` row with `status == "da_nghiem_thu"`, from
 [#08](08-costs-and-acceptances.md)). This is the first task where the API enforces
 domain logic the UI alone can't be trusted with.
 
-Type: `PaymentMilestone` in
-[`src/types/index.ts`](../../apps/crm-web/src/types/index.ts).
+The field table below **is** the contract for this task. (It used to be checked
+against a `PaymentMilestone` type in crm-web; that file is gone — see
+[00 — Choose your backend](00-choose-your-backend.md).)
 
-## Fields (match the `PaymentMilestone` TS type exactly)
+## Fields (match the table below exactly)
 
 | Field                 | Type | Notes                                                         |
 | --------------------- | ---- | ------------------------------------------------------------- |
@@ -61,11 +64,10 @@ Type: `PaymentMilestone` in
 ## Acceptance criteria
 
 - [ ] `GET/POST /payment-milestones` work; `?contract_code=HD-001` filters correctly.
-- [ ] `PaymentMilestonePublic` matches the `PaymentMilestone` type 1:1.
+- [ ] `PaymentMilestonePublic` matches the field table above 1:1.
 - [ ] `POST /payment-milestones/{id}/collect` returns **409** when gated and the
       project isn't accepted, and **200** (status → `da_thu`) when it is.
 - [ ] Router registered; migration + tests (both gate branches) committed and passing.
-- [ ] **Thu / Nợ** page shows live milestones in live mode.
 
 ## Hints & references
 
@@ -77,7 +79,7 @@ Type: `PaymentMilestone` in
 
 ## Definition of done
 
-The Thu / Nợ page renders live receivables, and the collect endpoint refuses to
-collect a gated milestone until the project is accepted — a rule enforced by the
-**server**, not the UI. This is the capstone of the backend track. 🎉
+`/payment-milestones` lists and filters, and the collect endpoint refuses to collect
+a gated milestone until the project is accepted — a rule enforced by the **server**,
+not the UI. This is the capstone of the backend track. 🎉
 </content>

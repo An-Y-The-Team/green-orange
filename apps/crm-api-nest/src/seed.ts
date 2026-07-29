@@ -5,8 +5,9 @@
 // trình per lifecycle stage plus the edge cases that drive the interesting
 // branches — a superseded quote pair, a double-booked crew member, an overdue
 // hồ sơ, an overdue đợt thanh toán, a signed quyết toán with a collected hóa
-// đơn, an appointment TODAY, and a manual + zalo_app chấm công collision on one
-// day. Drop a row and a panel goes blank.
+// đơn, an appointment TODAY, a standalone báo giá with no công trình, a parked
+// công trình whose follow-up is due today, and a manual + zalo_app chấm công
+// collision on one day. Drop a row and a panel goes blank.
 //
 // Idempotency: every row is upserted on its real unique key — `username` /
 // `name` where the schema declares one (User, ProjectType, CrewRole), an
@@ -412,6 +413,29 @@ export const PROJECTS: SeededProject[] = [
     acceptance_passed_date: day(-8),
     type_names: ["Vệ sinh"],
   },
+  {
+    // Parked — the only `on_hold` project, with a follow-up due TODAY: the
+    // dashboard's "Cần theo dõi" panel is `status = on_hold && follow_up_date
+    // <= today`, so nothing else can fill it. Its báo giá is on_hold too — the
+    // pair decide-quote writes when a quote is parked (decide-quote.ts chains
+    // quote → project). Stage stays 2, since parking is a status, not a stage.
+    id: 9,
+    code: "CT-2026-009",
+    client_id: 2,
+    location_id: 3,
+    working_contact_id: 3,
+    decision_maker_contact_id: 3,
+    name: "Vệ sinh sân thượng nhà phố Q.3",
+    request_note: "Vệ sinh sân thượng và lan can",
+    referral_source: "khách cũ",
+    stage: "quote",
+    status: "on_hold",
+    follow_up_date: day(0),
+    appointment_at: atHour(-22, 14),
+    visit_date: day(-22),
+    survey_note: "Sân thượng 300m², lan can kính cần vệ sinh riêng.",
+    type_names: ["Vệ sinh"],
+  },
 ];
 
 export const QUOTES: Seeded<Prisma.QuoteUncheckedCreateInput>[] = [
@@ -481,6 +505,29 @@ export const QUOTES: Seeded<Prisma.QuoteUncheckedCreateInput>[] = [
     status: "deal",
     total_amount: 62_000_000n,
     decided_date: day(-52),
+  },
+  {
+    // Parked with CT-2026-009 (see there).
+    id: 9,
+    project_id: 9,
+    version: 1,
+    status: "on_hold",
+    total_amount: 18_000_000n,
+    decided_date: day(-15),
+    note: "Khách xin hoãn vì đang sửa nhà, hẹn liên hệ lại.",
+  },
+  {
+    // Standalone — `project_id: null`, the walk-in báo giá that has no công
+    // trình yet (quotes.module.ts allows it). /quotes renders "—" in the Công
+    // trình and Khách hàng columns for it; no project-bound quote reaches that
+    // branch. Version 1 doesn't collide: @@unique([project_id, version]) treats
+    // NULL project_id as distinct in Postgres.
+    id: 10,
+    project_id: null,
+    version: 1,
+    status: "waiting",
+    total_amount: 9_500_000n,
+    note: "Khách đi ngang hỏi giá, chưa mở công trình.",
   },
 ];
 
@@ -636,6 +683,24 @@ export const QUOTE_ITEMS: Seeded<Prisma.QuoteItemUncheckedCreateInput>[] = [
     unit_price: 40_000n,
     amount: 18_000_000n,
     sort_order: 1,
+  },
+  {
+    id: 17,
+    quote_id: 9,
+    description: "Vệ sinh sân thượng và lan can kính",
+    unit: "m²",
+    quantity: 300,
+    unit_price: 60_000n,
+    amount: 18_000_000n,
+  },
+  {
+    id: 18,
+    quote_id: 10,
+    description: "Vệ sinh kính căn hộ",
+    unit: "m²",
+    quantity: 95,
+    unit_price: 100_000n,
+    amount: 9_500_000n,
   },
 ];
 
@@ -1218,7 +1283,8 @@ async function main(): Promise<void> {
   await resetSequences();
 
   console.log(
-    `✓ Seeded crm_nest: ${PROJECTS.length} công trình (one per stage), ` +
+    `✓ Seeded crm_nest: ${PROJECTS.length} công trình (one per stage ` +
+      `plus one parked), ` +
       `${QUOTES.length} báo giá, ${CONTRACTS.length} hợp đồng, ` +
       `${SETTLEMENTS.length} quyết toán, ${BILLS.length} hóa đơn, ` +
       `${MILESTONES.length} đợt thanh toán, ${CREW.length} nhân sự. ` +

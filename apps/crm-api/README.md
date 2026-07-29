@@ -5,8 +5,18 @@ A small, deliberately-incomplete CRM API for learning backend development:
 worked as a reference; `contacts`, `leads`, `deals`, and `tasks` are skeletons
 left for you to implement.
 
-It pairs with **`apps/crm-web`** (the Next.js UI). The UI runs on mock data by
-default; point it at this API by setting `CRM_API_URL=http://localhost:8000`.
+> **This backend implements the v1 contract, and `apps/crm-web` has moved to v2.**
+> Setting `CRM_API_URL=http://localhost:8000` does **not** light the UI up: the
+> endpoint set and the field shapes both diverged, and a failing list read degrades
+> to `[]`, so you get **empty pages with no error** rather than your data. (There is
+> no mock/offline mode either — `CRM_API_URL` is required, and the UI's dev dataset
+> comes from `apps/crm-api-nest`'s `bun run seed`.) `apps/crm-api-nest` on `:8001` is
+> the backend that serves the current UI.
+>
+> Building the v1 contract **is** the exercise — the divergence changes only how you
+> check your work. Your feedback loop is Swagger (<http://localhost:8000/docs>) plus
+> `uv run pytest`, never a crm-web page. See
+> [`docs/tasks/00-choose-your-backend.md`](../../docs/tasks/00-choose-your-backend.md).
 
 ## Stack
 
@@ -73,11 +83,14 @@ uv run pytest -q     # uses in-memory SQLite, no Postgres needed
 
 For each: define the model + Create/Public/Update schemas, register it in
 `app/models/__init__.py`, replace the `501` stub route with real CRUD handlers
-(protect them with `CurrentUser`), generate + apply a migration, then watch the
-matching `crm-web` page light up with live data.
+(protect them with `CurrentUser`), generate + apply a migration, then check the
+round-trip in `/docs` and cover it with a test.
 
-Field names must match the `crm-web` TypeScript types in
-`apps/crm-web/src/types/index.ts` so responses map onto the UI with no changes.
+The **field tables in [`docs/tasks/`](../../docs/tasks/README.md) are the contract**
+for each resource, and the `*Public` models already in `app/models/` are the shape to
+copy. (These tables used to be checked against `apps/crm-web/src/types/index.ts`;
+that file is gone, and crm-web's per-feature `types.ts` files describe v2 — don't
+match against them.)
 
 ## Auth modes
 

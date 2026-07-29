@@ -2,7 +2,7 @@
 // fixtures), so its invariants are worth failing on: the money must add up the
 // way receivables.module.ts keeps it, the "today" fixture must be genuinely
 // today, and every stage must still have a project to render. No DB — the seed
-// guards its main() behind `import.meta.main`, so importing it is free.
+// guards its main() behind `require.main === module`, so importing it is free.
 import { describe, expect, test } from "bun:test";
 
 import { businessDateString } from "./common/business-date";
@@ -59,6 +59,19 @@ describe("coverage the UI depends on", () => {
     const pair = QUOTES.filter((q) => q.project_id === 1);
     expect(pair.map((q) => q.version)).toEqual([1, 2]);
     expect(pair.map((q) => q.status)).toEqual(["rejected", "waiting"]);
+  });
+  test("one báo giá is standalone — the /quotes '—' project column", () => {
+    expect(QUOTES.filter((q) => q.project_id == null)).toHaveLength(1);
+  });
+  test("a parked project's follow-up is due — the 'Cần theo dõi' panel", () => {
+    // Same predicate as dashboard/page.tsx: on_hold AND follow_up_date <= today.
+    const due = PROJECTS.filter(
+      (p) =>
+        p.status === "on_hold" &&
+        p.follow_up_date instanceof Date &&
+        p.follow_up_date <= day(0)
+    );
+    expect(due).toHaveLength(1);
   });
   test("a crew member is double-booked over overlapping dates", () => {
     // Same predicate the API's overlap warning uses (crew.module.ts).

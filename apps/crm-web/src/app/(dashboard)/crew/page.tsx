@@ -6,7 +6,7 @@ import { pageFromParam } from "@/utils/page-param/page-param";
 import { listProjects } from "../projects/queries";
 import { CrewTabs } from "./components/crew-tabs/crew-tabs";
 import { CrewMemberStatus } from "./enums";
-import { listCrew, listCrewRoles } from "./queries";
+import { countCrew, listCrewPage, listCrewRoles } from "./queries";
 
 // Rows per page. Explicit rather than leaning on the API's default so the pager
 // and the offsets it builds agree with what is actually rendered.
@@ -20,38 +20,38 @@ export default async function CrewPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   const page = pageFromParam((await searchParams)?.page);
-  const [rows, roles, projects] = await Promise.all([
-    // One row more than we render: GET /crew returns a bare array with no total,
-    // so an extra row is the only honest way to know a next page exists.
-    listCrew({ limit: PAGE_ROWS + 1, offset: (page - 1) * PAGE_ROWS }),
-    listCrewRoles(),
-    // Project picker for the Chấm công tab, not a list — ask for the largest page
-    // the API serves, same as the other pickers.
-    // ponytail: still a window; a project past it can't be selected. Goes away
-    // with a server-filtered/searchable picker.
-    listProjects({ limit: MAX_PAGE_SIZE }),
-  ]);
-  const hasNext = rows.length > PAGE_ROWS;
-  const members = rows.slice(0, PAGE_ROWS);
-  const workingCount = members.filter(
-    (m) => m?.status === CrewMemberStatus.WORKING
-  ).length;
-
-  // Both counts are page-scoped whenever more than one page exists — same
-  // treatment as quotes/page.tsx: name the page rather than imply a total.
-  const counts = `${members.length} nhân sự · ${workingCount} đang làm`;
+  const [{ rows: members, total }, workingCount, roles, projects] =
+    await Promise.all([
+      // `total` is the whole roster (X-Total-Count): the header states a real
+      // total and the pager derives its page count — no +1 row probe needed.
+      listCrewPage({ limit: PAGE_ROWS, offset: (page - 1) * PAGE_ROWS }),
+      // Counted server-side for the same reason: filtering this page's rows only
+      // ever describes this page.
+      countCrew(CrewMemberStatus.WORKING),
+      listCrewRoles(),
+      // Project picker for the Chấm công tab, not a list — ask for the largest
+      // page the API serves, same as the other pickers.
+      // ponytail: still a window; a project past it can't be selected. Goes away
+      // with a server-filtered/searchable picker.
+      listProjects({ limit: MAX_PAGE_SIZE }),
+    ]);
 
   return (
     <>
       <PageHeader
         title="Nhân sự"
-        description={hasNext || page > 1 ? `Trang ${page} · ${counts}` : counts}
+        description={`${total} nhân sự · ${workingCount} đang làm`}
       />
       <CrewTabs crew={members} roles={roles} projects={projects} />
       {/* Pages the roster (the default tab). ponytail: shown on every tab because
           the active tab is client state, not a URL param — moving the tab into
           `?tab=` would let this hide itself on Vai trò / Chấm công. */}
-      <TablePager page={page} hasNext={hasNext} basePath="/crew" />
+      <TablePager
+        page={page}
+        total={total}
+        pageRows={PAGE_ROWS}
+        basePath="/crew"
+      />
     </>
   );
 }

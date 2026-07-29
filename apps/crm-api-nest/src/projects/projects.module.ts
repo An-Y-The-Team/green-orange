@@ -13,6 +13,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
 import { Type } from "class-transformer";
 import {
@@ -28,11 +29,12 @@ import {
   MinLength,
   ValidateNested,
 } from "class-validator";
+import type { Response } from "express";
 
 import { businessToday } from "../common/business-date";
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
-import { type PageQuery, pageArgs } from "../common/pagination";
+import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { STAGE_ORDER } from "../common/stage";
 import { DEFAULT_PAPERWORK } from "../paperwork/paperwork.module";
@@ -198,29 +200,39 @@ export class ProjectsController {
 
   @Get()
   list(
+    @Res({ passthrough: true }) res: Response,
     @Query() page: PageQuery,
     @Query("client_id") clientId?: string,
     @Query("stage") stage?: string,
     @Query("status") status?: string
   ) {
-    return this.prisma.project.findMany({
-      where: {
-        client_id: clientId ? Number(clientId) : undefined,
-        stage: stage || undefined,
-        status: status || undefined,
-      },
-      include: {
-        client: true,
-        location: true,
-        types: true,
-        // F19: the field page needs the site contact per appointment and used to
-        // refetch GET /projects/:id once per row for it. A `select` keeps the
-        // list payload from growing into the detail response.
-        working_contact: { select: { id: true, name: true, phone: true } },
-      },
-      orderBy: { id: "desc" },
-      ...pageArgs(page),
-    });
+    // One `where`, both queries — the count cannot drift from the rows.
+    const where = {
+      client_id: clientId ? Number(clientId) : undefined,
+      stage: stage || undefined,
+      status: status || undefined,
+    };
+    return withTotalCount(
+      res,
+      this.prisma.project.findMany({
+        where,
+        include: {
+          client: true,
+          location: true,
+          types: true,
+          // F19: the field page needs the site contact per appointment and used
+          // to refetch GET /projects/:id once per row for it. A `select` keeps
+          // the list payload from growing into the detail response.
+          // decision_maker is the [Gọi] fallback when working_contact has no
+          // phone (FieldAppointmentCard) — without it the button vanished (F41).
+          working_contact: { select: { id: true, name: true, phone: true } },
+          decision_maker: { select: { id: true, name: true, phone: true } },
+        },
+        orderBy: { id: "desc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.project.count({ where })
+    );
   }
 
   @Get(":id")
@@ -425,14 +437,23 @@ class ProjectNotesController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list(@Query() page: PageQuery, @Query("project_id") projectId?: string) {
-    return this.prisma.projectNote.findMany({
-      where: projectId ? { project_id: Number(projectId) } : undefined,
-      // created_at repeats within a bulk insert — id breaks the tie so pages
-      // don't overlap or drop rows.
-      orderBy: [{ created_at: "desc" }, { id: "desc" }],
-      ...pageArgs(page),
-    });
+  list(
+    @Res({ passthrough: true }) res: Response,
+    @Query() page: PageQuery,
+    @Query("project_id") projectId?: string
+  ) {
+    const where = projectId ? { project_id: Number(projectId) } : undefined;
+    return withTotalCount(
+      res,
+      this.prisma.projectNote.findMany({
+        where,
+        // created_at repeats within a bulk insert — id breaks the tie so pages
+        // don't overlap or drop rows.
+        orderBy: [{ created_at: "desc" }, { id: "desc" }],
+        ...pageArgs(page),
+      }),
+      this.prisma.projectNote.count({ where })
+    );
   }
 
   @Post()
@@ -467,18 +488,24 @@ export class AttachmentsController {
 
   @Get()
   list(
+    @Res({ passthrough: true }) res: Response,
     @Query() page: PageQuery,
     @Query("project_id") projectId?: string,
     @Query("kind") kind?: string
   ) {
-    return this.prisma.attachment.findMany({
-      where: {
-        project_id: projectId ? Number(projectId) : undefined,
-        kind: kind || undefined,
-      },
-      orderBy: [{ created_at: "desc" }, { id: "desc" }],
-      ...pageArgs(page),
-    });
+    const where = {
+      project_id: projectId ? Number(projectId) : undefined,
+      kind: kind || undefined,
+    };
+    return withTotalCount(
+      res,
+      this.prisma.attachment.findMany({
+        where,
+        orderBy: [{ created_at: "desc" }, { id: "desc" }],
+        ...pageArgs(page),
+      }),
+      this.prisma.attachment.count({ where })
+    );
   }
 
   @Post()
