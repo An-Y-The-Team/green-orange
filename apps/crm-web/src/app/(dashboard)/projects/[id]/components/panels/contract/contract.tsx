@@ -16,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@yan/ui/components/dialog";
-import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
 import { signContract } from "@/app/(dashboard)/contracts/actions/sign-contract";
@@ -29,6 +28,7 @@ import {
   MilestoneType,
 } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
+import { MoneyInput } from "@/components/money-input/money-input";
 import { CONTRACT_STATUSES, QUOTE_STATUSES } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
@@ -38,6 +38,7 @@ import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
 import { todayISO } from "@/utils/today-iso/today-iso";
+import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
 import type { Project } from "../../../../types";
 
@@ -109,8 +110,8 @@ export function ContractPanel({
   const [depOpen, setDepOpen] = useState(false);
   // 60% of the chốt quote — blank when there is none, never a number from a
   // quote the client did not agree to.
-  const [depAmount, setDepAmount] = useState(
-    dealQuote ? String(Math.round(dealQuote.total_amount * 0.6)) : ""
+  const [depAmount, setDepAmount] = useState<number | null>(
+    dealQuote ? Math.round(dealQuote.total_amount * 0.6) : null
   );
   const [depDate, setDepDate] = useState(todayISO);
   useServerAction(depState, depPending, {
@@ -216,13 +217,16 @@ export function ContractPanel({
                     <div className="space-y-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="deposit-amount">Số tiền (VND)</Label>
-                        <Input
+                        <MoneyInput
                           id="deposit-amount"
-                          type="number"
-                          min={0}
                           value={depAmount}
-                          onChange={(e) => setDepAmount(e.target.value)}
+                          onChange={setDepAmount}
                         />
+                        {depAmount ? (
+                          <p className="text-xs text-muted-foreground">
+                            {vndInWords(depAmount)}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="deposit-date">Ngày nhận</Label>
@@ -242,7 +246,7 @@ export function ContractPanel({
                         onClick={() =>
                           startDep(() =>
                             depAction({
-                              amount: Number(depAmount),
+                              amount: depAmount ?? 0,
                               received_date: depDate,
                             })
                           )

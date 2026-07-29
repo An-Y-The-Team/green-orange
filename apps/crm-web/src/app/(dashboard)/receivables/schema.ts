@@ -10,7 +10,9 @@ export const settlementItemSchema = z.object({
   description: z.string().min(1, "Nhập hạng mục"),
   unit: z.string().optional(),
   quantity: z.number().min(0),
-  unit_price: z.number().min(0),
+  // Whole đồng only — VND has no fractional unit and the column is BigInt, so a
+  // decimal here was silently dropped server-side.
+  unit_price: z.number().int().min(0),
   sort_order: z.number().int().optional(),
 });
 

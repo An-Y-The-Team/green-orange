@@ -11,11 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@yan/ui/components/dialog";
-import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
 import { createMilestone } from "@/app/(dashboard)/receivables/actions/milestones";
+import { MoneyInput } from "@/components/money-input/money-input";
 import { useRun } from "@/hooks/use-run/use-run";
+import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
 /** "+ Thêm đợt" — adds a payment milestone against the settlement's bill. */
 export function AddMilestone({
@@ -26,19 +27,19 @@ export function AddMilestone({
   billId: number;
 }) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number | null>(null);
   const [dueDate, setDueDate] = useState("");
 
   const [pending, run] = useRun(createMilestone.bind(null, projectId), () => {
     setOpen(false);
-    setAmount("");
+    setAmount(null);
     setDueDate("");
   });
 
   const submit = () =>
     run({
       bill_id: billId,
-      amount: Number(amount),
+      amount: amount ?? 0,
       due_date: dueDate || undefined,
     });
 
@@ -55,13 +56,12 @@ export function AddMilestone({
           <div className="space-y-3">
             <div className="space-y-1">
               <Label htmlFor="dot-amount">Số tiền</Label>
-              <Input
-                id="dot-amount"
-                type="number"
-                min={0}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
+              <MoneyInput id="dot-amount" value={amount} onChange={setAmount} />
+              {amount ? (
+                <p className="text-xs text-muted-foreground">
+                  {vndInWords(amount)}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-1">
               <Label htmlFor="dot-due">Hạn thu (tùy chọn)</Label>

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useRef, useState, useTransition } from "react";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { isObject } from "@yan/shared/utils";
@@ -32,6 +32,7 @@ import {
   quoteFormSchema,
 } from "@/app/(dashboard)/quotes/schema";
 import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
+import { MoneyInput } from "@/components/money-input/money-input";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
@@ -202,13 +203,18 @@ export function QuoteBuilderForm({
                         />
                       </TableCell>
                       <TableCell>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="any"
-                          {...register(`items.${i}.unit_price`, {
-                            valueAsNumber: true,
-                          })}
+                        <Controller
+                          control={control}
+                          name={`items.${i}.unit_price`}
+                          render={({ field }) => (
+                            <MoneyInput
+                              value={field.value}
+                              // Empty box = 0 đồng, matching BLANK_ROW, so the
+                              // live total never reads NaN.
+                              onChange={(v) => field.onChange(v ?? 0)}
+                              onBlur={field.onBlur}
+                            />
+                          )}
                         />
                       </TableCell>
                       <TableCell className="text-right tabular-nums">

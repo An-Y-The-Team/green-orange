@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useTransition } from "react";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import {
   type ServerActionState,
@@ -32,6 +32,7 @@ import {
   settlementFormSchema,
 } from "@/app/(dashboard)/receivables/schema";
 import { fieldError } from "@/components/form-bits/form-bits";
+import { MoneyInput } from "@/components/money-input/money-input";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { itemAmount } from "@/utils/quote-totals/quote-totals";
 
@@ -152,13 +153,18 @@ export function SettlementBuilderForm({
                       />
                     </TableCell>
                     <TableCell>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="any"
-                        {...register(`items.${i}.unit_price`, {
-                          valueAsNumber: true,
-                        })}
+                      <Controller
+                        control={control}
+                        name={`items.${i}.unit_price`}
+                        render={({ field }) => (
+                          <MoneyInput
+                            value={field.value}
+                            // Empty box = 0 đồng, matching BLANK_ROW, so the
+                            // live total never reads NaN.
+                            onChange={(v) => field.onChange(v ?? 0)}
+                            onBlur={field.onBlur}
+                          />
+                        )}
                       />
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
