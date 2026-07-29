@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { locations } from "@/data/mock/locations";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { type LocationFormValues, locationSchema } from "../schema";
 import type { Location } from "../types";
@@ -31,21 +30,10 @@ export async function createLocation(
   const parsed = locationSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   try {
-    let location: Location;
-    if (API_URL) {
-      location = await apiSend<Location>("/locations", "POST", {
-        client_id: clientId,
-        ...parsed.data,
-      });
-    } else {
-      location = {
-        id: nextId(locations),
-        client_id: clientId,
-        name: parsed.data.name,
-        address: parsed.data.address,
-        manager_contact_id: parsed.data.manager_contact_id ?? null,
-      };
-    }
+    const location = await apiSend<Location>("/locations", "POST", {
+      client_id: clientId,
+      ...parsed.data,
+    });
     revalidatePath(`/clients/${clientId}`);
     return { success: true, message: "Đã thêm địa điểm.", data: location };
   } catch (error) {
@@ -62,22 +50,11 @@ export async function updateLocation(
   const parsed = locationSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   try {
-    let location: Location;
-    if (API_URL) {
-      location = await apiSend<Location>(
-        `/locations/${id}`,
-        "PATCH",
-        parsed.data
-      );
-    } else {
-      location = {
-        id,
-        client_id: clientId,
-        name: parsed.data.name,
-        address: parsed.data.address,
-        manager_contact_id: parsed.data.manager_contact_id ?? null,
-      };
-    }
+    const location = await apiSend<Location>(
+      `/locations/${id}`,
+      "PATCH",
+      parsed.data
+    );
     revalidatePath(`/clients/${clientId}`);
     return { success: true, message: "Đã cập nhật địa điểm.", data: location };
   } catch (error) {
@@ -91,7 +68,7 @@ export async function deleteLocation(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) await apiSend(`/locations/${id}`, "DELETE");
+    await apiSend(`/locations/${id}`, "DELETE");
     revalidatePath(`/clients/${clientId}`);
     return { success: true, message: "Đã xóa địa điểm.", data: { id } };
   } catch (error) {

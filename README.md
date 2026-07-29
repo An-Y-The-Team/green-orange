@@ -8,12 +8,12 @@ This project uses **Turborepo** to manage multiple applications in a single repo
 
 - `apps/web`: The Next.js 16 frontend landing page and portfolio. Built with React Server Components, Tailwind CSS, and standard UI components.
 - `apps/cms`: The **Directus** CMS backend (official Docker image + config-as-code in this folder), providing a headless content management interface — with a free, open-source Visual Editor — to manage services, projects, and testimonials.
-- `apps/crm-web`: A Next.js 16 CRM dashboard. Runs on built-in mock data by default; switches to live data when its `CRM_API_URL` points at either backend below.
-- `apps/crm-api-nest`: A NestJS + Prisma backend (Bun, port 8001) — the **production default**. Implements the whole UI contract, so every dashboard page is live.
-- `apps/crm-api`: A FastAPI + SQLModel backend (port 8000) — the **learning sandbox**. `clients` is fully worked; `contacts`/`leads`/`deals`/`tasks` are exercises for students to implement.
+- `apps/crm-web`: A Next.js 16 CRM dashboard. **Requires a backend and a seeded database** — it reads every page over HTTP from `CRM_API_URL`. See [Running just the CRM stack](#-running-just-the-crm-stack).
+- `apps/crm-api-nest`: A NestJS + Prisma backend (Bun, port 8001) — the **production default** and the only backend `crm-web` speaks to. Also owns the demo dataset (`bun run seed`).
+- `apps/crm-api`: A FastAPI + SQLModel backend (port 8000) — the **learning sandbox**. `clients` is fully worked; `contacts`/`leads`/`deals`/`tasks` are exercises for students to implement. It serves the **v1** contract, so it is not UI-compatible — verify it via `/docs` + `pytest`, not the dashboard ([AGENTS.md](AGENTS.md)).
 - `packages/ui` (`@yan/ui`): Shared shadcn + Tailwind v4 UI primitives consumed by both `web` and `crm-web`.
 
-> **Working on the CRM?** Jump to [Running just the CRM stack](#running-just-the-crm-stack) — you do **not** need `web` or `cms`.
+> **Working on the CRM?** Jump to [Running just the CRM stack](#-running-just-the-crm-stack) — you do **not** need `web` or `cms`.
 
 ## 🚀 Getting Started
 
@@ -45,11 +45,17 @@ docker compose up -d
 bun run dev
 ```
 
-| Service           | URL                     | Notes                                        |
-| ----------------- | ----------------------- | -------------------------------------------- |
-| **Web App**       | <http://localhost:3000> | hot reload via Turbo                         |
-| **CMS (Studio)**  | <http://localhost:8055> | Directus — login `admin@example.com`/`admin` |
-| **CRM dashboard** | <http://localhost:3002> | mock data by default                         |
+| Service           | URL                     | Notes                                                                                                      |
+| ----------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Web App**       | <http://localhost:3000> | hot reload via Turbo                                                                                       |
+| **CMS (Studio)**  | <http://localhost:8055> | Directus — login `admin@example.com`/`admin`                                                               |
+| **CRM dashboard** | <http://localhost:3002> | blank until its backend is migrated + seeded — [three more commands](#3-migrate-and-seed-the-crm-database) |
+
+> **The CRM needs more than `bun run dev`.** `turbo run dev` does start
+> `crm-api-nest` alongside it, but the dashboard has no offline mode: it needs a
+> migrated + seeded `crm_nest` database and `CRM_API_URL` set. Do
+> [Running just the CRM stack](#-running-just-the-crm-stack) once and everyday
+> `bun run dev` works from then on.
 
 > **First boot only** — once Directus is up, load access control + demo content
 > (from `apps/cms`, against the running instance):
@@ -86,14 +92,14 @@ docker compose -f docker-compose.local.yml up --build
 Add `-d` to run detached. Directus bootstraps + applies its schema, and crm-api
 applies its database migrations, automatically on startup. Once it's up:
 
-| Service        | URL                          | Notes                                                                       |
-| -------------- | ---------------------------- | --------------------------------------------------------------------------- |
-| `web`          | <http://localhost:3000>      | Public landing page / portfolio                                             |
-| `cms`          | <http://localhost:8055>      | Directus Studio (login with the bootstrap admin)                            |
-| `crm-web`      | <http://localhost:3002>      | CRM dashboard — **mock data** by default (repoint `CRM_API_URL` to go live) |
-| `crm-api-nest` | <http://localhost:8001>      | NestJS + Prisma backend (`admin` / `admin`)                                 |
-| `crm-api`      | <http://localhost:8000/docs> | FastAPI Swagger UI (`admin` / `admin`)                                      |
-| `postgres`     | `localhost:5432`             | `directus`, `cms`, `crm`, `crm_nest`, `authentik` databases                 |
+| Service        | URL                          | Notes                                                                 |
+| -------------- | ---------------------------- | --------------------------------------------------------------------- |
+| `web`          | <http://localhost:3000>      | Public landing page / portfolio                                       |
+| `cms`          | <http://localhost:8055>      | Directus Studio (login with the bootstrap admin)                      |
+| `crm-web`      | <http://localhost:3002>      | CRM dashboard — wired to `crm-api-nest`; **seed it once** (see below) |
+| `crm-api-nest` | <http://localhost:8001>      | NestJS + Prisma backend (`admin` / `admin`)                           |
+| `crm-api`      | <http://localhost:8000/docs> | FastAPI Swagger UI (`admin` / `admin`)                                |
+| `postgres`     | `localhost:5432`             | `directus`, `cms`, `crm`, `crm_nest`, `authentik` databases           |
 
 Stop it with `Ctrl-C` (or `docker compose -f docker-compose.local.yml down` if
 detached). Add `-v` to `down` to also wipe the Postgres + media volumes.
@@ -113,7 +119,7 @@ docker compose -f docker-compose.local.yml up --build web
 # CRM backend only (and its Postgres):
 docker compose -f docker-compose.local.yml up --build crm-api
 
-# CRM dashboard only (mock data — no backend needed):
+# CRM dashboard (Compose pulls in crm-api-nest + postgres, which it needs):
 docker compose -f docker-compose.local.yml up --build crm-web
 
 # A custom combo — e.g. the whole CRM stack, nothing else:
@@ -133,13 +139,23 @@ docker compose -f docker-compose.local.yml logs -f cms
 docker compose -f docker-compose.local.yml exec cms sh
 ```
 
-> **`crm-web` live mode:** by default the dashboard ships with built-in mock data
-> so it runs with no backend. To go live, add a runtime `CRM_API_URL` env var
-> (server-only, read at runtime — no rebuild) pointing at either backend —
-> `http://crm-api-nest:8001` (full production) or `http://crm-api:8000` (Python
-> sandbox) — plus a server-only `CRM_API_TOKEN`, to the `crm-web` service in
-> [`docker-compose.local.yml`](docker-compose.local.yml) — the file has inline
-> notes showing how.
+> **Seed the CRM once:** the `crm-api-nest` container applies its migrations on
+> start but does **not** seed, so on a fresh volume the dashboard renders empty
+> lists. Load the demo dataset from the host — this stack publishes `5432` and
+> `apps/crm-api-nest/.env` already points there. (The one step that needs Bun
+> outside Docker: run `bun install` at the repo root first — the runtime image
+> ships the compiled server, not Bun.)
+>
+> ```bash
+> cd apps/crm-api-nest
+> cp .env.example .env     # DATABASE_URL → localhost:5432/crm_nest
+> bun run seed             # demo user admin/admin + 8 công trình, one per stage
+> ```
+>
+> `CRM_API_URL` is already set on the `crm-web` service (to
+> `http://crm-api-nest:8001`) and is **required** — there is no bundled-data
+> fallback. It's read at runtime, so changing it needs no rebuild, but
+> `crm-api-nest` is the only valid target.
 >
 > **One Postgres at a time:** this stack uses its own Postgres volume and binds
 > host port `5432`, so don't run it at the same time as the `docker compose up
@@ -162,91 +178,109 @@ Authentik applies its own schema migrations on first start. The UI is at
 bootstrap default; override `AUTHENTIK_BOOTSTRAP_PASSWORD` to change it). To
 actually wire the CRM apps to it, register the OIDC app with
 `scripts/setup-authentik-crm.py` and flip `AUTH_MODE=oidc` — see
-[Authentik SSO](#5-optional-authentik-sso) below and
+[Authentik SSO](#6-optional-authentik-sso) below and
 [`docs/authentik-oidc-milestone.md`](docs/authentik-oidc-milestone.md). The
 secret/bootstrap values default to throwaway local-dev strings; the prod stack
 ([`docker-compose.prod.yml`](docker-compose.prod.yml)) requires real ones.
 
 ## 🧑‍🎓 Running just the CRM stack
 
-If you're working on the **CRM** only, you only need three
-things — **Postgres**, a backend, and **crm-web** (Next.js UI).
-You can ignore `web` and `cms` entirely. Authentik (SSO) is **optional** and not
-needed for day-to-day CRUD/API work.
+Working on the **CRM** only? You need three things — **Postgres**, the
+**`crm-api-nest`** backend, and **`crm-web`** (the Next.js UI). You can ignore
+`web` and `cms` entirely. Authentik (SSO) is **optional** and not needed for
+day-to-day work.
 
-> **Two backends, one UI.** The steps below build the **Python `crm-api`** (the
-> learning sandbox — port 8000). The production default is **`apps/crm-api-nest`**
-> (NestJS + Prisma, port 8001), which serves the same HTTP contract with every
-> page live. Switching is one env var — set `crm-web`'s `CRM_API_URL` to `:8001`
-> or `:8000` and restart it. See [`apps/crm-api-nest/README.md`](apps/crm-api-nest/README.md).
+> **No offline UI mode.** `crm-web` fetches every page from the backend — there
+> is no bundled fixture set to fall back on, so even pure CSS work needs Postgres
+> running and the `crm_nest` database seeded. That's the five steps below, and
+> steps 1–3 are once per machine.
+
+> **`crm-api-nest` is the only backend that serves this UI.** The Python
+> `crm-api` is the students' v1 sandbox and is not UI-compatible — see
+> [AGENTS.md](AGENTS.md) and
+> [`apps/crm-api-nest/README.md`](apps/crm-api-nest/README.md).
 
 ### CRM prerequisites
 
-- [Bun](https://bun.sh/) — JS package manager (for `crm-web`)
+- [Bun](https://bun.sh/) — package manager + runtime for `crm-web` and `crm-api-nest`
 - [Docker](https://www.docker.com/) — runs Postgres
-- [uv](https://docs.astral.sh/uv/) — Python package manager (for `crm-api`)
+- [uv](https://docs.astral.sh/uv/) — only if you're also doing the Python
+  `crm-api` exercises
 
-### 1. Install JS dependencies (from the repo root)
+### 1. Install dependencies (from the repo root)
 
 ```bash
 bun install
 ```
 
+`crm-api-nest`'s `postinstall` generates its Prisma client here, so this must run
+before the backend does.
+
 ### 2. Start Postgres
 
-One container hosts the `cms`, `crm`, and `authentik` databases. You only need it
-running — the `crm` database is created automatically.
+One container hosts a database per app — `cms`, `crm`, `crm_nest`, `authentik`,
+`directus`, all created on first boot. Nothing else from the dev stack is needed.
 
 ```bash
 docker compose up -d postgres
 ```
 
-### 3. Start the backend — `crm-api` (port 8000)
+### 3. Migrate and seed the CRM database
+
+Creates the `crm_nest` schema, then loads the demo dataset the UI was built
+against: **8 công trình — one per lifecycle stage** — with quotes (including a
+superseded pair), contracts, a signed settlement with a collected bill, payment
+milestones (one overdue), crew with a double-booked member, timekeeping,
+paperwork (one overdue), attachments, notes, and an appointment that is always
+**today**. Plus the backend user **`admin` / `admin`** — `crm-web` mints its token
+with it automatically, so there's no login screen unless you enable Authentik.
 
 ```bash
-cd apps/crm-api
-cp .env.example .env     # defaults already match the Docker Postgres
-uv sync                  # create .venv + install deps
-uv run uvicorn app.main:app --reload --port 8000
+cd apps/crm-api-nest
+cp .env.example .env     # DATABASE_URL → localhost:5432/crm_nest, AUTH_MODE=local
+bun run migrate          # prisma migrate deploy
+bun run seed
 ```
 
-The schema is auto-created on startup, and a demo user **`admin` / `admin`** is
-seeded. Open the interactive docs at <http://localhost:8000/docs>.
+The seed upserts on stable ids, so re-run it any time to get back to a known
+dataset — it converges instead of duplicating. (Changing the Prisma schema?
+`bun run db:migrate:dev` instead of `migrate`.)
 
-### 4. Start the frontend — `crm-web` (port 3002)
+### 4. Start the backend — `crm-api-nest` (port 8001)
+
+```bash
+cd apps/crm-api-nest
+bun run dev
+```
+
+Smoke test: `curl -s http://localhost:8001/health` → `{"status":"ok","auth_mode":"local"}`.
+Endpoint reference: [`apps/crm-api-nest/README.md`](apps/crm-api-nest/README.md).
+
+### 5. Start the dashboard — `crm-web` (port 3002)
 
 ```bash
 cd apps/crm-web
-cp .env.example .env.local
+cp .env.example .env.local   # already contains CRM_API_URL=http://localhost:8001
 ```
 
-Then choose one of two modes:
+`CRM_API_URL` is **required** — server-only, so it's never exposed to the
+browser. No token to manage: in `AUTH_MODE=local` the UI auto-mints one from
+`/auth/token` with the seeded `admin`/`admin` and re-mints when it expires.
 
-- **Mock mode (default):** leave `.env.local` as-is. The dashboard renders from
-  built-in mock data — no backend needed. Good for pure UI work.
-- **Live mode:** point the UI at the backend and give it a token:
-
-  ```bash
-  # in apps/crm-web/.env.local
-  CRM_API_URL=http://localhost:8000
-  # mint a dev token from the running crm-api:
-  #   curl -s -X POST http://localhost:8000/auth/token -d "username=admin&password=admin"
-  CRM_API_TOKEN=eyJhbG...   # paste the access_token here (server-only, never sent to the browser)
-  ```
-
-Run it (from the repo root, so it doesn't also start `web`/`cms`):
+Run it from the repo root, so `web`/`cms` stay out of it:
 
 ```bash
-bun --filter @yan/crm-web dev
+turbo run dev --filter=@yan/crm-web
 ```
 
-Open <http://localhost:3002>.
+Open <http://localhost:3002> — `/dashboard`, `/projects`, `/quotes`,
+`/receivables` and the crew pages all show seeded data.
 
-> **Run both CRM apps at once:** from the repo root,
-> `turbo run dev --filter=@yan/crm-web --filter=@yan/crm-api` starts only the CRM
-> backend + frontend (not `web`/`cms`).
+> **Both CRM apps at once:** from the repo root,
+> `turbo run dev --filter=@yan/crm-web --filter=@yan/crm-api-nest` starts the CRM
+> backend + frontend and nothing else.
 
-### 5. (Optional) Authentik SSO
+### 6. (Optional) Authentik SSO
 
 Only needed when you're working on single-sign-on. Daily CRUD/auth learning uses
 the local `admin`/`admin` login above (`AUTH_MODE=local`). To turn on Authentik,
@@ -261,8 +295,10 @@ docker compose -f docker-compose.authentik.yml --env-file .env.authentik up -d
 python3 scripts/setup-authentik-crm.py   # creates the crm-dev app, prints OIDC env to paste
 ```
 
-The script prints the env to add to `apps/crm-api/.env` (`AUTH_MODE=oidc` + `OIDC_*`)
-and `apps/crm-web/.env.local` (`AUTH_SECRET` + `AUTH_AUTHENTIK_*`). The Authentik UI
+The script prints the env to add to your backend's `.env` (`AUTH_MODE=oidc` +
+`OIDC_*`) — `apps/crm-api-nest/.env`, or `apps/crm-api/.env` if that's the one
+you're running — and to `apps/crm-web/.env.local` (`AUTH_SECRET` +
+`AUTH_AUTHENTIK_*`). The Authentik UI
 is at <http://localhost:9000> (log in as `akadmin`).
 
 ## 🛠️ Available Commands

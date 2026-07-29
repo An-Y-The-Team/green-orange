@@ -5,10 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { assignments as mockAssignments } from "@/data/mock/assignments";
-import { crew as mockCrew } from "@/data/mock/crew";
-import { crewRoles as mockRoles } from "@/data/mock/crew-roles";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import type { Assignment } from "../types";
 
@@ -41,33 +38,6 @@ function errorMessage(error: unknown, fallback: string): string {
   return mapped?.[1] ?? (raw || fallback);
 }
 
-// Mock-mode overlap computation so the "Trùng lịch" warning demos offline the
-// same way the API computes it: same member, intersecting [from, to] (null=∞).
-// ponytail: O(n) scan over bundled mock rows — fine for a demo dataset.
-function mockOverlaps(
-  crewMemberId: number,
-  from: string,
-  to: string | null,
-  excludeId?: number
-): Assignment[] {
-  return mockAssignments.filter(
-    (a) =>
-      a.id !== excludeId &&
-      a.crew_member_id === crewMemberId &&
-      a.from_date <= (to ?? "9999-12-31") &&
-      (a.to_date ?? "9999-12-31") >= from
-  );
-}
-
-function mockIncludes(crewMemberId: number, roleId?: number | null) {
-  const member = mockCrew.find((c) => c.id === crewMemberId);
-  const rid = roleId ?? member?.default_role_id ?? null;
-  return {
-    crew_member: member,
-    role: rid ? mockRoles.find((r) => r.id === rid) : null,
-  };
-}
-
 export async function createAssignment(
   projectId: number,
   _prev: ServerActionState,
@@ -83,29 +53,10 @@ export async function createAssignment(
   }
 
   try {
-    let data: Assignment;
-    if (API_URL) {
-      data = await apiSend<Assignment>("/assignments", "POST", {
-        project_id: projectId,
-        ...parsed.data,
-      });
-    } else {
-      const to = parsed.data.to_date ?? null;
-      data = {
-        id: nextId(mockAssignments),
-        project_id: projectId,
-        crew_member_id: parsed.data.crew_member_id,
-        role_id: parsed.data.role_id ?? null,
-        from_date: parsed.data.from_date,
-        to_date: to,
-        ...mockIncludes(parsed.data.crew_member_id, parsed.data.role_id),
-        overlaps: mockOverlaps(
-          parsed.data.crew_member_id,
-          parsed.data.from_date,
-          to
-        ),
-      };
-    }
+    const data = await apiSend<Assignment>("/assignments", "POST", {
+      project_id: projectId,
+      ...parsed.data,
+    });
 
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/crew");
@@ -134,31 +85,11 @@ export async function updateAssignment(
   }
 
   try {
-    let data: Assignment;
-    if (API_URL) {
-      data = await apiSend<Assignment>(
-        `/assignments/${id}`,
-        "PATCH",
-        parsed.data
-      );
-    } else {
-      const existing = mockAssignments.find((a) => a.id === id);
-      const crewMemberId =
-        parsed.data.crew_member_id ?? existing?.crew_member_id ?? 0;
-      const from = parsed.data.from_date ?? existing?.from_date ?? "";
-      const to = parsed.data.to_date ?? existing?.to_date ?? null;
-      const roleId = parsed.data.role_id ?? existing?.role_id ?? null;
-      data = {
-        id,
-        project_id: projectId,
-        crew_member_id: crewMemberId,
-        role_id: roleId,
-        from_date: from,
-        to_date: to,
-        ...mockIncludes(crewMemberId, roleId),
-        overlaps: mockOverlaps(crewMemberId, from, to, id),
-      };
-    }
+    const data = await apiSend<Assignment>(
+      `/assignments/${id}`,
+      "PATCH",
+      parsed.data
+    );
 
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/crew");
@@ -177,9 +108,7 @@ export async function deleteAssignment(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) {
-      await apiSend<unknown>(`/assignments/${id}`, "DELETE");
-    }
+    await apiSend<unknown>(`/assignments/${id}`, "DELETE");
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/crew");
     return { success: true, message: "Đã xóa phân công.", data: { id } };

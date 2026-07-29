@@ -1,12 +1,6 @@
-import { attachments } from "@/data/mock/attachments";
-import { paperworkItems } from "@/data/mock/paperwork-items";
-import { projectTypes } from "@/data/mock/project-types";
-import { projects } from "@/data/mock/projects";
-import { API_URL, apiFetch, apiFetchSafe } from "@/utils/http/http";
-import { isOverdue } from "@/utils/is-overdue/is-overdue";
+import { apiFetch, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
 
-import { PaperworkStatus } from "./enums";
 import type { Attachment, PaperworkItem, Project, ProjectType } from "./types";
 
 /**
@@ -19,49 +13,32 @@ export async function listProjects({
   limit,
   offset,
 }: { limit?: number; offset?: number } = {}): Promise<Project[]> {
-  if (API_URL) {
-    return apiFetchSafe<Project[]>(
-      `/projects${pageQuery({ limit, offset })}`,
-      []
-    );
-  }
-  // Mock mode pages the same way, so local dev exercises the pager instead of
-  // hiding it behind a single unbounded array.
-  const start = offset ?? 0;
-  return projects.slice(start, limit ? start + limit : undefined);
+  return apiFetchSafe<Project[]>(
+    `/projects${pageQuery({ limit, offset })}`,
+    []
+  );
 }
 
 export async function getProject(id: number): Promise<Project | undefined> {
-  if (API_URL) {
-    return apiFetch<Project>(`/projects/${id}`).catch(() => undefined);
-  }
-  return projects.find((p) => p.id === id);
+  return apiFetch<Project>(`/projects/${id}`).catch(() => undefined);
 }
 
 export async function listPaperworkItems(
   projectId: number
 ): Promise<PaperworkItem[]> {
-  if (API_URL) {
-    return apiFetchSafe<PaperworkItem[]>(
-      `/paperwork-items?project_id=${projectId}`,
-      []
-    );
-  }
-  return paperworkItems.filter((i) => i.project_id === projectId);
+  return apiFetchSafe<PaperworkItem[]>(
+    `/paperwork-items?project_id=${projectId}`,
+    []
+  );
 }
 
 export async function listProjectAttachments(
   projectId: number,
   kind?: string
 ): Promise<Attachment[]> {
-  if (API_URL) {
-    return apiFetchSafe<Attachment[]>(
-      `/attachments?project_id=${projectId}${kind ? `&kind=${kind}` : ""}`,
-      []
-    );
-  }
-  return attachments.filter(
-    (a) => a.project_id === projectId && (!kind || a.kind === kind)
+  return apiFetchSafe<Attachment[]>(
+    `/attachments?project_id=${projectId}${kind ? `&kind=${kind}` : ""}`,
+    []
   );
 }
 
@@ -71,32 +48,21 @@ export async function listProjectAttachments(
  * `overdue` maps to `?overdue=true`, which the server expands to the derived
  * rule (`due_date < today AND status != approved`) — the scan stays where the
  * rows are instead of shipping every project's checklist to filter in JS (F20).
- * Mock mode reuses `isOverdue` so both branches share one definition.
  */
 export async function listAllPaperworkItems({
   overdue,
   limit,
 }: { overdue?: boolean; limit?: number } = {}): Promise<PaperworkItem[]> {
-  if (API_URL) {
-    const params = new URLSearchParams();
-    if (overdue) params.set("overdue", "true");
-    if (limit) params.set("limit", String(limit));
-    const query = params.toString();
-    return apiFetchSafe<PaperworkItem[]>(
-      `/paperwork-items${query ? `?${query}` : ""}`,
-      []
-    );
-  }
-  const rows = overdue
-    ? paperworkItems.filter((i) =>
-        isOverdue(i?.due_date, i?.status === PaperworkStatus.APPROVED)
-      )
-    : paperworkItems;
-  return limit ? rows.slice(0, limit) : rows;
+  const params = new URLSearchParams();
+  if (overdue) params.set("overdue", "true");
+  if (limit) params.set("limit", String(limit));
+  const query = params.toString();
+  return apiFetchSafe<PaperworkItem[]>(
+    `/paperwork-items${query ? `?${query}` : ""}`,
+    []
+  );
 }
 
 export async function listProjectTypes(): Promise<ProjectType[]> {
-  return API_URL
-    ? apiFetchSafe<ProjectType[]>("/project-types", [])
-    : projectTypes;
+  return apiFetchSafe<ProjectType[]>("/project-types", []);
 }

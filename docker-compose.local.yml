@@ -135,10 +135,16 @@ services:
       - '8001:8001'
 
   # ── CRM dashboard — Next.js (port 3002) ─────────────────────────────────────
-  # Runs LIVE against crm-api-nest (mirrors prod). CRM_API_URL is server-only
-  # and read at runtime — repoint or unset it without a rebuild:
-  #   • mock mode: remove the CRM_API_URL line (UI falls back to bundled data)
-  #   • Python backend: CRM_API_URL: http://crm-api:8000
+  # Runs against crm-api-nest (mirrors prod). CRM_API_URL is REQUIRED — there is
+  # no offline/bundled-data mode; remove it and every page breaks. It is
+  # server-only and read at runtime, so repointing it needs no rebuild — but the
+  # only valid target is crm-api-nest: the Python crm-api serves the v1 contract
+  # and is not UI-compatible (AGENTS.md).
+  #
+  # crm-api-nest applies its migrations on start but does NOT seed, so the UI
+  # comes up empty on a fresh volume. Seed once from the host (this stack
+  # publishes 5432, and apps/crm-api-nest/.env already points there):
+  #   cd apps/crm-api-nest && cp .env.example .env && bun run seed
   crm-web:
     build:
       context: .
@@ -147,9 +153,8 @@ services:
     depends_on:
       - crm-api-nest
     environment:
-      # Live mode against the NestJS backend (AUTH_MODE=local there, so crm-web
-      # auto-mints its bearer from /auth/token with the seeded admin/admin —
-      # no token to manage). Point at http://crm-api:8000 for the Python one.
+      # AUTH_MODE=local on the backend, so crm-web auto-mints its bearer from
+      # /auth/token with the seeded admin/admin — no token to manage.
       CRM_API_URL: http://crm-api-nest:8001
     ports:
       - '3002:3002'

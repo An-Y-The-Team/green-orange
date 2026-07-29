@@ -5,13 +5,14 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { BillStatus } from "../enums";
 import type { Bill } from "../types";
 
 // Forward-only status (server enforces the index order). →sent/→paid auto-stamp
-// their dates server-side; we still accept explicit dates for the mock echo.
+// their dates server-side; explicit dates stay accepted so a caller can override
+// the stamp with a back-dated one.
 const updateBillSchema = z.object({
   status: z.nativeEnum(BillStatus).optional(),
   sent_date: z.string().optional(),
@@ -37,12 +38,7 @@ export async function updateBill(
   }
 
   try {
-    let bill: Bill | { id: number };
-    if (API_URL) {
-      bill = await apiSend<Bill>(`/bills/${id}`, "PATCH", parsed.data);
-    } else {
-      bill = { id };
-    }
+    const bill = await apiSend<Bill>(`/bills/${id}`, "PATCH", parsed.data);
 
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/receivables");

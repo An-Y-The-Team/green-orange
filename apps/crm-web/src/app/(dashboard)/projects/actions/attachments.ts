@@ -5,8 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { attachments } from "@/data/mock/attachments";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { AttachmentKind } from "../enums";
 import type { Attachment } from "../types";
@@ -42,16 +41,7 @@ export async function addAttachment(
       s3_key: parsed.data.filename,
       note: parsed.data.note,
     };
-    let data: Attachment;
-    if (API_URL) {
-      data = await apiSend<Attachment>("/attachments", "POST", body);
-    } else {
-      data = {
-        ...body,
-        id: nextId(attachments),
-        created_at: new Date().toISOString(),
-      };
-    }
+    const data = await apiSend<Attachment>("/attachments", "POST", body);
 
     revalidatePath(`/projects/${projectId}`);
 
@@ -70,9 +60,7 @@ export async function deleteAttachment(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) {
-      await apiSend(`/attachments/${id}`, "DELETE");
-    }
+    await apiSend(`/attachments/${id}`, "DELETE");
 
     revalidatePath(`/projects/${projectId}`);
 

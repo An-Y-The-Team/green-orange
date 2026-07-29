@@ -3,13 +3,14 @@
  * editor. A contract template / contract `body` is stored as the string form of
  * `editorState.toJSON()` (shape: `{ "root": { … } }`).
  *
- * These builders produce exactly that shape, so mock data (data/mock/*) can be
- * authored readably in code instead of pasting verbose raw JSON, and the output
- * deserialises cleanly both into the live editor (initialConfig.editorState) and
- * into the pure-React renderer (components/editor/lexical-document.tsx).
+ * These builders produce exactly that shape, so a template body can be authored
+ * readably in code — the backend seed does this — instead of pasting verbose raw
+ * JSON, and the output deserialises cleanly both into the live editor
+ * (initialConfig.editorState) and into the pure-React renderer
+ * (components/editor/lexical-document/lexical-document.tsx).
  *
  * Pure module — no React, no DOM, no Lexical runtime — so it is safe on the
- * server (schema validation, the print page) and the client (mock data, editor).
+ * server (schema validation, the print page) and in the client editor.
  */
 import { CONTRACT_TOKENS } from "@/utils/merge-template/merge-template";
 

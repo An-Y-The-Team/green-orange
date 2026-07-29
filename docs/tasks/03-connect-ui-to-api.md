@@ -9,21 +9,22 @@
 `apps/crm-web` reads everything through a seam in
 [`apps/crm-web/src/utils/http/http.ts`](../../apps/crm-web/src/utils/http/http.ts):
 
-- **`CRM_API_URL` unset** → pages render bundled **mock data**.
-- **`CRM_API_URL` set** → pages fetch that backend over authenticated HTTP.
+- **`CRM_API_URL`** names the backend every page fetches from, over authenticated HTTP.
+- It is **required** — there is no bundled-data mode. crm-web renders nothing without a
+  reachable backend and a seeded database (root [`README.md`](../../README.md)).
 
 > **⚠️ Read [00 — Choose your backend](00-choose-your-backend.md) first.** Since the
 > v2 cutover, crm-web speaks the **v2** contract and `apps/crm-api` still implements
 > **v1** — different endpoints _and_ different field shapes. Pointing the seam at
 > `:8000` therefore renders **empty pages**, not live data: a failing list read
-> degrades to `[]` (never to mock rows), so there is nothing to see and no error to
-> read. The UI "lighting up" is what `apps/crm-api-nest` on `:8001` does.
+> degrades to `[]`, so there is nothing to see and no error to read. The UI "lighting
+> up" is what `apps/crm-api-nest` on `:8001` does.
 >
 > This task is still worth doing — it's how you see that a UI read is just an
 > authenticated HTTP call, and it's where you learn the token dance. Just verify the
 > call with `curl` and Swagger, not by watching a page fill in.
 
-Because endpoints are protected (task #02), live mode also needs a **bearer token**.
+Because endpoints are protected (task #02), crm-web also needs a **bearer token**.
 In dev that's the server-only `CRM_API_TOKEN` (you mint it the same way as task #02).
 
 > ⚠️ The env var is **`CRM_API_URL`** (server-only, no `NEXT_PUBLIC_` prefix), so the
@@ -32,7 +33,7 @@ In dev that's the server-only `CRM_API_TOKEN` (you mint it the same way as task 
 
 ## What you'll learn
 
-- How the mock → live data seam works (and why field names must match)
+- How the `CRM_API_URL` seam works (and why field names must match)
 - That a request from the UI is just an authenticated HTTP call to your API
 - Why a contract mismatch shows up as an **empty page**, not an error — and why that
   makes tests, not the UI, your feedback loop
@@ -70,11 +71,13 @@ In dev that's the server-only `CRM_API_TOKEN` (you mint it the same way as task 
    Those are the seeded rows out of **Postgres**. Same call, same token, same
    response as the one crm-web's server component makes.
 
-5. Open **<http://localhost:3002/clients>**. It is **empty**, and so is every other
-   page. That is the v1/v2 mismatch, not a bug in your setup: the v2 UI asks for a
-   `Client` with `type` / `tax_code` and nested `contacts` + `locations`, and v1
-   answers with `email` / `phone` / `company` / `status`. Check the crm-web server
-   log — you'll see a `not available yet, using fallback` warning per read.
+5. Open **<http://localhost:3002/clients>** and a page v1 has no endpoint for, e.g.
+   **<http://localhost:3002/quotes>**. Neither shows a usable app, and that is the
+   v1/v2 mismatch rather than a bug in your setup: the v2 UI asks for a `Client` with
+   `type` / `tax_code` and nested `contacts` + `locations`, and v1 answers with
+   `email` / `phone` / `company` / `status`. For the endpoints v1 doesn't have at all,
+   the read degrades to `[]` and the crm-web server log prints
+   `[crm-web] /quotes not available yet, using fallback`.
 
 ## Acceptance criteria
 
@@ -82,7 +85,12 @@ In dev that's the server-only `CRM_API_TOKEN` (you mint it the same way as task 
       token and get the **seeded DB rows** back.
 - [ ] Creating a client via `POST /clients` (curl or `/docs`) persists to Postgres
       (`GET /clients` again → still there).
-- [ ] With `CRM_API_URL` **unset**, the page falls back to mock data again.
+- [ ] With `CRM_API_URL` set to `:8000`, a page whose endpoint v1 does not have
+      (e.g. <http://localhost:3002/quotes>) renders an **empty** list instead of
+      crashing, and the crm-web server log shows a
+      `[crm-web] /quotes not available yet, using fallback` warning. That empty array
+      is the only fallback there is — unsetting `CRM_API_URL` does not produce data,
+      it breaks the app.
 - [ ] You can explain in one sentence why a `*Public` response schema's field names
       must match the consumer's type exactly — and why v1 `ClientPublic` therefore
       cannot feed the v2 `Client` in
@@ -95,9 +103,9 @@ In dev that's the server-only `CRM_API_TOKEN` (you mint it the same way as task 
 - The clients reads: [`src/app/(dashboard)/clients/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/clients/queries.ts>)
   (v2 shapes — read it to see what the UI expects, not as your target contract)
 - A list query degrades to `[]` when its endpoint is missing/erroring — that's why a
-  missing or mismatched endpoint renders **empty** in live mode instead of crashing.
-  `[]` is the only fallback `apiFetchSafe` ever returns; it does **not** reach for
-  mock data.
+  missing or mismatched endpoint renders **empty** instead of crashing. `[]` is the
+  only fallback `apiFetchSafe` ever returns; it is `[]` at all of its call sites and
+  there is no fixture data behind it.
 
 ## Definition of done
 

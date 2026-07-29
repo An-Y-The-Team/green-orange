@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 /**
  * Delete a draft settlement (409 from the backend if not a draft). The paired
@@ -15,9 +15,7 @@ export async function deleteSettlement(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) {
-      await apiSend(`/settlements/${id}`, "DELETE");
-    }
+    await apiSend(`/settlements/${id}`, "DELETE");
 
     revalidatePath("/projects/[id]", "page");
     revalidatePath("/receivables");

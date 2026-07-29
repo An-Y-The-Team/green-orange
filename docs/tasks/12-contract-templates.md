@@ -22,25 +22,27 @@ built-in hard-coded layout.
 > only stores/returns this as an opaque long string — see the field table and
 > the client-side note below.
 
-The **entire UI is built and works on mock data** (`apps/crm-web`):
+The **entire UI is already built** (`apps/crm-web`) — it just has no v1 backend to
+read from:
 
 - `Mẫu hợp đồng` list + editor with a token palette and a live preview:
   [`contracts/templates/`](<../../apps/crm-web/src/app/(dashboard)/contracts/templates>).
 - The token whitelist + context builders are a pure module:
-  [`lib/merge-template.ts`](../../apps/crm-web/src/lib/merge-template.ts). The
-  merge itself is node-level — merge-field nodes in the Lexical body are resolved
+  [`utils/merge-template/merge-template.ts`](../../apps/crm-web/src/utils/merge-template/merge-template.ts).
+  The merge itself is node-level — merge-field nodes in the Lexical body are resolved
   against a contract's data by
-  [`components/editor/lexical-document.tsx`](../../apps/crm-web/src/components/editor/lexical-document.tsx);
+  [`components/editor/lexical-document/lexical-document.tsx`](../../apps/crm-web/src/components/editor/lexical-document/lexical-document.tsx);
   unknown tokens render as `⟨token?⟩`.
 - The contract create form is now a **page** (`/contracts/new`, not a modal) with
   a template picker.
 
-The backend doesn't exist yet, so in **live mode** (`CRM_API_URL` set) the
-template list comes back empty and the `template_id` is never persisted. This
-task builds the missing API so the feature lights up end-to-end.
+This backend doesn't exist yet, so pointed at `apps/crm-api` the template list comes
+back empty and the `template_id` is never persisted. This task builds the missing API
+so the feature lights up end-to-end.
 
-Types: `ContractTemplate` and the new `Contract.template_id` in
-[`src/types/index.ts`](../../apps/crm-web/src/types/index.ts).
+Types: `ContractTemplate` and `Contract.template_id` in
+[`contracts/types.ts`](<../../apps/crm-web/src/app/(dashboard)/contracts/types.ts>)
+(v2 shapes — types are feature-scoped in this repo).
 
 ## Fields (match the `ContractTemplate` TS type exactly)
 
@@ -96,8 +98,9 @@ the API — stored and returned as-is, no server-side parsing):
 - [ ] `POST/PATCH /contracts` accepts and persists the new contract columns
       (`template_id`, `body`, Party A fields, `vat_rate`).
 - [ ] Router registered; migration + test committed and passing.
-- [ ] Live mode: the **Mẫu hợp đồng** page lists templates, the editor saves, and
-      a contract with a `template_id` renders the **merged** printable document.
+- [ ] Verified in `/docs` + `uv run pytest`, not the UI — crm-web speaks v2, so it
+      will not light up against this backend (see
+      [00 — Choose your backend](00-choose-your-backend.md)).
 
 ## Hints & references
 

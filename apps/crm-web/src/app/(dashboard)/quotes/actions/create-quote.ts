@@ -4,17 +4,14 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { quotes } from "@/data/mock/quotes";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
-import { QuoteStatus } from "../enums";
 import { type CreateQuoteInput, createQuoteSchema } from "../schema";
 import type { Quote } from "../types";
 
 /**
  * Create a new draft quote (version = next per project). The server computes
- * each item `amount` + `total_amount`; in mock mode we synthesise them so the
- * builder flow is demoable without a backend.
+ * the version, each item `amount` and `total_amount`.
  */
 export async function createQuote(
   _prev: ServerActionState,
@@ -31,38 +28,7 @@ export async function createQuote(
   }
 
   try {
-    let quote: Quote;
-    if (API_URL) {
-      quote = await apiSend<Quote>("/quotes", "POST", parsed.data);
-    } else {
-      const { project_id, vat_rate, note, items } = parsed.data;
-      const priced = items.map((it, i) => ({
-        ...it,
-        unit: it.unit ?? null,
-        amount: Math.round(it.quantity * it.unit_price),
-        sort_order: i,
-      }));
-      // Standalone quotes (no project) share version 1 — mirrors the backend.
-      const version = project_id
-        ? Math.max(
-            0,
-            ...quotes
-              .filter((q) => q.project_id === project_id)
-              .map((q) => q.version)
-          ) + 1
-        : 1;
-      quote = {
-        id: nextId(quotes),
-        project_id: project_id ?? null,
-        version,
-        status: QuoteStatus.DRAFT,
-        total_amount: priced.reduce((s, it) => s + it.amount, 0),
-        vat_rate,
-        note: note ?? null,
-        items: priced,
-        send_logs: [],
-      };
-    }
+    const quote = await apiSend<Quote>("/quotes", "POST", parsed.data);
 
     if (quote.project_id) revalidatePath(`/projects/${quote.project_id}`);
     revalidatePath("/quotes");

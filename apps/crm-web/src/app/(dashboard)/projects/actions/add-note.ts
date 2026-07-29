@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import type { ProjectNote } from "../types";
 
@@ -32,21 +32,10 @@ export async function addNote(
   }
 
   try {
-    let note: ProjectNote;
-    if (API_URL) {
-      note = await apiSend<ProjectNote>("/project-notes", "POST", {
-        project_id: projectId,
-        ...parsed.data,
-      });
-    } else {
-      note = {
-        id: Date.now(),
-        project_id: projectId,
-        body: parsed.data.body,
-        tag: parsed.data.tag ?? null,
-        created_at: new Date().toISOString(),
-      };
-    }
+    const note = await apiSend<ProjectNote>("/project-notes", "POST", {
+      project_id: projectId,
+      ...parsed.data,
+    });
 
     revalidatePath(`/projects/${projectId}`);
 

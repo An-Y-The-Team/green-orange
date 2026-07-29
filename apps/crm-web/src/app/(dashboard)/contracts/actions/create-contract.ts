@@ -4,18 +4,15 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { contracts } from "@/data/mock/contracts";
-import { API_URL, apiSend, nextId, seq } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
-import { ContractStatus } from "../enums";
 import { type CreateContractFormValues, createContractSchema } from "../schema";
 import type { Contract } from "../types";
 
 /**
  * Create a contract from a project (stage-4 panel). Status starts `draft`; the
  * code auto-mints server-side. The template body must already be flattened into
- * `body` by the caller — the server does NOT copy the template. Mock mode synths
- * the row so the flow is demoable without a backend.
+ * `body` by the caller — the server does NOT copy the template.
  */
 export async function createContract(
   _prev: ServerActionState,
@@ -32,21 +29,7 @@ export async function createContract(
   }
 
   try {
-    let contract: Contract;
-    if (API_URL) {
-      contract = await apiSend<Contract>("/contracts", "POST", parsed.data);
-    } else {
-      contract = {
-        id: nextId(contracts),
-        project_id: parsed.data.project_id ?? null,
-        code: `HD-${new Date().getFullYear()}-${seq(nextId(contracts))}`,
-        status: ContractStatus.DRAFT,
-        signed_date: null,
-        note: parsed.data.note ?? null,
-        template_id: parsed.data.template_id ?? null,
-        body: parsed.data.body ?? null,
-      };
-    }
+    const contract = await apiSend<Contract>("/contracts", "POST", parsed.data);
 
     if (parsed.data.project_id)
       revalidatePath(`/projects/${parsed.data.project_id}`);

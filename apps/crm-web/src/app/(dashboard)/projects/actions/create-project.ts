@@ -4,10 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { projects } from "@/data/mock/projects";
-import { API_URL, apiSend, nextId, seq } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
-import { ProjectStatus } from "../enums";
 import { type CreateProjectFormValues, createProjectSchema } from "../schema";
 import type { Project } from "../types";
 
@@ -26,33 +24,12 @@ export async function createProject(
   }
 
   // POST /projects takes everything, incl. optional `stage` and appointment_at.
+  // `type_ids` is write-only: the API returns the joined `types` rows instead.
   // One write only: a follow-up PATCH that failed used to report failure on an
   // already-committed project, so the operator re-submitted and duplicated the
-  // CT code. `createBody` is the mock branch's shape (appointment_at split out).
-  // `type_ids` is a write-only field: the API returns the joined `types` rows
-  // instead, so it is dropped from the mock row rather than cast away.
-  const { appointment_at, type_ids: _type_ids, ...createBody } = parsed.data;
-
+  // CT code.
   try {
-    let project: Project;
-    if (API_URL) {
-      project = await apiSend<Project>("/projects", "POST", parsed.data);
-    } else {
-      const id = nextId(projects);
-      const now = new Date().toISOString();
-      project = {
-        ...createBody,
-        id,
-        code: `CT-2026-${seq(id)}`,
-        working_contact_id: createBody.working_contact_id ?? 0,
-        decision_maker_contact_id: createBody.decision_maker_contact_id ?? 0,
-        status: ProjectStatus.ACTIVE,
-        appointment_at: appointment_at ?? null,
-        types: [],
-        created_at: now,
-        updated_at: now,
-      };
-    }
+    const project = await apiSend<Project>("/projects", "POST", parsed.data);
 
     revalidatePath("/projects");
 

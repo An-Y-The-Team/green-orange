@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { contractTemplates } from "@/data/mock/contract-templates";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 import { unknownTokens } from "@/utils/merge-template/merge-template";
 
 import {
@@ -16,9 +15,7 @@ import type { ContractTemplate } from "../types";
 
 /**
  * Create or update a contract template. When `id` is provided it PATCHes the
- * existing row; otherwise it POSTs a new one. In mock mode it just synthesises
- * the saved record (mutations aren't persisted across reloads) so the editor
- * flow is demoable without a backend.
+ * existing row; otherwise it POSTs a new one.
  *
  * A body may only use tokens from CONTRACT_TOKENS. Anything else has no value to
  * resolve to and would print as `⟨token?⟩` on a signed contract, so the save is
@@ -54,22 +51,17 @@ export async function saveTemplate(
   }
 
   try {
-    let template: ContractTemplate;
-    if (API_URL) {
-      template = id
-        ? await apiSend<ContractTemplate>(
-            `/contract-templates/${id}`,
-            "PATCH",
-            parsed.data
-          )
-        : await apiSend<ContractTemplate>(
-            "/contract-templates",
-            "POST",
-            parsed.data
-          );
-    } else {
-      template = { ...parsed.data, id: id ?? nextId(contractTemplates) };
-    }
+    const template = id
+      ? await apiSend<ContractTemplate>(
+          `/contract-templates/${id}`,
+          "PATCH",
+          parsed.data
+        )
+      : await apiSend<ContractTemplate>(
+          "/contract-templates",
+          "POST",
+          parsed.data
+        );
 
     revalidatePath("/contracts/templates");
     if (id) revalidatePath(`/contracts/templates/${id}/edit`);

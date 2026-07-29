@@ -12,6 +12,13 @@ the Backend-deltas migration + module changes are live in `crm-api-nest`.
 one "Yêu cầu & Khảo sát" panel (the appointment _is_ the survey visit). Panels
 renumbered below; implemented in both apps — see "Stage merge delta" and
 phase 7 in `crm-ui-implementation-plan.md`.
+
+**2026-07-29 — mock mode is gone.** The build phases below were designed and
+verified against bundled fixtures under `src/data/mock/`; Phase 6 of
+`docs/fixes/v2-business-flow/` deleted them, so `CRM_API_URL` is now required and
+the dev dataset is `apps/crm-api-nest`'s seed. Read any "mock mode" wording below
+as "against seeded data".
+
 Next: frontend build phase 1 (contract layer). Non-stage screens
 (dashboard, clients, crew, receivables) carry the baseline spec and get
 refined during build.
@@ -80,11 +87,12 @@ route folders (v1 generic CRM, already unlinked), `formatUSD`, the old
 Costs tab on project detail (Cost module is its own future design session
 — until then costs simply don't appear in the UI).
 
-**Kept:** `DocumentShell` + `SignatureBlocks`, `format.ts` (`formatVND`,
-`formatDate`), `vnd-in-words.ts`, the Lexical contract-template editor,
-`force-dynamic` on the dashboard layout, live/mock seam (`CRM_API_URL`
-unset → mocks). **Dropped pattern:** v1's everything-in-a-modal forms —
-see "Pages, not dialogs" below.
+**Kept:** `DocumentShell` + `SignatureBlocks`, `formatVND` / `formatDate` (now
+`src/utils/format-vnd/` + `src/utils/format-date/`), `src/utils/vnd-in-words/`,
+the Lexical contract-template editor, `force-dynamic` on the dashboard layout, the
+`CRM_API_URL` seam — one env var picks which backend every page reads from.
+**Dropped pattern:** v1's everything-in-a-modal forms — see "Pages, not dialogs"
+below.
 
 ## The Công Trình workspace (`/projects/:id`)
 
@@ -683,8 +691,9 @@ pages (which remain usable, just not optimized, on mobile).
   `{ label: string; variant: BadgeVariant }`. The only Vietnamese in code.
 - **Data layer:** keep the current pattern — per-feature `queries.ts`
   (server components) + `"use server"` actions calling `apiSend`, zod
-  schemas per feature, mock fallback when `CRM_API_URL` unset. Mocks get
-  regenerated to v2 shapes (small, one happy-path project per stage).
+  schemas per feature. `CRM_API_URL` is required — there is no offline path, so
+  the dev dataset is `apps/crm-api-nest`'s seed (`bun run seed`), which carries
+  one project per stage plus the pipeline's edge cases.
   TanStack Query stays provisioned-but-unused; no client-side data layer
   until field mode proves it needs one.
 - **Errors:** stage transitions no longer 400 on unmet gates (auto-advance,

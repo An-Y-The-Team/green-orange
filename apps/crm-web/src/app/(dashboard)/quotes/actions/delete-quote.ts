@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 /** Delete a draft quote (409 from the backend if it isn't a draft). */
 export async function deleteQuote(
@@ -12,9 +12,7 @@ export async function deleteQuote(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) {
-      await apiSend<unknown>(`/quotes/${id}`, "DELETE");
-    }
+    await apiSend<unknown>(`/quotes/${id}`, "DELETE");
 
     revalidatePath("/projects/[id]", "page");
     revalidatePath("/quotes");

@@ -17,7 +17,7 @@ class HeadlessLoginError extends CredentialsSignin {
 }
 
 // Auth is OPT-IN: only enforced when Authentik is configured. With no
-// AUTH_AUTHENTIK_ISSUER (the default for local/mock dev), the dashboard stays
+// AUTH_AUTHENTIK_ISSUER — auth OFF, the local-dev default — the dashboard stays
 // open and no login is required — matches the team topology where daily work
 // runs in AUTH_MODE=local and Authentik is only used for the SSO milestone.
 const issuer = process.env.AUTH_AUTHENTIK_ISSUER;
@@ -75,7 +75,7 @@ export default {
   pages: { signIn: "/login" },
   callbacks: {
     authorized({ auth }) {
-      if (!authEnabled) return true; // local/mock dev: no gate
+      if (!authEnabled) return true; // auth off: no gate
       return Boolean(auth?.user);
     },
     async jwt({ token, account, user }) {

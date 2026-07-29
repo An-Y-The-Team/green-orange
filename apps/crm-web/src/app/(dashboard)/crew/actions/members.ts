@@ -4,11 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { crew } from "@/data/mock/crew";
-import { crewRoles } from "@/data/mock/crew-roles";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
-import { CrewMemberStatus } from "../enums";
 import {
   type CreateCrewMemberFormValues,
   type UpdateCrewMemberFormValues,
@@ -31,20 +28,7 @@ export async function createCrewMember(
   }
 
   try {
-    let member: CrewMember;
-    if (API_URL) {
-      member = await apiSend<CrewMember>("/crew", "POST", parsed.data);
-    } else {
-      const id = nextId(crew);
-      member = {
-        id,
-        ...parsed.data,
-        status: parsed.data.status ?? CrewMemberStatus.WORKING,
-        created_at: new Date().toISOString(),
-        default_role:
-          crewRoles.find((r) => r.id === parsed.data.default_role_id) ?? null,
-      };
-    }
+    const member = await apiSend<CrewMember>("/crew", "POST", parsed.data);
 
     revalidatePath("/crew");
     revalidatePath(`/crew/${member.id}`);
@@ -78,12 +62,11 @@ export async function updateCrewMember(
   }
 
   try {
-    let member: CrewMember | ({ id: number } & UpdateCrewMemberFormValues);
-    if (API_URL) {
-      member = await apiSend<CrewMember>(`/crew/${id}`, "PATCH", parsed.data);
-    } else {
-      member = { id, ...parsed.data };
-    }
+    const member = await apiSend<CrewMember>(
+      `/crew/${id}`,
+      "PATCH",
+      parsed.data
+    );
 
     revalidatePath("/crew");
     revalidatePath(`/crew/${id}`);
@@ -103,7 +86,7 @@ export async function deleteCrewMember(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) await apiSend(`/crew/${id}`, "DELETE");
+    await apiSend(`/crew/${id}`, "DELETE");
 
     revalidatePath("/crew");
 

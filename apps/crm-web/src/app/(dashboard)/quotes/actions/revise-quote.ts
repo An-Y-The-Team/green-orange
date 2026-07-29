@@ -4,10 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { quotes } from "@/data/mock/quotes";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
-import { QuoteStatus } from "../enums";
 import type { Quote } from "../types";
 
 /**
@@ -19,29 +17,7 @@ export async function reviseQuote(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    let quote: Quote;
-    if (API_URL) {
-      quote = await apiSend<Quote>(`/quotes/${id}/revise`, "POST");
-    } else {
-      const source = quotes.find((q) => q.id === id);
-      if (!source) throw new Error("Không tìm thấy báo giá.");
-      const version =
-        Math.max(
-          0,
-          ...quotes
-            .filter((q) => q.project_id === source.project_id)
-            .map((q) => q.version)
-        ) + 1;
-      quote = {
-        ...source,
-        id: nextId(quotes),
-        version,
-        status: QuoteStatus.DRAFT,
-        decided_date: null,
-        items: source.items.map((it) => ({ ...it })),
-        send_logs: [],
-      };
-    }
+    const quote = await apiSend<Quote>(`/quotes/${id}/revise`, "POST");
 
     revalidatePath("/projects/[id]", "page");
     revalidatePath("/quotes");

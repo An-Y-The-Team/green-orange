@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import type { Contract } from "../types";
@@ -43,15 +43,10 @@ export async function signContract(
   const signedDate = parsed.data.signed_date || todayISO();
 
   try {
-    let contract: Contract | { id: number; signed_date: string };
-    if (API_URL) {
-      contract = await apiSend<Contract>(`/contracts/${id}`, "PATCH", {
-        status: "signed",
-        signed_date: signedDate,
-      });
-    } else {
-      contract = { id, signed_date: signedDate };
-    }
+    const contract = await apiSend<Contract>(`/contracts/${id}`, "PATCH", {
+      status: "signed",
+      signed_date: signedDate,
+    });
 
     // The contract is signed from here on — revalidate before the chain so a
     // chained failure still shows it signed.

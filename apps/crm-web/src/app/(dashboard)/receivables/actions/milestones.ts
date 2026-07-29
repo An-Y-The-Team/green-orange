@@ -5,8 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { paymentMilestones } from "@/data/mock/payment-milestones";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { MilestoneStatus, MilestoneType } from "../enums";
 import type { PaymentMilestone } from "../types";
@@ -40,25 +39,11 @@ export async function createMilestone(
   if (!parsed.success) return fail("Vui lòng kiểm tra lại thông tin.");
 
   try {
-    let milestone: PaymentMilestone;
-    if (API_URL) {
-      milestone = await apiSend<PaymentMilestone>(
-        "/payment-milestones",
-        "POST",
-        { project_id: projectId, ...parsed.data }
-      );
-    } else {
-      milestone = {
-        id: nextId(paymentMilestones),
-        project_id: projectId,
-        bill_id: parsed.data.bill_id ?? null,
-        type: parsed.data.type,
-        amount: parsed.data.amount,
-        due_date: parsed.data.due_date ?? null,
-        status: MilestoneStatus.NOT_DUE,
-        paid_date: null,
-      };
-    }
+    const milestone = await apiSend<PaymentMilestone>(
+      "/payment-milestones",
+      "POST",
+      { project_id: projectId, ...parsed.data }
+    );
 
     revalidate(projectId);
     return {
@@ -94,16 +79,11 @@ export async function updateMilestone(
   if (!parsed.success) return fail("Vui lòng kiểm tra lại thông tin.");
 
   try {
-    let milestone: PaymentMilestone | { id: number };
-    if (API_URL) {
-      milestone = await apiSend<PaymentMilestone>(
-        `/payment-milestones/${id}`,
-        "PATCH",
-        parsed.data
-      );
-    } else {
-      milestone = { id };
-    }
+    const milestone = await apiSend<PaymentMilestone>(
+      `/payment-milestones/${id}`,
+      "PATCH",
+      parsed.data
+    );
 
     revalidate(projectId);
     return {
@@ -149,19 +129,16 @@ export async function markMilestonePaid(
   }
 
   try {
-    let milestone: PaymentMilestone | { id: number } = { id };
-    if (API_URL) {
-      if (fromStatus === MilestoneStatus.NOT_DUE) {
-        await apiSend<PaymentMilestone>(`/payment-milestones/${id}`, "PATCH", {
-          status: MilestoneStatus.AWAITING_PAYMENT,
-        });
-      }
-      milestone = await apiSend<PaymentMilestone>(
-        `/payment-milestones/${id}`,
-        "PATCH",
-        { status: MilestoneStatus.PAID, paid_date: parsed.data.paid_date }
-      );
+    if (fromStatus === MilestoneStatus.NOT_DUE) {
+      await apiSend<PaymentMilestone>(`/payment-milestones/${id}`, "PATCH", {
+        status: MilestoneStatus.AWAITING_PAYMENT,
+      });
     }
+    const milestone = await apiSend<PaymentMilestone>(
+      `/payment-milestones/${id}`,
+      "PATCH",
+      { status: MilestoneStatus.PAID, paid_date: parsed.data.paid_date }
+    );
 
     revalidate(projectId);
     return { success: true, message: "Đã ghi nhận đã thu.", data: milestone };
@@ -181,9 +158,7 @@ export async function deleteMilestone(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) {
-      await apiSend<unknown>(`/payment-milestones/${id}`, "DELETE");
-    }
+    await apiSend<unknown>(`/payment-milestones/${id}`, "DELETE");
 
     revalidate(projectId);
     return { success: true, message: "Đã xóa đợt thanh toán.", data: { id } };

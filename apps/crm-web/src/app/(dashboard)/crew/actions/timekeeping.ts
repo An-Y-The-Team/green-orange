@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { TimekeepingSource } from "../enums";
 import { getProjectTimekeeping } from "../queries";
@@ -42,25 +42,11 @@ export async function upsertTimekeeping(
   }
 
   try {
-    let record: TimekeepingRecord;
-    if (API_URL) {
-      record = await apiSend<TimekeepingRecord>("/timekeeping", "POST", {
-        project_id: projectId,
-        source: TimekeepingSource.MANUAL,
-        ...parsed.data,
-      });
-    } else {
-      // Mock echo — not persisted (revalidate re-reads the static array).
-      record = {
-        id: Date.now(),
-        project_id: projectId,
-        source: TimekeepingSource.MANUAL,
-        crew_member_id: parsed.data.crew_member_id,
-        work_date: parsed.data.work_date,
-        hours: parsed.data.hours,
-        note: parsed.data.note ?? null,
-      };
-    }
+    const record = await apiSend<TimekeepingRecord>("/timekeeping", "POST", {
+      project_id: projectId,
+      source: TimekeepingSource.MANUAL,
+      ...parsed.data,
+    });
 
     revalidatePath("/crew");
     return { success: true, message: "Đã lưu giờ công.", data: record };
@@ -79,9 +65,7 @@ export async function deleteTimekeeping(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) {
-      await apiSend<void>(`/timekeeping/${id}`, "DELETE");
-    }
+    await apiSend<void>(`/timekeeping/${id}`, "DELETE");
     revalidatePath("/crew");
     return { success: true, message: "Đã xóa giờ công." };
   } catch (error) {

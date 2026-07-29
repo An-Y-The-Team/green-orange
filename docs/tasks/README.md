@@ -20,11 +20,13 @@ and [`app/models/client.py`](../../apps/crm-api/app/models/client.py) side by si
 
 ## How the UI and the API fit together (and where that stopped)
 
-The Next.js UI (`apps/crm-web`) has a **seam**: with `CRM_API_URL` unset it renders
-built-in mock data; set it and every page fetches that backend instead — no UI code
-changes. That seam still exists, but crm-web now speaks the **v2** contract, so
-feeding it from this v1 backend yields empty pages rather than live data (a failing
-list read degrades to `[]`, never to mock rows).
+The Next.js UI (`apps/crm-web`) has a **seam**: `CRM_API_URL` decides which backend
+every page fetches from — one env var, no UI code changes. It is **required**; there
+is no offline/bundled-data mode, so crm-web needs a running backend with a seeded
+database to render anything (root [`README.md`](../../README.md) has the setup). That
+seam still exists, but crm-web now speaks the **v2** contract, so feeding it from this
+v1 backend yields empty pages rather than live data (a failing list read degrades to
+`[]`).
 
 Your contract of record for this track is therefore the **backend's own** schemas —
 the `*Public` models in [`apps/crm-api/app/models/`](../../apps/crm-api/app/models/)

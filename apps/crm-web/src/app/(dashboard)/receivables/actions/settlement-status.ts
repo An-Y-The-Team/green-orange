@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { SettlementStatus } from "../enums";
 import type { Settlement } from "../types";
@@ -20,16 +20,11 @@ async function patchStatus(
   errMessage: string
 ): Promise<ServerActionState> {
   try {
-    let settlement: Settlement | { id: number };
-    if (API_URL) {
-      settlement = await apiSend<Settlement>(
-        `/settlements/${id}`,
-        "PATCH",
-        body
-      );
-    } else {
-      settlement = { id };
-    }
+    const settlement = await apiSend<Settlement>(
+      `/settlements/${id}`,
+      "PATCH",
+      body
+    );
 
     // Status hops don't carry the project id; revalidate every project page.
     revalidatePath("/projects/[id]", "page");

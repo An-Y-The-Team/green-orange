@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { updateQuoteSchema } from "../schema";
 import type { Quote } from "../types";
@@ -31,12 +31,7 @@ export async function updateQuote(
   }
 
   try {
-    let quote: Quote | { id: number };
-    if (API_URL) {
-      quote = await apiSend<Quote>(`/quotes/${id}`, "PATCH", parsed.data);
-    } else {
-      quote = { id };
-    }
+    const quote = await apiSend<Quote>(`/quotes/${id}`, "PATCH", parsed.data);
 
     revalidatePath("/projects/[id]", "page");
     revalidatePath("/quotes");

@@ -12,7 +12,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@yan/ui/components/theme-provider";
 
 // App-Router TanStack Query setup. The data layer still runs through
-// src/lib/api today (Server Components); this provider makes Query available
+// src/utils/http/http.ts (Server Components); this provider makes Query available
 // for students to build client-side fetching/mutations on top of crm-api —
 // e.g. useQuery in a client component, or wiring the form dialogs' onSubmit to
 // useMutation + invalidateQueries instead of console.log.

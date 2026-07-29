@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { ProjectStatus } from "@/app/(dashboard)/projects/enums";
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { updateProject } from "../../projects/actions/update-project";
 import { type QuoteDecision, QuoteStatus } from "../enums";
@@ -45,10 +45,9 @@ export async function decideQuote(
     parsed.data;
 
   try {
-    let quote: Quote | { id: number } = { id };
-    if (API_URL) {
-      quote = await apiSend<Quote>(`/quotes/${id}/decide`, "POST", { status });
-    }
+    const quote = await apiSend<Quote>(`/quotes/${id}/decide`, "POST", {
+      status,
+    });
 
     // The quote is decided from here on — revalidate before the chain so a
     // chained failure still shows the new quote state.

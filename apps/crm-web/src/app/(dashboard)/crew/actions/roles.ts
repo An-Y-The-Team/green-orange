@@ -5,8 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { crewRoles } from "@/data/mock/crew-roles";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import type { CrewRole } from "../types";
 
@@ -29,9 +28,7 @@ export async function createRole(
   }
 
   try {
-    const role = API_URL
-      ? await apiSend<CrewRole>("/crew-roles", "POST", parsed.data)
-      : { id: nextId(crewRoles), name: parsed.data.name };
+    const role = await apiSend<CrewRole>("/crew-roles", "POST", parsed.data);
 
     revalidatePath("/crew");
 
@@ -65,9 +62,11 @@ export async function renameRole(
   }
 
   try {
-    const role = API_URL
-      ? await apiSend<CrewRole>(`/crew-roles/${id}`, "PATCH", parsed.data)
-      : { id, name: parsed.data.name };
+    const role = await apiSend<CrewRole>(
+      `/crew-roles/${id}`,
+      "PATCH",
+      parsed.data
+    );
 
     revalidatePath("/crew");
 
@@ -86,7 +85,7 @@ export async function deleteRole(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) await apiSend(`/crew-roles/${id}`, "DELETE");
+    await apiSend(`/crew-roles/${id}`, "DELETE");
 
     revalidatePath("/crew");
 

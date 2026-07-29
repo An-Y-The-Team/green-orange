@@ -33,16 +33,18 @@ Vietnamese-valued stages (`yeu_cau`, `khao_sat`, …); v2 has 8 English ones
 **So `CRM_API_URL=http://localhost:8000` does not render a working app.** Do not
 use the UI as your signal that the Python backend works.
 
-## How the seam actually behaves (no, it doesn't fall back to mock)
+## How the seam actually behaves (there is no offline fallback)
 
-There are exactly two modes, decided by whether `CRM_API_URL` is set:
+`CRM_API_URL` is **required**. crm-web has no bundled-data mode — every page is an
+authenticated HTTP read against whatever that URL names, so seeing any page at all
+takes a seeded database and a running backend (root
+[`README.md`](../../README.md) has the local setup; the dataset comes from
+`apps/crm-api-nest`'s `bun run seed`).
 
-- **`CRM_API_URL` unset** → every page renders bundled **mock data**. No HTTP at all.
-- **`CRM_API_URL` set** → every page hits that backend. `apiFetchSafe` degrades a
-  failing list read to an **empty array**, never to mock data — so a missing or
-  incompatible endpoint shows an **empty page**, not mock rows and not an error.
-  That silence is why pointing the UI at `:8000` looks like "no data" rather than
-  "wrong backend".
+What the seam does do is swallow failures: `apiFetchSafe` degrades a failing list read
+to an **empty array** — never to fixture data — so a missing or incompatible endpoint
+shows an **empty page**, not an error. That silence is why pointing the UI at `:8000`
+looks like "no data" rather than "wrong backend".
 
 ## Switching
 
@@ -66,8 +68,8 @@ changes is how you verify it.
    FastAPI Swagger UI at <http://localhost:8000/docs> are your feedback loop.
    Every task's "Definition of done" that says "the UI shows live data" now means
    "the endpoint works in `/docs` and a test covers it".
-2. **Keep `CRM_API_URL` on `:8001`** (or unset) whenever you want a working UI to
-   look at. Never point it at `:8000` expecting pages to light up.
+2. **Keep `CRM_API_URL` on `:8001`** whenever you want a working UI to look at.
+   Never point it at `:8000` expecting pages to light up.
 3. **Read the v1 types from the backend itself**, not from crm-web. The
    `apps/crm-api/app/models/*.py` `*Public` schemas are now the contract of
    record for this track — crm-web's feature-scoped `types.ts` files describe v2.

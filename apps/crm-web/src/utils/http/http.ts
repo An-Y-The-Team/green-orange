@@ -3,8 +3,11 @@
  * calls. Each resource's reads live in its route's `queries.ts`; each mutation
  * lives directly in its server action. They share only these primitives.
  *
- *   • CRM_API_URL unset → callers fall back to bundled mock data.
- *   • CRM_API_URL set   → these hit the FastAPI backend (apps/crm-api).
+ * CRM_API_URL is REQUIRED — there is no mock fallback any more. Unset, every call
+ * targets "undefined/…" and fails, which is the intended behaviour: a missing
+ * backend must look broken, not empty. It normally points at the NestJS backend
+ * (apps/crm-api-nest, :8001), which implements the whole UI. apps/crm-api
+ * (FastAPI, :8000) is the v1 teaching sandbox and no longer UI-compatible.
  *
  * Runs server-side only — CRM_API_URL is a server-only var (no NEXT_PUBLIC_
  * prefix), so the backend URL is never inlined into the client bundle, and the
@@ -82,26 +85,65 @@ async function fetchWithAuth(
   return res;
 }
 
+// Carries the HTTP status as data so callers can branch on it. A plain Error only
+// interpolates the status into its message, which forces string-parsing.
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+// `api.fetch` throws on a non-2xx instead of returning the Response, bolting a
+// numeric `status` onto a plain Error (0 for its own 30s timeout) — so for reads
+// the throw is the normal failure path. Anything with no status is not ours to
+// relabel: a dead socket, or the SESSION_EXPIRED message from fetchWithAuth.
+const asApiError = (path: string, err: unknown) =>
+  err instanceof Error && "status" in err && typeof err.status === "number"
+    ? new ApiError(
+        err.status,
+        `API ${path} failed: ${err.status} ${err.message}`
+      )
+    : undefined;
+
 export async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetchWithAuth(
-    (u, o) => api.fetch(u, o),
-    `${API_URL}${path}`,
-    {}
-  );
+  let res: Response;
+  try {
+    res = await fetchWithAuth(
+      (u, o) => api.fetch(u, o),
+      `${API_URL}${path}`,
+      {}
+    );
+  } catch (err) {
+    throw asApiError(path, err) ?? err;
+  }
   if (!res.ok) {
-    throw new Error(`API ${path} failed: ${res.status} ${res.statusText}`);
+    throw new ApiError(
+      res.status,
+      `API ${path} failed: ${res.status} ${res.statusText}`
+    );
   }
   return res.json() as Promise<T>;
 }
 
-// Degrades a not-yet-implemented endpoint (student exercises return 501) to a
-// fallback so list pages still render instead of crashing.
+// The Python teaching sandbox answers 501 for endpoints students haven't built
+// yet; degrade ONLY that so their pages still render.
+const NOT_IMPLEMENTED = 501;
+
+// Everything else — 500, timeout, dead backend — rethrows and lands on the route
+// group's error.tsx. Swallowing it would make an outage indistinguishable from
+// "no records", which is exactly how /projects used to answer 200 + [] with the
+// backend down.
 export async function apiFetchSafe<T>(path: string, fallback: T): Promise<T> {
   try {
     return await apiFetch<T>(path);
   } catch (err) {
+    if (!(err instanceof ApiError) || err.status !== NOT_IMPLEMENTED) throw err;
     if (process.env.NODE_ENV !== "production") {
-      console.warn(`[crm-web] ${path} not available yet, using fallback:`, err);
+      console.warn(`[crm-web] ${path} not implemented (501), using fallback`);
     }
     return fallback;
   }
@@ -131,8 +173,3 @@ export async function apiSend<T>(
   }
   return res.json() as Promise<T>;
 }
-
-// Mock-mode helpers for synthesizing a created record's server-side fields.
-export const nextId = <T extends { id: number }>(rows: T[]) =>
-  Math.max(0, ...rows.map((r) => r.id)) + 1;
-export const seq = (n: number) => String(n).padStart(3, "0");

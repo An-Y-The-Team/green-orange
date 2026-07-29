@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { updateSettlementSchema } from "../schema";
 import type { Settlement } from "../types";
@@ -31,16 +31,11 @@ export async function updateSettlement(
   }
 
   try {
-    let settlement: Settlement | { id: number };
-    if (API_URL) {
-      settlement = await apiSend<Settlement>(
-        `/settlements/${id}`,
-        "PATCH",
-        parsed.data
-      );
-    } else {
-      settlement = { id };
-    }
+    const settlement = await apiSend<Settlement>(
+      `/settlements/${id}`,
+      "PATCH",
+      parsed.data
+    );
 
     revalidatePath("/projects/[id]", "page");
     revalidatePath("/receivables");

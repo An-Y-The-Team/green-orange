@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { sendQuoteSchema } from "../schema";
 import type { Quote } from "../types";
@@ -30,15 +30,15 @@ export async function sendQuote(
 
   try {
     const { channels, sent_by, follow_up_ref } = parsed.data;
+    // Schema guarantees at least one channel, but TS can't see that through the
+    // loop — the initializer keeps `{ id }` as the type-level floor for `data`.
     let quote: Quote | { id: number } = { id };
-    if (API_URL) {
-      for (const channel of channels) {
-        quote = await apiSend<Quote>(`/quotes/${id}/send`, "POST", {
-          channel,
-          sent_by,
-          follow_up_ref,
-        });
-      }
+    for (const channel of channels) {
+      quote = await apiSend<Quote>(`/quotes/${id}/send`, "POST", {
+        channel,
+        sent_by,
+        follow_up_ref,
+      });
     }
 
     revalidatePath("/projects/[id]", "page");

@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import {
   AcceptanceSubStatus,
@@ -66,12 +66,11 @@ export async function updateProject(
   }
 
   try {
-    let data: Project | ({ id: number } & UpdateProjectFormValues);
-    if (API_URL) {
-      data = await apiSend<Project>(`/projects/${id}`, "PATCH", parsed.data);
-    } else {
-      data = { id, ...parsed.data };
-    }
+    const data = await apiSend<Project>(
+      `/projects/${id}`,
+      "PATCH",
+      parsed.data
+    );
 
     revalidatePath(`/projects/${id}`);
     revalidatePath("/projects");

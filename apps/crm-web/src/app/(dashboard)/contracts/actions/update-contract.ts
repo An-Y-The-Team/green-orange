@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { type UpdateContractFormValues, updateContractSchema } from "../schema";
 import type { Contract } from "../types";
@@ -27,16 +27,11 @@ export async function updateContract(
   }
 
   try {
-    let contract: Contract | ({ id: number } & UpdateContractFormValues);
-    if (API_URL) {
-      contract = await apiSend<Contract>(
-        `/contracts/${id}`,
-        "PATCH",
-        parsed.data
-      );
-    } else {
-      contract = { id, ...parsed.data };
-    }
+    const contract = await apiSend<Contract>(
+      `/contracts/${id}`,
+      "PATCH",
+      parsed.data
+    );
 
     revalidatePath(`/projects/${projectId}`);
     revalidatePath(`/contracts/${id}`);

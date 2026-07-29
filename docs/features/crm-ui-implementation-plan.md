@@ -17,31 +17,45 @@ the changelog.
    mirror them as of phase 1).
 4. `docs/features/crm-database-schema.md` — columns + EN↔VN glossary.
 
+> **2026-07-29 — mock mode was removed; the phase notes below are history.**
+> Phases 1–7 really were accepted via a **mock-mode smoke test** (`CRM_API_URL=`
+> unset → pages rendered fixtures from `apps/crm-web/src/data/mock/`). Phase 6 of
+> `docs/fixes/v2-business-flow/` deleted that path entirely, so those exact
+> commands and every `data/mock/*` file listed below no longer exist. The phase
+> notes are left as written — they record how the work was actually verified.
+> **The equivalent check today** is against a seeded stack: Postgres up,
+> `prisma migrate deploy` + `bun run seed` in `apps/crm-api-nest`, the API
+> running, and `CRM_API_URL` pointed at it (root `README.md` has the setup;
+> `docs/fixes/v2-business-flow/F41-seed-replaces-mock-coverage.md` is why the seed
+> now carries the edge cases the fixtures used to). The **Standing rules** section
+> immediately below is live guidance and has been corrected in place.
+
 ## Standing rules (do not relearn these)
 
 - **Pages, not dialogs**: entity create/edit = dedicated route or inline
   form. Dialogs ONLY for tiny confirms (Hủy reason, date pick, status
   flip, channel picker). User strongly dislikes modal forms.
-- Vietnamese ONLY via `src/lib/labels.ts`; enums/fields English.
+- Vietnamese ONLY via `src/constants/labels.ts`; enums/fields English.
 - `*_date` = 'YYYY-MM-DD' strings; `*_at` = full ISO; money/hours numbers.
-- Derived, never stored: Quá hạn (`isOverdue` in `lib/format.ts`), trễ
+- Derived, never stored: Quá hạn (`src/utils/is-overdue/is-overdue.ts`), trễ
   chip, superseded quotes (`version < max` per project), timekeeping
   conflicts.
-- Data seam: per-feature `queries.ts` (`API_URL ? apiFetchSafe : mock`),
+- Data seam: per-feature `queries.ts` reading through `apiFetchSafe`,
   writes = `"use server"` actions in `<feature>/actions/*.ts` calling
-  `apiSend` (`lib/http.ts`), zod schema colocated, `revalidatePath`,
+  `apiSend` (`src/utils/http/http.ts`), zod schema colocated, `revalidatePath`,
   `ServerActionState` + `use-server-actions` hook from `@yan/shared`.
   Phase 1 deleted all v1 actions — recreate per phase with v2 payloads.
 - Stage-gate 400s from the server → toast the server message; but panels
   must show gate checklists so users rarely hit them.
 - Bun only; user owns ALL git operations; Codex reviews output.
-- Local run gotcha: `apps/crm-web/.env` sets `CRM_API_URL` + Authentik →
-  mock-mode smoke needs `CRM_API_URL= AUTH_AUTHENTIK_ISSUER= bun run
-start` (port pinned 3002). Live test: boot API from `apps/crm-api-nest`
-  `PORT=8001 AUTH_MODE=local node dist/main.js`, web with
-  `CRM_API_URL=http://localhost:8001`.
+- Local run: `CRM_API_URL` is **required** — there is no offline mode. Seed the
+  DB once (`prisma migrate deploy` + `bun run seed` in `apps/crm-api-nest`),
+  boot the API `PORT=8001 AUTH_MODE=local node dist/main.js`, then web with
+  `CRM_API_URL=http://localhost:8001 bun run start` (port pinned 3002).
+  `AUTH_AUTHENTIK_ISSUER=` unset still turns auth off — that switch is
+  independent and survives.
 - Verify each phase: `bunx tsc --noEmit`, `bunx eslint src
---max-warnings 0`, `bun run build`, curl smoke in mock AND live mode.
+--max-warnings 0`, `bun run build`, curl smoke against the seeded stack.
 
 ## Current state (after phase 1, 2026-07-23)
 
@@ -346,7 +360,7 @@ Backend (`apps/crm-api-nest`):
 Frontend (`apps/crm-web`):
 
 - `projects/enums.ts` — `SURVEY` deleted, stage comments renumbered.
-- `lib/labels.ts` — out of `projectStageOrder`; `REQUEST` relabelled
+- `src/constants/labels.ts` (then `lib/labels.ts`) — out of `projectStageOrder`; `REQUEST` relabelled
   "Yêu cầu & Khảo sát". Stepper, the "n/8" pill and the intake stage selector
   all derive from that array — no edits needed there.
 - `panels/request.tsx` — takes `attachments`; [Đã gặp khách] PATCHes

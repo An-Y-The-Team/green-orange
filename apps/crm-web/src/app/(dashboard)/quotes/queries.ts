@@ -1,6 +1,5 @@
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
-import { quotes } from "@/data/mock/quotes";
-import { API_URL, apiFetch, apiFetchSafe } from "@/utils/http/http";
+import { apiFetch, apiFetchSafe } from "@/utils/http/http";
 
 import { QuoteStatus } from "./enums";
 import type { Quote, QuoteListRow } from "./types";
@@ -12,26 +11,16 @@ import type { Quote, QuoteListRow } from "./types";
  * count of MAX_PAGE_SIZE means the answer was cut off.
  */
 export async function listQuotes(): Promise<QuoteListRow[]> {
-  return API_URL
-    ? apiFetchSafe<QuoteListRow[]>(`/quotes?limit=${MAX_PAGE_SIZE}`, [])
-    : quotes;
+  return apiFetchSafe<QuoteListRow[]>(`/quotes?limit=${MAX_PAGE_SIZE}`, []);
 }
 
 export async function getQuote(id: number): Promise<Quote | undefined> {
-  if (API_URL) {
-    return apiFetch<Quote>(`/quotes/${id}`).catch(() => undefined);
-  }
-  return quotes.find((q) => q.id === id);
+  return apiFetch<Quote>(`/quotes/${id}`).catch(() => undefined);
 }
 
 /** All versions for a project, newest first (mirrors GET /quotes?project_id=). */
 export async function getProjectQuotes(projectId: number): Promise<Quote[]> {
-  if (API_URL) {
-    return apiFetchSafe<Quote[]>(`/quotes?project_id=${projectId}`, []);
-  }
-  return quotes
-    .filter((q) => q.project_id === projectId)
-    .sort((a, b) => b.version - a.version);
+  return apiFetchSafe<Quote[]>(`/quotes?project_id=${projectId}`, []);
 }
 
 /**

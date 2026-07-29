@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { clients } from "@/data/mock/clients";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { type CreateClientFormValues, createClientSchema } from "../schema";
 import type { Client } from "../types";
@@ -25,27 +24,13 @@ export async function createClient(
   }
 
   try {
-    let client: Client;
-    if (API_URL) {
-      // Drop empty email — backend @IsEmail rejects "".
-      const { email, ...rest } = parsed.data;
-      client = await apiSend<Client>(
-        "/clients",
-        "POST",
-        email ? { ...rest, email } : rest
-      );
-    } else {
-      client = {
-        id: nextId(clients),
-        name: parsed.data.name,
-        type: parsed.data.type,
-        tax_code: null,
-        email: parsed.data.email || null,
-        note: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-    }
+    // Drop empty email — backend @IsEmail rejects "".
+    const { email, ...rest } = parsed.data;
+    const client = await apiSend<Client>(
+      "/clients",
+      "POST",
+      email ? { ...rest, email } : rest
+    );
 
     revalidatePath("/clients");
 

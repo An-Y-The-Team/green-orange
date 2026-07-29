@@ -5,8 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { projectTypes } from "@/data/mock/project-types";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import type { ProjectType } from "../types";
 
@@ -33,9 +32,11 @@ export async function createProjectType(
   }
 
   try {
-    const data = API_URL
-      ? await apiSend<ProjectType>("/project-types", "POST", parsed.data)
-      : { id: nextId(projectTypes), name: parsed.data.name };
+    const data = await apiSend<ProjectType>(
+      "/project-types",
+      "POST",
+      parsed.data
+    );
     revalidate();
     return { success: true, message: `Đã thêm "${data.name}".`, data };
   } catch (error) {
@@ -64,9 +65,11 @@ export async function renameProjectType(
   }
 
   try {
-    const data = API_URL
-      ? await apiSend<ProjectType>(`/project-types/${id}`, "PATCH", parsed.data)
-      : { id, name: parsed.data.name };
+    const data = await apiSend<ProjectType>(
+      `/project-types/${id}`,
+      "PATCH",
+      parsed.data
+    );
     revalidate();
     return { success: true, message: "Đã cập nhật.", data };
   } catch (error) {
@@ -82,7 +85,7 @@ export async function deleteProjectType(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) await apiSend(`/project-types/${id}`, "DELETE");
+    await apiSend(`/project-types/${id}`, "DELETE");
     revalidate();
     return { success: true, message: "Đã xóa loại công trình.", data: { id } };
   } catch (error) {

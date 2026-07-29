@@ -8,8 +8,9 @@ import { todayISO } from "@/utils/today-iso/today-iso";
 import { FieldBottomBar } from "./components/field-bottom-bar/field-bottom-bar";
 
 // Mirror (dashboard)/layout.tsx: CRM_API_URL is runtime-only and the data layer
-// reads it at module load, so force-dynamic per request (else prod serves the
-// build-time mock branch). Applies to every route in this group.
+// reads it at module load, so force-dynamic per request — else prod serves HTML
+// prerendered at BUILD time, where CRM_API_URL is absent. Applies to every route
+// in this group.
 export const dynamic = "force-dynamic";
 
 export default async function FieldLayout({

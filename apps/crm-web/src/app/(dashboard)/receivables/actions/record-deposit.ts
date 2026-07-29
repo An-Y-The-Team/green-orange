@@ -5,8 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { paymentMilestones } from "@/data/mock/payment-milestones";
-import { API_URL, apiSend, nextId } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { MilestoneStatus, MilestoneType } from "../enums";
 import type { PaymentMilestone } from "../types";
@@ -21,8 +20,7 @@ export type RecordDepositFormValues = z.infer<typeof recordDepositSchema>;
  * Record the stage-4 deposit (Tạm ứng): a pre-bill deposit milestone created
  * already paid. ONE write — the server takes the initial `status` (setting it is
  * not a transition, so `assertStep` stays out of the way). Chaining PATCHes here
- * used to leave an orphan milestone whose retry duplicated the cọc. Mock synths
- * the same row.
+ * used to leave an orphan milestone whose retry duplicated the cọc.
  */
 export async function recordDeposit(
   projectId: number,
@@ -42,31 +40,17 @@ export async function recordDeposit(
   const { amount, received_date } = parsed.data;
 
   try {
-    let milestone: PaymentMilestone;
-    if (API_URL) {
-      milestone = await apiSend<PaymentMilestone>(
-        "/payment-milestones",
-        "POST",
-        {
-          project_id: projectId,
-          type: MilestoneType.DEPOSIT,
-          amount,
-          status: MilestoneStatus.PAID,
-          paid_date: received_date,
-        }
-      );
-    } else {
-      milestone = {
-        id: nextId(paymentMilestones),
+    const milestone = await apiSend<PaymentMilestone>(
+      "/payment-milestones",
+      "POST",
+      {
         project_id: projectId,
-        bill_id: null,
         type: MilestoneType.DEPOSIT,
         amount,
-        due_date: null,
         status: MilestoneStatus.PAID,
         paid_date: received_date,
-      };
-    }
+      }
+    );
 
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/receivables");

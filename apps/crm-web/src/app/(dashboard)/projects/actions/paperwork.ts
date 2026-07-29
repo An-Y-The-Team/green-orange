@@ -5,15 +5,13 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { API_URL, apiSend } from "@/utils/http/http";
+import { apiSend } from "@/utils/http/http";
 
 import { PaperworkStatus } from "../enums";
 import type { PaperworkItem } from "../types";
 
 // Stage-5 checklist mutations. The one-way stepper (preparing→submitted→approved)
-// is enforced UI-side — the backend PATCH has no forward-only guard. Mock mode
-// synths/echoes; mock mutations aren't persisted across reloads (revalidate
-// re-reads the static array), same as the other demo actions.
+// is enforced UI-side — the backend PATCH has no forward-only guard.
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -46,22 +44,10 @@ export async function createPaperworkItem(
   }
 
   try {
-    let item: PaperworkItem;
-    if (API_URL) {
-      item = await apiSend<PaperworkItem>("/paperwork-items", "POST", {
-        project_id: projectId,
-        ...parsed.data,
-      });
-    } else {
-      item = {
-        id: Date.now(),
-        project_id: projectId,
-        name: parsed.data.name,
-        status: PaperworkStatus.PREPARING,
-        due_date: parsed.data.due_date ?? null,
-        note: parsed.data.note ?? null,
-      };
-    }
+    const item = await apiSend<PaperworkItem>("/paperwork-items", "POST", {
+      project_id: projectId,
+      ...parsed.data,
+    });
 
     revalidatePath(`/projects/${projectId}`);
     return { success: true, message: `Đã thêm "${item.name}".`, data: item };
@@ -89,23 +75,11 @@ export async function updatePaperworkItem(
   }
 
   try {
-    let item: PaperworkItem;
-    if (API_URL) {
-      item = await apiSend<PaperworkItem>(
-        `/paperwork-items/${id}`,
-        "PATCH",
-        parsed.data
-      );
-    } else {
-      item = {
-        id,
-        project_id: projectId,
-        name: parsed.data.name ?? "",
-        status: parsed.data.status ?? PaperworkStatus.PREPARING,
-        due_date: parsed.data.due_date ?? null,
-        note: parsed.data.note ?? null,
-      };
-    }
+    const item = await apiSend<PaperworkItem>(
+      `/paperwork-items/${id}`,
+      "PATCH",
+      parsed.data
+    );
 
     revalidatePath(`/projects/${projectId}`);
     return { success: true, message: "Đã cập nhật.", data: item };
@@ -124,9 +98,7 @@ export async function deletePaperworkItem(
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
-    if (API_URL) {
-      await apiSend<void>(`/paperwork-items/${id}`, "DELETE");
-    }
+    await apiSend<void>(`/paperwork-items/${id}`, "DELETE");
     revalidatePath(`/projects/${projectId}`);
     return { success: true, message: "Đã xóa mục." };
   } catch (error) {
