@@ -49,6 +49,7 @@ export default async function QuotePage({
     version: quote.version,
     editId: quote.id,
     items: quote.items.map((it) => ({
+      category: it.category ?? undefined,
       description: it.description,
       unit: it.unit ?? undefined,
       quantity: it.quantity,

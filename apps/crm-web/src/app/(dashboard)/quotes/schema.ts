@@ -6,7 +6,10 @@ import { z } from "zod";
 import { QUOTE_DECISIONS, QuoteChannel } from "./enums";
 
 const quoteItemSchema = z.object({
-  description: z.string().min(1, "Nhập hạng mục"),
+  // Section header shared by consecutive rows ("A. PHẦN VẬT TƯ"); optional, an
+  // ungrouped quote leaves it empty.
+  category: z.string().optional(),
+  description: z.string().min(1, "Nhập nội dung"),
   unit: z.string().optional(),
   quantity: z.number().min(0),
   // Whole đồng only — VND has no fractional unit and the column is BigInt, so a

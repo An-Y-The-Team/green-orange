@@ -166,6 +166,7 @@ model Quote {
 model QuoteItem {
   id          Int     @id @default(autoincrement())
   quote_id    Int
+  category    String? // "A. PHẦN VẬT TƯ" — free-text section header; null = ungrouped
   description String
   unit        String? // m², buổi, … (free text)
   quantity    Decimal

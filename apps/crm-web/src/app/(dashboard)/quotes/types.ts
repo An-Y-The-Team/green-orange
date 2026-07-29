@@ -5,6 +5,7 @@
 import type { QuoteChannel, QuoteStatus } from "./enums";
 
 export interface QuoteItem {
+  category?: string | null; // section header; consecutive items share one
   description: string;
   unit?: string | null; // m², buổi, … (free text)
   quantity: number;

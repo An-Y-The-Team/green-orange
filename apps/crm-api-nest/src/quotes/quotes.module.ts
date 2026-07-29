@@ -70,6 +70,9 @@ const LIST_INCLUDE = {
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
 class QuoteItemDto {
+  // Free-text section header ("A. PHẦN VẬT TƯ"); consecutive items sharing one
+  // are printed under it. Omit for an ungrouped quote.
+  @IsOptional() @IsString() category?: string;
   @IsString() @MinLength(1) description: string;
   @IsOptional() @IsString() unit?: string;
   @IsNumber() @Min(0) quantity: number;
@@ -154,6 +157,7 @@ export async function withIsLatest<T extends VersionedRow>(
 // amount = round(quantity × unit_price) per item; total = Σ amounts.
 const computeItems = (items: QuoteItemDto[]) => {
   const rows = items.map((it, i) => ({
+    category: it.category?.trim() || null,
     description: it.description,
     unit: it.unit ?? null,
     quantity: it.quantity,
@@ -337,6 +341,7 @@ export class QuotesController {
         note: quote.note,
         items: {
           create: quote.items.map((it) => ({
+            category: it.category,
             description: it.description,
             unit: it.unit,
             quantity: it.quantity,

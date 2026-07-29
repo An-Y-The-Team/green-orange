@@ -3,7 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useActionState, useRef, useState, useTransition } from "react";
+import {
+  Fragment,
+  useActionState,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import { useServerAction } from "@yan/shared/hooks/use-server-actions";
@@ -35,6 +41,7 @@ import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
 import { MoneyInput } from "@/components/money-input/money-input";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { groupByCategory } from "@/utils/group-by-category/group-by-category";
 import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
 
 export interface QuoteBuilderInitial {
@@ -42,6 +49,7 @@ export interface QuoteBuilderInitial {
   version: number;
   editId?: number;
   items: {
+    category?: string; // hạng mục section this row sits under
     description: string;
     unit?: string;
     quantity: number;
@@ -51,7 +59,13 @@ export interface QuoteBuilderInitial {
   note: string;
 }
 
-const BLANK_ROW = { description: "", unit: "", quantity: 1, unit_price: 0 };
+const BLANK_ROW = {
+  category: "",
+  description: "",
+  unit: "",
+  quantity: 1,
+  unit_price: 0,
+};
 
 export function QuoteBuilderForm({
   initial,
@@ -102,8 +116,11 @@ export function QuoteBuilderForm({
       note: initial.note,
     },
   });
-  const { register, control, handleSubmit, formState } = form;
-  const { fields, append, remove } = useFieldArray({ control, name: "items" });
+  const { register, control, handleSubmit, formState, setValue } = form;
+  const { fields, append, insert, remove } = useFieldArray({
+    control,
+    name: "items",
+  });
 
   useServerAction(state, isPending, {
     successToastTitle: "Thành công",
@@ -132,10 +149,19 @@ export function QuoteBuilderForm({
     (Number(watchedVat) || 0) / 100
   );
 
+  // Hạng mục sections — runs of consecutive rows sharing a category. The header
+  // is not its own record: renaming it writes the value onto every row it covers.
+  const groups = groupByCategory(watchedItems);
+  const renameGroup = (group: { indices: number[] }, value: string) =>
+    group.indices.forEach((i) =>
+      setValue(`items.${i}.category`, value, { shouldDirty: true })
+    );
+
   const onValid = (values: QuoteFormValues) => {
     const payload = {
       project_id: projectId,
       items: values.items.map((it) => ({
+        category: it.category || undefined,
         description: it.description,
         unit: it.unit || undefined,
         quantity: it.quantity,
@@ -182,7 +208,7 @@ export function QuoteBuilderForm({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-48">Hạng mục</TableHead>
+                    <TableHead className="min-w-48">Nội dung</TableHead>
                     <TableHead className="w-20">ĐV</TableHead>
                     <TableHead className="w-24">SL</TableHead>
                     <TableHead className="w-36">Đơn giá</TableHead>
@@ -193,77 +219,152 @@ export function QuoteBuilderForm({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {fields.map((field, i) => {
-                    const amount = itemAmount(rows[i]);
-                    return (
-                      <TableRow key={field.id}>
-                        <TableCell>
-                          <Input
-                            placeholder="Kính mặt ngoài"
-                            {...register(`items.${i}.description`)}
-                          />
-                          {fieldError(formState.errors.items?.[i]?.description)}
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            placeholder="m²"
-                            {...register(`items.${i}.unit`)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min={0}
-                            step="any"
-                            {...register(`items.${i}.quantity`, {
-                              valueAsNumber: true,
-                            })}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Controller
-                            control={control}
-                            name={`items.${i}.unit_price`}
-                            render={({ field }) => (
-                              <MoneyInput
-                                value={field.value}
-                                // Empty box = 0 đồng, matching BLANK_ROW, so the
-                                // live total never reads NaN.
-                                onChange={(v) => field.onChange(v ?? 0)}
-                                onBlur={field.onBlur}
+                  {groups.map((group, g) => (
+                    <Fragment key={`group-${g}`}>
+                      {/* Hạng mục header — one input renaming every row under it. */}
+                      {readOnly ? (
+                        group.category ? (
+                          <TableRow className="bg-muted/50">
+                            <TableCell colSpan={6} className="font-medium">
+                              {group.category}
+                            </TableCell>
+                          </TableRow>
+                        ) : null
+                      ) : (
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={5}>
+                            <Input
+                              value={group.category}
+                              placeholder="Tên hạng mục (để trống nếu không chia nhóm)"
+                              className="font-medium"
+                              aria-label="Tên hạng mục"
+                              onChange={(e) =>
+                                renameGroup(group, e.target.value)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              // Removing the last group would empty the quote.
+                              disabled={groups.length === 1}
+                              onClick={() => remove(group.indices)}
+                              aria-label="Xóa hạng mục"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      {group.indices.map((i) => {
+                        const field = fields[i];
+                        const amount = itemAmount(rows[i]);
+                        return (
+                          <TableRow key={field?.id ?? i}>
+                            <TableCell>
+                              <Input
+                                placeholder="Kính mặt ngoài"
+                                {...register(`items.${i}.description`)}
                               />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatVND(amount)}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            disabled={fields.length === 1}
-                            onClick={() => remove(i)}
-                            aria-label="Xóa dòng"
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                              {fieldError(
+                                formState.errors.items?.[i]?.description
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                placeholder="m²"
+                                {...register(`items.${i}.unit`)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min={0}
+                                step="any"
+                                {...register(`items.${i}.quantity`, {
+                                  valueAsNumber: true,
+                                })}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Controller
+                                control={control}
+                                name={`items.${i}.unit_price`}
+                                render={({ field }) => (
+                                  <MoneyInput
+                                    value={field.value}
+                                    // Empty box = 0 đồng, matching BLANK_ROW, so the
+                                    // live total never reads NaN.
+                                    onChange={(v) => field.onChange(v ?? 0)}
+                                    onBlur={field.onBlur}
+                                  />
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {formatVND(amount)}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                disabled={fields.length === 1}
+                                onClick={() => remove(i)}
+                                aria-label="Xóa dòng"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+
+                      {readOnly ? null : (
+                        <TableRow>
+                          <TableCell colSpan={6}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              // Straight after this group's last row, so the flat
+                              // order the server stores matches what's on screen.
+                              onClick={() =>
+                                insert(group.indices.at(-1)! + 1, {
+                                  ...BLANK_ROW,
+                                  category: group.category,
+                                })
+                              }
+                            >
+                              + Thêm dòng
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  ))}
                 </TableBody>
               </Table>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append(BLANK_ROW)}
-              >
-                + Thêm dòng
-              </Button>
+              {readOnly ? null : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  // Named up front: two blank headers would read as one section.
+                  onClick={() =>
+                    append({
+                      ...BLANK_ROW,
+                      category: `Hạng mục ${groups.length + 1}`,
+                    })
+                  }
+                >
+                  + Thêm hạng mục
+                </Button>
+              )}
 
               <Separator />
 

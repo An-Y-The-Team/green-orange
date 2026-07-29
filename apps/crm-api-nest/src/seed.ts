@@ -563,6 +563,8 @@ export const QUOTE_ITEMS: Seeded<Prisma.QuoteItemUncheckedCreateInput>[] = [
   {
     id: 4,
     quote_id: 3,
+    // One seeded quote is grouped, so the section headers show up in the UI.
+    category: "A. PHẦN HOÀN THIỆN",
     description: "Thi công trần thạch cao sảnh",
     unit: "m²",
     quantity: 180,
@@ -572,6 +574,7 @@ export const QUOTE_ITEMS: Seeded<Prisma.QuoteItemUncheckedCreateInput>[] = [
   {
     id: 5,
     quote_id: 3,
+    category: "A. PHẦN HOÀN THIỆN",
     description: "Lát đá granite sàn sảnh",
     unit: "m²",
     quantity: 220,
@@ -582,6 +585,7 @@ export const QUOTE_ITEMS: Seeded<Prisma.QuoteItemUncheckedCreateInput>[] = [
   {
     id: 6,
     quote_id: 3,
+    category: "B. PHẦN THIẾT BỊ",
     description: "Hệ thống chiếu sáng sảnh",
     unit: "gói",
     quantity: 1,

@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+
 import {
   DocumentShell,
   SignatureBlocks,
@@ -5,6 +7,7 @@ import {
 import { QUOTE_CHANNELS } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { groupByCategory } from "@/utils/group-by-category/group-by-category";
 import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
 import type { Quote } from "../../types";
@@ -98,7 +101,7 @@ export function QuoteDocument({
           <thead>
             <tr className="border-y border-zinc-300 bg-zinc-50 text-left">
               <th className="w-8 px-2 py-2">#</th>
-              <th className="px-2 py-2">Hạng mục</th>
+              <th className="px-2 py-2">Nội dung</th>
               <th className="px-2 py-2 text-center">ĐVT</th>
               <th className="px-2 py-2 text-right">SL</th>
               <th className="px-2 py-2 text-right">Đơn giá</th>
@@ -106,19 +109,38 @@ export function QuoteDocument({
             </tr>
           </thead>
           <tbody>
-            {quote?.items?.map((item, index) => (
-              <tr key={index} className="border-b border-zinc-200">
-                <td className="px-2 py-2">{index + 1}</td>
-                <td className="px-2 py-2">{item.description}</td>
-                <td className="px-2 py-2 text-center">{item.unit}</td>
-                <td className="px-2 py-2 text-right">{item.quantity}</td>
-                <td className="px-2 py-2 text-right">
-                  {formatVND(item.unit_price)}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {formatVND(item.amount)}
-                </td>
-              </tr>
+            {groupByCategory(quote?.items).map((group, g) => (
+              <Fragment key={`group-${g}`}>
+                {/* Hạng mục header; an ungrouped quote has none and prints flat. */}
+                {group.category ? (
+                  <tr className="border-b border-zinc-200 bg-zinc-50">
+                    <td
+                      className="px-2 py-2 font-semibold uppercase"
+                      colSpan={6}
+                    >
+                      {group.category}
+                    </td>
+                  </tr>
+                ) : null}
+                {group.indices.map((index) => {
+                  const item = quote.items[index];
+                  return (
+                    <tr key={index} className="border-b border-zinc-200">
+                      {/* Numbered across the whole quote, not restarted per section. */}
+                      <td className="px-2 py-2">{index + 1}</td>
+                      <td className="px-2 py-2">{item.description}</td>
+                      <td className="px-2 py-2 text-center">{item.unit}</td>
+                      <td className="px-2 py-2 text-right">{item.quantity}</td>
+                      <td className="px-2 py-2 text-right">
+                        {formatVND(item.unit_price)}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        {formatVND(item.amount)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </Fragment>
             ))}
           </tbody>
         </table>
