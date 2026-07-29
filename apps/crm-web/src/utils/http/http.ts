@@ -16,8 +16,6 @@
  * CRM_API_TOKEN override if set; else one auto-minted from /auth/token with the
  * local dev credentials (AUTH_MODE=local) and cached until it 401s.
  */
-import { api } from "@yan/shared/api";
-
 import { auth } from "@/auth";
 import { authEnabled } from "@/auth.config";
 
@@ -59,17 +57,30 @@ export const SESSION_EXPIRED =
 // path (local mode, no explicit override). Authentik/override tokens self-heal elsewhere.
 const canRemint = () => !authEnabled && !process.env.CRM_API_TOKEN;
 
+// A hung backend must become a visible error rather than a request that never
+// settles. Reads used to get this from `api.fetch`; now both reads and writes do.
+const REQUEST_TIMEOUT_MS = 30_000;
+
 // Sends a request with the bearer attached; on a 401 in local mode, re-mints the
 // dev token once and retries so an expired token self-heals instead of erroring.
+//
+// Deliberately plain `fetch`, not `@yan/shared/api`'s wrapper: that one THROWS on
+// a non-2xx instead of returning the Response, so every 401 check below was
+// unreachable for reads — an expired dev token could not self-heal, and a dead
+// session surfaced as a raw 401 instead of SESSION_EXPIRED. The wrapper also gave
+// us nothing else here: its plugins are client-only (`initializeApi` no-ops on the
+// server) and crm-web never calls `configure()`, so only its timeout mattered and
+// that is now explicit above.
 async function fetchWithAuth(
-  fetcher: (url: string, opts: RequestInit) => Promise<Response>,
   url: string,
   init: RequestInit
 ): Promise<Response> {
   const call = (token?: string) =>
-    fetcher(url, {
+    fetch(url, {
       ...init,
       cache: "no-store",
+      // Fresh signal per attempt, so the 401 retry gets its own full budget.
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       headers: {
         ...init.headers,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -97,29 +108,8 @@ export class ApiError extends Error {
   }
 }
 
-// `api.fetch` throws on a non-2xx instead of returning the Response, bolting a
-// numeric `status` onto a plain Error (0 for its own 30s timeout) — so for reads
-// the throw is the normal failure path. Anything with no status is not ours to
-// relabel: a dead socket, or the SESSION_EXPIRED message from fetchWithAuth.
-const asApiError = (path: string, err: unknown) =>
-  err instanceof Error && "status" in err && typeof err.status === "number"
-    ? new ApiError(
-        err.status,
-        `API ${path} failed: ${err.status} ${err.message}`
-      )
-    : undefined;
-
 export async function apiFetch<T>(path: string): Promise<T> {
-  let res: Response;
-  try {
-    res = await fetchWithAuth(
-      (u, o) => api.fetch(u, o),
-      `${API_URL}${path}`,
-      {}
-    );
-  } catch (err) {
-    throw asApiError(path, err) ?? err;
-  }
+  const res = await fetchWithAuth(`${API_URL}${path}`, {});
   if (!res.ok) {
     throw new ApiError(
       res.status,
@@ -155,7 +145,7 @@ export async function apiSend<T>(
   method: "POST" | "PATCH" | "DELETE",
   body?: unknown
 ): Promise<T> {
-  const res = await fetchWithAuth((u, o) => fetch(u, o), `${API_URL}${path}`, {
+  const res = await fetchWithAuth(`${API_URL}${path}`, {
     method,
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),

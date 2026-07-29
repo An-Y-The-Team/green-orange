@@ -52,4 +52,73 @@ describe("apiFetch", () => {
     stubStatus(503);
     await expect(apiFetch("/projects")).rejects.toMatchObject({ status: 503 });
   });
+
+  // The bug this guards: reads went through @yan/shared/api's wrapper, which
+  // THROWS on a non-2xx instead of returning the Response — so fetchWithAuth's
+  // `res.status === 401` branches never ran for a read. An expired local dev
+  // token could not re-mint, and the read failed instead of self-healing.
+  // `canRemint()` and `getBearer()` both read env per call, so dropping
+  // CRM_API_TOKEN here reaches the auto-mint path without a fresh import.
+  it("re-mints the dev token and retries once on a 401", async () => {
+    const token = process.env.CRM_API_TOKEN;
+    delete process.env.CRM_API_TOKEN;
+    const calls: string[] = [];
+    // 401 on the FIRST read only; the retry (after a re-mint) succeeds.
+    let reads = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string, init?: RequestInit) => {
+        calls.push(`${init?.method ?? "GET"} ${new URL(url).pathname}`);
+        if (url.endsWith("/auth/token")) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ access_token: "minted" }), {
+              status: 200,
+            })
+          );
+        }
+        reads += 1;
+        return Promise.resolve(
+          reads === 1
+            ? new Response("{}", { status: 401 })
+            : new Response(JSON.stringify([{ id: 7 }]), { status: 200 })
+        );
+      })
+    );
+
+    await expect(apiFetch("/projects")).resolves.toEqual([{ id: 7 }]);
+    // Mint → 401 → re-mint → retry. Without the fix the first 401 threw instead.
+    expect(calls).toEqual([
+      "POST /auth/token",
+      "GET /projects",
+      "POST /auth/token",
+      "GET /projects",
+    ]);
+
+    if (token !== undefined) process.env.CRM_API_TOKEN = token;
+  });
+
+  it("gives up after one retry rather than looping on a persistent 401", async () => {
+    const token = process.env.CRM_API_TOKEN;
+    delete process.env.CRM_API_TOKEN;
+    let reads = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.endsWith("/auth/token")) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ access_token: "minted" }), {
+              status: 200,
+            })
+          );
+        }
+        reads += 1;
+        return Promise.resolve(new Response("{}", { status: 401 }));
+      })
+    );
+
+    await expect(apiFetch("/projects")).rejects.toMatchObject({ status: 401 });
+    expect(reads).toBe(2);
+
+    if (token !== undefined) process.env.CRM_API_TOKEN = token;
+  });
 });
