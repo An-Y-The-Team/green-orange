@@ -31,6 +31,7 @@ import {
   type UpdateProjectFormValues,
   updateProject,
 } from "../../../actions/update-project";
+import { TypeChips } from "../../../components/type-chips/type-chips";
 import { ProjectStatus } from "../../../enums";
 import type { Project, ProjectContact, ProjectType } from "../../../types";
 
@@ -141,19 +142,11 @@ export function WorkspaceHeader({
       </div>
       <div className="space-y-1.5">
         <Label>Loại công trình</Label>
-        <div className="flex flex-wrap gap-2">
-          {projectTypes.map((t) => (
-            <Button
-              key={t.id}
-              type="button"
-              size="sm"
-              variant={draft.type_ids.includes(t.id) ? "default" : "outline"}
-              onClick={() => handleTypeToggle(t.id)}
-            >
-              {t.name}
-            </Button>
-          ))}
-        </div>
+        <TypeChips
+          types={projectTypes}
+          selected={draft.type_ids}
+          onToggle={handleTypeToggle}
+        />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">

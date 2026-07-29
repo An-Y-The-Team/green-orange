@@ -16,6 +16,7 @@ export type ProjectTypeFormValues = z.infer<typeof nameSchema>;
 function revalidate() {
   revalidatePath("/settings");
   revalidatePath("/projects/new"); // intake reads the type list
+  revalidatePath("/projects/[id]", "page"); // so does the workspace header's edit form
 }
 
 export async function createProjectType(

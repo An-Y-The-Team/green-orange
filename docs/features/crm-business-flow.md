@@ -53,6 +53,11 @@ erDiagram
   - `decision maker` — who approves the báo giá / signs the hợp đồng.
     Sometimes HQ, sometimes the location manager, so it's a per-project
     Contact field (defaults to the working contact).
+  - `types` — **1..n**, not one. A single công trình is often both vệ sinh
+    and thi công (and can pick up more as scope grows), so type is a
+    many-to-many tag, never a single field. `ProjectType` is a user-managed
+    entity (`GET /project-types`, editable in Settings), not an enum —
+    minimum one per project, enforced in the DTO.
 - **Individuals** (`ca_nhan`) — the client is one person: auto-create a
   single Contact (themselves) and one Location (their address) behind the
   scenes; the UI shouldn't ask an individual homeowner about "sites".

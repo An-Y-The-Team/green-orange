@@ -37,6 +37,7 @@ import { loadClient } from "../../../clients/actions/load-client";
 import { ClientType } from "../../../clients/enums";
 import type { ClientListItem } from "../../../clients/types";
 import { createProject } from "../../actions/create-project";
+import { TypeChips } from "../../components/type-chips/type-chips";
 import { ProjectStage } from "../../enums";
 import {
   type CreateProjectFormValues,
@@ -298,21 +299,11 @@ export function IntakeForm({
                 return (
                   <FormItem>
                     <FormLabel>Loại công trình</FormLabel>
-                    <div className="flex flex-wrap gap-2">
-                      {projectTypes.map((t) => (
-                        <Button
-                          key={t.id}
-                          type="button"
-                          size="sm"
-                          variant={
-                            field.value.includes(t.id) ? "default" : "outline"
-                          }
-                          onClick={() => handleTypeToggle(t.id)}
-                        >
-                          {t.name}
-                        </Button>
-                      ))}
-                    </div>
+                    <TypeChips
+                      types={projectTypes}
+                      selected={field.value}
+                      onToggle={handleTypeToggle}
+                    />
                     <FormMessage />
                   </FormItem>
                 );
