@@ -1,4 +1,17 @@
 /*
+  Part of the intentional v1 → v2 reset begun in 20260723000000_v2_greenorange_flow,
+  which drops and recreates the schema rather than migrating v1 data.
+
+  These *_at → *_date renames carry NO backfill on purpose: `crm_nest` held no
+  production data when this shipped (confirmed 2026-07-29, Y Do — see DEPLOY.md §6c),
+  so there was nothing to preserve. Do NOT copy this pattern once prod carries data —
+  the additive form is
+      ALTER TABLE x ADD COLUMN c_date DATE;
+      UPDATE x SET c_date = (c_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date;
+      ALTER TABLE x DROP COLUMN c_at;
+  and note the timezone cast: a bare ::date reintroduces the UTC day-shift bug that
+  businessToday() exists to prevent.
+
   Warnings:
 
   - You are about to drop the column `paid_at` on the `Bill` table. All the data in the column will be lost.
