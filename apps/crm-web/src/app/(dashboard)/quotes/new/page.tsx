@@ -20,7 +20,6 @@ export default async function NewQuotePage() {
 
   const initial: QuoteBuilderInitial = {
     projectId: undefined,
-    projectCode: "",
     version: 1,
     items: [],
     vatPercent: 8,

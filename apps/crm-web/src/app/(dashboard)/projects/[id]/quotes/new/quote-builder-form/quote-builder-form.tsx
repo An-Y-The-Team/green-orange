@@ -39,7 +39,6 @@ import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
 
 export interface QuoteBuilderInitial {
   projectId?: number; // undefined = standalone quote (created from /quotes/new)
-  projectCode: string;
   version: number;
   editId?: number;
   items: {
@@ -77,6 +76,17 @@ export function QuoteBuilderForm({
     : createQuote;
   const [state, formAction] = useActionState(action, INITIAL_ACTION_STATE);
 
+  // Where saving lands: editing stays on the quote's own page (this form is that
+  // page, so it just re-reads the saved row); creating goes to the project, or to
+  // the list for a standalone one (a fresh quote's page only exists in live mode,
+  // mock data isn't persisted).
+  const done = (savedId: number | null) =>
+    initial.editId && savedId
+      ? `/quotes/${savedId}`
+      : projectId
+        ? `/projects/${projectId}`
+        : "/quotes";
+
   const form = useForm<QuoteFormValues>({
     resolver: zodResolver(quoteFormSchema),
     mode: "onChange",
@@ -99,9 +109,7 @@ export function QuoteBuilderForm({
       if (intentRef.current === QuoteSubmitIntent.SEND && savedId) {
         setSendId(savedId);
       } else {
-        // Standalone → the quotes list (a newly-created quote's own detail
-        // only exists in live mode; mock data isn't persisted).
-        router.push(projectId ? `/projects/${projectId}` : "/quotes");
+        router.push(done(savedId));
       }
     },
   });
@@ -316,9 +324,7 @@ export function QuoteBuilderForm({
           quoteId={sendId}
           open={sendId != null}
           onOpenChange={(open) => !open && setSendId(null)}
-          onSent={() =>
-            router.push(projectId ? `/projects/${projectId}` : "/quotes")
-          }
+          onSent={() => router.push(done(sendId))}
         />
       ) : null}
     </>

@@ -1,25 +1,30 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 
 import {
-  DocumentShell,
-  SignatureBlocks,
-} from "@/components/document-shell/document-shell";
-import {
-  QUOTE_CHANNELS,
-  QUOTE_STATUSES,
-  QUOTE_SUPERSEDED_LABEL,
-} from "@/constants/labels";
-import { formatDate } from "@/utils/format-date/format-date";
-import { formatVND } from "@/utils/format-vnd/format-vnd";
-import { storedTotals } from "@/utils/quote-totals/quote-totals";
+  QuoteBuilderForm,
+  type QuoteBuilderInitial,
+} from "@/app/(dashboard)/projects/[id]/quotes/new/quote-builder-form/quote-builder-form";
+import { PageHeader } from "@/components/page-header/page-header";
+import { QUOTE_STATUSES, QUOTE_SUPERSEDED_LABEL } from "@/constants/labels";
+import { labelOf } from "@/utils/label-of/label-of";
 
-import { getProjectQuotes, getQuote } from "../queries";
+import { ReviseQuoteButton } from "../components/revise-quote-button/revise-quote-button";
+import { QuoteStatus } from "../enums";
+import { getQuote, isSuperseded } from "../queries";
+import { QuoteDocument } from "./quote-document/quote-document";
 
-export default async function QuoteDocumentPage({
+/**
+ * A quote's own page. A draft opens in the builder — this is where a báo giá is
+ * edited, no need to go through the project's stage panel. Sent/decided versions
+ * are frozen (the backend 409s on PATCH), so those show the sheet plus "Tạo
+ * phiên bản mới". The customer-facing printable is /quotes/[id]/print.
+ */
+export default async function QuotePage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -31,158 +36,79 @@ export default async function QuoteDocumentPage({
     notFound();
   }
 
-  // Standalone quotes have no sibling versions to supersede them.
-  const versions = quote.project_id
-    ? await getProjectQuotes(quote.project_id)
-    : [quote];
-  const superseded = versions.some((v) => v?.version > quote.version);
-  // Status is a raw wire value — an unmapped one must not crash the printable.
+  const superseded = await isSuperseded(quote);
   const badge = superseded
     ? QUOTE_SUPERSEDED_LABEL
-    : (QUOTE_STATUSES?.[quote?.status] ?? {
-        label: quote?.status,
-        variant: "secondary" as const,
-      });
-  // Goes to the customer: the project code + name, never a raw id.
-  const project = quote?.project;
-  const projectLabel = project
-    ? `${project?.code} · ${project?.name}`
-    : quote?.project_id != null
-      ? `Công trình #${quote.project_id}`
-      : null;
-  // Saved quote → the server's stored Σ, so the lines below sum to it and the
-  // printable agrees with the /quotes list.
-  const { subtotal, vat, total } = storedTotals(quote);
+    : labelOf(QUOTE_STATUSES, quote.status);
+  const code = `BG-${String(quote.id).padStart(3, "0")}`;
+
+  const printBtn = (
+    <Button
+      variant="outline"
+      size="sm"
+      render={<Link href={`/quotes/${quote.id}/print`} />}
+    >
+      <Printer />
+      Bản in
+    </Button>
+  );
+
+  const header = (
+    <div className="mb-4 flex items-center justify-between">
+      <Link
+        href={quote.project_id ? `/projects/${quote.project_id}` : "/quotes"}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" />
+        {quote.project_id ? "Quay lại công trình" : "Quay lại danh sách"}
+      </Link>
+      <Badge variant={badge.variant}>{badge.label}</Badge>
+    </div>
+  );
+
+  // Frozen: the sheet is the view, and revising is the only way to change it.
+  if (quote.status !== QuoteStatus.DRAFT) {
+    return (
+      <>
+        {header}
+        <QuoteDocument
+          quote={quote}
+          superseded={superseded}
+          actions={superseded ? null : <ReviseQuoteButton quoteId={quote.id} />}
+        />
+      </>
+    );
+  }
+
+  const initial: QuoteBuilderInitial = {
+    projectId: quote.project_id ?? undefined,
+    version: quote.version,
+    editId: quote.id,
+    items: quote.items.map((it) => ({
+      description: it.description,
+      unit: it.unit ?? undefined,
+      quantity: it.quantity,
+      unit_price: it.unit_price,
+    })),
+    vatPercent: Math.round(quote.vat_rate * 100),
+    note: quote.note ?? "",
+  };
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between print:hidden">
-        <Link
-          href="/quotes"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Quay lại danh sách
-        </Link>
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </div>
+      {header}
 
-      <DocumentShell
-        title="BÁO GIÁ DỊCH VỤ"
-        subtitle={
-          projectLabel
-            ? `Phiên bản ${quote.version} · ${projectLabel}`
-            : `Phiên bản ${quote.version} · Báo giá độc lập`
+      <PageHeader
+        title="Báo giá"
+        description={
+          quote.project
+            ? `${quote.project.code} · v${quote.version}`
+            : `${code} · v${quote.version}`
         }
-      >
-        <div className="relative">
-          {/* Superseded watermark — older versions stay printable but marked. */}
-          {superseded && (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
-            >
-              <span className="-rotate-[30deg] text-5xl font-bold uppercase tracking-widest text-red-600/15">
-                Đã thay thế
-              </span>
-            </div>
-          )}
+        action={printBtn}
+      />
 
-          {/* Meta */}
-          <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
-            {projectLabel ? (
-              <p>
-                <span className="text-zinc-500">Công trình: </span>
-                <span className="font-medium">{projectLabel}</span>
-              </p>
-            ) : null}
-            {project?.client?.name ? (
-              <p>
-                <span className="text-zinc-500">Khách hàng: </span>
-                <span className="font-medium">{project.client?.name}</span>
-              </p>
-            ) : null}
-            <p>
-              <span className="text-zinc-500">Phiên bản: </span>v{quote.version}
-            </p>
-            {quote?.send_logs?.length ? (
-              <p>
-                <span className="text-zinc-500">Đã gửi: </span>
-                {quote.send_logs
-                  .map(
-                    (l) =>
-                      `${QUOTE_CHANNELS?.[l?.channel] ?? l?.channel} ${formatDate(l?.sent_at)} (${l?.sent_by})`
-                  )
-                  .join(" · ")}
-              </p>
-            ) : null}
-            {quote?.decided_date && (
-              <p>
-                <span className="text-zinc-500">Ngày quyết định: </span>
-                {formatDate(quote.decided_date)}
-              </p>
-            )}
-          </div>
-
-          {/* Line items */}
-          <table className="mt-4 w-full border-collapse text-xs">
-            <thead>
-              <tr className="border-y border-zinc-300 bg-zinc-50 text-left">
-                <th className="w-8 px-2 py-2">#</th>
-                <th className="px-2 py-2">Hạng mục</th>
-                <th className="px-2 py-2 text-center">ĐVT</th>
-                <th className="px-2 py-2 text-right">SL</th>
-                <th className="px-2 py-2 text-right">Đơn giá</th>
-                <th className="px-2 py-2 text-right">Thành tiền</th>
-              </tr>
-            </thead>
-            <tbody>
-              {quote?.items?.map((item, index) => (
-                <tr key={index} className="border-b border-zinc-200">
-                  <td className="px-2 py-2">{index + 1}</td>
-                  <td className="px-2 py-2">{item.description}</td>
-                  <td className="px-2 py-2 text-center">{item.unit}</td>
-                  <td className="px-2 py-2 text-right">{item.quantity}</td>
-                  <td className="px-2 py-2 text-right">
-                    {formatVND(item.unit_price)}
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {formatVND(item.amount)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Totals */}
-          <div className="mt-3 ml-auto w-64 space-y-1 text-xs">
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Tạm tính</span>
-              <span>{formatVND(subtotal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">
-                VAT ({Math.round(quote.vat_rate * 100)}%)
-              </span>
-              <span>{formatVND(vat)}</span>
-            </div>
-            <div className="flex justify-between border-t border-zinc-300 pt-1 text-sm font-bold">
-              <span>Tổng cộng</span>
-              <span>{formatVND(total)}</span>
-            </div>
-          </div>
-
-          {/* Terms block */}
-          {quote.note && (
-            <p className="mt-5 text-xs text-zinc-600">
-              <span className="font-medium">Điều khoản & ghi chú: </span>
-              {quote.note}
-            </p>
-          )}
-
-          <SignatureBlocks />
-        </div>
-      </DocumentShell>
+      <QuoteBuilderForm initial={initial} />
     </>
   );
 }

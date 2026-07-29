@@ -2,7 +2,6 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getQuote } from "@/app/(dashboard)/quotes/queries";
 import { PageHeader } from "@/components/page-header/page-header";
 
 import { getProject } from "../../../queries";
@@ -11,19 +10,18 @@ import {
   type QuoteBuilderInitial,
 } from "./quote-builder-form/quote-builder-form";
 
-// Quote builder — stage-3 báo giá. Three prefill modes via searchParams:
-//   ?from=survey  → seed rows from the project's survey_items (unit_price 0)
-//   ?edit=<id>    → load that draft for editing (PATCH via updateQuote)
-//   (none)        → one blank row
+// Quote builder — a NEW stage-3 báo giá for this project. `?from=survey` seeds
+// the rows from the project's survey_items (unit_price 0); otherwise one blank
+// row. Editing an existing draft is its own page, /quotes/[id].
 export default async function QuoteBuilderPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string; edit?: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
-  const { from, edit } = await searchParams;
+  const { from } = await searchParams;
   const project = await getProject(Number(id));
 
   if (!project) {
@@ -35,29 +33,10 @@ export default async function QuoteBuilderPage({
     ...(project.quotes ?? []).map((q) => q.version)
   );
 
-  let initial: QuoteBuilderInitial;
-
-  if (edit) {
-    const quote = await getQuote(Number(edit));
-    if (!quote || quote.project_id !== project.id) {
-      notFound();
-    }
-    initial = {
-      projectId: project.id,
-      projectCode: project.code,
-      version: quote.version,
-      editId: quote.id,
-      items: quote.items.map((it) => ({
-        description: it.description,
-        unit: it.unit ?? undefined,
-        quantity: it.quantity,
-        unit_price: it.unit_price,
-      })),
-      vatPercent: Math.round(quote.vat_rate * 100),
-      note: quote.note ?? "",
-    };
-  } else {
-    const surveyRows =
+  const initial: QuoteBuilderInitial = {
+    projectId: project.id,
+    version: latestVersion + 1,
+    items:
       from === "survey"
         ? (project.survey_items ?? []).map((s) => ({
             description: s.name,
@@ -65,16 +44,10 @@ export default async function QuoteBuilderPage({
             quantity: s.quantity ?? 0,
             unit_price: 0,
           }))
-        : [];
-    initial = {
-      projectId: project.id,
-      projectCode: project.code,
-      version: latestVersion + 1,
-      items: surveyRows,
-      vatPercent: 8,
-      note: "",
-    };
-  }
+        : [],
+    vatPercent: 8,
+    note: "",
+  };
 
   return (
     <>

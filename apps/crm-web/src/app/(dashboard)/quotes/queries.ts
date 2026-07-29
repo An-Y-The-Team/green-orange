@@ -19,6 +19,17 @@ export async function getQuote(id: number): Promise<Quote | undefined> {
   return apiFetch<Quote>(`/quotes/${id}`).catch(() => undefined);
 }
 
+/**
+ * "Đã thay thế" — a higher version exists for the same project. Standalone
+ * quotes have no siblings, so they never supersede. (The list rows carry
+ * `is_latest` from the server; a single-quote read has to ask.)
+ */
+export async function isSuperseded(quote: Quote): Promise<boolean> {
+  if (!quote.project_id) return false;
+  const versions = await getProjectQuotes(quote.project_id);
+  return versions.some((v) => v?.version > quote.version);
+}
+
 /** All versions for a project, newest first (mirrors GET /quotes?project_id=). */
 export async function getProjectQuotes(projectId: number): Promise<Quote[]> {
   return apiFetchSafe<Quote[]>(`/quotes?project_id=${projectId}`, []);

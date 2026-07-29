@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Badge } from "@yan/ui/components/badge";
@@ -20,7 +19,7 @@ import { Separator } from "@yan/ui/components/separator";
 
 import { decideQuote } from "@/app/(dashboard)/quotes/actions/decide-quote";
 import { deleteQuote } from "@/app/(dashboard)/quotes/actions/delete-quote";
-import { reviseQuote } from "@/app/(dashboard)/quotes/actions/revise-quote";
+import { ReviseQuoteButton } from "@/app/(dashboard)/quotes/components/revise-quote-button/revise-quote-button";
 import { SendQuoteDialog } from "@/app/(dashboard)/quotes/components/send-quote-dialog/send-quote-dialog";
 import {
   type QuoteDecision,
@@ -57,7 +56,6 @@ function SendHistory({ quote }: { quote: Quote }) {
 
 /** The latest version carries the live status + per-state actions. */
 function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
-  const router = useRouter();
   const [sendOpen, setSendOpen] = useState(false);
   const [holdOpen, setHoldOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -66,18 +64,12 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
   const [reason, setReason] = useState(`Khách hủy báo giá v${quote.version}`);
 
   const [decidePending, runDecide] = useRun(decideQuote.bind(null, quote.id));
-  const [revisePending, runRevise] = useRun(
-    reviseQuote.bind(null, quote.id),
-    (data) =>
-      data?.id &&
-      router.push(`/projects/${project.id}/quotes/new?edit=${data.id}`)
-  );
   const [deletePending, runDelete] = useRun(
     deleteQuote.bind(null, quote.id),
     () => setDeleteOpen(false)
   );
 
-  const busy = decidePending || revisePending || deletePending;
+  const busy = decidePending || deletePending;
   const isDeal = quote.status === QuoteStatus.DEAL;
 
   const decide = (
@@ -109,21 +101,12 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
     <Button
       variant="ghost"
       size="sm"
-      render={<Link href={`/quotes/${quote.id}`} />}
+      render={<Link href={`/quotes/${quote.id}/print`} />}
     >
       Xem bản in
     </Button>
   );
-  const reviseBtn = (
-    <Button
-      variant="outline"
-      size="sm"
-      disabled={busy}
-      onClick={() => runRevise()}
-    >
-      Tạo phiên bản mới
-    </Button>
-  );
+  const reviseBtn = <ReviseQuoteButton quoteId={quote.id} disabled={busy} />;
 
   return (
     <div
@@ -151,11 +134,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
             <Button
               variant="outline"
               size="sm"
-              render={
-                <Link
-                  href={`/projects/${project.id}/quotes/new?edit=${quote.id}`}
-                />
-              }
+              render={<Link href={`/quotes/${quote.id}`} />}
             >
               Sửa
             </Button>
@@ -361,7 +340,7 @@ export function QuotePanel({ project }: { project: Project }) {
                 variant="ghost"
                 size="sm"
                 className="ml-auto"
-                render={<Link href={`/quotes/${q.id}`} />}
+                render={<Link href={`/quotes/${q.id}/print`} />}
               >
                 Xem bản in
               </Button>

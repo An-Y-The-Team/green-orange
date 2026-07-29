@@ -168,7 +168,7 @@ export function ClosedPanel({
           {quotes.map((q) => (
             <DocLink
               key={`q-${q.id}`}
-              href={`/quotes/${q.id}`}
+              href={`/quotes/${q.id}/print`}
               label={`Báo giá v${q.version}`}
             />
           ))}
