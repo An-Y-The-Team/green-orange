@@ -25,7 +25,7 @@ import { Input } from "@yan/ui/components/input";
 import { Separator } from "@yan/ui/components/separator";
 
 import { selectClass } from "@/components/form-bits/form-bits";
-import { projectStage, projectStageOrder } from "@/constants/labels";
+import { PROJECT_STAGES, PROJECT_STAGE_ORDER } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -215,9 +215,9 @@ export function IntakeForm({
                       value={field.value}
                       onChange={(e) => field.onChange(e.target.value)}
                     >
-                      {projectStageOrder.map((s) => (
+                      {PROJECT_STAGE_ORDER.map((s) => (
                         <option key={s} value={s}>
-                          {labelOf(projectStage, s).label}
+                          {labelOf(PROJECT_STAGES, s).label}
                         </option>
                       ))}
                     </select>

@@ -14,7 +14,11 @@
 import { Fragment, type ReactNode } from "react";
 
 import { formatVND } from "@/utils/format-vnd/format-vnd";
-import { type LexNode, TEXT_FORMAT } from "@/utils/lexical-build/lexical-build";
+import {
+  type LexNode,
+  TEXT_FORMAT,
+  lexicalRoot,
+} from "@/utils/lexical-build/lexical-build";
 import {
   type MergeContext,
   unresolvedMarker,
@@ -297,12 +301,7 @@ export function LexicalDocument({
   /** Pricing for the line-items block; null/undefined → placeholder note. */
   lineItems?: LineItemsData | null;
 }) {
-  let root: LexNode | undefined;
-  try {
-    root = (JSON.parse(body) as { root?: LexNode }).root;
-  } catch {
-    root = undefined;
-  }
+  const root = lexicalRoot(body);
 
   if (!root?.children?.length) {
     return (

@@ -109,7 +109,7 @@ New files:
   (date confirm), [Hủy] (reason confirm), [Kích hoạt lại]; banner when
   on_hold/cancelled (frozen stage + reason/follow-up).
 - `projects/[id]/components/stage-stepper.tsx` — 9 steps from
-  `projectStageOrder`; past filled, current highlighted; next-step is a
+  `PROJECT_STAGE_ORDER`; past filled, current highlighted; next-step is a
   button calling update-project (server rejects if gated → toast); below
   `md`: compact "4/9 · Hợp đồng" pill.
 - `projects/[id]/components/stage-panel.tsx` — switch on `project.stage`
@@ -360,7 +360,7 @@ Backend (`apps/crm-api-nest`):
 Frontend (`apps/crm-web`):
 
 - `projects/enums.ts` — `SURVEY` deleted, stage comments renumbered.
-- `src/constants/labels.ts` (then `lib/labels.ts`) — out of `projectStageOrder`; `REQUEST` relabelled
+- `src/constants/labels.ts` (then `lib/labels.ts`) — out of `PROJECT_STAGE_ORDER`; `REQUEST` relabelled
   "Yêu cầu & Khảo sát". Stepper, the "n/8" pill and the intake stage selector
   all derive from that array — no edits needed there.
 - `panels/request.tsx` — takes `attachments`; [Đã gặp khách] PATCHes
@@ -370,7 +370,7 @@ Frontend (`apps/crm-web`):
 border-t …">`), same pattern as `ContractPanel`; keeps its own
   "Đã gặp khách: … [sửa]" row and its `stage: QUOTE` exit.
 - `stage-panel.tsx` — `SURVEY` case deleted; the contract case's hardcoded
-  "Giai đoạn 4" is now computed from `projectStageOrder`.
+  "Giai đoạn 4" is now computed from `PROJECT_STAGE_ORDER`.
 - `[id]/page.tsx` — `isSurvey` → `isRequest` (gates the survey-attachment
   fetch).
 - `(field)/components/field-appointment-card.tsx` — `{visit_date}`-only PATCH.

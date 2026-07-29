@@ -131,7 +131,7 @@ Each card: `@yan/ui` `Card`; big number `text-3xl font-bold`, label under it. Wr
 - `Card`, header **"Công trình đang thi công"** + today's date (`formatDate(new Date().toISOString())`).
 - "Active today" = `projects.filter(p => p.stage === ProjectStage.THI_CONG)` (optionally also where today ∈ [start_date, end_date]).
 - List with `divide-y`. Each **`ActiveProjectRow`**:
-  - **Status dot** driven by `projectStage[p.stage].variant` (reuse the existing variant→color mapping; don't invent new colors).
+  - **Status dot** driven by `PROJECT_STAGES[p.stage].variant` (reuse the existing variant→color mapping; don't invent new colors).
   - **Name** (bold, links to `/projects/${p.id}`) + **address** (`text-sm text-muted-foreground`).
   - **Crew badges**: assigned `CrewMember.name` as `Badge variant="secondary"` (+ `crewRole[...]`); show "Chưa phân công" `destructive` badge if none.
   - **Zalo indicator**: `Check` (lucide, `text-success`) when `p.zalo_dispatch_sent`, else a muted dot.

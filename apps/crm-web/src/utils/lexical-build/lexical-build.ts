@@ -12,6 +12,8 @@
  * Pure module — no React, no DOM, no Lexical runtime — so it is safe on the
  * server (schema validation, the print page) and in the client editor.
  */
+import { safeJSONParse } from "@yan/shared/utils";
+
 import { CONTRACT_TOKENS } from "@/utils/merge-template/merge-template";
 
 /** Lexical TextNode format bit-flags (subset we expose in the toolbar). */
@@ -100,23 +102,26 @@ export const doc = (...children: LexNode[]): string =>
   JSON.stringify({ root: block("root", children) });
 
 /**
+ * The `root` node of a stored body, or `undefined` when `body` isn't parseable
+ * JSON. Every reader of a body needs exactly this, so the `{ root? }` cast lives
+ * here — the module that owns the shape — instead of in each of them.
+ */
+export const lexicalRoot = (body: string): LexNode | undefined =>
+  safeJSONParse<{ root?: LexNode }>(body)?.root;
+
+/**
  * Flatten a stored body to its plain text (merge-field labels included). Used
  * for presence validation — an empty document serialises to a non-empty JSON
  * string, so length-of-JSON checks are meaningless; this checks real content.
  * Returns "" for anything that isn't parseable Lexical JSON.
  */
 export function lexicalPlainText(body: string): string {
-  try {
-    const state = JSON.parse(body) as { root?: LexNode };
-    const out: string[] = [];
-    const walk = (n: LexNode | undefined) => {
-      if (!n) return;
-      if (typeof n.text === "string") out.push(n.text);
-      n.children?.forEach(walk);
-    };
-    walk(state.root);
-    return out.join("").trim();
-  } catch {
-    return "";
-  }
+  const out: string[] = [];
+  const walk = (n: LexNode | undefined) => {
+    if (!n) return;
+    if (typeof n.text === "string") out.push(n.text);
+    n.children?.forEach(walk);
+  };
+  walk(lexicalRoot(body));
+  return out.join("").trim();
 }

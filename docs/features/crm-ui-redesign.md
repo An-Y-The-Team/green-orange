@@ -568,7 +568,7 @@ built:
 | `panels/survey.tsx`                 | now a **bare body** (dispatcher-free, like `ContractPanel`); keeps its own "Đã gặp khách: … [sửa]" row and its `stage: quote` exit       |
 | `panels/request.tsx` [Đã gặp khách] | PATCHes `{visit_date}` only — the stage move is gone                                                                                     |
 | `stage-panel.tsx`                   | `survey` case deleted; contract case's hardcoded "Giai đoạn 4" now computed                                                              |
-| `stage-stepper.tsx`                 | 8 steps + "n/8" pill came free from `projectStageOrder` — untouched                                                                      |
+| `stage-stepper.tsx`                 | 8 steps + "n/8" pill came free from `PROJECT_STAGE_ORDER` — untouched                                                                    |
 | `/dashboard` + `/field` "Hôm nay"   | filters gained `!visit_date` — a visited job now **stays** in stage 1, so the stage alone no longer means "still to meet"                |
 | `/field`                            | "Bắt đầu khảo sát" stops moving the stage, same `{visit_date}`-only PATCH                                                                |
 

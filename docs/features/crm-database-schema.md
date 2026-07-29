@@ -30,7 +30,7 @@ UPDATE "Project" SET "stage" = 'request' WHERE "stage" = 'survey';
 
 `survey` is also gone from `STAGE_ORDER` (`src/common/stage.ts`, which feeds
 the `@IsIn` DTO validation), `ProjectStage` in
-`apps/crm-web/src/app/(dashboard)/projects/enums.ts`, and `projectStageOrder` +
+`apps/crm-web/src/app/(dashboard)/projects/enums.ts`, and `PROJECT_STAGE_ORDER` +
 the label map in `src/constants/labels.ts`. No columns were added or removed —
 `visit_date`, `survey_note`, `survey_items` keep their names and meaning, they
 just live inside stage 1 now. `attachment.kind = 'survey'` is a file category,

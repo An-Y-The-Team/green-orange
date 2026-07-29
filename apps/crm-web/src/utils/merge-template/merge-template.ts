@@ -18,9 +18,10 @@ import type { Quote } from "@/app/(dashboard)/quotes/types";
 import { company } from "@/config/company";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
-// Type-only (erased at runtime), so this does not close the import cycle with
-// lexical-build, which imports CONTRACT_TOKENS from here.
-import type { LexNode } from "@/utils/lexical-build/lexical-build";
+// Cycle with lexical-build (it imports CONTRACT_TOKENS from here), but a safe
+// one: both sides only touch the other's bindings inside function bodies, never
+// during module evaluation.
+import { type LexNode, lexicalRoot } from "@/utils/lexical-build/lexical-build";
 import { storedTotals } from "@/utils/quote-totals/quote-totals";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
@@ -175,13 +176,6 @@ export const unresolvedMarker = (token: string) => `⟨${token}?⟩`;
  * schema's `lexicalPlainText` check already rejects that).
  */
 export function unknownTokens(body: string): string[] {
-  let root: LexNode | undefined;
-  try {
-    root = (JSON.parse(body) as { root?: LexNode }).root;
-  } catch {
-    return [];
-  }
-
   const found = new Set<string>();
   const walk = (node: LexNode | undefined) => {
     if (!node) return;
@@ -191,7 +185,7 @@ export function unknownTokens(body: string): string[] {
     }
     node.children?.forEach(walk);
   };
-  walk(root);
+  walk(lexicalRoot(body));
 
   return [...found];
 }

@@ -17,7 +17,11 @@
  */
 import type { LineItemsData } from "@/components/editor/lexical-document/lexical-document";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
-import { type LexNode, TEXT_FORMAT } from "@/utils/lexical-build/lexical-build";
+import {
+  type LexNode,
+  TEXT_FORMAT,
+  lexicalRoot,
+} from "@/utils/lexical-build/lexical-build";
 import type { MergeContext } from "@/utils/merge-template/merge-template";
 import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
@@ -215,14 +219,9 @@ export async function exportDocx({
     }
   };
 
-  let root: LexNode | undefined;
-  try {
-    root = (JSON.parse(body) as { root?: LexNode }).root;
-  } catch {
-    root = undefined;
-  }
-
-  const bodyParagraphs = (root?.children ?? []).flatMap(blocksFrom);
+  const bodyParagraphs = (lexicalRoot(body)?.children ?? []).flatMap(
+    blocksFrom
+  );
 
   if (unresolved.size > 0) throw unresolvedTokensError([...unresolved]);
 

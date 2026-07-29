@@ -23,7 +23,7 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { projectStage, projectStatus } from "@/constants/labels";
+import { PROJECT_STAGES, projectStatus } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
@@ -364,7 +364,7 @@ export function WorkspaceHeader({
           <span className="font-medium">{statusBadge.label}</span>
           {" — đóng băng ở giai đoạn "}
           <span className="font-medium">
-            {labelOf(projectStage, project.stage).label}
+            {labelOf(PROJECT_STAGES, project.stage).label}
           </span>
           {project.status === ProjectStatus.CANCELLED && project.cancel_reason
             ? `. Lý do: ${project.cancel_reason}`

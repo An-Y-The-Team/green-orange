@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@yan/ui/components/card";
 
-import { projectStage, projectStageOrder } from "@/constants/labels";
+import { PROJECT_STAGES, PROJECT_STAGE_ORDER } from "@/constants/labels";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import type { Project } from "../../../types";
@@ -15,7 +15,7 @@ import type { Project } from "../../../types";
 /**
  * The Card + "Giai đoạn N · label" shell every stage panel renders.
  *
- * The number is derived from `projectStageOrder`, never written by hand: each
+ * The number is derived from `PROJECT_STAGE_ORDER`, never written by hand: each
  * panel used to hardcode it, and merging Khảo sát into Yêu cầu left five of them
  * one too high — the stepper said "7/8" while the panel below said "Giai đoạn 8".
  *
@@ -38,8 +38,8 @@ export function StageCard({
       <CardHeader>
         <CardTitle className="flex items-center justify-between text-sm uppercase tracking-wide text-muted-foreground">
           <span>
-            Giai đoạn {projectStageOrder.indexOf(project.stage) + 1} ·{" "}
-            {labelOf(projectStage, project.stage).label}
+            Giai đoạn {PROJECT_STAGE_ORDER.indexOf(project.stage) + 1} ·{" "}
+            {labelOf(PROJECT_STAGES, project.stage).label}
           </span>
           {aside}
         </CardTitle>

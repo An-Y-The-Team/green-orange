@@ -18,7 +18,7 @@ import {
 } from "@yan/ui/components/dialog";
 import { cn } from "@yan/ui/lib/utils";
 
-import { projectStage, projectStageOrder } from "@/constants/labels";
+import { PROJECT_STAGES, PROJECT_STAGE_ORDER } from "@/constants/labels";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { updateProject } from "../../../actions/update-project";
@@ -36,9 +36,9 @@ export function StageStepper({ project }: { project: Project }) {
     errorToastTitle: "Lỗi",
   });
 
-  const currentIndex = projectStageOrder.indexOf(project.stage);
-  const nextStage = projectStageOrder[currentIndex + 1];
-  const prevStage = projectStageOrder[currentIndex - 1];
+  const currentIndex = PROJECT_STAGE_ORDER.indexOf(project.stage);
+  const nextStage = PROJECT_STAGE_ORDER[currentIndex + 1];
+  const prevStage = PROJECT_STAGE_ORDER[currentIndex - 1];
   // Frozen (on_hold/cancelled) jobs can't advance until reactivated.
   const canAdvance =
     project.status === ProjectStatus.ACTIVE && Boolean(nextStage);
@@ -62,7 +62,7 @@ export function StageStepper({ project }: { project: Project }) {
           <DialogHeader>
             <DialogTitle>
               Quay lại giai đoạn &ldquo;
-              {prevStage ? labelOf(projectStage, prevStage).label : ""}
+              {prevStage ? labelOf(PROJECT_STAGES, prevStage).label : ""}
               &rdquo;?
             </DialogTitle>
             <DialogDescription>
@@ -83,8 +83,8 @@ export function StageStepper({ project }: { project: Project }) {
       {/* Compact pill below md. */}
       <div className="flex items-center gap-3 md:hidden">
         <span className="text-sm font-medium">
-          {currentIndex + 1}/{projectStageOrder.length} ·{" "}
-          {labelOf(projectStage, project.stage).label}
+          {currentIndex + 1}/{PROJECT_STAGE_ORDER.length} ·{" "}
+          {labelOf(PROJECT_STAGES, project.stage).label}
         </span>
         {canGoBack ? (
           <Button
@@ -93,7 +93,7 @@ export function StageStepper({ project }: { project: Project }) {
             disabled={isPending}
             onClick={() => setConfirmBack(true)}
           >
-            ← {labelOf(projectStage, prevStage).label}
+            ← {labelOf(PROJECT_STAGES, prevStage).label}
           </Button>
         ) : null}
         {canAdvance ? (
@@ -104,14 +104,14 @@ export function StageStepper({ project }: { project: Project }) {
               startTransition(() => formAction({ stage: nextStage }))
             }
           >
-            → {labelOf(projectStage, nextStage).label}
+            → {labelOf(PROJECT_STAGES, nextStage).label}
           </Button>
         ) : null}
       </div>
 
       {/* Full pipeline line at md+. */}
       <div className="hidden flex-wrap items-center gap-x-2 gap-y-3 md:flex">
-        {projectStageOrder.map((stage, i) => {
+        {PROJECT_STAGE_ORDER?.map((stage, i) => {
           const done = i < currentIndex;
           const current = i === currentIndex;
           return (
@@ -135,9 +135,9 @@ export function StageStepper({ project }: { project: Project }) {
                     : "text-muted-foreground"
                 )}
               >
-                {labelOf(projectStage, stage).label}
+                {labelOf(PROJECT_STAGES, stage).label}
               </span>
-              {i < projectStageOrder.length - 1 && (
+              {i < PROJECT_STAGE_ORDER.length - 1 && (
                 <span className="mx-0.5 h-px w-4 bg-border" aria-hidden />
               )}
             </div>
@@ -151,7 +151,7 @@ export function StageStepper({ project }: { project: Project }) {
             disabled={isPending}
             onClick={() => setConfirmBack(true)}
           >
-            ← {labelOf(projectStage, prevStage).label}
+            ← {labelOf(PROJECT_STAGES, prevStage).label}
           </Button>
         ) : null}
         {canAdvance ? (
@@ -163,7 +163,7 @@ export function StageStepper({ project }: { project: Project }) {
               startTransition(() => formAction({ stage: nextStage }))
             }
           >
-            Chuyển sang: {labelOf(projectStage, nextStage).label}
+            Chuyển sang: {labelOf(PROJECT_STAGES, nextStage).label}
           </Button>
         ) : null}
       </div>
