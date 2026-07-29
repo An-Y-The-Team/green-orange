@@ -8,8 +8,9 @@ export default tseslint.config(
   {
     rules: {
       // .claude/code-review.md lists a bare `any` as a merge blocker, so it is an
-      // error here — it was silently "off", which is how one reached the HTTP
-      // serialization boundary (see docs/fixes/v2-business-flow/F31).
+      // error here. It was silently "off", which is how `normalize()` in
+      // src/common/serialize.interceptor.ts — the single choke point for the whole
+      // HTTP contract — shipped as `any` in / `any` out without lint noticing.
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [
         "warn",

@@ -10,11 +10,10 @@ const eslintConfig = [
   eslintPluginPrettier,
   {
     rules: {
-      // Ratcheted from "warn" once the codebase hit zero of each. These are
-      // merge blockers in .claude/code-review.md, and a warning does not block —
-      // leaving them advisory is how a bare `any` reached the crm-api-nest
-      // serialization boundary (docs/fixes/v2-business-flow/F31). Re-run
-      // `bunx eslint .` before demoting any of them.
+      // Ratcheted from "warn" once the codebase hit zero of each. These are merge
+      // blockers in .claude/code-review.md, and a warning does not block — leaving
+      // the same rule advisory in crm-api-nest is how a bare `any` shipped on its
+      // HTTP serialization boundary. Re-run `bunx eslint .` before demoting any.
       "@typescript-eslint/ban-ts-comment": "error",
       "@typescript-eslint/no-empty-object-type": "error",
       "@typescript-eslint/no-explicit-any": "error",

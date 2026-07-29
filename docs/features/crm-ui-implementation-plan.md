@@ -26,8 +26,10 @@ the changelog.
 > **The equivalent check today** is against a seeded stack: Postgres up,
 > `prisma migrate deploy` + `bun run seed` in `apps/crm-api-nest`, the API
 > running, and `CRM_API_URL` pointed at it (root `README.md` has the setup;
-> `docs/fixes/v2-business-flow/F41-seed-replaces-mock-coverage.md` is why the seed
-> now carries the edge cases the fixtures used to). The **Standing rules** section
+> `apps/crm-api-nest/src/seed.ts` now carries the edge cases the fixtures used to:
+> one project per lifecycle stage, a superseded quote pair, a double-booked crew
+> member, an overdue paperwork item and milestone, a signed settlement with a paid
+> bill, and an appointment that is always today). The **Standing rules** section
 > immediately below is live guidance and has been corrected in place.
 
 ## Standing rules (do not relearn these)
