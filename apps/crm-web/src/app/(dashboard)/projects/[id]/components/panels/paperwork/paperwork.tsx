@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Plus, Users, X } from "lucide-react";
+import { Plus, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 
@@ -15,12 +15,20 @@ import {
 } from "@yan/ui/components/card";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Input } from "@yan/ui/components/input";
-import { Textarea } from "@yan/ui/components/textarea";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@yan/ui/components/table";
 
 import { OVERDUE_LABEL, PAPERWORK_STATUSES } from "@/constants/labels";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 import { labelOf } from "@/utils/label-of/label-of";
+import { todayISO } from "@/utils/today-iso/today-iso";
 
 import {
   createPaperworkItem,
@@ -63,7 +71,6 @@ function PaperworkRow({
   });
 
   const [due, setDue] = useState(item.due_date ?? "");
-  const [expanded, setExpanded] = useState(false);
   const [note, setNote] = useState(item.note ?? "");
 
   const next = NEXT[item.status];
@@ -74,54 +81,64 @@ function PaperworkRow({
   );
 
   return (
-    <li className="rounded-lg border border-border px-3 py-2.5">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">
-          {item.name}
-        </span>
+    <TableRow>
+      <TableCell className="font-medium">{item.name}</TableCell>
 
-        <Badge variant={label.variant}>{label.label}</Badge>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Badge variant={label.variant}>{label.label}</Badge>
+          {/* One-way single-tap status advance; hidden once approved (terminal). */}
+          {next ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isPending}
+              onClick={() =>
+                startTransition(() => updateAction({ status: next }))
+              }
+            >
+              → {labelOf(PAPERWORK_STATUSES, next).label}
+            </Button>
+          ) : null}
+        </div>
+      </TableCell>
 
-        {/* One-way single-tap status advance; hidden once approved (terminal). */}
-        {next ? (
-          <Button
-            size="sm"
-            variant="outline"
+      {/* overdue drives the red chip + dashboard later. */}
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <DateInput
+            value={due}
             disabled={isPending}
-            onClick={() =>
-              startTransition(() => updateAction({ status: next }))
-            }
-          >
-            → {labelOf(PAPERWORK_STATUSES, next).label}
-          </Button>
-        ) : null}
+            className="h-8 w-auto"
+            onChange={(value) => {
+              setDue(value);
+              startTransition(() =>
+                updateAction({ due_date: value === "" ? null : value })
+              );
+            }}
+          />
+          {isLate ? (
+            <Badge variant={OVERDUE_LABEL.variant}>{OVERDUE_LABEL.label}</Badge>
+          ) : null}
+        </div>
+      </TableCell>
 
-        {/* overdue drives the red chip + dashboard later. */}
-        <DateInput
-          value={due}
+      {/* "đã nộp cho ai" and other free text — saved on blur. */}
+      <TableCell>
+        <Input
+          value={note}
           disabled={isPending}
-          className="h-8 w-auto"
-          onChange={(value) => {
-            setDue(value);
-            startTransition(() =>
-              updateAction({ due_date: value === "" ? null : value })
-            );
+          placeholder="Đã nộp cho ai, tình trạng…"
+          className="h-8"
+          onChange={(e) => setNote(e.target.value)}
+          onBlur={() => {
+            if (note === (item.note ?? "")) return;
+            startTransition(() => updateAction({ note }));
           }}
         />
-        {isLate ? (
-          <Badge variant={OVERDUE_LABEL.variant}>{OVERDUE_LABEL.label}</Badge>
-        ) : null}
+      </TableCell>
 
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-muted-foreground"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          <ChevronDown className="size-4" />
-          Ghi chú
-        </Button>
-
+      <TableCell className="text-right">
         <Button
           size="icon-sm"
           variant="ghost"
@@ -131,29 +148,8 @@ function PaperworkRow({
         >
           <X className="size-4" />
         </Button>
-      </div>
-
-      {/* Expandable note — "đã nộp cho ai" and other free text live here. */}
-      {expanded ? (
-        <div className="mt-2 flex items-start gap-2">
-          <Textarea
-            rows={2}
-            value={note}
-            placeholder="Ghi chú (đã nộp cho ai, tình trạng…)"
-            className="flex-1"
-            onChange={(e) => setNote(e.target.value)}
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={isPending}
-            onClick={() => startTransition(() => updateAction({ note }))}
-          >
-            Lưu
-          </Button>
-        </div>
-      ) : null}
-    </li>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -172,33 +168,42 @@ function AddPaperworkRow({ projectId }: { projectId: number }) {
 
   const submit = () => {
     if (!name.trim()) return;
-    startTransition(() => formAction({ name: name.trim() }));
+    // Hạn defaults to today (local, not the server's UTC day) — nudges a real
+    // deadline onto every mục instead of a blank the dashboard can't flag.
+    startTransition(() =>
+      formAction({ name: name.trim(), due_date: todayISO() })
+    );
   };
 
   return (
-    <li className="flex items-center gap-2">
-      <Input
-        value={name}
-        placeholder="Tên hồ sơ mới…"
-        disabled={isPending}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            submit();
-          }
-        }}
-      />
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={isPending || !name.trim()}
-        onClick={submit}
-      >
-        <Plus className="size-4" />
-        Thêm mục
-      </Button>
-    </li>
+    <TableRow>
+      <TableCell colSpan={4}>
+        <Input
+          value={name}
+          placeholder="Tên hồ sơ mới…"
+          disabled={isPending}
+          className="h-8"
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            }
+          }}
+        />
+      </TableCell>
+      <TableCell className="text-right">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={isPending || !name.trim()}
+          onClick={submit}
+        >
+          <Plus className="size-4" />
+          Thêm mục
+        </Button>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -240,12 +245,23 @@ export function PaperworkPanel({
           <p className="mb-3 text-sm text-muted-foreground">Không cần hồ sơ</p>
         ) : null}
 
-        <ul className="space-y-2">
-          {paperworkItems.map((item) => (
-            <PaperworkRow key={item.id} item={item} projectId={project.id} />
-          ))}
-          <AddPaperworkRow projectId={project.id} />
-        </ul>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Hồ sơ</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead>Hạn</TableHead>
+              <TableHead>Ghi chú</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paperworkItems.map((item) => (
+              <PaperworkRow key={item.id} item={item} projectId={project.id} />
+            ))}
+            <AddPaperworkRow projectId={project.id} />
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
