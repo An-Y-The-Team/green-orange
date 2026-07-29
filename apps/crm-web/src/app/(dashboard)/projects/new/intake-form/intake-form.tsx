@@ -24,7 +24,7 @@ import {
 import { Input } from "@yan/ui/components/input";
 import { Separator } from "@yan/ui/components/separator";
 
-import { selectClass } from "@/components/form-bits/form-bits";
+import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { PROJECT_STAGES, PROJECT_STAGE_ORDER } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
@@ -211,7 +211,7 @@ export function IntakeForm({
                   <FormLabel>Giai đoạn</FormLabel>
                   <FormControl>
                     <select
-                      className={selectClass}
+                      className={SELECT_CLASS}
                       value={field.value}
                       onChange={(e) => field.onChange(e.target.value)}
                     >
@@ -235,7 +235,7 @@ export function IntakeForm({
                   <FormLabel>Khách hàng</FormLabel>
                   <FormControl>
                     <select
-                      className={selectClass}
+                      className={SELECT_CLASS}
                       value={field.value || ""}
                       onChange={(e) => selectClient(Number(e.target.value))}
                     >

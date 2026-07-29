@@ -27,7 +27,11 @@ import {
   QuoteStatus,
 } from "@/app/(dashboard)/quotes/enums";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
-import { quoteChannel, quoteStatus, quoteSuperseded } from "@/constants/labels";
+import {
+  QUOTE_CHANNELS,
+  QUOTE_STATUSES,
+  QUOTE_SUPERSEDED_LABEL,
+} from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -44,7 +48,7 @@ function SendHistory({ quote }: { quote: Quote }) {
       {quote.send_logs
         ?.map(
           (l) =>
-            `${quoteChannel[l.channel] ?? l.channel} ${formatDate(l.sent_at)}`
+            `${QUOTE_CHANNELS[l.channel] ?? l.channel} ${formatDate(l.sent_at)}`
         )
         .join(" · ")}
     </p>
@@ -87,7 +91,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
       ...extra,
     });
 
-  const statusBadge = labelOf(quoteStatus, quote.status);
+  const statusBadge = labelOf(QUOTE_STATUSES, quote.status);
 
   // Hoãn — sends the follow-up date with the decision, then closes the dialog.
   const handleConfirmHold = () => {
@@ -349,8 +353,8 @@ export function QuotePanel({ project }: { project: Project }) {
               className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
             >
               <span>v{q.version}</span>
-              <Badge variant={quoteSuperseded.variant}>
-                {quoteSuperseded.label}
+              <Badge variant={QUOTE_SUPERSEDED_LABEL.variant}>
+                {QUOTE_SUPERSEDED_LABEL.label}
               </Badge>
               <span className="tabular-nums">{formatVND(q.total_amount)}</span>
               <Button

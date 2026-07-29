@@ -16,10 +16,10 @@ import { Label } from "@yan/ui/components/label";
 import { TableCell, TableRow } from "@yan/ui/components/table";
 
 import {
-  billStatus,
-  milestoneStatus,
-  milestoneType,
-  overdue,
+  BILL_STATUSES,
+  MILESTONE_STATUSES,
+  MILESTONE_TYPES,
+  OVERDUE_LABEL,
 } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
@@ -45,7 +45,9 @@ export function MilestoneRow({
   const [paidDate, setPaidDate] = useState(todayISO);
   const paid = milestone.status === MilestoneStatus.PAID;
   const late = isOverdue(milestone.due_date, paid);
-  const badge = late ? overdue : labelOf(milestoneStatus, milestone.status);
+  const badge = late
+    ? OVERDUE_LABEL
+    : labelOf(MILESTONE_STATUSES, milestone.status);
 
   const [pending, run] = useRun(
     markMilestonePaid.bind(
@@ -61,7 +63,7 @@ export function MilestoneRow({
     <TableRow>
       <TableCell className="font-medium">{projectCode}</TableCell>
       <TableCell className="text-muted-foreground">
-        {milestoneType[milestone.type] ?? milestone.type}
+        {MILESTONE_TYPES[milestone.type] ?? milestone.type}
       </TableCell>
       <TableCell className="text-right">
         {formatVND(milestone.amount)}
@@ -123,7 +125,7 @@ export function BillRow({
 }) {
   const idx = BILL_ORDER.indexOf(bill.status);
   const official = idx >= BILL_ORDER.indexOf(BillStatus.OFFICIAL);
-  const badge = labelOf(billStatus, bill.status);
+  const badge = labelOf(BILL_STATUSES, bill.status);
   const [pending, run] = useRun(
     updateBill.bind(null, bill.id, bill.project_id)
   );

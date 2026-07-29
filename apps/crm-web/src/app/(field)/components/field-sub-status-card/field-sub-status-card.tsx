@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { useActionState, useTransition } from "react";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 
@@ -17,11 +14,15 @@ import {
   ProjectStage,
 } from "@/app/(dashboard)/projects/enums";
 import type { Project } from "@/app/(dashboard)/projects/types";
-import { acceptanceSubStatus, executionSubStatus } from "@/constants/labels";
+import {
+  ACCEPTANCE_SUB_STATUSES,
+  EXECUTION_SUB_STATUSES,
+} from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 import { labelOf } from "@/utils/label-of/label-of";
-
-const initialState: ServerActionState = { success: false };
-const toastOpts = { successToastTitle: "Thành công", errorToastTitle: "Lỗi" };
 
 // Forward-only order; hoarding skippable (mirrors the execution panel).
 const EXEC_STEPS = [
@@ -33,10 +34,10 @@ const EXEC_STEPS = [
 export function FieldSubStatusCard({ project }: { project: Project }) {
   const [state, formAction] = useActionState(
     updateProject.bind(null, project.id),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [isPending, startTransition] = useTransition();
-  useServerAction(state, isPending, toastOpts);
+  useServerAction(state, isPending, ACTION_TOAST_TITLES);
   const run = (input: Parameters<typeof updateProject>[2]) =>
     startTransition(() => formAction(input));
 
@@ -51,8 +52,8 @@ export function FieldSubStatusCard({ project }: { project: Project }) {
   const acc = project.acceptance_sub_status ?? AcceptanceSubStatus.REQUEST_SENT;
 
   const currentLabel = isExecution
-    ? labelOf(executionSubStatus, execCurrent)
-    : labelOf(acceptanceSubStatus, acc);
+    ? labelOf(EXECUTION_SUB_STATUSES, execCurrent)
+    : labelOf(ACCEPTANCE_SUB_STATUSES, acc);
 
   return (
     <div className="space-y-3 rounded-lg border p-3">
@@ -75,7 +76,7 @@ export function FieldSubStatusCard({ project }: { project: Project }) {
                 disabled={isPending}
                 onClick={() => run({ execution_sub_status: target })}
               >
-                → {labelOf(executionSubStatus, target).label}
+                → {labelOf(EXECUTION_SUB_STATUSES, target).label}
               </Button>
             ))}
             <Button

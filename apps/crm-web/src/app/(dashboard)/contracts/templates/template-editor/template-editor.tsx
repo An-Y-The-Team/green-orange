@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 import {
   Form,
@@ -30,8 +27,9 @@ import {
   type LineItemsData,
 } from "@/components/editor/lexical-document/lexical-document";
 import { RichEditor } from "@/components/editor/rich-editor/rich-editor";
-import { selectClass } from "@/components/form-bits/form-bits";
+import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { HeaderVariant } from "@/constants/header-variant";
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { previewContext } from "@/utils/merge-template/merge-template";
 
 import { saveTemplate } from "../../actions/save-template";
@@ -40,12 +38,6 @@ import {
   contractTemplateSchema,
 } from "../../schema";
 import type { ContractTemplate } from "../../types";
-
-const initialState: ServerActionState = {
-  success: false,
-  message: null,
-  errors: {},
-};
 
 const SAMPLE_CTX = previewContext();
 
@@ -81,7 +73,7 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
   // Bind the template id (edit) or undefined (create) to the action so the
   // useActionState signature stays (prevState, input).
   const action = saveTemplate.bind(null, template?.id);
-  const [state, formAction] = useActionState(action, initialState);
+  const [state, formAction] = useActionState(action, INITIAL_ACTION_STATE);
 
   const form = useForm<ContractTemplateFormValues>({
     resolver: zodResolver(contractTemplateSchema),
@@ -171,7 +163,7 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
               <FormItem>
                 <FormLabel>Kiểu đầu trang</FormLabel>
                 <FormControl>
-                  <select {...field} className={selectClass}>
+                  <select {...field} className={SELECT_CLASS}>
                     <option value={HeaderVariant.NATIONAL}>
                       Quốc hiệu (CHXHCN Việt Nam) — hợp đồng
                     </option>

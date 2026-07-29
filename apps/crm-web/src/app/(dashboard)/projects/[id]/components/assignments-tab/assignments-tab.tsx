@@ -26,8 +26,8 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { selectClass } from "@/components/form-bits/form-bits";
-import { crewMemberStatus } from "@/constants/labels";
+import { SELECT_CLASS } from "@/components/form-bits/form-bits";
+import { CREW_MEMBER_STATUSES } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
@@ -294,7 +294,7 @@ function AssignmentForm({
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
         Nhân viên
         <select
-          className={selectClass}
+          className={SELECT_CLASS}
           value={f.crew_member_id}
           onChange={(e) => setF({ ...f, crew_member_id: e.target.value })}
         >
@@ -304,7 +304,7 @@ function AssignmentForm({
               {c.name}
               {c.status === CrewMemberStatus.WORKING
                 ? ""
-                : ` (${labelOf(crewMemberStatus, c.status).label})`}
+                : ` (${labelOf(CREW_MEMBER_STATUSES, c.status).label})`}
             </option>
           ))}
         </select>
@@ -312,7 +312,7 @@ function AssignmentForm({
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
         Vai trò
         <select
-          className={selectClass}
+          className={SELECT_CLASS}
           value={f.role_id}
           onChange={(e) => setF({ ...f, role_id: e.target.value })}
         >

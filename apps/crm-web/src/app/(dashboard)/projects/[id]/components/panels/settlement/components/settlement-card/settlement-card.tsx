@@ -34,7 +34,7 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
-import { settlementStatus } from "@/constants/labels";
+import { SETTLEMENT_STATUSES } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -92,7 +92,7 @@ export function SettlementCard({
   const isDraft = settlement.status === SettlementStatus.DRAFT;
   const isSent = settlement.status === SettlementStatus.SENT;
   const isSigned = settlement.status === SettlementStatus.SIGNED;
-  const badge = labelOf(settlementStatus, settlement.status);
+  const badge = labelOf(SETTLEMENT_STATUSES, settlement.status);
 
   const [sendPending, runSend] = useRun(
     sendSettlement.bind(null, settlement.id)

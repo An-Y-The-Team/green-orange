@@ -1,6 +1,6 @@
 import { SETTLEMENT_STEPPER } from "@/app/(dashboard)/receivables/constants";
 import type { SettlementStatus } from "@/app/(dashboard)/receivables/enums";
-import { settlementStatus } from "@/constants/labels";
+import { SETTLEMENT_STATUSES } from "@/constants/labels";
 import { labelOf } from "@/utils/label-of/label-of";
 
 /** Nháp → Đã gửi → Đã ký, with the current step emphasised. */
@@ -21,7 +21,7 @@ export function SettlementStepper({ status }: { status: SettlementStatus }) {
                 : "text-muted-foreground"
             }
           >
-            {labelOf(settlementStatus, step).label}
+            {labelOf(SETTLEMENT_STATUSES, step).label}
           </span>
         </li>
       ))}

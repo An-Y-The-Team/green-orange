@@ -4,10 +4,7 @@ import { FileCheck2, Printer } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 import {
@@ -22,7 +19,11 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { acceptanceSubStatus } from "@/constants/labels";
+import { ACCEPTANCE_SUB_STATUSES } from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
@@ -32,9 +33,6 @@ import { updateProject } from "../../../../actions/update-project";
 import { AcceptanceSubStatus, AttachmentKind } from "../../../../enums";
 import type { Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
-
-const emptyState = { success: false } as ServerActionState;
-const toastOpts = { successToastTitle: "Thành công", errorToastTitle: "Lỗi" };
 
 // Sub-status progress line: Gửi yêu cầu → Nghiệm thu ⇄ Bổ sung → Đạt.
 // rework is the ⇄ branch off inspecting, so it renders inline with it.
@@ -57,10 +55,10 @@ export function AcceptancePanel({ project }: { project: Project }) {
   // Đạt → passed). Server stamps acceptance_passed_date on the passed hop.
   const [statusState, statusAction] = useActionState(
     updateProject.bind(null, project.id),
-    emptyState
+    INITIAL_ACTION_STATE
   );
   const [statusPending, startStatus] = useTransition();
-  useServerAction(statusState, statusPending, toastOpts);
+  useServerAction(statusState, statusPending, ACTION_TOAST_TITLES);
   const setStatus = (next: AcceptanceSubStatus) =>
     startStatus(() => statusAction({ acceptance_sub_status: next }));
 
@@ -69,16 +67,16 @@ export function AcceptancePanel({ project }: { project: Project }) {
   const [reworkBody, setReworkBody] = useState("");
   const [noteState, noteAction] = useActionState(
     addNote.bind(null, project.id),
-    emptyState
+    INITIAL_ACTION_STATE
   );
   const [reworkStatusState, reworkStatusAction] = useActionState(
     updateProject.bind(null, project.id),
-    emptyState
+    INITIAL_ACTION_STATE
   );
   const [reworkPending, startRework] = useTransition();
   // Note toast is silent — the status update below is the user-facing confirm.
   useServerAction(noteState, reworkPending, {
-    ...toastOpts,
+    ...ACTION_TOAST_TITLES,
     silent: true,
     onSuccess: () =>
       startRework(() =>
@@ -88,7 +86,7 @@ export function AcceptancePanel({ project }: { project: Project }) {
       ),
   });
   useServerAction(reworkStatusState, reworkPending, {
-    ...toastOpts,
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => {
       setReworkOpen(false);
       setReworkBody("");
@@ -99,7 +97,7 @@ export function AcceptancePanel({ project }: { project: Project }) {
     .filter((n) => n.tag && ACCEPTANCE_TAGS.has(n.tag))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
-  const label = labelOf(acceptanceSubStatus, sub);
+  const label = labelOf(ACCEPTANCE_SUB_STATUSES, sub);
 
   return (
     <StageCard
@@ -123,7 +121,7 @@ export function AcceptancePanel({ project }: { project: Project }) {
                   : "text-muted-foreground"
               }
             >
-              {labelOf(acceptanceSubStatus, s).label}
+              {labelOf(ACCEPTANCE_SUB_STATUSES, s).label}
             </span>
           </li>
         ))}
@@ -245,12 +243,12 @@ export function AcceptancePanel({ project }: { project: Project }) {
 function AcceptanceReport({ projectId }: { projectId: number }) {
   const [state, formAction] = useActionState(
     addAttachment.bind(null, projectId),
-    emptyState
+    INITIAL_ACTION_STATE
   );
   const [isPending, startTransition] = useTransition();
   const [filename, setFilename] = useState("");
   useServerAction(state, isPending, {
-    ...toastOpts,
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => setFilename(""),
   });
 

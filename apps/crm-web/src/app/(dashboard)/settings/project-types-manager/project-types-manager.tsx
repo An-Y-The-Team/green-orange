@@ -20,19 +20,16 @@ import {
 import { Input } from "@yan/ui/components/input";
 
 import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
+
+import {
   createProjectType,
   deleteProjectType,
   renameProjectType,
 } from "../../projects/actions/project-types";
 import type { ProjectType } from "../../projects/types";
-
-const initialState: ServerActionState = {
-  success: false,
-  message: null,
-  errors: {},
-};
-
-const toastTitles = { successToastTitle: "Thành công", errorToastTitle: "Lỗi" };
 
 /**
  * Action payloads arrive as `unknown`; a loại công trình row is `{ id, name }`.
@@ -64,7 +61,7 @@ export function ProjectTypesManager({
   const [newName, setNewName] = useState("");
   const [createState, createAction] = useActionState(
     createProjectType,
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [createPending, startCreate] = useTransition();
 
@@ -77,7 +74,7 @@ export function ProjectTypesManager({
   };
 
   useServerAction(createState, createPending, {
-    ...toastTitles,
+    ...ACTION_TOAST_TITLES,
     onSuccess: handleCreated,
   });
 
@@ -87,7 +84,7 @@ export function ProjectTypesManager({
   const [renameState, renameAction] = useActionState(
     (_prev: ServerActionState, p: { id: number; name: string }) =>
       renameProjectType(p.id, _prev, { name: p.name }),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [renamePending, startRename] = useTransition();
 
@@ -100,7 +97,7 @@ export function ProjectTypesManager({
   };
 
   useServerAction(renameState, renamePending, {
-    ...toastTitles,
+    ...ACTION_TOAST_TITLES,
     onSuccess: handleRenamed,
   });
 
@@ -108,7 +105,7 @@ export function ProjectTypesManager({
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [deleteState, deleteAction] = useActionState(
     (_prev: ServerActionState, id: number) => deleteProjectType(id, _prev),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [deletePending, startDelete] = useTransition();
 
@@ -121,7 +118,7 @@ export function ProjectTypesManager({
   };
 
   useServerAction(deleteState, deletePending, {
-    ...toastTitles,
+    ...ACTION_TOAST_TITLES,
     onSuccess: handleDeleted,
   });
 

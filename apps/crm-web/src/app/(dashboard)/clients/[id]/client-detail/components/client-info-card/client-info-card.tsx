@@ -20,7 +20,7 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { clientType } from "@/constants/labels";
+import { CLIENT_TYPES } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -98,7 +98,7 @@ export function ClientInfoCard({
           )}
           <div className="flex items-center gap-2">
             <Badge variant={isCompany ? "secondary" : "outline"}>
-              {clientType[client.type]}
+              {CLIENT_TYPES[client.type]}
             </Badge>
             {!editing ? (
               <Button size="sm" variant="ghost" onClick={startEdit}>
@@ -164,7 +164,7 @@ export function ClientInfoCard({
           </div>
         ) : (
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Loại" value={clientType[client.type]} />
+            <Field label="Loại" value={CLIENT_TYPES[client.type]} />
             <Field label="Ngày tạo" value={formatDate(client.created_at)} />
             {isCompany ? (
               <Field label="Mã số thuế" value={info.tax_code || "—"} />

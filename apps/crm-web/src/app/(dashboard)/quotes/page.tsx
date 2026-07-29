@@ -13,7 +13,11 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header/page-header";
-import { quoteChannel, quoteStatus, quoteSuperseded } from "@/constants/labels";
+import {
+  QUOTE_CHANNELS,
+  QUOTE_STATUSES,
+  QUOTE_SUPERSEDED_LABEL,
+} from "@/constants/labels";
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -26,7 +30,7 @@ import type { QuoteListRow } from "./types";
 /** Unique channels this quote went out on, in Vietnamese. */
 function sentChannels(quote: QuoteListRow): string {
   const labels = (quote?.send_logs ?? [])
-    .map((log) => quoteChannel?.[log?.channel] ?? log?.channel)
+    .map((log) => QUOTE_CHANNELS?.[log?.channel] ?? log?.channel)
     .filter(Boolean);
   return [...new Set(labels)].join(", ");
 }
@@ -75,8 +79,8 @@ export default async function QuotesPage() {
               // Status is a raw wire value — labelOf degrades an unmapped one to
               // a neutral badge instead of crashing the list.
               const badge = superseded
-                ? quoteSuperseded
-                : labelOf(quoteStatus, quote.status);
+                ? QUOTE_SUPERSEDED_LABEL
+                : labelOf(QUOTE_STATUSES, quote.status);
               return (
                 <TableRow key={quote.id}>
                   <TableCell className="font-medium">

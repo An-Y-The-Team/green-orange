@@ -8,19 +8,16 @@ import {
   useTransition,
 } from "react";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+
 import { createRole, deleteRole, renameRole } from "../../actions/roles";
 import type { CrewRole } from "../../types";
-
-const initialState: ServerActionState = { success: false };
 
 /**
  * Action payloads arrive as `unknown`; a vai trò row is just `{ id, name }`, so
@@ -40,7 +37,7 @@ export function RolesTab({ roles: initial }: { roles: CrewRole[] }) {
   const [roles, setRoles] = useState<CrewRole[]>(initial);
   const [newName, setNewName] = useState("");
 
-  const [state, formAction] = useActionState(createRole, initialState);
+  const [state, formAction] = useActionState(createRole, INITIAL_ACTION_STATE);
   const [isPending, startTransition] = useTransition();
 
   // Append the row the server created and clear the input.
@@ -126,7 +123,7 @@ function RoleRow({
 
   const [renameState, renameAction] = useActionState(
     renameRole.bind(null, role.id),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [renamePending, startRename] = useTransition();
 
@@ -146,7 +143,7 @@ function RoleRow({
 
   const [deleteState, deleteAction] = useActionState(
     deleteRole.bind(null, role.id),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [deletePending, startDelete] = useTransition();
   useServerAction(deleteState, deletePending, {

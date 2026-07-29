@@ -2,10 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
 import {
@@ -19,6 +16,7 @@ import {
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
@@ -26,8 +24,6 @@ import { updateProject } from "../../../../actions/update-project";
 import type { Attachment, Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
 import { SurveyPanel } from "../survey/survey";
-
-const initialState: ServerActionState = { success: false };
 
 // Stage 1 = Yêu cầu & Khảo sát: the appointment IS the survey visit, so one
 // panel with two halves. `visit_date` (set by "Đã gặp khách") reveals the
@@ -41,7 +37,7 @@ export function RequestPanel({
 }) {
   const [state, formAction] = useActionState(
     updateProject.bind(null, project.id),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [isPending, startTransition] = useTransition();
   useServerAction(state, isPending, {

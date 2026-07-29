@@ -4,10 +4,7 @@ import { Circle, CircleCheckBig, Info, Plus, Printer } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
@@ -32,15 +29,17 @@ import {
   MilestoneType,
 } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
-import { contractStatus, quoteStatus } from "@/constants/labels";
+import { CONTRACT_STATUSES, QUOTE_STATUSES } from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import type { Project } from "../../../../types";
-
-const toastOpts = { successToastTitle: "Thành công", errorToastTitle: "Lỗi" };
 
 function ChecklistRow({
   done,
@@ -82,7 +81,7 @@ export function ContractPanel({
 }) {
   // getDealQuote is deal-only, so its presence IS the chốt condition.
   const quoteDeal = Boolean(dealQuote);
-  const dealBadge = dealQuote && labelOf(quoteStatus, dealQuote.status);
+  const dealBadge = dealQuote && labelOf(QUOTE_STATUSES, dealQuote.status);
   const clientSigned = Boolean(project.client_signed_date);
   const depositPaid = milestones.some(
     (m) => m.type === MilestoneType.DEPOSIT && m.status === MilestoneStatus.PAID
@@ -91,20 +90,20 @@ export function ContractPanel({
   // Khách ký xác nhận — stamp client_signed_date.
   const [signState, signAction] = useActionState(
     updateProject.bind(null, project.id),
-    { success: false } as ServerActionState
+    INITIAL_ACTION_STATE
   );
   const [signPending, startSign] = useTransition();
   const [signOpen, setSignOpen] = useState(false);
   const [signedDate, setSignedDate] = useState(todayISO);
   useServerAction(signState, signPending, {
-    ...toastOpts,
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => setSignOpen(false),
   });
 
   // Nhận cọc — record a paid deposit milestone.
   const [depState, depAction] = useActionState(
     recordDeposit.bind(null, project.id),
-    { success: false } as ServerActionState
+    INITIAL_ACTION_STATE
   );
   const [depPending, startDep] = useTransition();
   const [depOpen, setDepOpen] = useState(false);
@@ -115,7 +114,7 @@ export function ContractPanel({
   );
   const [depDate, setDepDate] = useState(todayISO);
   useServerAction(depState, depPending, {
-    ...toastOpts,
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => setDepOpen(false),
   });
 
@@ -303,18 +302,18 @@ function ContractRow({
 }) {
   const [state, formAction] = useActionState(
     signContract.bind(null, contract.id, project.id),
-    { success: false } as ServerActionState
+    INITIAL_ACTION_STATE
   );
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(todayISO);
   useServerAction(state, isPending, {
-    ...toastOpts,
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => setOpen(false),
   });
 
   const signed = contract.status === "signed";
-  const badge = labelOf(contractStatus, contract.status);
+  const badge = labelOf(CONTRACT_STATUSES, contract.status);
 
   return (
     <li className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">

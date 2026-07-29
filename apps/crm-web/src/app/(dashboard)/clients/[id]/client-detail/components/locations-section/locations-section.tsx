@@ -13,7 +13,7 @@ import {
 } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 
-import { selectClass } from "@/components/form-bits/form-bits";
+import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 
 import {
   createLocation,
@@ -72,7 +72,7 @@ export function LocationsSection({
         onChange={(e) => setDraft({ ...draft, address: e.target.value })}
       />
       <select
-        className={selectClass}
+        className={SELECT_CLASS}
         value={draft.manager_contact_id ?? ""}
         onChange={(e) =>
           setDraft({

@@ -11,8 +11,8 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
 
 import { DocxImportButton } from "../docx-import-button/docx-import-button";
-import { editorNodes } from "../editor-nodes";
-import { editorTheme } from "../editor-theme";
+import { EDITOR_NODES } from "../editor-nodes";
+import { EDITOR_THEME } from "../editor-theme";
 import { TokenPalette } from "../token-palette/token-palette";
 import { Toolbar } from "../toolbar/toolbar";
 
@@ -31,8 +31,8 @@ export function RichEditor({
 }) {
   const initialConfig = {
     namespace: "contract-editor",
-    theme: editorTheme,
-    nodes: [...editorNodes],
+    theme: EDITOR_THEME,
+    nodes: [...EDITOR_NODES],
     editorState: value && value.length > 0 ? value : undefined,
     onError(error: Error) {
       throw error;

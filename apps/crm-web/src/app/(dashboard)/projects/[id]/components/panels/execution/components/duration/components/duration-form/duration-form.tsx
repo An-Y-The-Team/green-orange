@@ -26,7 +26,7 @@ import {
 } from "@yan/ui/components/table";
 
 import type { TimekeepingRecord } from "@/app/(dashboard)/crew/types";
-import { overdue, timekeepingSource } from "@/constants/labels";
+import { OVERDUE_LABEL, TIMEKEEPING_SOURCES } from "@/constants/labels";
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import {
   ACTION_TOAST_TITLES,
@@ -135,7 +135,7 @@ export function DurationForm({
         {estEnd ? (
           <span className="flex items-center gap-2 pb-1.5 text-muted-foreground">
             → {formatDate(estEnd)}
-            {late ? <Badge variant={overdue.variant}>⚠ trễ</Badge> : null}
+            {late ? <Badge variant={OVERDUE_LABEL.variant}>⚠ trễ</Badge> : null}
           </span>
         ) : null}
       </div>
@@ -159,7 +159,7 @@ export function DurationForm({
           ghi nhận
           {disagree ? (
             <>
-              <Badge variant={overdue.variant}>⚠</Badge>
+              <Badge variant={OVERDUE_LABEL.variant}>⚠</Badge>
               <Button
                 size="sm"
                 variant="outline"
@@ -201,7 +201,7 @@ export function DurationForm({
                   <TableCell>{t.hours}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {timekeepingSource[t.source] ?? t.source}
+                      {TIMEKEEPING_SOURCES[t.source] ?? t.source}
                     </Badge>
                   </TableCell>
                 </TableRow>

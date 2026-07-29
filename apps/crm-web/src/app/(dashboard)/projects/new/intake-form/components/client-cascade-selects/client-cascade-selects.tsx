@@ -10,7 +10,7 @@ import {
   FormMessage,
 } from "@yan/ui/components/form";
 
-import { selectClass } from "@/components/form-bits/form-bits";
+import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 
 import type { CreateProjectFormValues } from "../../../../schema";
 import type { ClientDetail } from "../../types";
@@ -38,7 +38,7 @@ export function ClientCascadeSelects({
             <FormLabel>Người liên hệ</FormLabel>
             <FormControl>
               <select
-                className={selectClass}
+                className={SELECT_CLASS}
                 value={field.value ?? ""}
                 onChange={(e) =>
                   field.onChange(
@@ -68,7 +68,7 @@ export function ClientCascadeSelects({
             <FormLabel>Địa điểm</FormLabel>
             <FormControl>
               <select
-                className={selectClass}
+                className={SELECT_CLASS}
                 value={field.value || ""}
                 onChange={(e) => {
                   const id = Number(e.target.value);

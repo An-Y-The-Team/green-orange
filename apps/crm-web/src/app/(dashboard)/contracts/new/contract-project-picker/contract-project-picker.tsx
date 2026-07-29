@@ -7,7 +7,7 @@ import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Label } from "@yan/ui/components/label";
 
-import { selectClass } from "@/components/form-bits/form-bits";
+import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 
 // The contract editor's live preview merges project + client + chốt-quote data,
 // so authoring starts from a project. This picker routes to that project's
@@ -28,7 +28,7 @@ export function ContractProjectPicker({
           <Label htmlFor="project">Công trình</Label>
           <select
             id="project"
-            className={selectClass}
+            className={SELECT_CLASS}
             value={id ?? ""}
             onChange={(e) =>
               setId(e.target.value ? Number(e.target.value) : undefined)

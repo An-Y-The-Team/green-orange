@@ -12,7 +12,7 @@ import type { Klass, LexicalNode } from "lexical";
 import { LineItemsNode } from "./line-items-node/line-items-node";
 import { MergeFieldNode } from "./merge-field-node";
 
-export const editorNodes: ReadonlyArray<Klass<LexicalNode>> = [
+export const EDITOR_NODES: ReadonlyArray<Klass<LexicalNode>> = [
   HeadingNode,
   QuoteNode,
   ListNode,

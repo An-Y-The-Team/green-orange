@@ -20,25 +20,25 @@ class HeadlessLoginError extends CredentialsSignin {
 // AUTH_AUTHENTIK_ISSUER — auth OFF, the local-dev default — the dashboard stays
 // open and no login is required — matches the team topology where daily work
 // runs in AUTH_MODE=local and Authentik is only used for the SSO milestone.
-const issuer = process.env.AUTH_AUTHENTIK_ISSUER;
-export const authEnabled = Boolean(issuer);
+const ISSUER = process.env.AUTH_AUTHENTIK_ISSUER;
+export const AUTH_ENABLED = Boolean(ISSUER);
 
 // Authentik's token endpoint is GLOBAL (/application/o/token/), not under the
 // per-app issuer path — the discovery doc confirms it, and the slug-scoped URL
 // answers 405. Building it from the issuer's origin keeps refresh working.
-const tokenEndpoint = issuer
-  ? `${new URL(issuer).origin}/application/o/token/`
+const TOKEN_ENDPOINT = ISSUER
+  ? `${new URL(ISSUER).origin}/application/o/token/`
   : "";
 
 // Edge-safe config shared by the Node route handler and the edge middleware
 // (no DB adapter — JWT sessions only — so it runs in middleware fine).
 export default {
-  providers: authEnabled
+  providers: AUTH_ENABLED
     ? [
         Authentik({
           clientId: process.env.AUTH_AUTHENTIK_ID,
           clientSecret: process.env.AUTH_AUTHENTIK_SECRET,
-          issuer,
+          issuer: ISSUER,
           // offline_access → refresh token; the others map to the claims the
           // crm-api verifier reads (preferred_username / email).
           authorization: {
@@ -75,7 +75,7 @@ export default {
   pages: { signIn: "/login" },
   callbacks: {
     authorized({ auth }) {
-      if (!authEnabled) return true; // auth off: no gate
+      if (!AUTH_ENABLED) return true; // auth off: no gate
       return Boolean(auth?.user);
     },
     async jwt({ token, account, user }) {
@@ -112,11 +112,11 @@ export default {
       // with means the session is dead: flag it (same signal as a failed refresh)
       // so the layout gate shows the login overlay instead of silently handing
       // pages a stale token that every crm-api call 401s on.
-      if (!token.refreshToken || !tokenEndpoint) {
+      if (!token.refreshToken || !TOKEN_ENDPOINT) {
         return { ...token, error: "RefreshTokenError" };
       }
       try {
-        const res = await fetch(tokenEndpoint, {
+        const res = await fetch(TOKEN_ENDPOINT, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({

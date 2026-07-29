@@ -4,7 +4,7 @@ import { Printer } from "lucide-react";
 
 import { Button } from "@yan/ui/components/button";
 
-import { company } from "@/config/company";
+import { COMPANY } from "@/config/company";
 import {
   DEFAULT_HEADER_VARIANT,
   HeaderVariant,
@@ -61,17 +61,17 @@ export function DocumentShell({
               </div>
               <div>
                 <p className="text-sm font-bold uppercase leading-tight">
-                  {company.name}
+                  {COMPANY.name}
                 </p>
-                <p className="text-xs text-zinc-600">{company.tagline}</p>
+                <p className="text-xs text-zinc-600">{COMPANY.tagline}</p>
               </div>
             </div>
             <div className="text-right text-xs leading-relaxed text-zinc-600">
-              <p>{company.address}</p>
+              <p>{COMPANY.address}</p>
               <p>
-                ĐT: {company.phone} · {company.email}
+                ĐT: {COMPANY.phone} · {COMPANY.email}
               </p>
-              <p>MST: {company.tax_id}</p>
+              <p>MST: {COMPANY.tax_id}</p>
             </div>
           </header>
         )}
@@ -100,8 +100,8 @@ export function SignatureBlocks({
   rightLabel = "ĐẠI DIỆN BÊN B",
   leftName,
   leftTitle,
-  rightName = company.representative,
-  rightTitle = company.representative_title,
+  rightName = COMPANY.representative,
+  rightTitle = COMPANY.representative_title,
 }: {
   leftLabel?: string;
   rightLabel?: string;

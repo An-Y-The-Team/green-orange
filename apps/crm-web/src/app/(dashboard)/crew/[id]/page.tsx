@@ -19,9 +19,9 @@ import {
 } from "@yan/ui/components/table";
 
 import {
-  crewMemberStatus,
-  employmentType,
-  timekeepingSource,
+  CREW_MEMBER_STATUSES,
+  EMPLOYMENT_TYPES,
+  TIMEKEEPING_SOURCES,
 } from "@/constants/labels";
 import { addDays } from "@/utils/add-days/add-days";
 import { formatDate } from "@/utils/format-date/format-date";
@@ -55,11 +55,11 @@ export default async function CrewDetailPage({
   });
   const assignments = member.assignments ?? [];
 
-  const statusBadge = labelOf(crewMemberStatus, member.status);
+  const statusBadge = labelOf(CREW_MEMBER_STATUSES, member.status);
   const fields: [string, string][] = [
     [
       "Hình thức",
-      employmentType[member.employment_type] ?? member.employment_type,
+      EMPLOYMENT_TYPES[member.employment_type] ?? member.employment_type,
     ],
     ["Số điện thoại / Zalo", member.phone ?? "—"],
     ["Vai trò mặc định", member.default_role?.name ?? "—"],
@@ -195,7 +195,7 @@ export default async function CrewDetailPage({
                       <TableCell>{formatDate(r.work_date)}</TableCell>
                       <TableCell className="text-right">{r.hours}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {timekeepingSource[r.source] ?? r.source}
+                        {TIMEKEEPING_SOURCES[r.source] ?? r.source}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {r.note ?? ""}

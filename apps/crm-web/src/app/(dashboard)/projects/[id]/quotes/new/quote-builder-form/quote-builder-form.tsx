@@ -31,7 +31,7 @@ import {
   type QuoteFormValues,
   quoteFormSchema,
 } from "@/app/(dashboard)/quotes/schema";
-import { fieldError, selectClass } from "@/components/form-bits/form-bits";
+import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
@@ -142,7 +142,7 @@ export function QuoteBuilderForm({
                 <Label htmlFor="project">Công trình (không bắt buộc)</Label>
                 <select
                   id="project"
-                  className={selectClass}
+                  className={SELECT_CLASS}
                   value={projectId ?? ""}
                   onChange={(e) =>
                     setProjectId(

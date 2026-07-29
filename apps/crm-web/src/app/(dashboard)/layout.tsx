@@ -4,7 +4,7 @@ import { Button } from "@yan/ui/components/button";
 import { ThemeSwitcher } from "@yan/ui/components/theme-switcher";
 
 import { auth, signOut } from "@/auth";
-import { authEnabled } from "@/auth.config";
+import { AUTH_ENABLED } from "@/auth.config";
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar";
 import { LoginOverlay } from "@/components/login-overlay/login-overlay";
 import { SessionWatch } from "@/components/session-watch/session-watch";
@@ -28,9 +28,9 @@ export default async function DashboardLayout({
   // crm-api fetches have no token → 401 noise), and let the inline overlay sign
   // in and refresh the same page. A dead refresh token re-gates too, so pages
   // never fetch with a token that can no longer be refreshed.
-  const session = authEnabled ? await auth() : null;
+  const session = AUTH_ENABLED ? await auth() : null;
   const needsLogin =
-    authEnabled && (!session?.user || session.error === "RefreshTokenError");
+    AUTH_ENABLED && (!session?.user || session.error === "RefreshTokenError");
   const userLabel = session?.user?.email ?? session?.user?.name;
 
   return (
@@ -71,7 +71,7 @@ export default async function DashboardLayout({
             <LoginOverlay expired={Boolean(session?.error)} />
           ) : (
             <>
-              {authEnabled && <SessionWatch />}
+              {AUTH_ENABLED && <SessionWatch />}
               {children}
             </>
           )}

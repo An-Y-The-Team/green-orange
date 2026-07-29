@@ -18,7 +18,7 @@ export interface NavItem {
 
 // v2 nav (docs/features/crm-ui-redesign.md IA). Công trình is the hub;
 // Báo giá / Hợp đồng / Thu & công nợ are cross-project views.
-export const navItems: NavItem[] = [
+export const NAV_ITEMS: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard", icon: LayoutDashboard },
   { label: "Công trình", href: "/projects", icon: HardHat },
   { label: "Khách hàng", href: "/clients", icon: Users },

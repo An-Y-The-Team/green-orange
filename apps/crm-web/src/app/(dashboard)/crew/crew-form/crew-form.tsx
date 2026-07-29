@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
@@ -16,8 +13,9 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { fieldError, selectClass } from "@/components/form-bits/form-bits";
-import { crewMemberStatus, employmentType } from "@/constants/labels";
+import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
+import { CREW_MEMBER_STATUSES, EMPLOYMENT_TYPES } from "@/constants/labels";
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { createCrewMember, updateCrewMember } from "../actions/members";
@@ -27,8 +25,6 @@ import {
   createCrewMemberSchema,
 } from "../schema";
 import type { CrewMember, CrewRole } from "../types";
-
-const initialState: ServerActionState = { success: false };
 
 export function CrewForm({
   roles,
@@ -44,7 +40,7 @@ export function CrewForm({
   const action = member
     ? updateCrewMember.bind(null, member.id)
     : createCrewMember;
-  const [state, formAction] = useActionState(action, initialState);
+  const [state, formAction] = useActionState(action, INITIAL_ACTION_STATE);
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<CreateCrewMemberFormValues>({
@@ -98,12 +94,12 @@ export function CrewForm({
           <div className="space-y-1">
             <Label>Hình thức</Label>
             <select
-              className={selectClass}
+              className={SELECT_CLASS}
               {...form.register("employment_type")}
             >
               {Object.values(EmploymentType).map((t) => (
                 <option key={t} value={t}>
-                  {employmentType[t] ?? t}
+                  {EMPLOYMENT_TYPES[t] ?? t}
                 </option>
               ))}
             </select>
@@ -112,7 +108,7 @@ export function CrewForm({
           <div className="space-y-1">
             <Label>Vai trò mặc định</Label>
             <select
-              className={selectClass}
+              className={SELECT_CLASS}
               {...form.register("default_role_id", {
                 setValueAs: (v) =>
                   v === "" || v == null ? undefined : Number(v),
@@ -129,10 +125,10 @@ export function CrewForm({
 
           <div className="space-y-1">
             <Label>Trạng thái</Label>
-            <select className={selectClass} {...form.register("status")}>
+            <select className={SELECT_CLASS} {...form.register("status")}>
               {Object.values(CrewMemberStatus).map((s) => (
                 <option key={s} value={s}>
-                  {labelOf(crewMemberStatus, s).label}
+                  {labelOf(CREW_MEMBER_STATUSES, s).label}
                 </option>
               ))}
             </select>

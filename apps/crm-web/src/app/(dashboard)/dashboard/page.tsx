@@ -10,7 +10,7 @@ import {
 } from "@yan/ui/components/card";
 
 import { PageHeader } from "@/components/page-header/page-header";
-import { overdue } from "@/constants/labels";
+import { OVERDUE_LABEL } from "@/constants/labels";
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -184,7 +184,9 @@ export default async function DashboardPage() {
                       </Link>
                       <span className="flex items-center gap-2 whitespace-nowrap text-muted-foreground">
                         {i?.due_date ? formatDate(i.due_date) : null}
-                        <Badge variant={overdue.variant}>{overdue.label}</Badge>
+                        <Badge variant={OVERDUE_LABEL.variant}>
+                          {OVERDUE_LABEL.label}
+                        </Badge>
                       </span>
                     </li>
                   ))}
@@ -239,7 +241,9 @@ export default async function DashboardPage() {
                         </span>
                       ) : null}
                       {d?.overdue ? (
-                        <Badge variant={overdue.variant}>{overdue.label}</Badge>
+                        <Badge variant={OVERDUE_LABEL.variant}>
+                          {OVERDUE_LABEL.label}
+                        </Badge>
                       ) : null}
                     </span>
                   </li>

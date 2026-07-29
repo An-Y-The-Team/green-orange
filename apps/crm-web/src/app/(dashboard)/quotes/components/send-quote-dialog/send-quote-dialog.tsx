@@ -17,7 +17,7 @@ import {
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
-import { quoteChannel } from "@/constants/labels";
+import { QUOTE_CHANNELS } from "@/constants/labels";
 
 import { sendQuote } from "../../actions/send-quote";
 import { QuoteChannel } from "../../enums";
@@ -91,7 +91,7 @@ export function SendQuoteDialog({
                     checked={channels.includes(c)}
                     onChange={() => toggle(c)}
                   />
-                  {quoteChannel[c] ?? c}
+                  {QUOTE_CHANNELS[c] ?? c}
                 </label>
               ))}
             </div>

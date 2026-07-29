@@ -4,10 +4,7 @@ import { FileText, Plus, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 import {
   Dialog,
@@ -24,6 +21,7 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { todayISO } from "@/utils/today-iso/today-iso";
@@ -33,8 +31,6 @@ import { updateProject } from "../../../../actions/update-project";
 import { ProjectStage } from "../../../../enums";
 import type { Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
-
-const emptyState = { success: false } as ServerActionState;
 
 /** Whole days between two ISO/date strings (endStamp - startStamp). */
 function daysBetween(start: string, end: string): number {
@@ -52,7 +48,7 @@ function daysBetween(start: string, end: string): number {
 function ReopenButton({ project }: { project: Project }) {
   const [state, action] = useActionState(
     updateProject.bind(null, project.id),
-    emptyState
+    INITIAL_ACTION_STATE
   );
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);

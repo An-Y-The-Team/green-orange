@@ -13,12 +13,12 @@ import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
-import { company } from "@/config/company";
+import { COMPANY } from "@/config/company";
 import {
-  billStatus,
-  milestoneStatus,
-  milestoneType,
-  overdue,
+  BILL_STATUSES,
+  MILESTONE_STATUSES,
+  MILESTONE_TYPES,
+  OVERDUE_LABEL,
 } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -48,7 +48,7 @@ export default async function BillDocumentPage({
     ? bill.milestones
     : allMilestones.filter((m) => m.bill_id === bill.id);
 
-  const badge = labelOf(billStatus, bill.status);
+  const badge = labelOf(BILL_STATUSES, bill.status);
 
   return (
     <>
@@ -96,13 +96,13 @@ export default async function BillDocumentPage({
                 const paid = m.status === MilestoneStatus.PAID;
                 const late = isOverdue(m.due_date, paid);
                 const label = late
-                  ? overdue
-                  : labelOf(milestoneStatus, m.status);
+                  ? OVERDUE_LABEL
+                  : labelOf(MILESTONE_STATUSES, m.status);
                 return (
                   <tr key={m.id} className="border-b border-zinc-200">
                     <td className="px-2 py-2">{index + 1}</td>
                     <td className="px-2 py-2">
-                      {milestoneType[m.type] ?? m.type}
+                      {MILESTONE_TYPES[m.type] ?? m.type}
                     </td>
                     <td className="px-2 py-2">
                       {m.due_date ? formatDate(m.due_date) : "—"}
@@ -130,15 +130,15 @@ export default async function BillDocumentPage({
           <p className="font-medium uppercase">Thông tin chuyển khoản</p>
           <p>
             <span className="text-zinc-500">Đơn vị thụ hưởng: </span>
-            {company.name}
+            {COMPANY.name}
           </p>
           <p>
             <span className="text-zinc-500">Số tài khoản: </span>
-            {company.bank_account}
+            {COMPANY.bank_account}
           </p>
           <p>
             <span className="text-zinc-500">Ngân hàng: </span>
-            {company.bank_name} — {company.bank_branch}
+            {COMPANY.bank_name} — {COMPANY.bank_branch}
           </p>
           <p>
             <span className="text-zinc-500">Nội dung: </span>

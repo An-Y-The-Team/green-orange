@@ -5,10 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 import {
   Dialog,
@@ -19,10 +16,10 @@ import {
   DialogTitle,
 } from "@yan/ui/components/dialog";
 
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+
 import { deleteCrewMember, updateCrewMember } from "../../actions/members";
 import { CrewMemberStatus } from "../../enums";
-
-const initialState: ServerActionState = { success: false };
 
 export function MemberActions({
   id,
@@ -36,7 +33,7 @@ export function MemberActions({
 
   const [leaveState, leaveAction] = useActionState(
     updateCrewMember.bind(null, id),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [leavePending, startLeave] = useTransition();
   useServerAction(leaveState, leavePending, {
@@ -46,7 +43,7 @@ export function MemberActions({
 
   const [deleteState, deleteAction] = useActionState(
     deleteCrewMember.bind(null, id),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [deletePending, startDelete] = useTransition();
   useServerAction(deleteState, deletePending, {

@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { crewMemberStatus, employmentType } from "@/constants/labels";
+import { CREW_MEMBER_STATUSES, EMPLOYMENT_TYPES } from "@/constants/labels";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { EmploymentType } from "../../enums";
@@ -41,7 +41,7 @@ export function RosterTab({ members }: { members: CrewMember[] }) {
           </TableHeader>
           <TableBody>
             {members.map((member) => {
-              const status = labelOf(crewMemberStatus, member.status);
+              const status = labelOf(CREW_MEMBER_STATUSES, member.status);
               return (
                 <TableRow key={member.id}>
                   <TableCell className="font-medium">
@@ -66,7 +66,7 @@ export function RosterTab({ members }: { members: CrewMember[] }) {
                           : "secondary"
                       }
                     >
-                      {employmentType[member.employment_type] ??
+                      {EMPLOYMENT_TYPES[member.employment_type] ??
                         member.employment_type}
                     </Badge>
                   </TableCell>

@@ -8,7 +8,11 @@ import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
-import { quoteChannel, quoteStatus, quoteSuperseded } from "@/constants/labels";
+import {
+  QUOTE_CHANNELS,
+  QUOTE_STATUSES,
+  QUOTE_SUPERSEDED_LABEL,
+} from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { storedTotals } from "@/utils/quote-totals/quote-totals";
@@ -34,8 +38,8 @@ export default async function QuoteDocumentPage({
   const superseded = versions.some((v) => v?.version > quote.version);
   // Status is a raw wire value — an unmapped one must not crash the printable.
   const badge = superseded
-    ? quoteSuperseded
-    : (quoteStatus?.[quote?.status] ?? {
+    ? QUOTE_SUPERSEDED_LABEL
+    : (QUOTE_STATUSES?.[quote?.status] ?? {
         label: quote?.status,
         variant: "secondary" as const,
       });
@@ -107,7 +111,7 @@ export default async function QuoteDocumentPage({
                 {quote.send_logs
                   .map(
                     (l) =>
-                      `${quoteChannel?.[l?.channel] ?? l?.channel} ${formatDate(l?.sent_at)} (${l?.sent_by})`
+                      `${QUOTE_CHANNELS?.[l?.channel] ?? l?.channel} ${formatDate(l?.sent_at)} (${l?.sent_by})`
                   )
                   .join(" · ")}
               </p>

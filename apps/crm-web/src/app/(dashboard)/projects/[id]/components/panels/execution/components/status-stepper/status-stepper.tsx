@@ -16,7 +16,7 @@ import {
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { executionSubStatus } from "@/constants/labels";
+import { EXECUTION_SUB_STATUSES } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -70,7 +70,7 @@ export function StatusStepper({ project }: { project: Project }) {
       <div className="flex flex-wrap items-center gap-2">
         {EXECUTION_STEPS.map((step, i) => {
           const reached = i <= currentIndex;
-          const badge = labelOf(executionSubStatus, step);
+          const badge = labelOf(EXECUTION_SUB_STATUSES, step);
           return (
             <span key={step} className="flex items-center gap-2">
               {i > 0 ? <span className="text-muted-foreground">──</span> : null}
@@ -95,7 +95,7 @@ export function StatusStepper({ project }: { project: Project }) {
               disabled={isPending}
               onClick={() => setPending(target)}
             >
-              → {labelOf(executionSubStatus, target).label}
+              → {labelOf(EXECUTION_SUB_STATUSES, target).label}
             </Button>
           ))}
         </div>
@@ -114,7 +114,7 @@ export function StatusStepper({ project }: { project: Project }) {
           <DialogHeader>
             <DialogTitle>
               Chuyển sang:{" "}
-              {pending ? labelOf(executionSubStatus, pending).label : ""}
+              {pending ? labelOf(EXECUTION_SUB_STATUSES, pending).label : ""}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-1.5">

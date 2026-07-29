@@ -21,6 +21,7 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import {
@@ -30,8 +31,6 @@ import {
 import { updateProject } from "../../../../actions/update-project";
 import { AttachmentKind, ProjectStage } from "../../../../enums";
 import type { Attachment, Project, SurveyItem } from "../../../../types";
-
-const initialState: ServerActionState = { success: false };
 
 // Survey half of the stage-1 panel — a bare body, rendered by RequestPanel
 // below the appointment card once `visit_date` is set (the visit happened).
@@ -47,7 +46,7 @@ export function SurveyPanel({
   // Field edits (visit_date / survey_items / survey_note) share one action.
   const [saveState, saveAction] = useActionState(
     updateProject.bind(null, project.id),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [savePending, startSave] = useTransition();
   useServerAction(saveState, savePending, {
@@ -60,7 +59,7 @@ export function SurveyPanel({
   // Exit → move to quote, then jump to the survey-prefilled quote builder.
   const [exitState, exitAction] = useActionState(
     updateProject.bind(null, project.id),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [exitPending, startExit] = useTransition();
   useServerAction(exitState, exitPending, {
@@ -92,7 +91,7 @@ export function SurveyPanel({
 
   const [addState, addAction] = useActionState(
     addAttachment.bind(null, project.id),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [addPending, startAdd] = useTransition();
   useServerAction(addState, addPending, {
@@ -117,7 +116,7 @@ export function SurveyPanel({
   const [delState, delAction] = useActionState(
     (prev: ServerActionState, id: number) =>
       deleteAttachment(id, project.id, prev),
-    initialState
+    INITIAL_ACTION_STATE
   );
   const [delPending, startDel] = useTransition();
   useServerAction(delState, delPending, {

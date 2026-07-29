@@ -14,7 +14,7 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header/page-header";
-import { contractStatus } from "@/constants/labels";
+import { CONTRACT_STATUSES } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
@@ -61,7 +61,7 @@ export default async function ContractsPage() {
           </TableHeader>
           <TableBody>
             {contracts.map((contract) => {
-              const status = labelOf(contractStatus, contract.status);
+              const status = labelOf(CONTRACT_STATUSES, contract.status);
               return (
                 <TableRow key={contract.id}>
                   <TableCell className="font-medium">

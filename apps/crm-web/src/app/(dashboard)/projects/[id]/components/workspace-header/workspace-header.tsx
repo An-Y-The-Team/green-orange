@@ -23,7 +23,7 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { PROJECT_STAGES, projectStatus } from "@/constants/labels";
+import { PROJECT_STAGES, PROJECT_STATUSES } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
@@ -119,7 +119,7 @@ export function WorkspaceHeader({
     project.status === ProjectStatus.CANCELLED;
 
   // Same key both places it's shown — the header badge and the frozen banner.
-  const statusBadge = labelOf(projectStatus, project.status);
+  const statusBadge = labelOf(PROJECT_STATUSES, project.status);
 
   const shownContacts = [
     project.working_contact,

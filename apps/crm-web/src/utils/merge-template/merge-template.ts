@@ -15,7 +15,7 @@
  */
 import type { Contract } from "@/app/(dashboard)/contracts/types";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
-import { company } from "@/config/company";
+import { COMPANY } from "@/config/company";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 // Cycle with lexical-build (it imports CONTRACT_TOKENS from here), but a safe
@@ -55,43 +55,43 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
   // Bên A — Party A (client, from the project)
   { token: "client", label: "Bên A: Tên", example: "Vincom Retail" },
   // Bên B — Party B (our company)
-  { token: "company.name", label: "Bên B: Tên", example: company.name },
+  { token: "company.name", label: "Bên B: Tên", example: COMPANY.name },
   {
     token: "company.address",
     label: "Bên B: Địa chỉ",
-    example: company.address,
+    example: COMPANY.address,
   },
-  { token: "company.tax_id", label: "Bên B: MST", example: company.tax_id },
+  { token: "company.tax_id", label: "Bên B: MST", example: COMPANY.tax_id },
   {
     token: "company.phone",
     label: "Bên B: Điện thoại",
-    example: company.phone,
+    example: COMPANY.phone,
   },
-  { token: "company.email", label: "Bên B: Email", example: company.email },
+  { token: "company.email", label: "Bên B: Email", example: COMPANY.email },
   {
     token: "company.rep",
     label: "Bên B: Đại diện",
-    example: company.representative,
+    example: COMPANY.representative,
   },
   {
     token: "company.rep_title",
     label: "Bên B: Chức vụ",
-    example: company.representative_title,
+    example: COMPANY.representative_title,
   },
   {
     token: "company.bank_account",
     label: "Bên B: Số tài khoản",
-    example: company.bank_account,
+    example: COMPANY.bank_account,
   },
   {
     token: "company.bank_name",
     label: "Bên B: Ngân hàng",
-    example: company.bank_name,
+    example: COMPANY.bank_name,
   },
   {
     token: "company.bank_branch",
     label: "Bên B: Chi nhánh/PGD",
-    example: company.bank_branch,
+    example: COMPANY.bank_branch,
   },
   // Tài chính — from the chốt quote (total_amount is before VAT)
   { token: "value", label: "Giá trị (đã gồm VAT)", example: "38.880.000 ₫" },
@@ -133,16 +133,16 @@ export function buildContractContext(
     // Bên A
     client: contract.project?.client.name ?? "",
     // Bên B
-    "company.name": company.name,
-    "company.address": company.address,
-    "company.tax_id": company.tax_id,
-    "company.phone": company.phone,
-    "company.email": company.email,
-    "company.rep": company.representative,
-    "company.rep_title": company.representative_title,
-    "company.bank_account": company.bank_account,
-    "company.bank_name": company.bank_name,
-    "company.bank_branch": company.bank_branch,
+    "company.name": COMPANY.name,
+    "company.address": COMPANY.address,
+    "company.tax_id": COMPANY.tax_id,
+    "company.phone": COMPANY.phone,
+    "company.email": COMPANY.email,
+    "company.rep": COMPANY.representative,
+    "company.rep_title": COMPANY.representative_title,
+    "company.bank_account": COMPANY.bank_account,
+    "company.bank_name": COMPANY.bank_name,
+    "company.bank_branch": COMPANY.bank_branch,
     // Tài chính
     value: money ? formatVND(money.total) : "",
     value_before_tax: money ? formatVND(money.subtotal) : "",

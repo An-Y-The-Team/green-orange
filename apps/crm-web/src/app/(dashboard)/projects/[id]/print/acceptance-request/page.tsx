@@ -6,7 +6,7 @@ import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
-import { company } from "@/config/company";
+import { COMPANY } from "@/config/company";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import { getProject } from "../../../queries";
@@ -60,7 +60,7 @@ export default async function AcceptanceRequestPage({
           </div>
 
           <p>
-            {company.name} xin trân trọng thông báo các hạng mục thi công tại
+            {COMPANY.name} xin trân trọng thông báo các hạng mục thi công tại
             công trình <span className="font-medium">{project.name}</span> đã
             hoàn tất. Để tiến hành nghiệm thu và bàn giao, kính đề nghị Quý
             khách phối hợp cung cấp các nội dung sau:

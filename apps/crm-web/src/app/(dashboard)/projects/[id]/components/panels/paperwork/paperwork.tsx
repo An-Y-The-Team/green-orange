@@ -4,10 +4,7 @@ import { ChevronDown, Plus, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 import {
@@ -20,7 +17,8 @@ import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Input } from "@yan/ui/components/input";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { overdue, paperworkStatus } from "@/constants/labels";
+import { OVERDUE_LABEL, PAPERWORK_STATUSES } from "@/constants/labels";
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 import { labelOf } from "@/utils/label-of/label-of";
 
@@ -31,8 +29,6 @@ import {
 } from "../../../../actions/paperwork";
 import { PaperworkStatus } from "../../../../enums";
 import type { PaperworkItem, Project } from "../../../../types";
-
-const emptyState = { success: false } as ServerActionState;
 
 // One-way stepper: preparing→submitted→approved. approved is terminal.
 // The backend PATCH has no forward-only guard, so the map is the enforcement.
@@ -50,11 +46,11 @@ function PaperworkRow({
 }) {
   const [updateState, updateAction] = useActionState(
     updatePaperworkItem.bind(null, item.id, projectId),
-    emptyState
+    INITIAL_ACTION_STATE
   );
   const [deleteState, deleteAction] = useActionState(
     deletePaperworkItem.bind(null, item.id, projectId),
-    emptyState
+    INITIAL_ACTION_STATE
   );
   const [isPending, startTransition] = useTransition();
   useServerAction(updateState, isPending, {
@@ -71,7 +67,7 @@ function PaperworkRow({
   const [note, setNote] = useState(item.note ?? "");
 
   const next = NEXT[item.status];
-  const label = labelOf(paperworkStatus, item.status);
+  const label = labelOf(PAPERWORK_STATUSES, item.status);
   const isLate = isOverdue(
     item.due_date,
     item.status === PaperworkStatus.APPROVED
@@ -96,7 +92,7 @@ function PaperworkRow({
               startTransition(() => updateAction({ status: next }))
             }
           >
-            → {labelOf(paperworkStatus, next).label}
+            → {labelOf(PAPERWORK_STATUSES, next).label}
           </Button>
         ) : null}
 
@@ -113,7 +109,7 @@ function PaperworkRow({
           }}
         />
         {isLate ? (
-          <Badge variant={overdue.variant}>{overdue.label}</Badge>
+          <Badge variant={OVERDUE_LABEL.variant}>{OVERDUE_LABEL.label}</Badge>
         ) : null}
 
         <Button
@@ -164,7 +160,7 @@ function PaperworkRow({
 function AddPaperworkRow({ projectId }: { projectId: number }) {
   const [state, formAction] = useActionState(
     createPaperworkItem.bind(null, projectId),
-    emptyState
+    INITIAL_ACTION_STATE
   );
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");

@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { authEnabled } from "@/auth.config";
+import { AUTH_ENABLED } from "@/auth.config";
 import { LoginOverlay } from "@/components/login-overlay/login-overlay";
 import { SessionWatch } from "@/components/session-watch/session-watch";
 import { formatDate } from "@/utils/format-date/format-date";
@@ -20,9 +20,9 @@ export default async function FieldLayout({
 }>) {
   // Same auth gate as the dashboard — no middleware, gating lives here so the
   // deep-linked URL is preserved and the inline overlay signs in in place.
-  const session = authEnabled ? await auth() : null;
+  const session = AUTH_ENABLED ? await auth() : null;
   const needsLogin =
-    authEnabled && (!session?.user || session.error === "RefreshTokenError");
+    AUTH_ENABLED && (!session?.user || session.error === "RefreshTokenError");
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col">
@@ -37,7 +37,7 @@ export default async function FieldLayout({
           <LoginOverlay expired={Boolean(session?.error)} />
         ) : (
           <>
-            {authEnabled && <SessionWatch />}
+            {AUTH_ENABLED && <SessionWatch />}
             {children}
           </>
         )}

@@ -33,11 +33,11 @@ import { businessToday } from "./common/business-date";
 
 const prisma = new PrismaClient();
 
-const today = businessToday();
+const TODAY = businessToday();
 
 /** `n` days from today, pinned to UTC midnight — the @db.Date wire shape. */
 export const day = (n: number): Date =>
-  new Date(today.getTime() + n * 86_400_000);
+  new Date(TODAY.getTime() + n * 86_400_000);
 
 /** `hour` Vietnam wall-clock on day `n` — for `*_at` timestamps. */
 export const atHour = (n: number, hour: number): Date =>
@@ -81,7 +81,7 @@ const para = (...children: Lex[]) => lexBlock("paragraph", children);
 const heading = (text: string) =>
   lexBlock("heading", [txt(text)], { tag: "h2" });
 /** The auto báo giá block — expands to the deal quote's pricing at render. */
-const lineItems: Lex = { type: "line-items", version: 1 };
+const LINE_ITEMS: Lex = { type: "line-items", version: 1 };
 const lexDoc = (...blocks: Lex[]) =>
   JSON.stringify({ root: lexBlock("root", blocks) });
 
@@ -108,7 +108,7 @@ const contractBody = (scope: string) =>
       mergeField("project_name", "Tên công trình"),
       txt("”. Khối lượng và đơn giá theo báo giá đã chốt:")
     ),
-    lineItems,
+    LINE_ITEMS,
     heading("Điều 2: Giá trị hợp đồng"),
     para(
       txt("Tổng giá trị: "),

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@yan/ui/lib/utils";
 
-import { navItems } from "@/config/nav";
+import { NAV_ITEMS } from "@/config/nav";
 
 export function AppSidebar({ footer }: { footer?: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,7 +19,7 @@ export function AppSidebar({ footer }: { footer?: React.ReactNode }) {
         <span className="text-sm font-semibold">GreenOrange CRM</span>
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 px-2 py-2">
-        {navItems.map((item) => {
+        {NAV_ITEMS.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;

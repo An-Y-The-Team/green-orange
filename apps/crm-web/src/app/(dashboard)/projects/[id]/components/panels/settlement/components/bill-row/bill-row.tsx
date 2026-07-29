@@ -10,7 +10,7 @@ import { updateBill } from "@/app/(dashboard)/receivables/actions/update-bill";
 import { BILL_ORDER } from "@/app/(dashboard)/receivables/constants";
 import { BillStatus } from "@/app/(dashboard)/receivables/enums";
 import type { Bill } from "@/app/(dashboard)/receivables/types";
-import { billStatus } from "@/constants/labels";
+import { BILL_STATUSES } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
@@ -29,7 +29,7 @@ export function BillRow({
   const idx = BILL_ORDER.indexOf(bill.status);
   const [pending, run] = useRun(updateBill.bind(null, bill.id, projectId));
   const official = idx >= BILL_ORDER.indexOf(BillStatus.OFFICIAL);
-  const badge = labelOf(billStatus, bill.status);
+  const badge = labelOf(BILL_STATUSES, bill.status);
 
   return (
     <div className="space-y-1 rounded-lg border p-3">

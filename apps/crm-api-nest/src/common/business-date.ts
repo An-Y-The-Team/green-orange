@@ -13,11 +13,11 @@
 const BUSINESS_TZ = "Asia/Ho_Chi_Minh";
 
 // 'en-CA' renders as YYYY-MM-DD, which is the wire format for a date column.
-const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TZ });
+const FORMATTER = new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TZ });
 
 /** The business-timezone calendar date of `at`, as `YYYY-MM-DD`. */
 export const businessDateString = (at: Date = new Date()): string =>
-  formatter.format(at);
+  FORMATTER.format(at);
 
 /** Today's business date as a Date pinned to UTC midnight — for @db.Date writes. */
 export const businessToday = (at: Date = new Date()): Date =>

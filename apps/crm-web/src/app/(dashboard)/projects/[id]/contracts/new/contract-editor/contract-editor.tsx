@@ -25,7 +25,7 @@ import {
 } from "@/components/document-shell/document-shell";
 import { LexicalDocument } from "@/components/editor/lexical-document/lexical-document";
 import { RichEditor } from "@/components/editor/rich-editor/rich-editor";
-import { selectClass } from "@/components/form-bits/form-bits";
+import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { DEFAULT_HEADER_VARIANT } from "@/constants/header-variant";
 import { buildContractContext } from "@/utils/merge-template/merge-template";
 
@@ -129,7 +129,7 @@ export function ContractEditor({
           <Label htmlFor="contract-template">Mẫu hợp đồng</Label>
           <select
             id="contract-template"
-            className={selectClass}
+            className={SELECT_CLASS}
             value={templateId ?? ""}
             onChange={(e) => onPickTemplate(e.target.value)}
           >

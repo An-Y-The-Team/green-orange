@@ -81,7 +81,7 @@ render as simple stubs (facts only); panel logic is phases 3–4.
 `/projects/new`, `/projects/[id]`, `/projects`, `/dashboard` all 200.
 Notes: `POST /projects` has no `appointment_at` — `createProject` does
 POST then PATCH; `listProjectTypes` added to `projects/queries.ts`; no
-`<Select>` in `@yan/ui` (native `<select>` + `selectClass`); `@yan/ui`
+`<Select>` in `@yan/ui` (native `<select>` + `SELECT_CLASS`); `@yan/ui`
 `Button` is Base UI (`render={<Link/>}`, not `asChild`). Zone-3 Nhân sự
 (phase 5) + Thanh toán (phase 4) tabs are stubs.
 
@@ -296,7 +296,7 @@ assignments.ts`, non-blocking overlap warning from response
 four cards rendering (appointment w/ Gọi `tel:` + Bắt đầu khảo sát, quote
 Chốt/Hoãn/Hủy, execution Xác nhận hoàn tất, intake link + bottom bar).
 New `(field)` route group with its OWN layout (no middleware exists —
-auth is per-layout, so the `force-dynamic` + `authEnabled`/`auth()`/
+auth is per-layout, so the `force-dynamic` + `AUTH_ENABLED`/`auth()`/
 `needsLogin`→`<LoginOverlay/>` block was cloned from `(dashboard)/
 layout.tsx`; providers are root-level, not re-added). Reuses
 `decideQuote`/`updateProject`/`listProjects`/`listQuotes` — no new

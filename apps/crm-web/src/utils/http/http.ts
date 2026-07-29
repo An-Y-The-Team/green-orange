@@ -17,7 +17,7 @@
  * local dev credentials (AUTH_MODE=local) and cached until it 401s.
  */
 import { auth } from "@/auth";
-import { authEnabled } from "@/auth.config";
+import { AUTH_ENABLED } from "@/auth.config";
 
 export const API_URL = process.env.CRM_API_URL;
 
@@ -44,7 +44,7 @@ async function mintLocalToken(): Promise<string | undefined> {
 }
 
 async function getBearer(forceRefresh = false): Promise<string | undefined> {
-  if (authEnabled) return (await auth())?.accessToken;
+  if (AUTH_ENABLED) return (await auth())?.accessToken;
   if (process.env.CRM_API_TOKEN) return process.env.CRM_API_TOKEN;
   if (forceRefresh || !localToken) return mintLocalToken();
   return localToken;
@@ -55,7 +55,7 @@ export const SESSION_EXPIRED =
 
 // Whether a 401 should trigger a token re-mint + retry — only for the auto-mint
 // path (local mode, no explicit override). Authentik/override tokens self-heal elsewhere.
-const canRemint = () => !authEnabled && !process.env.CRM_API_TOKEN;
+const canRemint = () => !AUTH_ENABLED && !process.env.CRM_API_TOKEN;
 
 // A hung backend must become a visible error rather than a request that never
 // settles. Reads used to get this from `api.fetch`; now both reads and writes do.
@@ -92,7 +92,7 @@ async function fetchWithAuth(
   // a human message here so all ~40 server actions surface "log in again" from
   // their existing catch instead of a raw "401 Unauthorized"; reloading the page
   // then hits the layout's auth gate, which shows the login overlay.
-  if (res.status === 401 && authEnabled) throw new Error(SESSION_EXPIRED);
+  if (res.status === 401 && AUTH_ENABLED) throw new Error(SESSION_EXPIRED);
   return res;
 }
 

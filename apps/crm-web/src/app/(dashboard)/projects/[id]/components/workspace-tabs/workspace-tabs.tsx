@@ -18,7 +18,11 @@ import {
 } from "@yan/ui/components/table";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { overdue, paperworkStatus, quoteStatus } from "@/constants/labels";
+import {
+  OVERDUE_LABEL,
+  PAPERWORK_STATUSES,
+  QUOTE_STATUSES,
+} from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
@@ -102,7 +106,7 @@ function QuotesTab({ project }: { project: Project }) {
   return (
     <ul className="space-y-2">
       {quotes.map((q) => {
-        const badge = labelOf(quoteStatus, q.status);
+        const badge = labelOf(QUOTE_STATUSES, q.status);
         return (
           <li
             key={q.id}
@@ -134,7 +138,7 @@ function PaperworkTab({ items }: { items: PaperworkItem[] }) {
       </TableHeader>
       <TableBody>
         {items.map((item) => {
-          const badge = labelOf(paperworkStatus, item.status);
+          const badge = labelOf(PAPERWORK_STATUSES, item.status);
           return (
             <TableRow key={item.id}>
               <TableCell>{item.name}</TableCell>
@@ -145,7 +149,9 @@ function PaperworkTab({ items }: { items: PaperworkItem[] }) {
                     item.due_date,
                     item.status === PaperworkStatus.APPROVED
                   ) ? (
-                    <Badge variant={overdue.variant}>{overdue.label}</Badge>
+                    <Badge variant={OVERDUE_LABEL.variant}>
+                      {OVERDUE_LABEL.label}
+                    </Badge>
                   ) : null}
                 </div>
               </TableCell>

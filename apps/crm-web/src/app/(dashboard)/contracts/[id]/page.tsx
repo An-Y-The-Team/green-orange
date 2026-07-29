@@ -10,7 +10,7 @@ import {
 } from "@/components/document-shell/document-shell";
 import { DocxExportButton } from "@/components/editor/docx-export-button/docx-export-button";
 import { LexicalDocument } from "@/components/editor/lexical-document/lexical-document";
-import { company } from "@/config/company";
+import { COMPANY } from "@/config/company";
 import { DEFAULT_HEADER_VARIANT } from "@/constants/header-variant";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -135,9 +135,9 @@ export default async function ContractDocumentPage({
             <p className="font-semibold uppercase">
               Bên B (Nhà cung cấp dịch vụ)
             </p>
-            <p>{company.name}</p>
+            <p>{COMPANY.name}</p>
             <p className="text-zinc-600">
-              {company.address} · MST: {company.tax_id}
+              {COMPANY.address} · MST: {COMPANY.tax_id}
             </p>
           </div>
         </div>

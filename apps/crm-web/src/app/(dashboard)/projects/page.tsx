@@ -14,7 +14,7 @@ import {
 
 import { PageHeader } from "@/components/page-header/page-header";
 import { TablePager } from "@/components/table-pager/table-pager";
-import { PROJECT_STAGES, projectStatus } from "@/constants/labels";
+import { PROJECT_STAGES, PROJECT_STATUSES } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 import { pageFromParam } from "@/utils/page-param/page-param";
@@ -74,7 +74,7 @@ export default async function ProjectsPage({
           <TableBody>
             {visible.map((project) => {
               const stage = labelOf(PROJECT_STAGES, project.stage);
-              const status = labelOf(projectStatus, project.status);
+              const status = labelOf(PROJECT_STATUSES, project.status);
               return (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium">

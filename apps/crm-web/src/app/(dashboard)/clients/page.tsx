@@ -14,7 +14,7 @@ import {
 
 import { PageHeader } from "@/components/page-header/page-header";
 import { TablePager } from "@/components/table-pager/table-pager";
-import { clientType } from "@/constants/labels";
+import { CLIENT_TYPES } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { pageFromParam } from "@/utils/page-param/page-param";
 
@@ -79,7 +79,7 @@ export default async function ClientsPage({
                         : "outline"
                     }
                   >
-                    {clientType[client.type]}
+                    {CLIENT_TYPES[client.type]}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">

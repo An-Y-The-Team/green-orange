@@ -5,27 +5,19 @@ import { useRouter } from "next/navigation";
 import { useActionState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
-import { fieldError, selectClass } from "@/components/form-bits/form-bits";
-import { clientType } from "@/constants/labels";
+import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
+import { CLIENT_TYPES } from "@/constants/labels";
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 
 import { createClient } from "../../actions/create-client";
 import { ClientType } from "../../enums";
 import { type CreateClientFormValues, createClientSchema } from "../../schema";
-
-const initialState: ServerActionState = {
-  success: false,
-  message: null,
-  errors: {},
-};
 
 // Standalone client create. Core fields (name, type, client email); companies
 // add locations/contacts inline on the detail page; individuals need an address
@@ -33,7 +25,10 @@ const initialState: ServerActionState = {
 // data isn't persisted, and in live mode the new client shows there.
 export function ClientForm() {
   const router = useRouter();
-  const [state, formAction] = useActionState(createClient, initialState);
+  const [state, formAction] = useActionState(
+    createClient,
+    INITIAL_ACTION_STATE
+  );
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<CreateClientFormValues>({
@@ -75,14 +70,14 @@ export function ClientForm() {
             <Label htmlFor="type">Loại khách hàng</Label>
             <select
               id="type"
-              className={selectClass}
+              className={SELECT_CLASS}
               {...form.register("type")}
             >
               <option value={ClientType.COMPANY}>
-                {clientType[ClientType.COMPANY]}
+                {CLIENT_TYPES[ClientType.COMPANY]}
               </option>
               <option value={ClientType.INDIVIDUAL}>
-                {clientType[ClientType.INDIVIDUAL]}
+                {CLIENT_TYPES[ClientType.INDIVIDUAL]}
               </option>
             </select>
           </div>

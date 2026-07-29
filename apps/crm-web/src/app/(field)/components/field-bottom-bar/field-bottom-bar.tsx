@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@yan/ui/lib/utils";
 
-const items = [
+const FIELD_NAV_ITEMS = [
   { label: "Hôm nay", href: "/field", icon: Home },
   { label: "Tiếp nhận", href: "/projects/new", icon: Plus },
   { label: "Máy tính", href: "/dashboard", icon: Monitor },
@@ -17,7 +17,7 @@ export function FieldBottomBar() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md border-t border-border bg-background">
-      {items.map((item) => {
+      {FIELD_NAV_ITEMS.map((item) => {
         const active =
           pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;

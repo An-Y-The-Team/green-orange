@@ -10,8 +10,8 @@ import { Button } from "@yan/ui/components/button";
 import { FormLabel } from "@yan/ui/components/form";
 import { Input } from "@yan/ui/components/input";
 
-import { fieldError, selectClass } from "@/components/form-bits/form-bits";
-import { clientType } from "@/constants/labels";
+import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
+import { CLIENT_TYPES } from "@/constants/labels";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 
 import { createContact } from "../../../../../clients/actions/contacts";
@@ -154,12 +154,12 @@ export function QuickCreateClient({
       </div>
       <div className="space-y-1">
         <FormLabel>Loại khách hàng</FormLabel>
-        <select className={selectClass} {...form.register("type")}>
+        <select className={SELECT_CLASS} {...form.register("type")}>
           <option value={ClientType.COMPANY}>
-            {clientType[ClientType.COMPANY]}
+            {CLIENT_TYPES[ClientType.COMPANY]}
           </option>
           <option value={ClientType.INDIVIDUAL}>
-            {clientType[ClientType.INDIVIDUAL]}
+            {CLIENT_TYPES[ClientType.INDIVIDUAL]}
           </option>
         </select>
       </div>

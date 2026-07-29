@@ -9,7 +9,7 @@ import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
-import { settlementStatus } from "@/constants/labels";
+import { SETTLEMENT_STATUSES } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
@@ -31,7 +31,7 @@ export default async function SettlementDocumentPage({
   const settlement = settlements.find((s) => s.id === Number(settlementId));
   if (!settlement) notFound();
 
-  const badge = labelOf(settlementStatus, settlement.status);
+  const badge = labelOf(SETTLEMENT_STATUSES, settlement.status);
 
   return (
     <>

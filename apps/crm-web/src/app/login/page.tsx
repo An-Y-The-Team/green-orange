@@ -9,19 +9,19 @@ import {
 } from "@yan/ui/components/card";
 
 import { auth, signIn } from "@/auth";
-import { authEnabled } from "@/auth.config";
+import { AUTH_ENABLED } from "@/auth.config";
 
-// authEnabled comes from a runtime-only env var (AUTH_AUTHENTIK_ISSUER), but it
+// AUTH_ENABLED comes from a runtime-only env var (AUTH_AUTHENTIK_ISSUER), but it
 // gates an early redirect that runs before any dynamic API. Without this, Next
-// prerenders /login at BUILD time (where auth env is absent → authEnabled=false)
+// prerenders /login at BUILD time (where auth env is absent → AUTH_ENABLED=false)
 // into a permanent "/login → /dashboard" redirect, which loops against the
 // runtime middleware that sees auth as enabled. Force per-request rendering so
-// authEnabled reflects the running container's env.
+// AUTH_ENABLED reflects the running container's env.
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   // No Authentik configured → there's nothing to log into; go straight in.
-  if (!authEnabled) redirect("/dashboard");
+  if (!AUTH_ENABLED) redirect("/dashboard");
 
   const session = await auth();
   if (session?.user) redirect("/dashboard");

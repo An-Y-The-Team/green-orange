@@ -17,7 +17,11 @@ import { Label } from "@yan/ui/components/label";
 import { markMilestonePaid } from "@/app/(dashboard)/receivables/actions/milestones";
 import { MilestoneStatus } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
-import { milestoneStatus, milestoneType, overdue } from "@/constants/labels";
+import {
+  MILESTONE_STATUSES,
+  MILESTONE_TYPES,
+  OVERDUE_LABEL,
+} from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -37,7 +41,9 @@ export function MilestoneRow({
   const [paidDate, setPaidDate] = useState(todayISO);
   const paid = milestone.status === MilestoneStatus.PAID;
   const late = isOverdue(milestone.due_date, paid);
-  const badge = late ? overdue : labelOf(milestoneStatus, milestone.status);
+  const badge = late
+    ? OVERDUE_LABEL
+    : labelOf(MILESTONE_STATUSES, milestone.status);
 
   const [pending, run] = useRun(
     markMilestonePaid.bind(null, milestone.id, projectId, milestone.status),
@@ -47,7 +53,7 @@ export function MilestoneRow({
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
       <span className="font-medium">
-        {milestoneType[milestone.type] ?? milestone.type}
+        {MILESTONE_TYPES[milestone.type] ?? milestone.type}
       </span>
       <span className="tabular-nums">{formatVND(milestone.amount)}</span>
       {milestone.due_date ? (
