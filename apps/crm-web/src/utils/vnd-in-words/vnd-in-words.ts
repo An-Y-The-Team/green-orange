@@ -54,9 +54,23 @@ function readGroup(num: number, leadingZeros: boolean): string {
   return parts.join(" ");
 }
 
-/** Capitalised Vietnamese words for `amount` VND, suffixed with "đồng". */
+/**
+ * Capitalised Vietnamese words for `amount` VND, suffixed with "đồng".
+ * Rounds like `formatVND` (the numeral printed beside it); a negative reads
+ * "Âm …"; non-finite reads "Không đồng".
+ */
 export function vndInWords(amount: number): string {
-  const value = Math.floor(Math.abs(amount));
+  // Non-finite in = garbage upstream (a missing total_amount reaches here as
+  // NaN). Guard first: Infinity used to spin the group loop forever (Infinity %
+  // 1000 is NaN and Infinity / 1000 is still Infinity), hanging whatever was
+  // rendering the contract.
+  if (!Number.isFinite(amount)) return "Không đồng";
+
+  // Round, don't floor, and keep the sign: these words are printed right next
+  // to formatVND(amount), which rounds and prints "-". Flooring made 1500.9
+  // read "một nghìn năm trăm" beside the numeral "1.501 ₫".
+  const rounded = Math.round(amount);
+  const value = Math.abs(rounded);
   if (value === 0) return "Không đồng";
 
   // Split into 3-digit groups, least-significant first.
@@ -75,6 +89,6 @@ export function vndInWords(amount: number): string {
     spoken.push(`${words} ${SCALES[i]}`.trim());
   }
 
-  const sentence = `${spoken.join(" ")} đồng`;
+  const sentence = `${rounded < 0 ? "âm " : ""}${spoken.join(" ")} đồng`;
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }

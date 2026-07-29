@@ -122,6 +122,16 @@ export function lexicalPlainText(body: string): string {
     if (typeof n.text === "string") out.push(n.text);
     n.children?.forEach(walk);
   };
-  walk(lexicalRoot(body));
+
+  try {
+    walk(lexicalRoot(body));
+  } catch {
+    // The walk needs guarding too, not just the parse: a hand-edited body can be
+    // valid JSON whose `children` isn't an array. This backs the contract
+    // schema's presence check, so it must answer "empty", never throw at
+    // validation time.
+    return "";
+  }
+
   return out.join("").trim();
 }

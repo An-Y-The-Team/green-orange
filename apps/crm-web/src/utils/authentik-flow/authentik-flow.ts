@@ -65,19 +65,22 @@ export async function headlessLogin(
   const clientSecret = process.env.AUTH_AUTHENTIK_SECRET;
   if (!issuer || !clientId || !clientSecret)
     return { ok: false, reason: LoginFailureReason.ERROR };
-  const origin = new URL(issuer).origin;
-
-  // Must match a redirect URI registered on the Authentik app. No browser ever
-  // lands on it in this path — it only anchors the code exchange.
-  const appUrl = (
-    process.env.AUTH_URL ?? `http://localhost:${process.env.PORT ?? 3002}`
-  ).replace(/\/$/, "");
-  const redirectUri = `${appUrl}/api/auth/callback/authentik`;
-
-  const jar = new CookieJar();
-  const { verifier, challenge } = await pkce();
-
+  // Everything below is inside the try: a misconfigured issuer used to throw
+  // out of here (`new URL("auth.example.com")`), and NextAuth turns a throw
+  // from authorize() into a 500 instead of a "login failed".
   try {
+    const origin = new URL(issuer).origin;
+
+    // Must match a redirect URI registered on the Authentik app. No browser
+    // ever lands on it in this path — it only anchors the code exchange.
+    const appUrl = (
+      process.env.AUTH_URL ?? `http://localhost:${process.env.PORT ?? 3002}`
+    ).replace(/\/$/, "");
+    const redirectUri = `${appUrl}/api/auth/callback/authentik`;
+
+    const jar = new CookieJar();
+    const { verifier, challenge } = await pkce();
+
     // 1. Kick off authorize (PKCE); unauthenticated → 302 into the login flow.
     const authorize = await fetch(
       `${origin}/application/o/authorize/?${new URLSearchParams({
