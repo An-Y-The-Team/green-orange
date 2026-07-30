@@ -31,7 +31,8 @@ The prod stack's config is split by sensitivity:
 
 - **Non-secret config** (image tags, domains, public URLs, `AUTHENTIK_TAG`, admin
   email) lives in the **tracked `deploy/deploy.env`**. Edit it on GitHub or in
-  Dockhand. CI rewrites the three `*_IMAGE` lines on each release.
+  Dockhand. CI rewrites the four `*_IMAGE` lines on each release (`web`, `crm-web`,
+  `crm-api`, `crm-api-nest`).
 - **Secrets** (`POSTGRES_PASSWORD`, `DIRECTUS_KEY`/`SECRET`/`ADMIN_PASSWORD`/
   `STATIC_TOKEN`/`PREVIEW_SECRET`, `CRM_AUTH_SECRET`, `CRM_OIDC_CLIENT_SECRET`,
   `AUTHENTIK_SECRET_KEY`/`BOOTSTRAP_PASSWORD`/`BOOTSTRAP_TOKEN`) live **only in
@@ -519,6 +520,30 @@ deploy would do:
 docker exec "$PG" psql -U postgres -d crm_nest \
   -c "select relname, n_live_tup from pg_stat_user_tables order by n_live_tup desc;"
 ```
+
+**2b. Post-cutover migrations (v2 merge) — two that aren't plain schema adds.**
+The rest of the v2 migrations are additive (`client_email`, `quote_item_category`,
+`ui_design_deltas`, `fk_indexes`, `soft_gates_auto_advance_standalone`) and apply
+unattended without comment. These two don't:
+
+- `20260725010000_settlement_one_per_project` **fails loudly by design**: Settlement
+  is now 1:1 with Project, and rather than delete a financial record it raises if any
+  project has two, naming the project ids. Because `prisma migrate deploy` runs in the
+  entrypoint, a failure means the container **exits and restarts in a loop** and the
+  migration is recorded as failed — the app is down until it's fixed. Merge the
+  duplicates by hand (keep the signed/latest settlement, delete the others with their
+  bills), then let the container restart. If Prisma still refuses because of the failed
+  entry: `docker exec <crm-api-nest> npx prisma migrate resolve --rolled-back 20260725010000_settlement_one_per_project`.
+  Pre-flight check (safe to run any time):
+
+  ```bash
+  docker exec "$PG" psql -U postgres -d crm_nest -c \
+    'SELECT project_id, count(*) FROM "Settlement" GROUP BY project_id HAVING count(*) > 1;'
+  ```
+
+- `20260725000000_merge_request_survey_stage` is a **data rewrite with no down path**:
+  stages 1+2 collapse, so every project with `stage='survey'` becomes `stage='request'`.
+  Rolling back to a pre-merge image does not restore the distinction.
 
 **3. Env — no new secrets.** It reuses `POSTGRES_USER`/`POSTGRES_PASSWORD` (for its
 `crm_nest` DATABASE_URL), `AUTH_DOMAIN`, and `CRM_OIDC_CLIENT_ID`. In prod it runs
