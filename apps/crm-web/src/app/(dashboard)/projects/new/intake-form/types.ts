@@ -28,3 +28,10 @@ export type QuickCreateResult = {
   contact?: Contact;
   location?: Location;
 };
+
+/**
+ * Imperative handle on the quick-create block so the intake form can save a
+ * filled-but-unsaved client on its own submit. Resolves to whether a client was
+ * created (`false` = its own validation/API errors are now on screen).
+ */
+export type QuickCreateHandle = { submit: () => Promise<boolean> };

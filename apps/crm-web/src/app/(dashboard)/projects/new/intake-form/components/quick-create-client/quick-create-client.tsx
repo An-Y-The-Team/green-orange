@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTransition } from "react";
+import { type Ref, useImperativeHandle, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -24,7 +24,11 @@ import {
   quickClientSchema,
 } from "../../../../schema";
 import { DEFAULT_QUICK_CLIENT_VALUES } from "../../constants";
-import type { ClientOption, QuickCreateResult } from "../../types";
+import type {
+  ClientOption,
+  QuickCreateHandle,
+  QuickCreateResult,
+} from "../../types";
 
 /** Nullable string field off an untyped payload — mirrors the API's `| null`. */
 const str = (value: unknown) => (typeof value === "string" ? value : null);
@@ -80,10 +84,12 @@ function toLocation(data: unknown, clientId: number): Location | null {
  */
 export function QuickCreateClient({
   onCreated,
+  ref,
 }: {
-  onCreated: (result: QuickCreateResult) => void;
+  onCreated: (result: QuickCreateResult) => void | Promise<void>;
+  ref?: Ref<QuickCreateHandle>;
 }) {
-  const [pending, start] = useTransition();
+  const [pending, setPending] = useState(false);
 
   const form = useForm<QuickClientFormValues>({
     resolver: zodResolver(quickClientSchema),
@@ -92,8 +98,9 @@ export function QuickCreateClient({
   });
   const type = useWatch({ control: form.control, name: "type" });
 
-  const submit = (values: QuickClientFormValues) => {
-    start(async () => {
+  const runCreate = async (values: QuickClientFormValues) => {
+    setPending(true);
+    try {
       const isCompany = values.type === ClientType.COMPANY;
       const clientRes = await createClient(INITIAL_ACTION_STATE, {
         name: values.name,
@@ -105,13 +112,13 @@ export function QuickCreateClient({
         toast.error("Lỗi", {
           description: clientRes.message ?? "Không thể tạo khách hàng.",
         });
-        return;
+        return false;
       }
       form.reset();
 
       if (!isCompany) {
-        onCreated({ client, type: values.type });
-        return;
+        await onCreated({ client, type: values.type });
+        return true;
       }
 
       const [contactRes, locationRes] = await Promise.all([
@@ -137,13 +144,28 @@ export function QuickCreateClient({
             locationRes.message ||
             "Không thể tạo liên hệ/địa điểm.",
         });
-        onCreated({ client, type: values.type });
-        return;
+        await onCreated({ client, type: values.type });
+        return true;
       }
 
-      onCreated({ client, type: values.type, contact, location });
-    });
+      await onCreated({ client, type: values.type, contact, location });
+      return true;
+    } finally {
+      setPending(false);
+    }
   };
+
+  // Awaitable so the intake form can save this block on its own submit; any
+  // validation error lands here, in view, instead of on the select above.
+  const submit = async () => {
+    let created = false;
+    await form.handleSubmit(async (values) => {
+      created = await runCreate(values);
+    })();
+    return created;
+  };
+
+  useImperativeHandle(ref, () => ({ submit }));
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
@@ -213,7 +235,7 @@ export function QuickCreateClient({
           type="button"
           size="sm"
           disabled={pending}
-          onClick={form.handleSubmit(submit)}
+          onClick={() => void submit()}
         >
           {pending ? "Đang tạo..." : "Tạo khách hàng"}
         </Button>

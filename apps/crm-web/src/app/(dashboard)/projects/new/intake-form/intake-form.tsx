@@ -4,7 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import {
   type ChangeEvent,
+  type FormEvent,
   useActionState,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -51,6 +53,7 @@ import type {
   ClientDetail,
   ClientOption,
   Prefill,
+  QuickCreateHandle,
   QuickCreateResult,
 } from "./types";
 
@@ -76,6 +79,8 @@ export function IntakeForm({
     () => initialClientDetail ?? null
   );
   const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [isSavingClient, setIsSavingClient] = useState(false);
+  const quickCreate = useRef<QuickCreateHandle>(null);
   const [nameTouched, setNameTouched] = useState(false);
   const [apptDate, setApptDate] = useState(todayISO);
   const [apptTime, setApptTime] = useState(nowHHmm);
@@ -127,31 +132,34 @@ export function IntakeForm({
     );
   }
 
+  async function applyClient(id: number) {
+    const d = await loadClient(id);
+    setDetail(d);
+    if (d && d.type === ClientType.INDIVIDUAL && d.locations[0]) {
+      form.setValue("location_id", d.locations[0].id, { shouldValidate: true });
+      maybeSuggestName(form.getValues("type_ids"), d.locations[0].id, d);
+    }
+  }
+
   // Load a client's contacts/locations for the cascading selects. For
   // individuals the backend owns the single contact/location, so we just
-  // auto-pick the returned location and hide those selects.
+  // auto-pick the returned location and hide those selects. Returns the load so
+  // the submit path can wait for the auto-picked location.
   function selectClient(id: number) {
     form.setValue("client_id", id, { shouldValidate: true });
     form.setValue("location_id", 0);
     form.setValue("working_contact_id", undefined);
     form.setValue("decision_maker_contact_id", undefined);
     setDetail(null);
-    if (!id) return;
-    startDetail(async () => {
-      const d = await loadClient(id);
-      setDetail(d);
-      if (d && d.type === ClientType.INDIVIDUAL && d.locations[0]) {
-        form.setValue("location_id", d.locations[0].id, {
-          shouldValidate: true,
-        });
-        maybeSuggestName(form.getValues("type_ids"), d.locations[0].id, d);
-      }
-    });
+    if (!id) return Promise.resolve();
+    const load = applyClient(id);
+    startDetail(() => load);
+    return load;
   }
 
   // Quick-create finished: add the option, then pre-select whatever came back so
   // the intake form is immediately usable.
-  function handleQuickCreated({
+  async function handleQuickCreated({
     client,
     type,
     contact,
@@ -161,7 +169,7 @@ export function IntakeForm({
     setShowQuickCreate(false);
 
     if (!contact || !location) {
-      selectClient(client.id);
+      await selectClient(client.id);
       return;
     }
 
@@ -194,12 +202,25 @@ export function IntakeForm({
     );
   };
 
+  // The operator often fills the quick-create block and hits "Tạo công trình"
+  // without saving the client first — save it for them, since the resulting
+  // "Khách hàng" error sits off-screen above and reads as a dead button.
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (showQuickCreate && !form.getValues("client_id")) {
+      setIsSavingClient(true);
+      const created = await quickCreate.current?.submit();
+      setIsSavingClient(false);
+      if (!created) return;
+    }
+    await form.handleSubmit(onValid)();
+  };
+
+  const isBusy = isPending || isSavingClient;
+
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onValid)}
-        className="max-w-2xl space-y-6"
-      >
+      <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
         <Card>
           <CardContent className="space-y-4">
             {/* Giai đoạn bắt đầu — default Yêu cầu; later stages = direct
@@ -266,7 +287,10 @@ export function IntakeForm({
             </div>
 
             {showQuickCreate ? (
-              <QuickCreateClient onCreated={handleQuickCreated} />
+              <QuickCreateClient
+                ref={quickCreate}
+                onCreated={handleQuickCreated}
+              />
             ) : null}
 
             {detail && !isIndividual ? (
@@ -356,8 +380,8 @@ export function IntakeForm({
           >
             Hủy
           </Button>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Đang tạo..." : "Tạo công trình"}
+          <Button type="submit" disabled={isBusy}>
+            {isBusy ? "Đang tạo..." : "Tạo công trình"}
           </Button>
         </div>
       </form>
