@@ -202,6 +202,14 @@ model Contract {
   // printable-contract feature, kept from v1:
   template_id Int?
   body        String? // Lexical editorState JSON, opaque
+  // Signature footer (per-contract signer lines); B side falls back to the
+  // company representative when unset, labels to ĐẠI DIỆN BÊN A/B.
+  rep_a_label String?
+  rep_a_name  String?
+  rep_a_title String?
+  rep_b_label String?
+  rep_b_name  String?
+  rep_b_title String?
 
   project  Project?          @relation(fields: [project_id], references: [id])
   template ContractTemplate? @relation(fields: [template_id], references: [id])

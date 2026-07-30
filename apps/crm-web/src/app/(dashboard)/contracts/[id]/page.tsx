@@ -130,7 +130,14 @@ export default async function ContractDocumentPage({
           }
         >
           <LexicalDocument body={body} ctx={ctx} lineItems={lineItems} />
-          <SignatureBlocks />
+          <SignatureBlocks
+            leftLabel={contract.rep_a_label ?? undefined}
+            leftName={contract.rep_a_name ?? undefined}
+            leftTitle={contract.rep_a_title ?? undefined}
+            rightLabel={contract.rep_b_label ?? undefined}
+            rightName={contract.rep_b_name ?? undefined}
+            rightTitle={contract.rep_b_title ?? undefined}
+          />
         </DocumentShell>
       </>
     );
@@ -199,7 +206,14 @@ export default async function ContractDocumentPage({
           </div>
         )}
 
-        <SignatureBlocks />
+        <SignatureBlocks
+          leftLabel={contract.rep_a_label ?? undefined}
+          leftName={contract.rep_a_name ?? undefined}
+          leftTitle={contract.rep_a_title ?? undefined}
+          rightLabel={contract.rep_b_label ?? undefined}
+          rightName={contract.rep_b_name ?? undefined}
+          rightTitle={contract.rep_b_title ?? undefined}
+        />
       </DocumentShell>
     </>
   );

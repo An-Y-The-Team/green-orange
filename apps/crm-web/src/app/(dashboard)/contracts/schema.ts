@@ -29,11 +29,23 @@ export type ContractTemplateFormValues = z.infer<typeof contractTemplateSchema>;
 // Hợp đồng create/edit — contracts are born from a project (stage-4 panel).
 // The template body is pre-filled into `body` client-side (the server never
 // copies it), so `body` is a plain optional editorState string here.
+// Signature footer signer lines — null clears one (B side then falls back to
+// the company representative).
+const repFields = {
+  rep_a_label: z.string().nullable().optional(),
+  rep_a_name: z.string().nullable().optional(),
+  rep_a_title: z.string().nullable().optional(),
+  rep_b_label: z.string().nullable().optional(),
+  rep_b_name: z.string().nullable().optional(),
+  rep_b_title: z.string().nullable().optional(),
+};
+
 export const createContractSchema = z.object({
   project_id: z.number().int().positive().optional(), // optional = standalone
   template_id: z.number().int().positive().optional(),
   body: z.string().optional(),
   note: z.string().optional(),
+  ...repFields,
 });
 export type CreateContractFormValues = z.infer<typeof createContractSchema>;
 
@@ -41,5 +53,6 @@ export const updateContractSchema = z.object({
   template_id: z.number().int().positive().optional(),
   body: z.string().optional(),
   note: z.string().optional(),
+  ...repFields,
 });
 export type UpdateContractFormValues = z.infer<typeof updateContractSchema>;

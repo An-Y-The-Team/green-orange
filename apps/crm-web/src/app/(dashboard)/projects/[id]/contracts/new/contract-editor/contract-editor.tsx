@@ -18,6 +18,7 @@ import type { Quote } from "@/app/(dashboard)/quotes/types";
 import { PageEditor } from "@/components/editor/page-editor/page-editor";
 import { SaveStatusBadge, useAutosave } from "@/components/editor/use-autosave";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
+import { COMPANY } from "@/config/company";
 import { DEFAULT_HEADER_VARIANT } from "@/constants/header-variant";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import {
@@ -28,6 +29,85 @@ import {
   buildContractContext,
   resolveMergeFieldText,
 } from "@/utils/merge-template/merge-template";
+
+/** Signature footer lines, as edited (empty string = unset → fallback). */
+type Reps = {
+  rep_a_label: string;
+  rep_a_name: string;
+  rep_a_title: string;
+  rep_b_label: string;
+  rep_b_name: string;
+  rep_b_title: string;
+};
+
+/**
+ * The signature footer as an editable part of the sheet: SignatureBlocks'
+ * layout with the column label and signer name/title lines as inline inputs.
+ * Placeholders show what prints when a line is left empty (the default
+ * ĐẠI DIỆN BÊN A/B labels; the company representative on Bên B).
+ */
+function EditableSignatureBlocks({
+  reps,
+  onChange,
+}: {
+  reps: Reps;
+  onChange: (patch: Partial<Reps>) => void;
+}) {
+  const line =
+    "w-full bg-transparent text-center outline-none placeholder:italic placeholder:text-zinc-300";
+  const columns = [
+    {
+      key: "a",
+      labelKey: "rep_a_label",
+      nameKey: "rep_a_name",
+      titleKey: "rep_a_title",
+      labelPlaceholder: "ĐẠI DIỆN BÊN A",
+      namePlaceholder: "Họ tên người ký",
+      titlePlaceholder: "Chức vụ",
+    },
+    {
+      key: "b",
+      labelKey: "rep_b_label",
+      nameKey: "rep_b_name",
+      titleKey: "rep_b_title",
+      labelPlaceholder: "ĐẠI DIỆN BÊN B",
+      namePlaceholder: COMPANY.representative,
+      titlePlaceholder: COMPANY.representative_title,
+    },
+  ] as const;
+
+  return (
+    <div className="mt-10 grid grid-cols-2 gap-8 text-center text-xs">
+      {columns.map((col) => (
+        <div key={col.key}>
+          <input
+            aria-label={`${col.labelPlaceholder} — nhãn cột`}
+            className={`${line} font-semibold uppercase placeholder:not-italic placeholder:font-semibold`}
+            placeholder={col.labelPlaceholder}
+            value={reps[col.labelKey]}
+            onChange={(e) => onChange({ [col.labelKey]: e.target.value })}
+          />
+          <p className="mt-1 italic text-zinc-500">(Ký, ghi rõ họ tên)</p>
+          <div className="h-20" />
+          <input
+            aria-label={`${col.labelPlaceholder} — họ tên`}
+            className={`${line} font-semibold uppercase`}
+            placeholder={col.namePlaceholder}
+            value={reps[col.nameKey]}
+            onChange={(e) => onChange({ [col.nameKey]: e.target.value })}
+          />
+          <input
+            aria-label={`${col.labelPlaceholder} — chức vụ`}
+            className={`${line} text-zinc-600`}
+            placeholder={col.titlePlaceholder}
+            value={reps[col.titleKey]}
+            onChange={(e) => onChange({ [col.titleKey]: e.target.value })}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Google-Docs-style contract authoring: one editable A4 page (no separate
@@ -95,19 +175,40 @@ export function ContractEditor({
     )
   );
 
+  // Labels prefill with the standard text (still editable); clearing one
+  // falls back to the same default at print time.
+  const [reps, setReps] = useState<Reps>({
+    rep_a_label: contract?.rep_a_label ?? "ĐẠI DIỆN BÊN A",
+    rep_a_name: contract?.rep_a_name ?? "",
+    rep_a_title: contract?.rep_a_title ?? "",
+    rep_b_label: contract?.rep_b_label ?? "ĐẠI DIỆN BÊN B",
+    rep_b_name: contract?.rep_b_name ?? "",
+    rep_b_title: contract?.rep_b_title ?? "",
+  });
+
   // Refs (not state) so the debounced persist always sees the latest.
   const bodyRef = useRef(seedBody);
   const templateIdRef = useRef(templateId);
   const contractIdRef = useRef(contract?.id);
+  const repsRef = useRef(reps);
 
   const persist = async (): Promise<boolean> => {
     // Superset payload: createContract needs project_id; updateContract's zod
     // schema strips the extra key.
+    const r = repsRef.current;
     const payload = {
       project_id: project.id,
       template_id: templateIdRef.current,
       body: bodyRef.current,
       note: contract?.note ?? undefined,
+      // null clears a footer line (labels then fall back to ĐẠI DIỆN BÊN A/B,
+      // the B-side signer to the company rep).
+      rep_a_label: r.rep_a_label.trim() || null,
+      rep_a_name: r.rep_a_name.trim() || null,
+      rep_a_title: r.rep_a_title.trim() || null,
+      rep_b_label: r.rep_b_label.trim() || null,
+      rep_b_name: r.rep_b_name.trim() || null,
+      rep_b_title: r.rep_b_title.trim() || null,
     };
     const result = contractIdRef.current
       ? await updateContract(
@@ -161,6 +262,13 @@ export function ContractEditor({
       schedule(persist);
   };
 
+  const onRepsChange = (patch: Partial<Reps>) => {
+    const next = { ...repsRef.current, ...patch };
+    repsRef.current = next;
+    setReps(next);
+    schedule(persist);
+  };
+
   const onDone = async () => {
     if (!(await flush())) return; // stay here — nothing was lost yet
     router.push(`/projects/${project.id}`);
@@ -177,6 +285,7 @@ export function ContractEditor({
       subtitle={contract ? `Số: ${contract.code}` : undefined}
       headerVariant={selected?.header_style ?? DEFAULT_HEADER_VARIANT}
       resolve={(token) => ctx[token]}
+      footer={<EditableSignatureBlocks reps={reps} onChange={onRepsChange} />}
       toolbarExtra={
         <select
           aria-label="Mẫu hợp đồng"

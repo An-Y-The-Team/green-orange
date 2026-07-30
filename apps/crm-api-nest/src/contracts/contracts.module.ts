@@ -55,6 +55,14 @@ class CreateContractDto {
   @IsOptional() @IsInt() template_id?: number;
   @IsOptional() @IsString() body?: string; // Lexical editorState JSON, opaque
   @IsOptional() @IsString() note?: string;
+  // Signature footer; null clears a line (labels fall back to ĐẠI DIỆN BÊN
+  // A/B, the B-side signer to the company rep)
+  @IsOptional() @IsString() rep_a_label?: string | null;
+  @IsOptional() @IsString() rep_a_name?: string | null;
+  @IsOptional() @IsString() rep_a_title?: string | null;
+  @IsOptional() @IsString() rep_b_label?: string | null;
+  @IsOptional() @IsString() rep_b_name?: string | null;
+  @IsOptional() @IsString() rep_b_title?: string | null;
 }
 
 class UpdateContractDto {
@@ -63,6 +71,12 @@ class UpdateContractDto {
   @IsOptional() @IsInt() template_id?: number;
   @IsOptional() @IsIn(CONTRACT_STATUS) status?: string;
   @IsOptional() @IsDateString() signed_date?: string;
+  @IsOptional() @IsString() rep_a_label?: string | null;
+  @IsOptional() @IsString() rep_a_name?: string | null;
+  @IsOptional() @IsString() rep_a_title?: string | null;
+  @IsOptional() @IsString() rep_b_label?: string | null;
+  @IsOptional() @IsString() rep_b_name?: string | null;
+  @IsOptional() @IsString() rep_b_title?: string | null;
 }
 
 @Controller("contracts")
@@ -116,6 +130,12 @@ class ContractsController {
         template_id: dto.template_id ?? null,
         body: dto.body ?? null,
         note: dto.note ?? null,
+        rep_a_label: dto.rep_a_label ?? null,
+        rep_a_name: dto.rep_a_name ?? null,
+        rep_a_title: dto.rep_a_title ?? null,
+        rep_b_label: dto.rep_b_label ?? null,
+        rep_b_name: dto.rep_b_name ?? null,
+        rep_b_title: dto.rep_b_title ?? null,
       },
       include: PROJECT_INCLUDE,
     });

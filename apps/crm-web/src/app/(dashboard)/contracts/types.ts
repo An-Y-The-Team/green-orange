@@ -17,6 +17,14 @@ export interface Contract {
   // template body at render; merge tokens resolve at render time.
   template_id?: number | null;
   body?: string | null;
+  // Signature footer (per-contract signer lines); B side falls back to the
+  // company representative when unset, labels to ĐẠI DIỆN BÊN A/B.
+  rep_a_label?: string | null;
+  rep_a_name?: string | null;
+  rep_a_title?: string | null;
+  rep_b_label?: string | null;
+  rep_b_name?: string | null;
+  rep_b_title?: string | null;
   // As included by crm-api-nest (list + detail).
   project?: {
     id: number;

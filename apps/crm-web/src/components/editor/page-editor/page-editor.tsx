@@ -42,6 +42,7 @@ export function PageEditor({
   resolve,
   toolbarExtra,
   status,
+  footer,
 }: {
   value?: string;
   onChange: (json: string) => void;
@@ -54,6 +55,8 @@ export function PageEditor({
   toolbarExtra?: ReactNode;
   /** Save-state indicator shown at the toolbar's right edge. */
   status?: ReactNode;
+  /** Sheet footer under the body; defaults to the static signature blocks. */
+  footer?: ReactNode;
 }) {
   const initialConfig = {
     namespace: "contract-editor",
@@ -108,7 +111,7 @@ export function PageEditor({
               ErrorBoundary={LexicalErrorBoundary}
             />
           </div>
-          <SignatureBlocks />
+          {footer ?? <SignatureBlocks />}
         </DocumentShell>
       </div>
 
