@@ -1,0 +1,48 @@
+import { auth } from "@/auth";
+import { AUTH_ENABLED } from "@/auth.config";
+import { LoginOverlay } from "@/components/login-overlay/login-overlay";
+import { SessionWatch } from "@/components/session-watch/session-watch";
+import { formatDate } from "@/utils/format-date/format-date";
+import { todayISO } from "@/utils/today-iso/today-iso";
+
+import { FieldBottomBar } from "./components/field-bottom-bar/field-bottom-bar";
+
+// Mirror (dashboard)/layout.tsx: CRM_API_URL is runtime-only and the data layer
+// reads it at module load, so force-dynamic per request — else prod serves HTML
+// prerendered at BUILD time, where CRM_API_URL is absent. Applies to every route
+// in this group.
+export const dynamic = "force-dynamic";
+
+export default async function FieldLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  // Same auth gate as the dashboard — no middleware, gating lives here so the
+  // deep-linked URL is preserved and the inline overlay signs in in place.
+  const session = AUTH_ENABLED ? await auth() : null;
+  const needsLogin =
+    AUTH_ENABLED && (!session?.user || session.error === "RefreshTokenError");
+
+  return (
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+        <span className="text-sm font-semibold">GreenOrange</span>
+        <span className="text-sm text-muted-foreground">
+          {formatDate(todayISO())}
+        </span>
+      </header>
+      <main className="flex-1 p-4 pb-24">
+        {needsLogin ? (
+          <LoginOverlay expired={Boolean(session?.error)} />
+        ) : (
+          <>
+            {AUTH_ENABLED && <SessionWatch />}
+            {children}
+          </>
+        )}
+      </main>
+      <FieldBottomBar />
+    </div>
+  );
+}

@@ -6,16 +6,17 @@
 
 ## Background
 
-`contacts` is currently a `501` stub
+`contacts` starts as a `501` stub
 ([`app/api/routes/contacts.py`](../../apps/crm-api/app/api/routes/contacts.py)).
-Your job: make it a full CRUD resource by **mirroring `customers`**. This is the
+Your job: make it a full CRUD resource by **mirroring `clients`**. This is the
 flat, no-surprises resource — get the _workflow_ (model → register → routes →
-migration → test) into muscle memory here; tasks 06–11 reuse it.
+migration → test) into muscle memory here; tasks 07–14 reuse it.
 
-The matching UI type is `Contact` in
-[`apps/crm-web/src/types/index.ts`](../../apps/crm-web/src/types/index.ts).
+The field table below **is** the contract for this task. (It used to be checked
+against a `Contact` type in crm-web; that file is gone and v2's `Contact` is a
+different shape — see [00 — Choose your backend](00-choose-your-backend.md).)
 
-## Fields (must match the `Contact` TS type exactly)
+## Fields (must match the table below exactly)
 
 | Field     | Type | Notes                        |
 | --------- | ---- | ---------------------------- |
@@ -26,14 +27,14 @@ The matching UI type is `Contact` in
 | `title`   | str  | job title                    |
 | `company` | str  |                              |
 
-> Note: unlike `Customer`, the `Contact` type has **no** `created_at` — match the
-> TS type, don't add fields it doesn't have.
+> Note: unlike `Client`, `Contact` has **no** `created_at` — match the table
+> above, don't add fields it doesn't list.
 
 ## Task
 
 1. **Model** — in [`app/models/contact.py`](../../apps/crm-api/app/models/contact.py)
    define `ContactBase`, `Contact(table=True)`, `ContactCreate`, `ContactPublic`,
-   `ContactUpdate` (copy `customer.py`'s structure; drop `created_at`/`status`).
+   `ContactUpdate` (copy `client.py`'s structure; drop `created_at`/`status`).
 2. **Register** the model in
    [`app/models/__init__.py`](../../apps/crm-api/app/models/__init__.py) (uncomment
    the `Contact` import and add it to `__all__`) so its table is created.
@@ -48,28 +49,30 @@ The matching UI type is `Contact` in
    uv run alembic upgrade head
    ```
 
-5. **Test** — add `tests/test_contacts.py` mirroring `tests/test_customers.py`
+5. **Test** — add `tests/test_contacts.py` mirroring `tests/test_clients.py`
    (create → list → get → update → delete, plus a 401-without-token check).
 
 ## Acceptance criteria
 
 - [ ] All five `/contacts` endpoints work in `/docs` (no more `501`).
 - [ ] Unauthenticated requests get `401`; authenticated CRUD round-trips.
-- [ ] `ContactPublic` fields match the `Contact` TS type 1:1.
+- [ ] `ContactPublic` fields match the field table above 1:1.
 - [ ] An Alembic migration for the `contact` table is committed.
 - [ ] `tests/test_contacts.py` passes under `uv run pytest -q`.
-- [ ] Visiting `/contacts` in crm-web (live mode) shows your data. _(The page is on
-      disk but not in the sidebar — navigate to it directly.)_
+- [ ] A `curl` round-trip against `/contacts` returns your rows. _(crm-web is not a
+      signal here — it no longer has a v1 `/contacts` page.)_
 
 ## Hints & references
 
-- Copy from: [`app/models/customer.py`](../../apps/crm-api/app/models/customer.py)
-  and [`app/api/routes/customers.py`](../../apps/crm-api/app/api/routes/customers.py).
+- Copy from: [`app/models/client.py`](../../apps/crm-api/app/models/client.py)
+  and [`app/api/routes/clients.py`](../../apps/crm-api/app/api/routes/clients.py).
 - The step list is also embedded as comments at the top of `routes/contacts.py`.
 - Forgot to register the model? `create_all` / autogenerate won't see the table.
 
 ## Definition of done
 
-`/contacts` is a working, tested CRUD resource that matches the UI contract.
-Next: [06 — Leads, Deals & Tasks](06-leads-deals-tasks-crud.md).
+`/contacts` is a working, tested CRUD resource that matches the field table above.
+Next: [07 — Implement Projects / Công trình](07-projects-crud.md). _(The `/leads`,
+`/deals` and `/tasks` 501 skeletons are extra flat-CRUD practice on the same
+pattern — see [the backlog index](README.md).)_
 </content>

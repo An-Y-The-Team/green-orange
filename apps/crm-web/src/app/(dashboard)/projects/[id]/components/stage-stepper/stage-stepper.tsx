@@ -1,0 +1,172 @@
+"use client";
+
+import { Check } from "lucide-react";
+import { useActionState, useState, useTransition } from "react";
+
+import {
+  type ServerActionState,
+  useServerAction,
+} from "@yan/shared/hooks/use-server-actions";
+import { Button } from "@yan/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@yan/ui/components/dialog";
+import { cn } from "@yan/ui/lib/utils";
+
+import { PROJECT_STAGES, PROJECT_STAGE_ORDER } from "@/constants/labels";
+import { labelOf } from "@/utils/label-of/label-of";
+
+import { updateProject } from "../../../actions/update-project";
+import { ProjectStatus } from "../../../enums";
+import type { Project } from "../../../types";
+
+export function StageStepper({ project }: { project: Project }) {
+  const [state, formAction] = useActionState(
+    updateProject.bind(null, project.id),
+    { success: false } as ServerActionState
+  );
+  const [isPending, startTransition] = useTransition();
+  useServerAction(state, isPending, {
+    successToastTitle: "Thành công",
+    errorToastTitle: "Lỗi",
+  });
+
+  const currentIndex = PROJECT_STAGE_ORDER.indexOf(project.stage);
+  const nextStage = PROJECT_STAGE_ORDER[currentIndex + 1];
+  const prevStage = PROJECT_STAGE_ORDER[currentIndex - 1];
+  // Frozen (on_hold/cancelled) jobs can't advance until reactivated.
+  const canAdvance =
+    project.status === ProjectStatus.ACTIVE && Boolean(nextStage);
+  // Only one step back, via the explicit button — chips are display-only, so a
+  // click can never move the stage (the old backward-only chips read as broken).
+  // Backend allows closed → settlement (reopen), which is exactly prevStage.
+  const canGoBack =
+    project.status === ProjectStatus.ACTIVE && Boolean(prevStage);
+  // Soft guard for mistaken advances: moving back is always confirm-gated,
+  // and data entered in later stages is kept (stages are soft, per design).
+  const [confirmBack, setConfirmBack] = useState(false);
+  const confirmGoBack = () => {
+    startTransition(() => formAction({ stage: prevStage }));
+    setConfirmBack(false);
+  };
+
+  return (
+    <div className="mb-6">
+      <Dialog open={confirmBack} onOpenChange={setConfirmBack}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Quay lại giai đoạn &ldquo;
+              {prevStage ? labelOf(PROJECT_STAGES, prevStage).label : ""}
+              &rdquo;?
+            </DialogTitle>
+            <DialogDescription>
+              Dữ liệu đã nhập ở các giai đoạn sau sẽ được giữ nguyên.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmBack(false)}>
+              Hủy
+            </Button>
+            <Button disabled={isPending} onClick={confirmGoBack}>
+              Quay lại
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Compact pill below md. */}
+      <div className="flex items-center gap-3 md:hidden">
+        <span className="text-sm font-medium">
+          {currentIndex + 1}/{PROJECT_STAGE_ORDER.length} ·{" "}
+          {labelOf(PROJECT_STAGES, project.stage).label}
+        </span>
+        {canGoBack ? (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isPending}
+            onClick={() => setConfirmBack(true)}
+          >
+            ← {labelOf(PROJECT_STAGES, prevStage).label}
+          </Button>
+        ) : null}
+        {canAdvance ? (
+          <Button
+            size="sm"
+            disabled={isPending}
+            onClick={() =>
+              startTransition(() => formAction({ stage: nextStage }))
+            }
+          >
+            → {labelOf(PROJECT_STAGES, nextStage).label}
+          </Button>
+        ) : null}
+      </div>
+
+      {/* Full pipeline line at md+. */}
+      <div className="hidden flex-wrap items-center gap-x-2 gap-y-3 md:flex">
+        {PROJECT_STAGE_ORDER?.map((stage, i) => {
+          const done = i < currentIndex;
+          const current = i === currentIndex;
+          return (
+            <div key={stage} className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                  done && "bg-primary text-primary-foreground",
+                  current &&
+                    "bg-primary text-primary-foreground ring-2 ring-primary/30",
+                  !done && !current && "bg-muted text-muted-foreground"
+                )}
+              >
+                {done ? <Check className="size-3.5" /> : i + 1}
+              </span>
+              <span
+                className={cn(
+                  "text-xs whitespace-nowrap",
+                  current
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                {labelOf(PROJECT_STAGES, stage).label}
+              </span>
+              {i < PROJECT_STAGE_ORDER.length - 1 && (
+                <span className="mx-0.5 h-px w-4 bg-border" aria-hidden />
+              )}
+            </div>
+          );
+        })}
+        {canGoBack ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-2"
+            disabled={isPending}
+            onClick={() => setConfirmBack(true)}
+          >
+            ← {labelOf(PROJECT_STAGES, prevStage).label}
+          </Button>
+        ) : null}
+        {canAdvance ? (
+          <Button
+            size="sm"
+            className={canGoBack ? undefined : "ml-2"}
+            disabled={isPending}
+            onClick={() =>
+              startTransition(() => formAction({ stage: nextStage }))
+            }
+          >
+            Chuyển sang: {labelOf(PROJECT_STAGES, nextStage).label}
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}

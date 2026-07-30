@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 import { Card } from "@yan/ui/components/card";
 import {
   Table,
@@ -11,45 +12,51 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header/page-header";
+import { TablePager } from "@/components/table-pager/table-pager";
+import { CLIENT_TYPES } from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
+import { pageFromParam } from "@/utils/page-param/page-param";
 
-import { ClientFormDialog } from "./components/client-form-dialog/client-form-dialog";
-import { ClientStatus } from "./enums";
-import { listClients } from "./queries";
+import { ClientType } from "./enums";
+import { listClientsPage } from "./queries";
 
-const statusVariant: Record<
-  ClientStatus,
-  "success" | "secondary" | "destructive"
-> = {
-  [ClientStatus.ACTIVE]: "success",
-  [ClientStatus.LEAD]: "secondary",
-  [ClientStatus.CHURNED]: "destructive",
-};
+// Rows per page. Explicit rather than leaning on the API's default so the pager
+// and the offsets it builds agree with what is actually rendered.
+const PAGE_ROWS = 100;
 
-const statusLabel: Record<ClientStatus, string> = {
-  [ClientStatus.ACTIVE]: "Đang hoạt động",
-  [ClientStatus.LEAD]: "Tiềm năng",
-  [ClientStatus.CHURNED]: "Đã rời bỏ",
-};
-
-export default async function ClientsPage() {
-  const clients = await listClients();
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const page = pageFromParam((await searchParams)?.page);
+  // `total` is the whole collection (X-Total-Count), so the header states a real
+  // total and the pager derives its page count — no +1 row probe needed.
+  const { rows: clients, total } = await listClientsPage({
+    limit: PAGE_ROWS,
+    offset: (page - 1) * PAGE_ROWS,
+  });
 
   return (
     <>
       <PageHeader
         title="Khách hàng"
-        description={`${clients.length} khách hàng`}
-        action={<ClientFormDialog />}
+        description={`${total} khách hàng`}
+        action={
+          <Button size="sm" render={<Link href="/clients/new" />}>
+            + Khách hàng mới
+          </Button>
+        }
       />
       <Card className="py-0">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Tên</TableHead>
-              <TableHead>Công ty</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Trạng thái</TableHead>
+              <TableHead>Loại</TableHead>
+              <TableHead className="text-right">Địa điểm</TableHead>
+              <TableHead className="text-right">Dự án</TableHead>
               <TableHead>Ngày tạo</TableHead>
             </TableRow>
           </TableHeader>
@@ -64,25 +71,37 @@ export default async function ClientsPage() {
                     {client.name}
                   </Link>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {client.company}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {client.email}
-                </TableCell>
                 <TableCell>
-                  <Badge variant={statusVariant[client.status]}>
-                    {statusLabel[client.status]}
+                  <Badge
+                    variant={
+                      client.type === ClientType.COMPANY
+                        ? "secondary"
+                        : "outline"
+                    }
+                  >
+                    {CLIENT_TYPES[client.type]}
                   </Badge>
                 </TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {client._count.locations}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {client._count.projects}
+                </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {client.created_at}
+                  {formatDate(client.created_at)}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </Card>
+      <TablePager
+        page={page}
+        total={total}
+        pageRows={PAGE_ROWS}
+        basePath="/clients"
+      />
     </>
   );
 }

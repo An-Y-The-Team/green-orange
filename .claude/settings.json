@@ -117,5 +117,8 @@
       "/tmp",
       "/Users/thienydo/Downloads"
     ]
+  },
+  "enabledPlugins": {
+    "data-engineering@claude-code-workflows": true
   }
 }

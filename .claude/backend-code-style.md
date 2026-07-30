@@ -357,6 +357,8 @@ Anything the client controls — pagination, filters, sort, search — must be d
 
 Any endpoint returning a collection whose size is bounded by user data (subscriptions, transactions, insights) **must** paginate with `limit`/`offset` (or keyset) and a `MAX_PAGE_SIZE` cap. Never `select(Model).all()` an unbounded table into memory and serialize it. For genuinely large exports, use a `StreamingResponse`. This is the server-side counterpart to the frontend's "virtualize long lists" rule — both refuse to materialize N items when N is user-controlled.
 
+A paginated endpoint must also report the size of the whole filtered collection, as an `X-Total-Count` response header (not a `{ rows, total }` envelope — the header is additive, so existing consumers of a bare-array endpoint keep working). Build the filter **once** and pass the same object to both the page query and the count, or the number ends up describing a different query than the rows. In crm-api-nest that is `withTotalCount(res, rows, total)` in `src/common/pagination.ts`; the handler must take `@Res({ passthrough: true })`, since without `passthrough` the global serialization interceptor stops running.
+
 Avoid N+1 queries: eager-load relationships (`selectinload`) or build a lookup `dict` from a single batched query instead of querying per row inside a loop — the backend version of "build lookup maps once."
 
 ### Partial Updates (PATCH)

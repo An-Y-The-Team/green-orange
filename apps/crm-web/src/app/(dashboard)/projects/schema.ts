@@ -1,41 +1,67 @@
 import { z } from "zod";
 
-import { AcceptanceStatus, CostCategory, ProjectType } from "./enums";
+import { ClientType } from "../clients/enums";
+import { ProjectStage } from "./enums";
 
-// Validation schemas for the projects feature — the công trình itself plus its
-// on-site sub-records (chi phí, nghiệm thu). Shared by the form dialogs (client
-// validation) and the server actions (server-side re-validation). Numeric
-// fields coerce the string values coming out of the inputs.
+// Quick-create client from the intake form. A company needs a first contact +
+// location (the intake form requires location_id and selects a working
+// contact); an individual only needs an address — the backend derives its
+// single location/contact from it.
+export const quickClientSchema = z
+  .object({
+    name: z.string().min(1, "Nhập tên khách hàng"),
+    type: z.nativeEnum(ClientType),
+    address: z.string().optional(),
+    contact_name: z.string().optional(),
+    contact_phone: z.string().optional(),
+    location_name: z.string().optional(),
+    location_address: z.string().optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.type === ClientType.INDIVIDUAL) {
+      if (!v.address?.trim())
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["address"],
+          message: "Vui lòng nhập địa chỉ cho khách cá nhân.",
+        });
+      return;
+    }
+    if (!v.contact_name?.trim())
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["contact_name"],
+        message: "Nhập tên người liên hệ.",
+      });
+    if (!v.location_name?.trim())
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["location_name"],
+        message: "Nhập tên địa điểm.",
+      });
+    if (!v.location_address?.trim())
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["location_address"],
+        message: "Nhập địa chỉ địa điểm.",
+      });
+  });
 
-export const projectSchema = z.object({
-  name: z.string().min(3, "Tên công trình phải có ít nhất 3 ký tự"),
-  client: z.string().min(1, "Vui lòng nhập khách hàng"),
-  type: z.nativeEnum(ProjectType),
-  address: z.string().min(1, "Vui lòng nhập địa điểm"),
-  manager: z.string().min(1, "Vui lòng nhập người phụ trách"),
-  contract_value: z.coerce.number().min(0, "Giá trị không hợp lệ"),
-  estimated_cost: z.coerce.number().min(0, "Dự toán không hợp lệ"),
-  start_date: z.string().min(1, "Chọn ngày bắt đầu"),
-  end_date: z.string().min(1, "Chọn ngày kết thúc"),
+export type QuickClientFormValues = z.infer<typeof quickClientSchema>;
+
+export const createProjectSchema = z.object({
+  client_id: z.number().int().positive(),
+  location_id: z.number().int().positive(),
+  working_contact_id: z.number().int().positive().optional(),
+  decision_maker_contact_id: z.number().int().positive().optional(),
+  name: z.string().min(1),
+  type_ids: z.array(z.number().int().positive()).min(1),
+  // Starting stage — default Yêu cầu. Direct create / pre-CRM backfill can
+  // start mid-pipeline; stage-1 fields below are only sent for REQUEST.
+  stage: z.nativeEnum(ProjectStage).default(ProjectStage.REQUEST),
+  request_note: z.string().optional(),
+  referral_source: z.string().optional(),
+  appointment_at: z.string().optional(),
 });
-export type ProjectFormValues = z.infer<typeof projectSchema>;
 
-export const costSchema = z.object({
-  project_code: z.string().min(1, "Vui lòng nhập mã công trình"),
-  date: z.string().min(1, "Chọn ngày"),
-  category: z.nativeEnum(CostCategory),
-  description: z.string().min(1, "Nhập diễn giải"),
-  amount: z.coerce.number().min(0, "Số tiền không hợp lệ"),
-  is_incident: z.boolean(),
-});
-export type CostFormValues = z.infer<typeof costSchema>;
-
-export const acceptanceSchema = z.object({
-  project_code: z.string().min(1, "Vui lòng nhập mã công trình"),
-  date: z.string().min(1, "Chọn ngày"),
-  status: z.nativeEnum(AcceptanceStatus),
-  inspector: z.string().min(1, "Nhập người kiểm tra"),
-  client_rep: z.string().min(1, "Nhập đại diện khách hàng"),
-  notes: z.string().optional(),
-});
-export type AcceptanceFormValues = z.infer<typeof acceptanceSchema>;
+export type CreateProjectFormValues = z.infer<typeof createProjectSchema>;

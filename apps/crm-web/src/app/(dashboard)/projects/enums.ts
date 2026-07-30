@@ -1,45 +1,68 @@
-// Công Trình — closed value sets for the project lifecycle and its on-site
-// sub-resources (Chi phí / Nghiệm thu). Values stay snake_case to map 1:1 onto
-// the backend schemas.
+// Công Trình — closed value sets, 1:1 with the v2 backend contract
+// (docs/features/crm-database-schema.md). English values; Vietnamese labels
+// live only in src/constants/labels.ts. Project types are a user-managed tag
+// entity in v2, not an enum.
 
-export enum ProjectType {
-  VE_SINH = "ve_sinh",
-  THI_CONG = "thi_cong",
-}
-
-// The lifecycle stages, in order. The project detail pipeline renders these.
+// The 8 lifecycle stages, in order. The workspace stepper renders these.
+// Yêu cầu + Khảo sát are ONE stage (the appointment is the survey visit);
+// `visit_date` marks where inside it a project sits.
 export enum ProjectStage {
-  YEU_CAU = "yeu_cau", // 1. client inquiry
-  KHAO_SAT = "khao_sat", // 2. site survey / scouting
-  BAO_GIA = "bao_gia", // 4. quotation drafted
-  HOP_DONG = "hop_dong", // 7. contract signed
-  CHUAN_BI = "chuan_bi", // 8. permits / paperwork
-  THI_CONG = "thi_cong", // 9. on-site work
-  NGHIEM_THU = "nghiem_thu", // 12. acceptance / hand-over
-  QUYET_TOAN = "quyet_toan", // 13. final settlement
-  THANH_TOAN = "thanh_toan", // 14. awaiting payment
-  DONG = "dong", // 15. contract closed
+  REQUEST = "request", // 1. Yêu cầu & Khảo sát
+  QUOTE = "quote", // 2. Báo giá
+  CONTRACT = "contract", // 3. Hợp đồng
+  PAPERWORK = "paperwork", // 4. Chuẩn bị hồ sơ
+  EXECUTION = "execution", // 5. Thi công
+  ACCEPTANCE = "acceptance", // 6. Nghiệm thu
+  SETTLEMENT = "settlement", // 7. Quyết toán & Thanh toán
+  CLOSED = "closed", // 8. Đã đóng
 }
 
-// Schedule outcome, set once the work finishes (step 11).
-export enum ScheduleOutcome {
-  ON_TIME = "on_time",
-  DELAYED = "delayed",
-  EARLY = "early",
+// Orthogonal to stage — the stage freezes where a project died/parked.
+export enum ProjectStatus {
+  ACTIVE = "active",
+  ON_HOLD = "on_hold", // requires follow_up_date
+  CANCELLED = "cancelled", // requires cancel_reason, terminal
 }
 
-// Chi phí — cost categories logged during work (step 10).
-export enum CostCategory {
-  VAT_TU = "vat_tu", // materials
-  NHAN_CONG = "nhan_cong", // labor
-  THIET_BI = "thiet_bi", // equipment / tools
-  SU_CO = "su_co", // incident / breakage
-  KHAC = "khac", // other / unforeseen
+// Stage-5 sub-status, forward-only; hoarding is skippable.
+export enum ExecutionSubStatus {
+  KICKOFF = "kickoff", // Khởi công
+  HOARDING = "hoarding", // Dựng rào
+  WORKS = "works", // Thi công
 }
 
-// Nghiệm thu — acceptance / hand-over (step 12); the gate to final payment.
-export enum AcceptanceStatus {
-  CHO_NGHIEM_THU = "cho_nghiem_thu",
-  DA_NGHIEM_THU = "da_nghiem_thu",
-  CO_VAN_DE = "co_van_de",
+// Stage-6 sub-status with the rework loop (inspecting ⇄ rework).
+export enum AcceptanceSubStatus {
+  REQUEST_SENT = "request_sent", // Gửi yêu cầu
+  INSPECTING = "inspecting", // Nghiệm thu
+  REWORK = "rework", // Bổ sung
+  PASSED = "passed", // Đạt
+}
+
+// Stage-4 checklist items; overdue is DERIVED (due_date passed, not approved).
+export enum PaperworkStatus {
+  PREPARING = "preparing", // Chưa xong
+  SUBMITTED = "submitted", // Đã nộp
+  APPROVED = "approved", // Đã duyệt
+}
+
+// Stage-5 numeric duration columns a PATCH can target. The VALUES are real
+// `projects` column names (see types.ts / update-project.ts) — renaming a column
+// means editing them here too, which is the point: one place, not two call sites.
+export enum DurationField {
+  ESTIMATED = "est_duration_days",
+  ACTUAL = "actual_duration_days",
+}
+
+// Attachment `kind` — which stage produced the file. Was a bare `string` with
+// this list in a comment; the values are a closed set the UI branches on.
+export enum AttachmentKind {
+  SURVEY = "survey",
+  SITE_LOG = "site_log",
+  FINISH_IMAGE = "finish_image",
+  SIGNED_CONTRACT = "signed_contract",
+  ACCEPTANCE_REPORT = "acceptance_report",
+  SETTLEMENT = "settlement",
+  PAPERWORK = "paperwork",
+  OTHER = "other",
 }

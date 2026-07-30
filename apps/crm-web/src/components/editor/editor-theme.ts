@@ -5,7 +5,7 @@
  */
 import type { EditorThemeClasses } from "lexical";
 
-export const editorTheme: EditorThemeClasses = {
+export const EDITOR_THEME: EditorThemeClasses = {
   paragraph: "mb-2 text-xs leading-relaxed text-zinc-700",
   heading: {
     h2: "pt-1 mb-1 text-xs font-semibold uppercase text-zinc-900",

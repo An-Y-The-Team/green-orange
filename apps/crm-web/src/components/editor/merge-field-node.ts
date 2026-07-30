@@ -18,7 +18,7 @@ import {
   TextNode,
 } from "lexical";
 
-import { CONTRACT_TOKENS } from "@/lib/merge-template";
+import { CONTRACT_TOKENS } from "@/utils/merge-template/merge-template";
 
 export type SerializedMergeFieldNode = Spread<
   { token: string },

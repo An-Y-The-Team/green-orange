@@ -1,0 +1,448 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Fragment,
+  useActionState,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
+import { isObject } from "@yan/shared/utils";
+import { Button } from "@yan/ui/components/button";
+import { Card, CardContent } from "@yan/ui/components/card";
+import { Input } from "@yan/ui/components/input";
+import { Label } from "@yan/ui/components/label";
+import { Separator } from "@yan/ui/components/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@yan/ui/components/table";
+import { Textarea } from "@yan/ui/components/textarea";
+
+import { createQuote } from "@/app/(dashboard)/quotes/actions/create-quote";
+import { updateQuote } from "@/app/(dashboard)/quotes/actions/update-quote";
+import { SendQuoteDialog } from "@/app/(dashboard)/quotes/components/send-quote-dialog/send-quote-dialog";
+import { QuoteSubmitIntent } from "@/app/(dashboard)/quotes/enums";
+import {
+  type QuoteFormValues,
+  quoteFormSchema,
+} from "@/app/(dashboard)/quotes/schema";
+import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
+import { MoneyInput } from "@/components/money-input/money-input";
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { groupByCategory } from "@/utils/group-by-category/group-by-category";
+import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
+
+export interface QuoteBuilderInitial {
+  projectId?: number; // undefined = standalone quote (created from /quotes/new)
+  version: number;
+  editId?: number;
+  items: {
+    category?: string; // hạng mục section this row sits under
+    description: string;
+    unit?: string;
+    quantity: number;
+    unit_price: number;
+  }[];
+  vatPercent: number;
+  note: string;
+}
+
+const BLANK_ROW = {
+  category: "",
+  description: "",
+  unit: "",
+  quantity: 1,
+  unit_price: 0,
+};
+
+export function QuoteBuilderForm({
+  initial,
+  projects,
+  readOnly,
+}: {
+  initial: QuoteBuilderInitial;
+  // When provided (standalone /quotes/new), shows an optional project picker.
+  projects?: { id: number; label: string }[];
+  /**
+   * Frozen quote (sent/decided — the backend 409s on PATCH): same grid, every
+   * control disabled by the wrapping fieldset, no save buttons.
+   */
+  readOnly?: boolean;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const intentRef = useRef<QuoteSubmitIntent>(QuoteSubmitIntent.DRAFT);
+  const [sendId, setSendId] = useState<number | null>(null);
+  const [projectId, setProjectId] = useState<number | undefined>(
+    initial.projectId
+  );
+
+  // Bind the draft id (edit) or use create; both collapse to (prevState, input).
+  // updateQuote's schema strips project_id, so one create-shaped payload works.
+  const action = initial.editId
+    ? (updateQuote.bind(null, initial.editId) as typeof createQuote)
+    : createQuote;
+  const [state, formAction] = useActionState(action, INITIAL_ACTION_STATE);
+
+  // Where saving lands: editing stays on the quote's own page (this form is that
+  // page, so it just re-reads the saved row); creating goes to the project, or to
+  // the list for a standalone one (a fresh quote's page only exists in live mode,
+  // mock data isn't persisted).
+  const done = (savedId: number | null) =>
+    initial.editId && savedId
+      ? `/quotes/${savedId}`
+      : projectId
+        ? `/projects/${projectId}`
+        : "/quotes";
+
+  const form = useForm<QuoteFormValues>({
+    resolver: zodResolver(quoteFormSchema),
+    mode: "onChange",
+    defaultValues: {
+      items: initial.items.length ? initial.items : [BLANK_ROW],
+      vat_percent: initial.vatPercent,
+      note: initial.note,
+    },
+  });
+  const { register, control, handleSubmit, formState, setValue } = form;
+  const { fields, append, insert, remove } = useFieldArray({
+    control,
+    name: "items",
+  });
+
+  useServerAction(state, isPending, {
+    successToastTitle: "Thành công",
+    errorToastTitle: "Lỗi",
+    onSuccess: (data) => {
+      // The action echoes back the saved quote; narrow before reading its id.
+      const savedId =
+        isObject(data) && typeof data.id === "number" ? data.id : null;
+      if (intentRef.current === QuoteSubmitIntent.SEND && savedId) {
+        setSendId(savedId);
+      } else {
+        router.push(done(savedId));
+      }
+    },
+  });
+
+  // Live totals — server recomputes on save and is authoritative.
+  const watchedItems = useWatch({ control, name: "items" });
+  const watchedVat = useWatch({ control, name: "vat_percent" });
+  const rows = (watchedItems ?? []).map((it) => ({
+    quantity: Number(it?.quantity) || 0,
+    unit_price: Number(it?.unit_price) || 0,
+  }));
+  const { subtotal, vat, total } = quoteTotals(
+    rows,
+    (Number(watchedVat) || 0) / 100
+  );
+
+  // Hạng mục sections — runs of consecutive rows sharing a category. The header
+  // is not its own record: renaming it writes the value onto every row it covers.
+  const groups = groupByCategory(watchedItems);
+  const renameGroup = (group: { indices: number[] }, value: string) =>
+    group.indices.forEach((i) =>
+      setValue(`items.${i}.category`, value, { shouldDirty: true })
+    );
+
+  const onValid = (values: QuoteFormValues) => {
+    const payload = {
+      project_id: projectId,
+      items: values.items.map((it) => ({
+        category: it.category || undefined,
+        description: it.description,
+        unit: it.unit || undefined,
+        quantity: it.quantity,
+        unit_price: it.unit_price,
+      })),
+      vat_rate: values.vat_percent / 100,
+      note: values.note || undefined,
+    };
+    startTransition(() => formAction(payload));
+  };
+
+  return (
+    <>
+      <Card>
+        <CardContent className="space-y-5">
+          <form onSubmit={handleSubmit(onValid)}>
+            {/* Native disable of every control inside — no per-input plumbing. */}
+            <fieldset disabled={readOnly} className="space-y-5">
+              {projects ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="project">Công trình (không bắt buộc)</Label>
+                  <select
+                    id="project"
+                    className={SELECT_CLASS}
+                    value={projectId ?? ""}
+                    onChange={(e) =>
+                      setProjectId(
+                        e.target.value ? Number(e.target.value) : undefined
+                      )
+                    }
+                  >
+                    <option value="">
+                      — Báo giá độc lập (không gắn công trình) —
+                    </option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-48">Nội dung</TableHead>
+                    <TableHead className="w-20">ĐV</TableHead>
+                    <TableHead className="w-24">SL</TableHead>
+                    <TableHead className="w-36">Đơn giá</TableHead>
+                    <TableHead className="w-36 text-right">
+                      Thành tiền
+                    </TableHead>
+                    <TableHead className="w-10" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {groups.map((group, g) => (
+                    <Fragment key={`group-${g}`}>
+                      {/* Hạng mục header — one input renaming every row under it. */}
+                      {readOnly ? (
+                        group.category ? (
+                          <TableRow className="bg-muted/50">
+                            <TableCell colSpan={6} className="font-medium">
+                              {group.category}
+                            </TableCell>
+                          </TableRow>
+                        ) : null
+                      ) : (
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={5}>
+                            <Input
+                              value={group.category}
+                              placeholder="Tên hạng mục (để trống nếu không chia nhóm)"
+                              className="font-medium"
+                              aria-label="Tên hạng mục"
+                              onChange={(e) =>
+                                renameGroup(group, e.target.value)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              // Removing the last group would empty the quote.
+                              disabled={groups.length === 1}
+                              onClick={() => remove(group.indices)}
+                              aria-label="Xóa hạng mục"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      {group.indices.map((i) => {
+                        const field = fields[i];
+                        const amount = itemAmount(rows[i]);
+                        return (
+                          <TableRow key={field?.id ?? i}>
+                            <TableCell>
+                              <Input
+                                placeholder="Kính mặt ngoài"
+                                {...register(`items.${i}.description`)}
+                              />
+                              {fieldError(
+                                formState.errors.items?.[i]?.description
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                placeholder="m²"
+                                {...register(`items.${i}.unit`)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min={0}
+                                step="any"
+                                {...register(`items.${i}.quantity`, {
+                                  valueAsNumber: true,
+                                })}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Controller
+                                control={control}
+                                name={`items.${i}.unit_price`}
+                                render={({ field }) => (
+                                  <MoneyInput
+                                    value={field.value}
+                                    // Empty box = 0 đồng, matching BLANK_ROW, so the
+                                    // live total never reads NaN.
+                                    onChange={(v) => field.onChange(v ?? 0)}
+                                    onBlur={field.onBlur}
+                                  />
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {formatVND(amount)}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                disabled={fields.length === 1}
+                                onClick={() => remove(i)}
+                                aria-label="Xóa dòng"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+
+                      {readOnly ? null : (
+                        <TableRow>
+                          <TableCell colSpan={6}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              // Straight after this group's last row, so the flat
+                              // order the server stores matches what's on screen.
+                              onClick={() =>
+                                insert(group.indices.at(-1)! + 1, {
+                                  ...BLANK_ROW,
+                                  category: group.category,
+                                })
+                              }
+                            >
+                              + Thêm dòng
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {readOnly ? null : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  // Named up front: two blank headers would read as one section.
+                  onClick={() =>
+                    append({
+                      ...BLANK_ROW,
+                      category: `Hạng mục ${groups.length + 1}`,
+                    })
+                  }
+                >
+                  + Thêm hạng mục
+                </Button>
+              )}
+
+              <Separator />
+
+              {/* VAT + live totals */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="vat_percent">VAT</Label>
+                  <Input
+                    id="vat_percent"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="any"
+                    className="w-20"
+                    {...register("vat_percent", { valueAsNumber: true })}
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+                <dl className="ml-auto w-56 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Tạm tính</dt>
+                    <dd className="tabular-nums">{formatVND(subtotal)}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">VAT</dt>
+                    <dd className="tabular-nums">{formatVND(vat)}</dd>
+                  </div>
+                  <div className="flex justify-between border-t pt-1 font-semibold">
+                    <dt>Tổng</dt>
+                    <dd className="tabular-nums">{formatVND(total)}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="note">Điều khoản & ghi chú</Label>
+                <Textarea
+                  id="note"
+                  rows={3}
+                  placeholder="Báo giá hiệu lực 30 ngày…"
+                  {...register("note")}
+                />
+              </div>
+
+              {readOnly ? null : (
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    disabled={isPending}
+                    onClick={() =>
+                      (intentRef.current = QuoteSubmitIntent.DRAFT)
+                    }
+                  >
+                    {isPending ? "Đang lưu…" : "Lưu nháp"}
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isPending}
+                    onClick={() => (intentRef.current = QuoteSubmitIntent.SEND)}
+                  >
+                    Lưu & gửi ngay
+                  </Button>
+                </div>
+              )}
+            </fieldset>
+          </form>
+        </CardContent>
+      </Card>
+
+      {sendId != null ? (
+        <SendQuoteDialog
+          quoteId={sendId}
+          open={sendId != null}
+          onOpenChange={(open) => !open && setSendId(null)}
+          onSent={() => router.push(done(sendId))}
+        />
+      ) : null}
+    </>
+  );
+}

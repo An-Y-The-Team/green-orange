@@ -1,6 +1,8 @@
 import {
   Body,
+  ConflictException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Module,
@@ -9,59 +11,58 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
+  Res,
 } from "@nestjs/common";
 import {
   IsBoolean,
   IsDateString,
   IsIn,
   IsInt,
-  IsNumber,
   IsOptional,
   IsString,
-  Min,
   MinLength,
 } from "class-validator";
+import type { Response } from "express";
 
+import { businessToday } from "../common/business-date";
 import { nextCode } from "../common/code";
-import { toBig, toDate } from "../common/coerce";
+import { toDate } from "../common/coerce";
+import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
+import { assertProjectOpen } from "../common/project-lock";
+import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 
-const CONTRACT_STATUS = ["nhap", "da_ky", "dang_thuc_hien", "thanh_ly"];
+const CONTRACT_STATUS = ["draft", "signed"];
 const HEADER_STYLE = ["letterhead", "national"];
+
+const PROJECT_INCLUDE = {
+  project: {
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      client: { select: { id: true, name: true } },
+    },
+  },
+} as const;
 
 // ── Contracts (hợp đồng) ────────────────────────────────────────────────────
 class CreateContractDto {
-  @IsString() @MinLength(3) title: string;
-  @IsString() @MinLength(1) client: string;
-  @IsString() @MinLength(1) project_code: string;
-  @IsNumber() @Min(0) value: number;
-  @IsDateString() signed_date: string;
-  @IsDateString() start_date: string;
-  @IsDateString() end_date: string;
-  @IsIn(CONTRACT_STATUS) status: string;
-  @IsString() @MinLength(1) payment_terms: string;
+  // Optional (crm-ui-redesign.md, 2026-07-24): standalone contracts have no
+  // project; attaching one auto-advances the project to Hợp đồng.
+  @IsOptional() @IsInt() project_id?: number;
   @IsOptional() @IsInt() template_id?: number;
-  @IsOptional() @IsString() body?: string;
+  @IsOptional() @IsString() body?: string; // Lexical editorState JSON, opaque
+  @IsOptional() @IsString() note?: string;
 }
 
-// PATCH is used by the UI to save the rich body; allow the other editable
-// fields too so the detail page can update the party block later.
 class UpdateContractDto {
   @IsOptional() @IsString() body?: string;
-  @IsOptional() @IsIn(CONTRACT_STATUS) status?: string;
-  @IsOptional() @IsString() title?: string;
-  @IsOptional() @IsNumber() value?: number;
-  @IsOptional() @IsDateString() signed_date?: string;
-  @IsOptional() @IsDateString() start_date?: string;
-  @IsOptional() @IsDateString() end_date?: string;
-  @IsOptional() @IsString() payment_terms?: string;
-  @IsOptional() @IsString() client_address?: string;
-  @IsOptional() @IsString() client_tax_code?: string;
-  @IsOptional() @IsString() client_rep?: string;
-  @IsOptional() @IsString() client_position?: string;
-  @IsOptional() @IsString() client_phone?: string;
-  @IsOptional() @IsNumber() vat_rate?: number;
+  @IsOptional() @IsString() note?: string;
   @IsOptional() @IsInt() template_id?: number;
+  @IsOptional() @IsIn(CONTRACT_STATUS) status?: string;
+  @IsOptional() @IsDateString() signed_date?: string;
 }
 
 @Controller("contracts")
@@ -69,13 +70,36 @@ class ContractsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list() {
-    return this.prisma.contract.findMany();
+  list(
+    @Res({ passthrough: true }) res: Response,
+    @Query() page: PageQuery,
+    @Query("project_id") projectId?: string,
+    @Query("status") status?: string
+  ) {
+    // One `where`, both queries — the count cannot drift from the rows.
+    const where = {
+      project_id: projectId ? Number(projectId) : undefined,
+      status: status || undefined,
+    };
+    return withTotalCount(
+      res,
+      this.prisma.contract.findMany({
+        where,
+        include: PROJECT_INCLUDE,
+        // Was unordered: paging an unordered query overlaps and drops rows.
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.contract.count({ where })
+    );
   }
 
   @Get(":id")
   async get(@Param("id", ParseIntPipe) id: number) {
-    const row = await this.prisma.contract.findUnique({ where: { id } });
+    const row = await this.prisma.contract.findUnique({
+      where: { id },
+      include: PROJECT_INCLUDE,
+    });
     if (!row) throw new NotFoundException("Contract not found");
     return row;
   }
@@ -83,23 +107,20 @@ class ContractsController {
   @Post()
   @HttpCode(201)
   async create(@Body() dto: CreateContractDto) {
+    await assertProjectOpen(this.prisma, dto.project_id);
     const code = await nextCode(this.prisma.contract, "HD");
-    return this.prisma.contract.create({
+    const contract = await this.prisma.contract.create({
       data: {
         code,
-        project_code: dto.project_code,
-        client: dto.client,
-        title: dto.title,
-        value: toBig(dto.value)!,
-        signed_date: new Date(dto.signed_date),
-        start_date: new Date(dto.start_date),
-        end_date: new Date(dto.end_date),
-        status: dto.status,
-        payment_terms: dto.payment_terms,
+        project_id: dto.project_id ?? null,
         template_id: dto.template_id ?? null,
         body: dto.body ?? null,
+        note: dto.note ?? null,
       },
+      include: PROJECT_INCLUDE,
     });
+    await advanceStage(this.prisma, dto.project_id, "contract");
+    return contract;
   }
 
   @Patch(":id")
@@ -107,14 +128,33 @@ class ContractsController {
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateContractDto
   ) {
-    await this.get(id);
+    const row = await this.get(id);
+    await assertProjectOpen(this.prisma, row.project_id);
     const data: Record<string, unknown> = { ...dto };
-    if (dto.value !== undefined) data.value = toBig(dto.value);
     if (dto.signed_date !== undefined)
       data.signed_date = toDate(dto.signed_date);
-    if (dto.start_date !== undefined) data.start_date = toDate(dto.start_date);
-    if (dto.end_date !== undefined) data.end_date = toDate(dto.end_date);
-    return this.prisma.contract.update({ where: { id }, data });
+    // Signing without an explicit date stamps today.
+    if (
+      dto.status === "signed" &&
+      dto.signed_date === undefined &&
+      !row.signed_date
+    )
+      data.signed_date = businessToday();
+    return this.prisma.contract.update({
+      where: { id },
+      data,
+      include: PROJECT_INCLUDE,
+    });
+  }
+
+  @Delete(":id")
+  @HttpCode(204)
+  async remove(@Param("id", ParseIntPipe) id: number) {
+    const row = await this.get(id);
+    await assertProjectOpen(this.prisma, row.project_id);
+    if (row.status !== "draft")
+      throw new ConflictException("Only draft contracts can be deleted");
+    await this.prisma.contract.delete({ where: { id } });
   }
 }
 

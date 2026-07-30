@@ -50,7 +50,7 @@ token-plumbing changes. `crm-api` needs **no changes** — same RS256 token, sam
 
 ## Implementation
 
-### 1. Headless flow helper — new file `apps/crm-web/src/lib/authentik-flow.ts`
+### 1. Headless flow helper — new file `apps/crm-web/src/utils/authentik-flow/authentik-flow.ts`
 
 A single `headlessLogin(username, password)` that runs server-to-server against
 Authentik and returns `{ accessToken, refreshToken, expiresAt }` or a typed failure
@@ -143,14 +143,14 @@ password reset still work for any stage the headless path can't handle.
 
 ## Files touched (summary)
 
-| File                                            | Change                                                        |
-| ----------------------------------------------- | ------------------------------------------------------------- |
-| `apps/crm-web/src/lib/authentik-flow.ts`        | new — `headlessLogin()` flow-executor + token-exchange driver |
-| `apps/crm-web/src/components/login-overlay.tsx` | new — inline credentials dialog                               |
-| `apps/crm-web/src/auth.config.ts`               | add Credentials provider; extend `jwt` callback               |
-| `apps/crm-web/src/types/next-auth.d.ts`         | augment `User` with token fields                              |
-| `apps/crm-web/src/app/(dashboard)/layout.tsx`   | render overlay + withhold children when unauthenticated       |
-| `apps/crm-web/src/middleware.ts`                | pass-through (drop redirect-to-/login for dashboard routes)   |
+| File                                                      | Change                                                        |
+| --------------------------------------------------------- | ------------------------------------------------------------- |
+| `apps/crm-web/src/utils/authentik-flow/authentik-flow.ts` | new — `headlessLogin()` flow-executor + token-exchange driver |
+| `apps/crm-web/src/components/login-overlay.tsx`           | new — inline credentials dialog                               |
+| `apps/crm-web/src/auth.config.ts`                         | add Credentials provider; extend `jwt` callback               |
+| `apps/crm-web/src/types/next-auth.d.ts`                   | augment `User` with token fields                              |
+| `apps/crm-web/src/app/(dashboard)/layout.tsx`             | render overlay + withhold children when unauthenticated       |
+| `apps/crm-web/src/proxy.ts`                               | pass-through (drop redirect-to-/login for dashboard routes)   |
 
 ## Verification (end-to-end, local)
 

@@ -472,9 +472,10 @@ internal network).
 
 ## 6c. CRM NestJS backend (crm-api-nest) — the production default
 
-`crm-api-nest` (NestJS + Prisma) is a **drop-in replacement** for `crm-api`: same
-HTTP contract, but it implements the **whole** UI so every dashboard page shows
-live data. Like `crm-api` it is **internal-only** (no `ports:`, no Caddy route),
+`crm-api-nest` (NestJS + Prisma) implements the **v2** contract and is the **only**
+backend that serves the current UI — every dashboard page shows live data. It is no
+longer interchangeable with `crm-api`, which still implements **v1** (see step 5 and
+AGENTS.md). Like `crm-api` it is **internal-only** (no `ports:`, no Caddy route),
 reached at `http://crm-api-nest:8001`. In prod, **crm-web points at it by default**
 (`CRM_API_URL: http://crm-api-nest:8001` in
 [`docker-compose.prod.yml`](docker-compose.prod.yml)); the Python `crm-api` keeps
@@ -499,6 +500,26 @@ docker exec "$PG" \
 
 (Brand-new VPS with an empty volume: skip — the init script now includes `crm_nest`.)
 
+**2a. The v2 cutover migration is destructive — signed off, once.**
+`20260723000000_v2_greenorange_flow` **drops and recreates** 15 tables (v1 data does
+not map to the v2 relational model), and `20260723113431_date_column_naming_convention`
+drops 8 timestamp columns with no backfill. `prisma migrate deploy` runs on container
+start, so this applies **unattended** on the first v2 deploy.
+
+That was accepted because `crm_nest` held **no production data** — confirmed
+2026-07-29 by Y Do. There was nothing to preserve, so no phased rollout was written.
+
+This sign-off covers that one cutover only. Once `crm_nest` carries real data, take a
+`pg_dump` before any deploy whose diff touches migrations, and write destructive
+changes in the additive form (add column → backfill → drop), per the note in
+`20260723113431_date_column_naming_convention/migration.sql`. To check what a pending
+deploy would do:
+
+```bash
+docker exec "$PG" psql -U postgres -d crm_nest \
+  -c "select relname, n_live_tup from pg_stat_user_tables order by n_live_tup desc;"
+```
+
 **3. Env — no new secrets.** It reuses `POSTGRES_USER`/`POSTGRES_PASSWORD` (for its
 `crm_nest` DATABASE_URL), `AUTH_DOMAIN`, and `CRM_OIDC_CLIENT_ID`. In prod it runs
 `AUTH_MODE=oidc` and validates the **same** Authentik `crm` app tokens as `crm-api`
@@ -509,14 +530,18 @@ wired in [`docker-compose.prod.yml`](docker-compose.prod.yml).
 provisions a local user row on first valid login. No new app registration, no new
 redirect URI. (There is no admin/admin seed in prod; local seeding is dev-only.)
 
-**5. Switching backends** — flip crm-web's `CRM_API_URL` and redeploy (runtime env,
-**no rebuild**):
+**5. Switching backends — no longer a rollback path.** `CRM_API_URL` still selects the
+backend at runtime (**no rebuild**), but since the v2 cutover only one value works:
 
-- `http://crm-api-nest:8001` → NestJS (default, full production mode)
-- `http://crm-api:8000` → Python teaching backend (its `crm` DB, unbuilt pages mock)
+- `http://crm-api-nest:8001` → NestJS, **v2 contract — the only working option**
+- `http://crm-api:8000` → Python, **v1 contract — do NOT point prod here.** The v2 UI
+  calls endpoints v1 does not have, and same-named ones (`/clients`, `/projects`,
+  `/contacts`) return incompatible shapes. Failed list reads degrade to `[]`, so the
+  result is **empty pages rather than errors** — it looks like data loss, not a
+  misconfiguration. `crm-api` keeps running for the teaching exercises only.
 
-Change it in `docker-compose.prod.yml` (or override in Dockhand) and trigger a
-deploy. Both backends stay running, so this is a safe instant rollback.
+To roll back a bad `crm-api-nest` release, redeploy the previous
+`CRM_API_NEST_IMAGE` tag — do not repoint `CRM_API_URL`.
 
 **6. Bring up** — the next tagged release deploys it automatically. Confirm the
 dashboard loads live data after sign-in; `crm-api-nest` answers over the internal

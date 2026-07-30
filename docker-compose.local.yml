@@ -115,7 +115,7 @@ services:
     ports:
       - '8000:8000'
 
-  # ── CRM API — NestJS (port 8001) — runs `prisma migrate deploy` on startup ──
+  # ── CRM API — NestJS (port 8001) — migrates AND seeds on startup ────────────
   # The production-mode backend (its own `crm_nest` database). Same HTTP contract
   # as crm-api, so crm-web can point CRM_API_URL at either one.
   crm-api-nest:
@@ -126,6 +126,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # The image's own CMD only migrates, which left a fresh volume serving a
+    # working API over an empty database — a UI that looks broken, not unseeded.
+    # Seeding here (and ONLY here) keeps that out of prod: this is a `command:`
+    # override local to this file, and docker-compose.prod.yml declares none, so
+    # prod keeps the migrate-only CMD and cannot inherit the extra step.
+    # `node`, not `bun run seed` — the runtime image is node:22-bookworm-slim.
+    # The seed upserts on stable ids, so every restart converges instead of
+    # duplicating.
+    command: >
+      sh -c "npx prisma migrate deploy &&
+             node dist/seed.js &&
+             node dist/main"
     environment:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/crm_nest
       JWT_SECRET: dev-only-change-me
@@ -135,10 +147,14 @@ services:
       - '8001:8001'
 
   # ── CRM dashboard — Next.js (port 3002) ─────────────────────────────────────
-  # Runs LIVE against crm-api-nest (mirrors prod). CRM_API_URL is server-only
-  # and read at runtime — repoint or unset it without a rebuild:
-  #   • mock mode: remove the CRM_API_URL line (UI falls back to bundled data)
-  #   • Python backend: CRM_API_URL: http://crm-api:8000
+  # Runs against crm-api-nest (mirrors prod). CRM_API_URL is REQUIRED — there is
+  # no offline/bundled-data mode; remove it and every page breaks. It is
+  # server-only and read at runtime, so repointing it needs no rebuild — but the
+  # only valid target is crm-api-nest: the Python crm-api serves the v1 contract
+  # and is not UI-compatible (AGENTS.md).
+  #
+  # crm-api-nest migrates AND seeds on start (see its command above), so a fresh
+  # volume already has the demo dataset and the admin/admin login below works.
   crm-web:
     build:
       context: .
@@ -147,9 +163,8 @@ services:
     depends_on:
       - crm-api-nest
     environment:
-      # Live mode against the NestJS backend (AUTH_MODE=local there, so crm-web
-      # auto-mints its bearer from /auth/token with the seeded admin/admin —
-      # no token to manage). Point at http://crm-api:8000 for the Python one.
+      # AUTH_MODE=local on the backend, so crm-web auto-mints its bearer from
+      # /auth/token with the seeded admin/admin — no token to manage.
       CRM_API_URL: http://crm-api-nest:8001
     ports:
       - '3002:3002'

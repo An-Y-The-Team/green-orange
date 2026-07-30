@@ -1,7 +1,18 @@
+// Receivables: Settlement (Quyết toán) → Bill (Hóa đơn) → PaymentMilestone
+// (Đợt thanh toán). Doc: docs/features/crm-database-schema.md.
+// Rules enforced here:
+//   • One settlement per project (1:1) — a second POST is a 409.
+//   • A settlement is born with its draft bill (same transaction).
+//   • Signing a settlement officializes its bill (same transaction);
+//     unsigning (signed → draft) is its exact inverse — the correction path.
+//   • Bills have no POST/DELETE — they live and die with their settlement.
+//   • "overdue" is DERIVED (due_date < today && status != paid), never stored.
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Module,
@@ -10,72 +21,539 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
+  Res,
 } from "@nestjs/common";
+import { Type } from "class-transformer";
 import {
-  IsBoolean,
+  IsArray,
+  IsDateString,
   IsIn,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
   Min,
   MinLength,
+  ValidateNested,
 } from "class-validator";
+import type { Response } from "express";
 
-import { toBig } from "../common/coerce";
-import { canCollect } from "../common/milestone";
+import { businessToday } from "../common/business-date";
+import { toBig, toDate } from "../common/coerce";
+import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
+import { assertProjectOpen } from "../common/project-lock";
+import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 
-const MILESTONE_TYPE = ["tam_ung", "tien_do", "nghiem_thu", "giu_bao_hanh"];
-const MILESTONE_STATUS = [
-  "chua_den_han",
-  "cho_thanh_toan",
-  "da_thu",
-  "qua_han",
-];
+const SETTLEMENT_STATUS = ["draft", "sent", "signed"];
+const BILL_STATUS = ["draft", "official", "sent", "paid"];
+const MILESTONE_TYPE = ["deposit", "progress", "acceptance"];
+const MILESTONE_STATUS = ["not_due", "awaiting_payment", "paid"];
 
-class CreateMilestoneDto {
-  @IsString() @MinLength(1) contract_code: string;
-  @IsString() @MinLength(1) project_code: string;
-  @IsString() @MinLength(1) client: string;
-  @IsString() @MinLength(1) name: string;
-  @IsIn(MILESTONE_TYPE) type: string;
-  @IsNumber() @Min(0) due_amount: number;
-  @IsString() @MinLength(1) due_date: string;
-  @IsBoolean() gated_by_acceptance: boolean;
+// One step forward along the chain, nothing else.
+const assertStep = (order: string[], from: string, to: string) => {
+  if (order.indexOf(to) !== order.indexOf(from) + 1)
+    throw new BadRequestException(`Invalid status transition: ${from} → ${to}`);
+};
+
+// F40: the cross-project money lists print a công trình code, and the only way
+// to get one used to be fetching /projects and joining in JS — a paginated
+// window, so any row outside it rendered `#id`. Same idea as quotes.module.ts /
+// contracts.module.ts PROJECT_INCLUDE, minus the fields these tables never
+// print. List paths only: a per-project read already knows its project.
+const PROJECT_INCLUDE = {
+  project: { select: { id: true, code: true } },
+};
+
+// ── Settlements (Quyết toán) ────────────────────────────────────────────────
+const SETTLEMENT_INCLUDE = {
+  bill: true,
+  items: { orderBy: { sort_order: "asc" as const } },
+};
+
+class SettlementItemDto {
+  @IsString() @MinLength(1) description: string;
+  @IsOptional() @IsString() unit?: string;
+  @IsNumber() @Min(0) quantity: number;
+  @IsNumber() @Min(0) unit_price: number;
+  @IsOptional() @IsInt() @Min(0) sort_order?: number;
 }
 
-// Collect / update a milestone. Not yet wired in the UI, but milestone
-// collection is core CRM behavior and it's where the acceptance gate lives.
-class UpdateMilestoneDto {
-  @IsOptional() @IsIn(MILESTONE_STATUS) status?: string;
-  @IsOptional() @IsNumber() @Min(0) paid_amount?: number;
+class CreateSettlementDto {
+  @IsInt() project_id: number;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SettlementItemDto)
+  items?: SettlementItemDto[];
+  @IsOptional() @IsString() note?: string;
 }
 
-@Controller("payment-milestones")
-class PaymentMilestonesController {
+class UpdateSettlementDto {
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SettlementItemDto)
+  items?: SettlementItemDto[];
+  @IsOptional() @IsIn(SETTLEMENT_STATUS) status?: string;
+  @IsOptional() @IsDateString() signed_date?: string;
+  @IsOptional() @IsString() note?: string;
+}
+
+// amount = round(quantity × unit_price) per item; total = Σ amounts.
+const computeItems = (items: SettlementItemDto[]) => {
+  const rows = items.map((it, i) => ({
+    description: it.description,
+    unit: it.unit ?? null,
+    quantity: it.quantity,
+    unit_price: toBig(it.unit_price)!,
+    amount: toBig(Math.round(it.quantity * it.unit_price))!,
+    sort_order: it.sort_order ?? i,
+  }));
+  const total = rows.reduce((sum, r) => sum + r.amount, 0n);
+  return { rows, total };
+};
+
+// Balance đợt on sign = settlement total − EVERY unallocated cọc.
+// Deliberately status-blind: đợt thanh toán are a payment SCHEDULE, so
+// sum(bill's đợt) must equal bill.total_amount. An unpaid `not_due` cọc is
+// still a scheduled obligation — subtracting only the paid ones would bill the
+// full balance next to it and double-bill the client. Do not "fix" this by
+// filtering `status: "paid"`.
+// (exported for the unit test in receivables.test.ts)
+export const settlementRemainder = (
+  total: bigint,
+  deposits: { amount: bigint }[]
+): bigint => {
+  const allocated = deposits.reduce((sum, d) => sum + d.amount, 0n);
+  const remainder = total - allocated;
+  if (remainder < 0n)
+    throw new ConflictException(
+      `cọc already scheduled (${allocated}) exceeds the settlement total (${total}) — correct the đợt thanh toán before signing`
+    );
+  return remainder;
+};
+
+@Controller("settlements")
+export class SettlementsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list() {
-    return this.prisma.paymentMilestone.findMany();
+  list(
+    @Res({ passthrough: true }) res: Response,
+    @Query() page: PageQuery,
+    @Query("project_id", new ParseIntPipe({ optional: true }))
+    projectId?: number
+  ) {
+    // One `where`, both queries — the count cannot drift from the rows.
+    const where = { project_id: projectId };
+    return withTotalCount(
+      res,
+      this.prisma.settlement.findMany({
+        where,
+        include: SETTLEMENT_INCLUDE,
+        // Was unordered: paging an unordered query overlaps and drops rows.
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.settlement.count({ where })
+    );
+  }
+
+  @Get(":id")
+  async get(@Param("id", ParseIntPipe) id: number) {
+    const row = await this.prisma.settlement.findUnique({
+      where: { id },
+      include: SETTLEMENT_INCLUDE,
+    });
+    if (!row) throw new NotFoundException("Settlement not found");
+    return row;
   }
 
   @Post()
   @HttpCode(201)
-  create(@Body() dto: CreateMilestoneDto) {
-    // A new đợt starts unpaid and not-yet-due (schema defaults status/paid_amount).
-    return this.prisma.paymentMilestone.create({
+  async create(@Body() dto: CreateSettlementDto) {
+    await assertProjectOpen(this.prisma, dto.project_id);
+    // 1:1 rule: correct the existing settlement instead of adding another.
+    const existing = await this.prisma.settlement.findUnique({
+      where: { project_id: dto.project_id },
+    });
+    if (existing)
+      throw new ConflictException(
+        `project already has a settlement (QT #${existing.id}) — a project settles once`
+      );
+    const { rows, total } = computeItems(dto.items ?? []);
+    // Doc rule: the draft bill is prepared alongside the settlement.
+    const created = await this.prisma.$transaction(async (tx) => {
+      const settlement = await tx.settlement.create({
+        data: {
+          project_id: dto.project_id,
+          note: dto.note,
+          total_amount: total,
+          items: { create: rows },
+        },
+      });
+      await tx.bill.create({
+        data: {
+          project_id: dto.project_id,
+          settlement_id: settlement.id,
+          total_amount: 0, // the bill gets the real total on sign
+        },
+      });
+      return tx.settlement.findUnique({
+        where: { id: settlement.id },
+        include: SETTLEMENT_INCLUDE,
+      });
+    });
+    // Starting a settlement means the project has reached stage 8.
+    await advanceStage(this.prisma, dto.project_id, "settlement");
+    return created;
+  }
+
+  @Patch(":id")
+  async update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdateSettlementDto
+  ) {
+    const row = await this.get(id);
+    await assertProjectOpen(this.prisma, row.project_id);
+    const data: Record<string, unknown> = {};
+    if (dto.note !== undefined) data.note = dto.note;
+    if (dto.signed_date !== undefined)
+      data.signed_date = toDate(dto.signed_date);
+    if (dto.items) {
+      // Doc rule: editable while nháp/đã gửi. Signing derives the bill total +
+      // milestones, so a signed settlement is corrected by un-signing first.
+      if (row.status === "signed")
+        throw new BadRequestException(
+          "items are frozen once signed — un-sign to correct"
+        );
+      const { rows, total } = computeItems(dto.items);
+      data.total_amount = total;
+      data.items = { deleteMany: {}, create: rows };
+    }
+    if (dto.status !== undefined && dto.status !== row.status) {
+      // Correction path (1:1 rule): un-sign back to draft instead of creating
+      // a second settlement. Inverse of the sign transaction below.
+      if (row.status === "signed" && dto.status === "draft")
+        return this.unsign(row);
+      assertStep(SETTLEMENT_STATUS, row.status, dto.status);
+      data.status = dto.status;
+      if (dto.status === "signed") {
+        // Doc rule (stage 8): signing officializes the bill with the
+        // settlement total, attaches the unallocated cọc milestone, and
+        // auto-creates one milestone for the remaining balance.
+        data.signed_date = toDate(dto.signed_date) ?? businessToday();
+        await this.prisma.$transaction(async (tx) => {
+          // Read the total off the UPDATED row: a PATCH carrying both `items`
+          // and status:"signed" recomputed it above, so `row` is stale.
+          const signed = await tx.settlement.update({ where: { id }, data });
+          const bill = await tx.bill.findFirst({
+            where: { settlement_id: id },
+          });
+          if (!bill) return;
+          await tx.bill.update({
+            where: { id: bill.id },
+            data: { status: "official", total_amount: signed.total_amount },
+          });
+          // All of them: a leftover cọc would stay unallocated and unsubtracted.
+          const deposits = await tx.paymentMilestone.findMany({
+            where: {
+              project_id: signed.project_id,
+              type: "deposit",
+              bill_id: null,
+            },
+          });
+          const remainder = settlementRemainder(signed.total_amount, deposits);
+          if (deposits.length)
+            await tx.paymentMilestone.updateMany({
+              where: { id: { in: deposits.map((d) => d.id) } },
+              data: { bill_id: bill.id },
+            });
+          if (remainder > 0n)
+            await tx.paymentMilestone.create({
+              data: {
+                project_id: signed.project_id,
+                bill_id: bill.id,
+                type: "progress",
+                amount: remainder,
+              },
+            });
+        });
+        return this.get(id);
+      }
+    }
+    return this.prisma.settlement.update({
+      where: { id },
+      data,
+      include: SETTLEMENT_INCLUDE,
+    });
+  }
+
+  // signed → draft: give the money back to the pre-sign state so the numbers
+  // can be corrected. Refuses once money has actually come in — un-signing a
+  // paid bill would silently orphan collected payments.
+  // (not private: unit-tested in contract.test.ts — not a route, no decorator)
+  async unsign(row: Awaited<ReturnType<SettlementsController["get"]>>) {
+    const bill = row.bill;
+    if (bill) {
+      const collected =
+        bill.status === "paid" ||
+        (await this.prisma.paymentMilestone.findFirst({
+          where: { bill_id: bill.id, type: { not: "deposit" }, status: "paid" },
+        })) !== null;
+      if (collected)
+        throw new BadRequestException(
+          "cannot un-sign: payments have already been collected on this bill"
+        );
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.settlement.update({
+        where: { id: row.id },
+        data: { status: "draft", signed_date: null },
+      });
+      if (!bill) return;
+      // Detach the cọc first so it survives the cleanup and a re-sign
+      // re-attaches it (keeps sign/unsign idempotent).
+      await tx.paymentMilestone.updateMany({
+        where: { bill_id: bill.id, type: "deposit" },
+        data: { bill_id: null },
+      });
+      await tx.paymentMilestone.deleteMany({
+        where: { bill_id: bill.id, status: { not: "paid" } },
+      });
+      await tx.bill.update({
+        where: { id: bill.id },
+        data: {
+          status: "draft",
+          total_amount: 0,
+          sent_date: null,
+          paid_date: null,
+        },
+      });
+    });
+    return this.get(row.id);
+  }
+
+  @Delete(":id")
+  @HttpCode(204)
+  async remove(@Param("id", ParseIntPipe) id: number) {
+    const row = await this.get(id);
+    await assertProjectOpen(this.prisma, row.project_id);
+    if (row.status !== "draft")
+      throw new BadRequestException("Only draft settlements can be deleted");
+    // Items cascade via the FK.
+    await this.prisma.$transaction([
+      this.prisma.bill.deleteMany({ where: { settlement_id: id } }),
+      this.prisma.settlement.delete({ where: { id } }),
+    ]);
+  }
+}
+
+// ── Bills (Hóa đơn) ─────────────────────────────────────────────────────────
+// No POST (bills are born with their settlement) and no DELETE (they die with
+// their draft settlement).
+class UpdateBillDto {
+  @IsOptional() @IsIn(BILL_STATUS) status?: string;
+  @IsOptional() @IsNumber() @Min(0) total_amount?: number;
+  @IsOptional() @IsDateString() sent_date?: string;
+  @IsOptional() @IsDateString() paid_date?: string;
+}
+
+@Controller("bills")
+class BillsController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Get()
+  list(
+    @Res({ passthrough: true }) res: Response,
+    @Query() page: PageQuery,
+    @Query("project_id", new ParseIntPipe({ optional: true }))
+    projectId?: number,
+    @Query("status") status?: string
+  ) {
+    const where = { project_id: projectId, status };
+    return withTotalCount(
+      res,
+      this.prisma.bill.findMany({
+        where,
+        include: { milestones: true, ...PROJECT_INCLUDE },
+        // Was unordered: paging an unordered query overlaps and drops rows.
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.bill.count({ where })
+    );
+  }
+
+  @Get(":id")
+  async get(@Param("id", ParseIntPipe) id: number) {
+    const row = await this.prisma.bill.findUnique({
+      where: { id },
+      include: { milestones: true },
+    });
+    if (!row) throw new NotFoundException("Bill not found");
+    return row;
+  }
+
+  @Patch(":id")
+  async update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdateBillDto
+  ) {
+    const row = await this.get(id);
+    await assertProjectOpen(this.prisma, row.project_id);
+    const data: Record<string, unknown> = {};
+    if (dto.total_amount !== undefined) {
+      if (row.status !== "draft" && row.status !== "official")
+        throw new BadRequestException(
+          "total_amount is editable only while draft or official"
+        );
+      data.total_amount = toBig(dto.total_amount);
+    }
+    if (dto.sent_date !== undefined) data.sent_date = toDate(dto.sent_date);
+    if (dto.paid_date !== undefined) data.paid_date = toDate(dto.paid_date);
+    if (dto.status !== undefined && dto.status !== row.status) {
+      // Forward-only; manual flips are the source of truth (future bank feed
+      // is out of scope).
+      if (BILL_STATUS.indexOf(dto.status) <= BILL_STATUS.indexOf(row.status))
+        throw new BadRequestException(
+          `Invalid status transition: ${row.status} → ${dto.status}`
+        );
+      data.status = dto.status;
+      if (dto.status === "sent") data.sent_date ??= businessToday();
+      if (dto.status === "paid") data.paid_date ??= businessToday();
+    }
+    return this.prisma.bill.update({
+      where: { id },
+      data,
+      include: { milestones: true },
+    });
+  }
+}
+
+// ── Payment milestones (Đợt thanh toán) ─────────────────────────────────────
+// A đợt's bill must belong to the same công trình: the printed "Đề nghị thanh
+// toán" joins on bill_id alone, so a foreign bill renders one client's payment
+// schedule on another's request (and corrupts unsign's "already collected").
+const assertBillBelongsToProject = async (
+  prisma: PrismaService,
+  billId: number,
+  projectId: number
+) => {
+  const bill = await prisma.bill.findUnique({ where: { id: billId } });
+  if (!bill || bill.project_id !== projectId)
+    throw new BadRequestException("bill_id does not belong to project_id");
+};
+
+class CreateMilestoneDto {
+  @IsInt() project_id: number;
+  @IsOptional() @IsInt() bill_id?: number; // null for the stage-4 deposit
+  @IsIn(MILESTONE_TYPE) type: string;
+  @IsNumber() @Min(0) amount: number;
+  @IsOptional() @IsIn(MILESTONE_STATUS) status?: string;
+  @IsOptional() @IsDateString() due_date?: string;
+  @IsOptional() @IsDateString() paid_date?: string; // a cọc can be backdated
+}
+
+class UpdateMilestoneDto {
+  @IsOptional() @IsInt() bill_id?: number;
+  @IsOptional() @IsIn(MILESTONE_STATUS) status?: string;
+  @IsOptional() @IsNumber() @Min(0) amount?: number;
+  @IsOptional() @IsDateString() due_date?: string;
+  @IsOptional() @IsDateString() paid_date?: string;
+}
+
+@Controller("payment-milestones")
+// (exported for the paid_date unit test in receivables.test.ts)
+export class PaymentMilestonesController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  // `overdue=true` mirrors GET /paperwork-items: overdue is DERIVED (due_date <
+  // today && status != paid — schema.prisma PaymentMilestone.status) and belongs
+  // on the server, or every consumer rebuilds the rule over whichever page it
+  // happened to fetch (F20). It already implies a status, so — same as paperwork
+  // — it REPLACES `status=` rather than fighting it for the same Prisma key.
+  @Get()
+  list(
+    @Res({ passthrough: true }) res: Response,
+    @Query() page: PageQuery,
+    @Query("project_id", new ParseIntPipe({ optional: true }))
+    projectId?: number,
+    @Query("bill_id", new ParseIntPipe({ optional: true })) billId?: number,
+    @Query("status") status?: string,
+    @Query("overdue") overdue?: string
+  ) {
+    // One `where`, both queries — so the count applies the same derived overdue
+    // rule as the rows instead of counting every đợt in the table.
+    const where = {
+      project_id: projectId,
+      bill_id: billId,
+      ...(overdue === "true"
+        ? { due_date: { lt: businessToday() }, status: { not: "paid" } }
+        : { status }),
+    };
+    return withTotalCount(
+      res,
+      this.prisma.paymentMilestone.findMany({
+        where,
+        include: PROJECT_INCLUDE,
+        // Was unordered: paging an unordered query overlaps and drops rows.
+        orderBy: { id: "asc" },
+        ...pageArgs(page),
+      }),
+      this.prisma.paymentMilestone.count({ where })
+    );
+  }
+
+  @Get(":id")
+  async get(@Param("id", ParseIntPipe) id: number) {
+    const row = await this.prisma.paymentMilestone.findUnique({
+      where: { id },
+    });
+    if (!row) throw new NotFoundException("Payment milestone not found");
+    return row;
+  }
+
+  @Post()
+  @HttpCode(201)
+  async create(@Body() dto: CreateMilestoneDto) {
+    await assertProjectOpen(this.prisma, dto.project_id);
+    if (dto.bill_id != null)
+      await assertBillBelongsToProject(
+        this.prisma,
+        dto.bill_id,
+        dto.project_id
+      );
+    // A date of payment on money that isn't paid is incoherent — reject rather
+    // than store it, so a caller sending the wrong status hears about it
+    // instead of leaving a not_due đợt that looks settled.
+    if (dto.paid_date != null && dto.status !== "paid")
+      throw new BadRequestException('paid_date requires status: "paid"');
+    // Defaults to not_due (schema default); "overdue" is derived at read time,
+    // never stored. An explicit initial status is NOT a transition, so no
+    // assertStep — recording an already-received cọc has to be one write, or a
+    // failed follow-up PATCH leaves an orphan the operator's retry duplicates.
+    const created = await this.prisma.paymentMilestone.create({
       data: {
-        contract_code: dto.contract_code,
-        project_code: dto.project_code,
-        client: dto.client,
-        name: dto.name,
+        project_id: dto.project_id,
+        bill_id: dto.bill_id,
         type: dto.type,
-        due_amount: toBig(dto.due_amount)!,
-        due_date: new Date(dto.due_date),
-        gated_by_acceptance: dto.gated_by_acceptance,
+        amount: toBig(dto.amount)!,
+        status: dto.status,
+        due_date: toDate(dto.due_date),
+        // The operator can backdate a cọc that arrived last week; the server
+        // stamp is only the fallback.
+        paid_date:
+          toDate(dto.paid_date) ??
+          (dto.status === "paid" ? businessToday() : undefined),
       },
     });
+    // Same rule as PATCH: cọc received closes stage 4 → paperwork.
+    if (dto.status === "paid" && dto.type === "deposit")
+      await advanceStage(this.prisma, dto.project_id, "paperwork");
+    return created;
   }
 
   @Patch(":id")
@@ -83,31 +561,56 @@ class PaymentMilestonesController {
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateMilestoneDto
   ) {
-    const row = await this.prisma.paymentMilestone.findUnique({
-      where: { id },
-    });
-    if (!row) throw new NotFoundException("Payment milestone not found");
-
-    // Enforce the gate when this update would collect the milestone.
-    const collecting = dto.status === "da_thu" || (dto.paid_amount ?? 0) > 0;
-    if (collecting && row.gated_by_acceptance) {
-      const approved = await this.prisma.acceptance.count({
-        where: { project_code: row.project_code, status: "da_nghiem_thu" },
-      });
-      if (!canCollect(row.gated_by_acceptance, approved > 0)) {
-        throw new ConflictException(
-          "Chưa thể thu: công trình chưa được nghiệm thu (da_nghiem_thu)."
-        );
-      }
-    }
-
+    const row = await this.get(id);
+    await assertProjectOpen(this.prisma, row.project_id);
     const data: Record<string, unknown> = {};
-    if (dto.status !== undefined) data.status = dto.status;
-    if (dto.paid_amount !== undefined)
-      data.paid_amount = toBig(dto.paid_amount);
-    return this.prisma.paymentMilestone.update({ where: { id }, data });
+    if (dto.bill_id != null)
+      await assertBillBelongsToProject(
+        this.prisma,
+        dto.bill_id,
+        row.project_id
+      );
+    if (dto.bill_id !== undefined) data.bill_id = dto.bill_id;
+    if (dto.amount !== undefined) data.amount = toBig(dto.amount);
+    if (dto.due_date !== undefined) data.due_date = toDate(dto.due_date);
+    if (dto.paid_date !== undefined) data.paid_date = toDate(dto.paid_date);
+    if (dto.status !== undefined && dto.status !== row.status) {
+      assertStep(MILESTONE_STATUS, row.status, dto.status);
+      data.status = dto.status;
+      if (dto.status === "paid") data.paid_date ??= businessToday();
+    }
+    const updated = await this.prisma.paymentMilestone.update({
+      where: { id },
+      data,
+    });
+    // Cọc received (deposit milestone paid) closes stage 4 → paperwork.
+    if (
+      dto.status === "paid" &&
+      row.status !== "paid" &&
+      row.type === "deposit"
+    )
+      await advanceStage(this.prisma, row.project_id, "paperwork");
+    return updated;
+  }
+
+  @Delete(":id")
+  @HttpCode(204)
+  async remove(@Param("id", ParseIntPipe) id: number) {
+    const row = await this.get(id);
+    await assertProjectOpen(this.prisma, row.project_id);
+    if (row.status !== "not_due")
+      throw new BadRequestException(
+        "Only not_due payment milestones can be deleted"
+      );
+    await this.prisma.paymentMilestone.delete({ where: { id } });
   }
 }
 
-@Module({ controllers: [PaymentMilestonesController] })
+@Module({
+  controllers: [
+    SettlementsController,
+    BillsController,
+    PaymentMilestonesController,
+  ],
+})
 export class ReceivablesModule {}

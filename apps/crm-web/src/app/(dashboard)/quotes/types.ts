@@ -1,25 +1,65 @@
-// Báo giá / Quyết toán — initial quote vs final settlement. Same shape, the
-// `type` discriminates: a quyết toán is just a quote reconciling actual costs.
-import type { QuoteStatus, QuoteType } from "./enums";
+// Báo giá — v2. Bargaining = a new version row; sent versions are frozen and
+// the latest version carries the live status ("superseded" is derived, never
+// stored). Serialized by crm-api-nest: money as numbers, *_date = YYYY-MM-DD,
+// *_at = full ISO.
+import type { QuoteChannel, QuoteStatus } from "./enums";
 
 export interface QuoteItem {
+  category?: string | null; // section header; consecutive items share one
   description: string;
-  unit: string;
+  unit?: string | null; // m², buổi, … (free text)
   quantity: number;
-  unit_price: number;
+  unit_price: number; // VND
+  amount: number; // VND — server-computed round(quantity × unit_price)
+  sort_order: number;
+}
+
+export interface QuoteSendLog {
+  id: number;
+  quote_id: number;
+  channel: QuoteChannel;
+  sent_by: string;
+  sent_at: string; // full ISO
+  follow_up_ref?: string | null;
 }
 
 export interface Quote {
   id: number;
-  code: string;
-  project_code: string;
-  client: string;
-  title: string;
-  type: QuoteType;
-  issue_date: string;
-  valid_until: string;
+  project_id: number | null; // null = standalone (walk-in / speculative)
+  version: number;
   status: QuoteStatus;
+  total_amount: number; // VND, before VAT (Σ item amounts)
+  vat_rate: number; // e.g. 0.08
+  decided_date?: string | null; // YYYY-MM-DD
+  note?: string | null; // terms block on the printable
+  // Slim project relation, exactly as crm-api-nest includes it on the list AND
+  // the detail response. Absent on standalone quotes (project_id: null) — the
+  // denormalized `client` / `project_code` columns are gone, so this is the only
+  // way to print anything but a raw id. Same shape as contracts/types.ts.
+  project?: {
+    id: number;
+    code: string;
+    name: string;
+    client: { id: number; name: string };
+  };
   items: QuoteItem[];
-  vat_rate: number; // e.g. 0.08 for 8% VAT
-  notes: string;
+  send_logs: QuoteSendLog[];
 }
+
+/**
+ * One row of the CROSS-PROJECT list (`GET /quotes` with no `project_id`): that
+ * response carries no `items` and selects only the send-log `channel`. Typing it
+ * as a full {@link Quote} would let a money path read `.items` and silently see
+ * an empty array. Project-scoped reads (getProjectQuotes / getDealQuote) still
+ * return the full `Quote`.
+ */
+export type QuoteListRow = Omit<Quote, "items" | "send_logs"> & {
+  send_logs: Pick<QuoteSendLog, "channel">[];
+  /**
+   * Server-computed: `false` = a newer version exists for the same project, i.e.
+   * "Đã thay thế". Only this shape carries it — a project-scoped read returns the
+   * full {@link Quote} (whole version set, no flag). Standalone quotes
+   * (`project_id: null`) have no siblings, so they are always `true`.
+   */
+  is_latest: boolean;
+};

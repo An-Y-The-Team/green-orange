@@ -134,7 +134,7 @@ Enable with `.env`: `AUTH_MODE=oidc`, `OIDC_ISSUER=<issuer>`, `OIDC_AUDIENCE=<cl
 monkeypatches the verifier (no live Authentik) to cover provisioning + rejection.
 
 Verified end-to-end: minted a real Authentik token (client-credentials grant) →
-`GET /auth/me` returned the provisioned identity, `GET /customers` → 200, garbage
+`GET /auth/me` returned the provisioned identity, `GET /clients` → 200, garbage
 token → 401.
 
 ---
@@ -145,19 +145,23 @@ Implemented with `next-auth@5.0.0-beta.31` and the edge-safe split-config patter
 
 - [src/auth.config.ts](../apps/crm-web/src/auth.config.ts) — edge-safe config + the
   Authentik provider. **Auth is opt-in**: `authEnabled` is true only when
-  `AUTH_AUTHENTIK_ISSUER` is set. With it unset (local/mock dev) the dashboard
+  `AUTH_AUTHENTIK_ISSUER` is set. With it unset (auth off — the usual local dev
+  setup) the dashboard
   stays open and no `AUTH_SECRET` is needed. `jwt`/`session` callbacks persist the
   Authentik access token + **refresh-on-expiry** against `…/token/`.
 - [src/auth.ts](../apps/crm-web/src/auth.ts) — the full `NextAuth()` instance
   (`handlers`, `auth`, `signIn`, `signOut`) for the Node runtime.
 - [src/app/api/auth/[...nextauth]/route.ts](../apps/crm-web/src/app/api/auth/[...nextauth]/route.ts) — the handlers.
-- [src/middleware.ts](../apps/crm-web/src/middleware.ts) — when enabled, the Auth.js
-  middleware redirects anonymous users to `/login`; when disabled it's a
-  pass-through (no gate, no secret required).
+- [src/proxy.ts](../apps/crm-web/src/proxy.ts) — when enabled, the Auth.js
+  middleware redirected anonymous users to `/login`; when disabled it was a
+  pass-through (no gate, no secret required). _(Since then the file was renamed
+  `middleware.ts` → `proxy.ts` and reduced to an unconditional pass-through — the
+  gate now lives in the dashboard layout so it reads runtime env; the file's own
+  comment explains why.)_
 - [src/app/login/page.tsx](../apps/crm-web/src/app/login/page.tsx) — sign-in page
   (`signIn("authentik")` server action); [(dashboard)/layout.tsx](<../apps/crm-web/src/app/(dashboard)/layout.tsx>)
   shows the user + a `signOut` button when authenticated.
-- [src/lib/api/index.ts](../apps/crm-web/src/lib/api/index.ts) — `getBearer()` now
+- [src/utils/http/http.ts](../apps/crm-web/src/utils/http/http.ts) — `getBearer()` now
   sends the **session access token** when OIDC is on, falling back to the dev
   `CRM_API_TOKEN`. The `apiFetch`/`apiFetchSafe` split is unchanged.
 - `src/types/next-auth.d.ts` augments the session/JWT with `accessToken`.
@@ -179,9 +183,12 @@ redirects to `…/application/o/authorize/` with `response_type=code`, the corre
    `apps/crm-api/.env` (AUTH*MODE=oidc + OIDC*\_) and `apps/crm-web/.env.local`
    (AUTH\_\_ ), and add `AUTH_SECRET`.
 3. In Authentik (`http://localhost:9000`, akadmin) create a normal user account.
-4. Start crm-api (`AUTH_MODE=oidc`) + crm-web; visit `http://localhost:3002` → land
-   on `/login` → "Đăng nhập với Authentik" → log in → back at `/dashboard`, and the
-   customer list shows live Postgres data (the session token, verified by crm-api).
+4. Start a backend with `AUTH_MODE=oidc` + crm-web; visit `http://localhost:3002` →
+   land on `/login` → "Đăng nhập với Authentik" → log in → back at `/dashboard` with
+   the session token accepted by the backend. _(Use `apps/crm-api-nest` on `:8001`
+   for the page-renders-data half of this check — since the v2 cutover the Python
+   `crm-api` on `:8000` no longer serves shapes crm-web can render, so it verifies
+   the token path only. See [tasks/00 — Choose your backend](tasks/00-choose-your-backend.md).)_
 
 ## Production notes (defer with the rest of prod wiring)
 

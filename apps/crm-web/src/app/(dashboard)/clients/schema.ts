@@ -1,17 +1,55 @@
 import { z } from "zod";
 
-import { ClientStatus } from "./enums";
+import { ClientType } from "./enums";
 
-// Single source of truth for client form validation. Imported by the server
-// actions (add/update) for server-side validation; the same shape is what
-// POST/PATCH /clients accept on the backend (a student exercise). Keeping it
-// here (not in the dialog) lets every client action reuse it.
-export const clientSchema = z.object({
-  name: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
-  email: z.string().email("Email không hợp lệ"),
-  phone: z.string().min(6, "Số điện thoại không hợp lệ"),
-  company: z.string().min(1, "Vui lòng nhập công ty"),
-  status: z.nativeEnum(ClientStatus),
+const clientEmail = z
+  .union([z.string().email("Email không hợp lệ"), z.literal("")])
+  .optional();
+
+export const createClientSchema = z
+  .object({
+    name: z.string().min(1),
+    type: z.nativeEnum(ClientType),
+    email: clientEmail,
+    address: z.string().optional(),
+  })
+  .superRefine((val, ctx) => {
+    // Individual clients need an address — the backend derives their default
+    // location/contact from it.
+    if (val.type === ClientType.INDIVIDUAL && !val.address?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["address"],
+        message: "Vui lòng nhập địa chỉ cho khách cá nhân.",
+      });
+    }
+  });
+
+export type CreateClientFormValues = z.infer<typeof createClientSchema>;
+
+// Inline edits on the detail page (crm-ui-redesign.md: pages/inline, no modals).
+export const updateClientSchema = z.object({
+  name: z.string().min(1),
+  tax_code: z.string().optional(),
+  email: clientEmail,
+  note: z.string().optional(),
 });
+export type UpdateClientFormValues = z.infer<typeof updateClientSchema>;
 
-export type ClientFormValues = z.infer<typeof clientSchema>;
+export const contactSchema = z.object({
+  name: z.string().min(1, "Nhập tên liên hệ"),
+  phone: z.string().optional(),
+  // Empty allowed; validated as an email only when present (backend @IsEmail).
+  email: z
+    .union([z.string().email("Email không hợp lệ"), z.literal("")])
+    .optional(),
+  title: z.string().optional(),
+});
+export type ContactFormValues = z.infer<typeof contactSchema>;
+
+export const locationSchema = z.object({
+  name: z.string().min(1, "Nhập tên địa điểm"),
+  address: z.string().min(1, "Nhập địa chỉ"),
+  manager_contact_id: z.number().int().positive().nullable().optional(),
+});
+export type LocationFormValues = z.infer<typeof locationSchema>;

@@ -1,11 +1,13 @@
 // Contract-critical pure logic, unit-tested without a DB (bun test). The full
 // HTTP roundtrip is the curl smoke check in the README's verify section.
+import { Prisma } from "@prisma/client";
 import { describe, expect, test } from "bun:test";
 
 import { formatCode } from "./common/code";
 import { toBig } from "./common/coerce";
-import { canCollect } from "./common/milestone";
 import { normalize } from "./common/serialize.interceptor";
+import { STAGE_ORDER, shouldAdvance } from "./common/stage";
+import { SettlementsController } from "./receivables/receivables.module";
 
 describe("formatCode", () => {
   test("first sequence is CT-2026-001", () => {
@@ -21,12 +23,22 @@ describe("normalize (serialization contract)", () => {
   test("BigInt VND → JSON number", () => {
     expect(normalize({ value: 120_000_000n })).toEqual({ value: 120_000_000 });
   });
-  test("Date → YYYY-MM-DD", () => {
+  test("*_date columns → YYYY-MM-DD", () => {
     expect(normalize({ start_date: new Date("2026-06-01T00:00:00Z") })).toEqual(
       {
         start_date: "2026-06-01",
       }
     );
+  });
+  test("*_at timestamps keep their time (appointments are same-day)", () => {
+    expect(
+      normalize({ appointment_at: new Date("2026-07-20T02:00:00.000Z") })
+    ).toEqual({ appointment_at: "2026-07-20T02:00:00.000Z" });
+  });
+  test("Prisma Decimal (quantity, hours) → JSON number", () => {
+    expect(normalize({ hours: new Prisma.Decimal("7.5") })).toEqual({
+      hours: 7.5,
+    });
   });
   test("walks arrays and nested objects (Quote.items)", () => {
     expect(
@@ -51,12 +63,83 @@ describe("toBig", () => {
   });
 });
 
-describe("canCollect (acceptance gate)", () => {
-  test("ungated milestone is always collectable", () => {
-    expect(canCollect(false, false)).toBe(true);
+describe("shouldAdvance (forward-only auto-advance)", () => {
+  test("advances when target is ahead", () => {
+    expect(shouldAdvance("request", "quote")).toBe(true);
   });
-  test("gated milestone blocked until an approved acceptance exists", () => {
-    expect(canCollect(true, false)).toBe(false);
-    expect(canCollect(true, true)).toBe(true);
+  test("never moves backward", () => {
+    expect(shouldAdvance("execution", "quote")).toBe(false);
+  });
+  test("same stage is a no-op", () => {
+    expect(shouldAdvance("quote", "quote")).toBe(false);
+  });
+  test("closed projects never auto-advance", () => {
+    expect(shouldAdvance("closed", "settlement")).toBe(false);
+  });
+  // 2026-07-25: survey merged into request — 8 stages, and re-adding one
+  // would silently shift every later index (advanceStage compares indices).
+  test("8 stages, survey merged into request", () => {
+    expect(STAGE_ORDER).toHaveLength(8);
+    expect(STAGE_ORDER).not.toContain("survey");
+    expect(STAGE_ORDER[0]).toBe("request");
+  });
+});
+
+// One quyết toán per project (1:1), so signed → draft is the correction path.
+// Money is at stake: the deposit must survive, collected payments must block.
+describe("settlement unsign (signed → draft)", () => {
+  const row = {
+    id: 7,
+    project_id: 3,
+    status: "signed",
+    total_amount: 100n,
+    bill: { id: 9, status: "official" },
+  };
+  const fake = (paidMilestone: unknown): any => {
+    const calls: string[] = [];
+    const tx = {
+      settlement: { update: () => calls.push("settlement.update") },
+      paymentMilestone: {
+        updateMany: () => calls.push("deposit.detach"),
+        deleteMany: () => calls.push("unpaid.delete"),
+      },
+      bill: { update: () => calls.push("bill.reset") },
+    };
+    return {
+      calls,
+      paymentMilestone: { findFirst: async () => paidMilestone },
+      settlement: { findUnique: async () => ({ ...row, status: "draft" }) },
+      $transaction: async (fn: any) => fn(tx),
+    };
+  };
+
+  test("detaches the cọc BEFORE deleting unpaid đợt (order = no data loss)", async () => {
+    const prisma = fake(null);
+    await new SettlementsController(prisma).unsign(row as any);
+    expect(prisma.calls).toEqual([
+      "settlement.update",
+      "deposit.detach",
+      "unpaid.delete",
+      "bill.reset",
+    ]);
+  });
+
+  test("refuses once a payment has been collected on the bill", async () => {
+    const prisma = fake({ id: 11, status: "paid" });
+    await expect(
+      new SettlementsController(prisma).unsign(row as any)
+    ).rejects.toThrow(/already been collected/);
+    expect(prisma.calls).toEqual([]);
+  });
+
+  test("refuses when the bill itself is marked paid", async () => {
+    const prisma = fake(null);
+    await expect(
+      new SettlementsController(prisma).unsign({
+        ...row,
+        bill: { ...row.bill, status: "paid" },
+      } as any)
+    ).rejects.toThrow(/already been collected/);
+    expect(prisma.calls).toEqual([]);
   });
 });

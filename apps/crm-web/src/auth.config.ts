@@ -3,41 +3,42 @@ import { CredentialsSignin } from "next-auth";
 import Authentik from "next-auth/providers/authentik";
 import Credentials from "next-auth/providers/credentials";
 
-import { headlessLogin } from "@/lib/authentik-flow";
+import { LoginFailureReason } from "@/constants/login-failure-reason";
+import { headlessLogin } from "@/utils/authentik-flow/authentik-flow";
 
-// Surfaces the headless-login failure reason to the client as `res.code`
-// ("invalid_credentials" | "unsupported_stage" | "error") so the overlay can
-// tell "wrong password" apart from "this account needs the hosted login".
+// Surfaces the headless-login failure reason to the client as `res.code` so the
+// overlay can tell "wrong password" apart from "this account needs the hosted
+// login". See LoginFailureReason for the values.
 class HeadlessLoginError extends CredentialsSignin {
-  constructor(code: string) {
+  constructor(code: LoginFailureReason) {
     super();
     this.code = code;
   }
 }
 
 // Auth is OPT-IN: only enforced when Authentik is configured. With no
-// AUTH_AUTHENTIK_ISSUER (the default for local/mock dev), the dashboard stays
+// AUTH_AUTHENTIK_ISSUER — auth OFF, the local-dev default — the dashboard stays
 // open and no login is required — matches the team topology where daily work
 // runs in AUTH_MODE=local and Authentik is only used for the SSO milestone.
-const issuer = process.env.AUTH_AUTHENTIK_ISSUER;
-export const authEnabled = Boolean(issuer);
+const ISSUER = process.env.AUTH_AUTHENTIK_ISSUER;
+export const AUTH_ENABLED = Boolean(ISSUER);
 
 // Authentik's token endpoint is GLOBAL (/application/o/token/), not under the
 // per-app issuer path — the discovery doc confirms it, and the slug-scoped URL
 // answers 405. Building it from the issuer's origin keeps refresh working.
-const tokenEndpoint = issuer
-  ? `${new URL(issuer).origin}/application/o/token/`
+const TOKEN_ENDPOINT = ISSUER
+  ? `${new URL(ISSUER).origin}/application/o/token/`
   : "";
 
 // Edge-safe config shared by the Node route handler and the edge middleware
 // (no DB adapter — JWT sessions only — so it runs in middleware fine).
 export default {
-  providers: authEnabled
+  providers: AUTH_ENABLED
     ? [
         Authentik({
           clientId: process.env.AUTH_AUTHENTIK_ID,
           clientSecret: process.env.AUTH_AUTHENTIK_SECRET,
-          issuer,
+          issuer: ISSUER,
           // offline_access → refresh token; the others map to the claims the
           // crm-api verifier reads (preferred_username / email).
           authorization: {
@@ -54,7 +55,9 @@ export default {
             const username = creds?.username;
             const password = creds?.password;
             if (typeof username !== "string" || typeof password !== "string") {
-              throw new HeadlessLoginError("invalid_credentials");
+              throw new HeadlessLoginError(
+                LoginFailureReason.INVALID_CREDENTIALS
+              );
             }
             const result = await headlessLogin(username, password);
             if (!result.ok) throw new HeadlessLoginError(result.reason);
@@ -72,7 +75,7 @@ export default {
   pages: { signIn: "/login" },
   callbacks: {
     authorized({ auth }) {
-      if (!authEnabled) return true; // local/mock dev: no gate
+      if (!AUTH_ENABLED) return true; // auth off: no gate
       return Boolean(auth?.user);
     },
     async jwt({ token, account, user }) {
@@ -96,14 +99,24 @@ export default {
           refreshToken: account.refresh_token,
         };
       }
+      // Already flagged dead → never retry. The refresh token is revoked or
+      // expired, so re-POSTing the same doomed grant on every SessionWatch poll
+      // is pure noise on Authentik and feeds its brute-force/policy engine.
+      // Signing in again through the overlay mints a fresh token regardless.
+      if (token.error) return token;
       // Still valid → reuse.
       if (token.expiresAt && Date.now() < token.expiresAt * 1000) {
         return token;
       }
-      // Expired → refresh against Authentik's token endpoint.
-      if (!token.refreshToken || !tokenEndpoint) return token;
+      // Expired → refresh against Authentik's token endpoint. Nothing to refresh
+      // with means the session is dead: flag it (same signal as a failed refresh)
+      // so the layout gate shows the login overlay instead of silently handing
+      // pages a stale token that every crm-api call 401s on.
+      if (!token.refreshToken || !TOKEN_ENDPOINT) {
+        return { ...token, error: "RefreshTokenError" };
+      }
       try {
-        const res = await fetch(tokenEndpoint, {
+        const res = await fetch(TOKEN_ENDPOINT, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({

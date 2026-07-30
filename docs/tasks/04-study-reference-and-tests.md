@@ -25,9 +25,9 @@ operations — **list, read, create, update, delete** — each protected by
 ## Task
 
 1. **Read these three files top-to-bottom**, in order:
-   - [`app/models/customer.py`](../../apps/crm-api/app/models/customer.py) — the model + 4 schemas
-   - [`app/api/routes/customers.py`](../../apps/crm-api/app/api/routes/customers.py) — the 5 CRUD handlers
-   - [`tests/test_customers.py`](../../apps/crm-api/tests/test_customers.py) — how it's tested
+   - [`app/models/client.py`](../../apps/crm-api/app/models/client.py) — the model + 4 schemas
+   - [`app/api/routes/clients.py`](../../apps/crm-api/app/api/routes/clients.py) — the 5 CRUD handlers
+   - [`tests/test_clients.py`](../../apps/crm-api/tests/test_clients.py) — how it's tested
 2. **Run the test suite:**
 
    ```bash
@@ -37,8 +37,8 @@ operations — **list, read, create, update, delete** — each protected by
    It uses in-memory SQLite, so it needs neither Postgres nor a running server.
 
 3. **Answer these for yourself** (write the answers in the issue comments):
-   - Why does `CustomerCreate` _not_ include `id` or `created_at`?
-   - Why is every field on `CustomerUpdate` optional?
+   - Why does `ClientCreate` _not_ include `id` or `created_at`?
+   - Why is every field on `ClientUpdate` optional?
    - What does `_user: CurrentUser` do on each route, and what happens if it's removed?
    - Where is the model _registered_ so its table gets created?
      (Hint: [`app/models/__init__.py`](../../apps/crm-api/app/models/__init__.py).)
@@ -47,13 +47,13 @@ operations — **list, read, create, update, delete** — each protected by
 
 - [ ] `uv run pytest -q` passes locally.
 - [ ] You can point to where `list / read / create / update / delete` each live in
-      `customers.py`.
+      `clients.py`.
 - [ ] You answered the four questions above.
 
 ## Hints & references
 
 - SQLModel multiple-models pattern is documented in
-  `node_modules`/the SQLModel site, but `customer.py`'s comments summarize it.
+  `node_modules`/the SQLModel site, but `client.py`'s comments summarize it.
 - The migration that created the initial schema:
   [`alembic/versions/`](../../apps/crm-api/alembic/versions/).
 

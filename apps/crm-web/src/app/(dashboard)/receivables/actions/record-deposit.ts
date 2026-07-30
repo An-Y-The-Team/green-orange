@@ -1,0 +1,66 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
+
+import { apiSend } from "@/utils/http/http";
+
+import { MilestoneStatus, MilestoneType } from "../enums";
+import type { PaymentMilestone } from "../types";
+
+const recordDepositSchema = z.object({
+  amount: z.coerce.number().int().nonnegative(),
+  received_date: z.string().min(1, "Chọn ngày nhận cọc"),
+});
+export type RecordDepositFormValues = z.infer<typeof recordDepositSchema>;
+
+/**
+ * Record the stage-4 deposit (Tạm ứng): a pre-bill deposit milestone created
+ * already paid. ONE write — the server takes the initial `status` (setting it is
+ * not a transition, so `assertStep` stays out of the way). Chaining PATCHes here
+ * used to leave an orphan milestone whose retry duplicated the cọc.
+ */
+export async function recordDeposit(
+  projectId: number,
+  _prev: ServerActionState,
+  input: RecordDepositFormValues
+): Promise<ServerActionState> {
+  const parsed = recordDepositSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      errors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const { amount, received_date } = parsed.data;
+
+  try {
+    const milestone = await apiSend<PaymentMilestone>(
+      "/payment-milestones",
+      "POST",
+      {
+        project_id: projectId,
+        type: MilestoneType.DEPOSIT,
+        amount,
+        status: MilestoneStatus.PAID,
+        paid_date: received_date,
+      }
+    );
+
+    revalidatePath(`/projects/${projectId}`);
+    revalidatePath("/receivables");
+
+    return { success: true, message: "Đã ghi nhận cọc.", data: milestone };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Không thể ghi nhận cọc.",
+    };
+  }
+}

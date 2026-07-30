@@ -3,7 +3,7 @@
  * Printed in the header of every A4 document. Demo values — a real deployment
  * would source these from settings.
  */
-export const company = {
+export const COMPANY = {
   name: "CÔNG TY TNHH DỊCH VỤ GREENORANGE",
   tagline: "Vệ Sinh Công Nghiệp & Thi Công Cửa Hàng",
   address: "123 Nguyễn Văn Linh, Phường Tân Phong, Quận 7, TP. Hồ Chí Minh",

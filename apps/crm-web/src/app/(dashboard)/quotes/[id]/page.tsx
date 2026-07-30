@@ -1,14 +1,29 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { DocumentShell, SignatureBlocks } from "@/components/document-shell";
-import { formatDate, formatVND, quoteTotals } from "@/lib/format";
-import { quoteType } from "@/lib/labels";
+import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 
-import { getQuote } from "../queries";
+import {
+  QuoteBuilderForm,
+  type QuoteBuilderInitial,
+} from "@/app/(dashboard)/projects/[id]/quotes/new/quote-builder-form/quote-builder-form";
+import { PageHeader } from "@/components/page-header/page-header";
+import { QUOTE_STATUSES, QUOTE_SUPERSEDED_LABEL } from "@/constants/labels";
+import { labelOf } from "@/utils/label-of/label-of";
 
-export default async function QuoteDocumentPage({
+import { ReviseQuoteButton } from "../components/revise-quote-button/revise-quote-button";
+import { QuoteStatus } from "../enums";
+import { getQuote, isSuperseded } from "../queries";
+
+/**
+ * A quote's own page — the line grid, editable in place. This is where a báo giá
+ * is worked on; no need to go through the project's stage panel. Sent/decided
+ * versions are frozen (the backend 409s on PATCH), so those render the same grid
+ * read-only with "Tạo phiên bản mới". The customer-facing sheet is /print.
+ */
+export default async function QuotePage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -20,104 +35,68 @@ export default async function QuoteDocumentPage({
     notFound();
   }
 
-  const { subtotal, vat, total } = quoteTotals(quote.items, quote.vat_rate);
-  const title =
-    quote.type === "quyet_toan" ? "BẢNG QUYẾT TOÁN" : "BÁO GIÁ DỊCH VỤ";
+  const superseded = await isSuperseded(quote);
+  const frozen = quote.status !== QuoteStatus.DRAFT;
+  const badge = superseded
+    ? QUOTE_SUPERSEDED_LABEL
+    : labelOf(QUOTE_STATUSES, quote.status);
+  const label = quote.project
+    ? quote.project.code
+    : `BG-${String(quote.id).padStart(3, "0")}`;
+
+  const initial: QuoteBuilderInitial = {
+    projectId: quote.project_id ?? undefined,
+    version: quote.version,
+    editId: quote.id,
+    items: quote.items.map((it) => ({
+      category: it.category ?? undefined,
+      description: it.description,
+      unit: it.unit ?? undefined,
+      quantity: it.quantity,
+      unit_price: it.unit_price,
+    })),
+    vatPercent: Math.round(quote.vat_rate * 100),
+    note: quote.note ?? "",
+  };
 
   return (
     <>
-      <Link
-        href="/quotes"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
-      >
-        <ArrowLeft className="size-4" />
-        Quay lại danh sách
-      </Link>
+      <div className="mb-4 flex items-center justify-between">
+        <Link
+          href={quote.project_id ? `/projects/${quote.project_id}` : "/quotes"}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          {quote.project_id ? "Quay lại công trình" : "Quay lại danh sách"}
+        </Link>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
+      </div>
 
-      <DocumentShell title={title} subtitle={`Số: ${quote.code}`}>
-        {/* Meta */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
-          <p>
-            <span className="text-zinc-500">Khách hàng: </span>
-            <span className="font-medium">{quote.client}</span>
-          </p>
-          <p>
-            <span className="text-zinc-500">Loại: </span>
-            {quoteType[quote.type]}
-          </p>
-          <p>
-            <span className="text-zinc-500">Công trình: </span>
-            {quote.project_code}
-          </p>
-          <p>
-            <span className="text-zinc-500">Ngày lập: </span>
-            {formatDate(quote.issue_date)}
-          </p>
-          <p className="col-span-2">
-            <span className="text-zinc-500">Hiệu lực đến: </span>
-            {formatDate(quote.valid_until)}
-          </p>
-        </div>
-
-        <p className="mt-4 text-sm font-medium">{quote.title}</p>
-
-        {/* Line items */}
-        <table className="mt-3 w-full border-collapse text-xs">
-          <thead>
-            <tr className="border-y border-zinc-300 bg-zinc-50 text-left">
-              <th className="w-8 px-2 py-2">#</th>
-              <th className="px-2 py-2">Hạng mục</th>
-              <th className="px-2 py-2 text-center">ĐVT</th>
-              <th className="px-2 py-2 text-right">SL</th>
-              <th className="px-2 py-2 text-right">Đơn giá</th>
-              <th className="px-2 py-2 text-right">Thành tiền</th>
-            </tr>
-          </thead>
-          <tbody>
-            {quote.items.map((item, index) => (
-              <tr key={index} className="border-b border-zinc-200">
-                <td className="px-2 py-2">{index + 1}</td>
-                <td className="px-2 py-2">{item.description}</td>
-                <td className="px-2 py-2 text-center">{item.unit}</td>
-                <td className="px-2 py-2 text-right">{item.quantity}</td>
-                <td className="px-2 py-2 text-right">
-                  {formatVND(item.unit_price)}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {formatVND(item.quantity * item.unit_price)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {/* Totals */}
-        <div className="mt-3 ml-auto w-64 space-y-1 text-xs">
-          <div className="flex justify-between">
-            <span className="text-zinc-500">Tạm tính</span>
-            <span>{formatVND(subtotal)}</span>
+      <PageHeader
+        title="Báo giá"
+        description={
+          frozen
+            ? `${label} · v${quote.version} · chỉ đọc — tạo phiên bản mới để sửa`
+            : `${label} · v${quote.version}`
+        }
+        action={
+          <div className="flex gap-2">
+            {frozen && !superseded ? (
+              <ReviseQuoteButton quoteId={quote.id} />
+            ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href={`/quotes/${quote.id}/print`} />}
+            >
+              <Printer />
+              Bản in
+            </Button>
           </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-500">
-              VAT ({Math.round(quote.vat_rate * 100)}%)
-            </span>
-            <span>{formatVND(vat)}</span>
-          </div>
-          <div className="flex justify-between border-t border-zinc-300 pt-1 text-sm font-bold">
-            <span>Tổng cộng</span>
-            <span>{formatVND(total)}</span>
-          </div>
-        </div>
+        }
+      />
 
-        {quote.notes && (
-          <p className="mt-5 text-xs text-zinc-600">
-            <span className="font-medium">Ghi chú: </span>
-            {quote.notes}
-          </p>
-        )}
-
-        <SignatureBlocks />
-      </DocumentShell>
+      <QuoteBuilderForm initial={initial} readOnly={frozen} />
     </>
   );
 }

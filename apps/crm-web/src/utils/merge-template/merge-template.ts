@@ -1,0 +1,191 @@
+/**
+ * Contract merge tokens — the catalog of merge fields and the context builders
+ * that resolve them against a contract (or sample values).
+ *
+ * Pure module (no React, no IO) so it runs in two places unchanged:
+ *   • the print page ([id]/page.tsx) — server-side, against a real Contract;
+ *   • the editor preview — client-side, against sample values.
+ *
+ * The merge itself is node-level: merge-field nodes in a Lexical `body` are
+ * resolved against a MergeContext by components/editor/lexical-document.tsx.
+ *
+ * v2: the contract no longer carries party/value fields — the client comes from
+ * the embedded project relation and the money tokens derive from the project's
+ * chốt (deal) quote, passed alongside the contract.
+ */
+import type { Contract } from "@/app/(dashboard)/contracts/types";
+import type { Quote } from "@/app/(dashboard)/quotes/types";
+import { COMPANY } from "@/config/company";
+import { formatDate } from "@/utils/format-date/format-date";
+import { formatVND } from "@/utils/format-vnd/format-vnd";
+// Cycle with lexical-build (it imports CONTRACT_TOKENS from here), but a safe
+// one: both sides only touch the other's bindings inside function bodies, never
+// during module evaluation.
+import { type LexNode, lexicalRoot } from "@/utils/lexical-build/lexical-build";
+import { storedTotals } from "@/utils/quote-totals/quote-totals";
+import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
+
+/** Default VAT rate when no quote pins one. */
+export const DEFAULT_VAT_RATE = 0.08;
+
+/**
+ * The whitelist of tokens an author may use, with a human label (for the editor
+ * palette) and an example (for the editor's live preview). This list is the
+ * single source of truth: {@link buildContractContext} must produce a value for
+ * every `token` here, and the editor renders one chip per entry.
+ */
+export const CONTRACT_TOKENS: ReadonlyArray<{
+  token: string;
+  label: string;
+  example: string;
+}> = [
+  { token: "code", label: "Mã hợp đồng", example: "HD-2026-001" },
+  { token: "project_code", label: "Mã công trình", example: "CT-2026-001" },
+  {
+    token: "project_name",
+    label: "Tên công trình",
+    example: "Vệ sinh kính mặt ngoài Vincom Plaza Q.1",
+  },
+  { token: "signed_date", label: "Ngày ký", example: "10/03/2026" },
+  {
+    token: "note",
+    label: "Ghi chú hợp đồng",
+    example: "Ký tại văn phòng BQL.",
+  },
+  // Bên A — Party A (client, from the project)
+  { token: "client", label: "Bên A: Tên", example: "Vincom Retail" },
+  // Bên B — Party B (our company)
+  { token: "company.name", label: "Bên B: Tên", example: COMPANY.name },
+  {
+    token: "company.address",
+    label: "Bên B: Địa chỉ",
+    example: COMPANY.address,
+  },
+  { token: "company.tax_id", label: "Bên B: MST", example: COMPANY.tax_id },
+  {
+    token: "company.phone",
+    label: "Bên B: Điện thoại",
+    example: COMPANY.phone,
+  },
+  { token: "company.email", label: "Bên B: Email", example: COMPANY.email },
+  {
+    token: "company.rep",
+    label: "Bên B: Đại diện",
+    example: COMPANY.representative,
+  },
+  {
+    token: "company.rep_title",
+    label: "Bên B: Chức vụ",
+    example: COMPANY.representative_title,
+  },
+  {
+    token: "company.bank_account",
+    label: "Bên B: Số tài khoản",
+    example: COMPANY.bank_account,
+  },
+  {
+    token: "company.bank_name",
+    label: "Bên B: Ngân hàng",
+    example: COMPANY.bank_name,
+  },
+  {
+    token: "company.bank_branch",
+    label: "Bên B: Chi nhánh/PGD",
+    example: COMPANY.bank_branch,
+  },
+  // Tài chính — from the chốt quote (total_amount is before VAT)
+  { token: "value", label: "Giá trị (đã gồm VAT)", example: "38.880.000 ₫" },
+  {
+    token: "value_before_tax",
+    label: "Giá trị trước thuế",
+    example: "36.000.000 ₫",
+  },
+  { token: "vat_rate", label: "Thuế suất VAT", example: "8%" },
+  { token: "vat_amount", label: "Tiền thuế VAT", example: "2.880.000 ₫" },
+  {
+    token: "value_in_words",
+    label: "Giá trị bằng chữ",
+    example: "Ba mươi tám triệu tám trăm tám mươi nghìn đồng",
+  },
+] as const;
+
+export type MergeContext = Record<string, string>;
+
+/**
+ * Real merge values for a contract — formatting (VND, dates) applied here.
+ * `quote` is the project's chốt quote (drives the money tokens); when absent
+ * the money tokens resolve to empty strings.
+ */
+export function buildContractContext(
+  contract: Contract,
+  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null
+): MergeContext {
+  // One VAT rule for screen, printable, .docx and these tokens.
+  const money = quote ? storedTotals(quote) : undefined;
+  const vatRate = quote?.vat_rate ?? DEFAULT_VAT_RATE;
+
+  return {
+    code: contract.code,
+    project_code: contract.project?.code ?? "",
+    project_name: contract.project?.name ?? "",
+    signed_date: contract.signed_date ? formatDate(contract.signed_date) : "",
+    note: contract.note ?? "",
+    // Bên A
+    client: contract.project?.client.name ?? "",
+    // Bên B
+    "company.name": COMPANY.name,
+    "company.address": COMPANY.address,
+    "company.tax_id": COMPANY.tax_id,
+    "company.phone": COMPANY.phone,
+    "company.email": COMPANY.email,
+    "company.rep": COMPANY.representative,
+    "company.rep_title": COMPANY.representative_title,
+    "company.bank_account": COMPANY.bank_account,
+    "company.bank_name": COMPANY.bank_name,
+    "company.bank_branch": COMPANY.bank_branch,
+    // Tài chính
+    value: money ? formatVND(money.total) : "",
+    value_before_tax: money ? formatVND(money.subtotal) : "",
+    vat_rate: `${Math.round(vatRate * 100)}%`,
+    vat_amount: money ? formatVND(money.vat) : "",
+    value_in_words: money ? vndInWords(money.total) : "",
+  };
+}
+
+/** Stand-in values for the editor preview, derived from the token examples. */
+export function previewContext(): MergeContext {
+  return Object.fromEntries(CONTRACT_TOKENS.map((t) => [t.token, t.example]));
+}
+
+/** The whitelist as a lookup — CONTRACT_TOKENS stays the single source. */
+const KNOWN_TOKENS: ReadonlySet<string> = new Set(
+  CONTRACT_TOKENS.map((t) => t.token)
+);
+
+/** How an unresolved token is shown. Editor/preview only — never in a .docx. */
+export const unresolvedMarker = (token: string) => `⟨${token}?⟩`;
+
+/**
+ * Merge tokens a stored Lexical `body` uses that are NOT in
+ * {@link CONTRACT_TOKENS} — i.e. tokens nothing can ever resolve, which would
+ * otherwise print as {@link unresolvedMarker} on a signed contract.
+ *
+ * The token palette only inserts whitelisted tokens, so these arrive from an
+ * imported .docx, a hand-edited body, or a token retired after the body was
+ * authored. Deduplicated, in first-seen order. Unparsable body → `[]` (the
+ * schema's `lexicalPlainText` check already rejects that).
+ */
+export function unknownTokens(body: string): string[] {
+  const found = new Set<string>();
+  const walk = (node: LexNode | undefined) => {
+    if (!node) return;
+    if (node.type === "merge-field") {
+      const token = node.token ?? "";
+      if (!KNOWN_TOKENS.has(token)) found.add(token);
+    }
+    node.children?.forEach(walk);
+  };
+  walk(lexicalRoot(body));
+
+  return [...found];
+}

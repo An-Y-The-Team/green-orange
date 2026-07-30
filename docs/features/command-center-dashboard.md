@@ -6,6 +6,19 @@
 > matched the repo. This version maps every idea onto real entities, the
 > snake_case API contract, the RSC + server-action architecture, and `@yan/ui`.
 
+> **2026-07-29 — status: never built, and its "ground truth" is v1.** There is no
+> `command-center` route in `apps/crm-web`. This spec was written against the
+> **pre-v2** codebase, so §0 below still names the 10 Vietnamese `ProjectStage`
+> values and `listAcceptances()`, neither of which survived the v2 cutover (v2 has
+> 8 English stages and replaced costs/acceptances with settlements + bills + an
+> acceptance sub-status — see `crm-database-schema.md`). Two further changes since:
+> `src/lib/` was split into `src/constants/` + `src/utils/*`, and **mock mode was
+> removed** by Phase 6 of `docs/fixes/v2-business-flow/` — `CRM_API_URL` is now
+> required and the dev dataset is `apps/crm-api-nest`'s seed. Stale paths and the
+> mock-seeding instructions below are corrected in place (following them verbatim
+> would fail); the design itself is untouched and would need a re-grounding pass
+> on v2 before anyone builds it.
+
 ## 0. Ground truth (what already exists)
 
 - **Spine is `Project` (Công Trình)**, not `Job`. Lifecycle `ProjectStage`:
@@ -13,9 +26,9 @@
   See [projects/types.ts](<../../apps/crm-web/src/app/(dashboard)/projects/types.ts>), [projects/enums.ts](<../../apps/crm-web/src/app/(dashboard)/projects/enums.ts>).
 - **Crew exists** ([crew/types.ts](<../../apps/crm-web/src/app/(dashboard)/crew/types.ts>)): `CrewMember` (name, phone, role, day_rate, status) and `Assignment` (`crew_id`, `project_code`, `role_on_site?`, `start_date?`) joined to a project by **`project_code`**. Reads via [crew/queries.ts](<../../apps/crm-web/src/app/(dashboard)/crew/queries.ts>) (`listCrew`, `listAssignments`).
 - **Receivables** ([receivables/types.ts](<../../apps/crm-web/src/app/(dashboard)/receivables/types.ts>)): `PaymentMilestone` with `status` (`chua_den_han | cho_thanh_toan | da_thu | qua_han`).
-- **Data seam**: every read is `API_URL ? apiFetchSafe(path, []) : mockArray` in a route's `queries.ts`; every mutation is a `"use server"` action using `apiSend` ([lib/http.ts](../../apps/crm-web/src/lib/http.ts)). Unset `CRM_API_URL` → mock; set → FastAPI.
-- **Pages are async Server Components.** Client behaviour lives in small `"use client"` island dialogs (see [crew-assign-dialog.tsx](<../../apps/crm-web/src/app/(dashboard)/projects/[id]/components/crew-assign-dialog/crew-assign-dialog.tsx>)). **No `useEffect`** (AGENTS.md).
-- **UI kit**: `@yan/ui` `Card`/`Badge`/`Table`/`Dialog`/`Button`. Labels + badge variants in [lib/labels.ts](../../apps/crm-web/src/lib/labels.ts); money via `formatVND`, dates via `formatDate`, rollups via `receivables()`/`projectActuals()` in [lib/format.ts](../../apps/crm-web/src/lib/format.ts). **Vietnamese-first.** Do **not** hardcode `bg-red-100` etc. — use semantic tokens/variants.
+- **Data seam**: every read is `apiFetchSafe(path, [])` in a route's `queries.ts`; every mutation is a `"use server"` action using `apiSend` ([utils/http/http.ts](../../apps/crm-web/src/utils/http/http.ts)). `CRM_API_URL` picks the backend and is **required** — a failing read degrades to `[]`, never to fixture data.
+- **Pages are async Server Components.** Client behaviour lives in small `"use client"` island dialogs (see [assignments-tab.tsx](<../../apps/crm-web/src/app/(dashboard)/projects/[id]/components/assignments-tab/assignments-tab.tsx>)). **No `useEffect`** (AGENTS.md).
+- **UI kit**: `@yan/ui` `Card`/`Badge`/`Table`/`Dialog`/`Button`. Labels + badge variants in [constants/labels.ts](../../apps/crm-web/src/constants/labels.ts); money via `formatVND` ([utils/format-vnd/](../../apps/crm-web/src/utils/format-vnd/format-vnd.ts)), dates via `formatDate` ([utils/format-date/](../../apps/crm-web/src/utils/format-date/format-date.ts)). **`receivables()` and `projectActuals()` no longer exist** — the old `lib/format.ts` was split up and those two rollups were dropped with it; the panels that need them (e.g. [panels/settlement/settlement.tsx](<../../apps/crm-web/src/app/(dashboard)/projects/[id]/components/panels/settlement/settlement.tsx>)) now sum milestones inline. Anything here that calls them has to compute its own total or add a shared helper first. **Vietnamese-first.** Do **not** hardcode `bg-red-100` etc. — use semantic tokens/variants.
 
 ### Fields that do NOT exist (decisions)
 
@@ -34,7 +47,7 @@ The original plan assumed `gateCode`, `equipmentList`, `locationContactPhone`,
 | `BLOCKED` status         | no such stage — the "needs attention" list is **derived** (see §3C), not a status                                                |
 
 These three optional `Project` fields are additive and backward-compatible.
-Seed a few in [data/mock/projects.ts](../../apps/crm-web/src/data/mock/projects.ts); add them to the FastAPI `Project` schema later (student exercise). Until then mock-mode "mark dispatched" won't persist across reload — same documented limitation as `assignCrew`.
+Add them to the Prisma `Project` model and set them on a project or two in [apps/crm-api-nest/src/seed.ts](../../apps/crm-api-nest/src/seed.ts) — there is no frontend fixture file to edit any more, so the column has to exist before the UI can read or write it. (The FastAPI v1 `Project` schema is a separate student exercise.)
 
 ## 1. Route & navigation
 
@@ -99,7 +112,8 @@ interface CommandCenterMetrics {
   crew_conflict_count: number; // crew_id assigned to >1 active project
   paperwork_count: number; // projects in stage = chuan_bi
   collectable_count: number; // milestones status in {cho_thanh_toan, qua_han}
-  outstanding: number; // receivables(milestones).outstanding (VND)
+  outstanding: number; // VND still owed — sum unpaid milestone amounts here
+  //                      (`receivables()` is gone; see §0)
 }
 ```
 
@@ -117,7 +131,7 @@ Each card: `@yan/ui` `Card`; big number `text-3xl font-bold`, label under it. Wr
 - `Card`, header **"Công trình đang thi công"** + today's date (`formatDate(new Date().toISOString())`).
 - "Active today" = `projects.filter(p => p.stage === ProjectStage.THI_CONG)` (optionally also where today ∈ [start_date, end_date]).
 - List with `divide-y`. Each **`ActiveProjectRow`**:
-  - **Status dot** driven by `projectStage[p.stage].variant` (reuse the existing variant→color mapping; don't invent new colors).
+  - **Status dot** driven by `PROJECT_STAGES[p.stage].variant` (reuse the existing variant→color mapping; don't invent new colors).
   - **Name** (bold, links to `/projects/${p.id}`) + **address** (`text-sm text-muted-foreground`).
   - **Crew badges**: assigned `CrewMember.name` as `Badge variant="secondary"` (+ `crewRole[...]`); show "Chưa phân công" `destructive` badge if none.
   - **Zalo indicator**: `Check` (lucide, `text-success`) when `p.zalo_dispatch_sent`, else a muted dot.
@@ -148,11 +162,12 @@ interface AttentionItem {
 
 ### D. ZaloDispatchDialog (client island) + generator
 
-`"use client"`, same shape as [crew-assign-dialog.tsx](<../../apps/crm-web/src/app/(dashboard)/projects/[id]/components/crew-assign-dialog/crew-assign-dialog.tsx>):
+`"use client"`, same shape as [assignments-tab.tsx](<../../apps/crm-web/src/app/(dashboard)/projects/[id]/components/assignments-tab/assignments-tab.tsx>):
 controlled `Dialog`, `useState`, **no `useEffect`**. It is purely client-side
 (clipboard) — no server action needed for copy. Optionally a tiny
 `markDispatched` server action (`apiSend(/projects/{id}, "PATCH", {zalo_dispatch_sent:true})`)
-to flip the flag + `revalidatePath`, mirroring `assignCrew`'s mock-mode caveat.
+to flip the flag + `revalidatePath` — which needs the column to exist in Prisma first
+(see §0's field table).
 
 ```ts
 // Pure helper, e.g. command-center/dispatch-text.ts. Sources only real fields.
@@ -188,18 +203,19 @@ export function buildZaloDispatch(
 
 ## 4. Build order
 
-1. Add optional `gate_code?`, `equipment_notes?`, `zalo_dispatch_sent?` to `Project` type; seed a couple in the projects mock.
+1. Add optional `gate_code?`, `equipment_notes?`, `zalo_dispatch_sent?` to the `Project` type, the Prisma model + a migration, and set them on a project or two in `apps/crm-api-nest/src/seed.ts`.
 2. `computeMetrics` + derivation helpers (pure functions, unit-testable) in the route folder.
 3. RSC `page.tsx` with `Promise.all` reads + `ActionRibbon`/`MetricCard` (server).
 4. `DailyExecutionView` + `ActiveProjectRow` (server).
-5. `ZaloDispatchDialog` client island + `buildZaloDispatch` + optional `markDispatched` action + any Vietnamese label additions to `lib/labels.ts`.
+5. `ZaloDispatchDialog` client island + `buildZaloDispatch` + optional `markDispatched` action + any Vietnamese label additions to `src/constants/labels.ts`.
 6. `PendingResolutionView` + `ActionRequiredCard` (server).
 7. Nav entry.
 
 ## 5. Teaching-split note
 
-Per the instructor/student division: this UI + mock seeding is **instructor-owned**.
-The new `Project` fields and a real `PATCH /projects/{id}` (+ `/assignments`
-reconciliation already stubbed) are natural **backend exercises** — the page
-"lights up" unchanged once `CRM_API_URL` is set, because every read already goes
-through the `apiFetchSafe` seam.
+Per the instructor/student division: this UI is **instructor-owned**, as is the seed
+row it needs (`apps/crm-api-nest/src/seed.ts` — the frontend has no fixture files to
+seed any more). The new `Project` fields and a real `PATCH /projects/{id}`
+(+ `/assignments` reconciliation already stubbed) are natural **backend exercises** —
+the page needs no UI change when a student's backend starts serving those fields,
+because every read already goes through the `apiFetchSafe` seam.

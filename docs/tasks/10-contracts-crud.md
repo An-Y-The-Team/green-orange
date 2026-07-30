@@ -8,19 +8,23 @@
 
 **Hợp đồng (Contract)** is the signed agreement for a project — it carries the agreed
 value and payment terms, and it's the parent of the payment milestones in
-[#11](11-payment-milestones.md). The UI list + a printable contract document are
-built; the backend isn't, so the **Hợp đồng** sidebar page is empty in live mode.
-The UI calls `GET /contracts`, `GET /contracts/{id}`, `POST /contracts` (see
+[#11](11-payment-milestones.md). This is the v1 shape of that resource, and it is
+what you build here. crm-web does call `GET /contracts`, `GET /contracts/{id}`,
+`POST /contracts` (see
 [`contracts/queries.ts`](<../../apps/crm-web/src/app/(dashboard)/contracts/queries.ts>)
-and [`add-contract.ts`](<../../apps/crm-web/src/app/(dashboard)/contracts/actions/add-contract.ts>)).
+and [`create-contract.ts`](<../../apps/crm-web/src/app/(dashboard)/contracts/actions/create-contract.ts>)),
+but against the **v2** field shapes — read those files for flavour, not as your
+contract.
 
 This is a **flat resource** like contacts — no nesting — but it's a visible business
 page, and its `code` is referenced by payment milestones. Good warm-up before the
 gated logic in #11.
 
-Type: `Contract` in [`src/types/index.ts`](../../apps/crm-web/src/types/index.ts).
+The field table below **is** the contract for this task. (It used to be checked
+against a `Contract` type in crm-web; that file is gone — see
+[00 — Choose your backend](00-choose-your-backend.md).)
 
-## Fields (match the `Contract` TS type exactly)
+## Fields (match the table below exactly)
 
 | Field           | Type | Notes                                                                    |
 | --------------- | ---- | ------------------------------------------------------------------------ |
@@ -60,20 +64,19 @@ Type: `Contract` in [`src/types/index.ts`](../../apps/crm-web/src/types/index.ts
 ## Acceptance criteria
 
 - [ ] Full CRUD on `/contracts` works in `/docs`.
-- [ ] `ContractPublic` matches the `Contract` type 1:1.
+- [ ] `ContractPublic` matches the field table above 1:1.
 - [ ] Router registered; migration + test committed and passing.
-- [ ] **Hợp đồng** list page shows live rows and the printable contract document
-      renders (live mode).
+- [ ] A `curl` round-trip creates a contract and reads it back at `/contracts/{id}`.
 
 ## Hints & references
 
 - This is the same flat pattern as [#05 — Contacts](05-contacts-crud.md), just with
-  more fields and `date` columns (see how `customer.py` types dates).
+  more fields and `date` columns (see how `client.py` types dates).
 - `code` is the key that [#11 — Payment Milestones](11-payment-milestones.md) groups
   by (`contract_code`) — index it.
 
 ## Definition of done
 
-The Hợp đồng page renders live contracts.
+`/contracts` is a working, tested CRUD resource.
 Next: [11 — Payment Milestones / Thu-Nợ](11-payment-milestones.md).
 </content>

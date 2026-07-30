@@ -1,26 +1,93 @@
-import { acceptances } from "@/data/mock/acceptances";
-import { costs } from "@/data/mock/costs";
-import { projects } from "@/data/mock/projects";
-import { API_URL, apiFetch, apiFetchSafe } from "@/lib/http";
+import { apiFetchDetail, apiFetchList, apiFetchSafe } from "@/utils/http/http";
+import { pageQuery } from "@/utils/page-param/page-param";
 
-import type { Acceptance, Cost, Project } from "./types";
+import type { ProjectStatus } from "./enums";
+import type { Attachment, PaperworkItem, Project, ProjectType } from "./types";
 
-export async function listProjects(): Promise<Project[]> {
-  return API_URL ? apiFetchSafe<Project[]>("/projects", []) : projects;
+/**
+ * Cross-project project list, newest first. Every list endpoint pages at
+ * DEFAULT_PAGE_SIZE=100 / MAX_PAGE_SIZE=500 (F17), so callers that use the
+ * result as a lookup table must pass an explicit `limit` and treat a miss as a
+ * miss — this is a window, never the whole table.
+ */
+export async function listProjects({
+  limit,
+  offset,
+}: { limit?: number; offset?: number } = {}): Promise<Project[]> {
+  return apiFetchSafe<Project[]>(
+    `/projects${pageQuery({ limit, offset })}`,
+    []
+  );
+}
+
+/**
+ * One page of the list PLUS how many công trình exist in total, from the
+ * response's `X-Total-Count`. Separate from {@link listProjects} because that one
+ * is a picker window whose callers want rows and nothing else.
+ */
+export async function listProjectsPage(page: {
+  limit: number;
+  offset: number;
+}): Promise<{ rows: Project[]; total: number }> {
+  return apiFetchList<Project>(`/projects${pageQuery(page)}`);
+}
+
+/**
+ * How many công trình match `status`, with no rows worth rendering — `limit=1`
+ * because the API floors a smaller limit to its 100-row default, and the answer
+ * is the header, not the body.
+ */
+export async function countProjects(status: ProjectStatus): Promise<number> {
+  const { total } = await apiFetchList<Project>(
+    `/projects?status=${status}&limit=1`
+  );
+  return total;
 }
 
 export async function getProject(id: number): Promise<Project | undefined> {
-  if (API_URL) {
-    return apiFetch<Project>(`/projects/${id}`).catch(() => undefined);
-  }
-  return projects.find((p) => p.id === id);
+  return apiFetchDetail<Project>(`/projects/${id}`);
 }
 
-// Project sub-resources (logged on-site), joined to a project by project_code.
-export async function listCosts(): Promise<Cost[]> {
-  return API_URL ? apiFetchSafe<Cost[]>("/costs", []) : costs;
+export async function listPaperworkItems(
+  projectId: number
+): Promise<PaperworkItem[]> {
+  return apiFetchSafe<PaperworkItem[]>(
+    `/paperwork-items?project_id=${projectId}`,
+    []
+  );
 }
 
-export async function listAcceptances(): Promise<Acceptance[]> {
-  return API_URL ? apiFetchSafe<Acceptance[]>("/acceptances", []) : acceptances;
+export async function listProjectAttachments(
+  projectId: number,
+  kind?: string
+): Promise<Attachment[]> {
+  return apiFetchSafe<Attachment[]>(
+    `/attachments?project_id=${projectId}${kind ? `&kind=${kind}` : ""}`,
+    []
+  );
+}
+
+/**
+ * Cross-project paperwork items for dashboard overdue surfacing.
+ *
+ * `overdue` maps to `?overdue=true`, which the server expands to the derived
+ * rule (`due_date < today AND status != approved`) — the scan stays where the
+ * rows are instead of shipping every project's checklist to filter in JS (F20).
+ */
+export async function listAllPaperworkItems({
+  overdue,
+  limit,
+}: { overdue?: boolean; limit?: number } = {}): Promise<PaperworkItem[]> {
+  const params = new URLSearchParams();
+  if (overdue) params.set("overdue", "true");
+  if (limit) params.set("limit", String(limit));
+  const query = params.toString();
+  return apiFetchSafe<PaperworkItem[]>(
+    `/paperwork-items${query ? `?${query}` : ""}`,
+    []
+  );
+}
+
+export async function listProjectTypes(): Promise<ProjectType[]> {
+  return apiFetchSafe<ProjectType[]>("/project-types", []);
 }

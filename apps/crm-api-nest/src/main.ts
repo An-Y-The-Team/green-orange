@@ -3,6 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import "reflect-metadata";
 
 import { AppModule } from "./app.module";
+import { PrismaExceptionFilter } from "./common/prisma-exception.filter";
 import { SerializeInterceptor } from "./common/serialize.interceptor";
 
 async function bootstrap() {
@@ -21,6 +22,7 @@ async function bootstrap() {
     })
   );
   app.useGlobalInterceptors(new SerializeInterceptor());
+  app.useGlobalFilters(new PrismaExceptionFilter());
 
   await app.listen(Number(process.env.PORT ?? 8001));
 }

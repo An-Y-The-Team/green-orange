@@ -12,6 +12,15 @@ import { IS_PUBLIC_KEY } from "../common/public.decorator";
 import { PrismaService } from "../prisma/prisma.service";
 import { OidcService } from "./oidc.service";
 
+// The guard is the only thing that sets `req.user`, so declare it here rather
+// than casting at each assignment — a cast would have to be repeated and would
+// hide a shape change from the compiler.
+declare module "express" {
+  interface Request {
+    user?: { username: string };
+  }
+}
+
 // Global guard on every route (registered as APP_GUARD). @Public() opts out.
 // AUTH_MODE=local → verify our own HS256 token; oidc → verify the Authentik
 // token and provision the user on first login. Same two-mode design as crm-api.
@@ -42,12 +51,12 @@ export class JwtGuard implements CanActivate {
         const payload = await this.oidc.verify(token);
         const username = this.oidc.identity(payload);
         await this.provision(username, payload.name as string | undefined);
-        (req as any).user = { username };
+        req.user = { username };
       } else {
         const payload = await this.jwt.verifyAsync(token, {
           secret: process.env.JWT_SECRET,
         });
-        (req as any).user = { username: payload.sub };
+        req.user = { username: payload.sub };
       }
     } catch {
       throw new UnauthorizedException();
@@ -56,12 +65,17 @@ export class JwtGuard implements CanActivate {
   }
 
   // Create a local shadow row on first valid OIDC login (empty password).
-  private async provision(username: string, fullName?: string) {
-    const existing = await this.prisma.user.findUnique({ where: { username } });
-    if (!existing) {
-      await this.prisma.user.create({
-        data: { username, hashed_password: "", full_name: fullName ?? null },
-      });
-    }
+  // upsert (one INSERT … ON CONFLICT), not find-then-create: a page load fires
+  // several requests at once, so the FIRST login races itself — every request
+  // sees no row, they all insert, and the losers hit the UNIQUE(username) index,
+  // get swallowed by the catch above and come back as a spurious 401.
+  // `update: {}` leaves an existing row alone — an SSO login must never blank the
+  // password or rename a user who already has a local account.
+  private provision(username: string, fullName?: string) {
+    return this.prisma.user.upsert({
+      where: { username },
+      create: { username, hashed_password: "", full_name: fullName ?? null },
+      update: {},
+    });
   }
 }
