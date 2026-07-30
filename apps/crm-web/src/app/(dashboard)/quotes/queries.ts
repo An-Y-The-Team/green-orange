@@ -1,5 +1,5 @@
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
-import { apiFetch, apiFetchSafe } from "@/utils/http/http";
+import { apiFetchDetail, apiFetchSafe } from "@/utils/http/http";
 
 import { QuoteStatus } from "./enums";
 import type { Quote, QuoteListRow } from "./types";
@@ -16,7 +16,7 @@ export async function listQuotes(): Promise<QuoteListRow[]> {
 }
 
 export async function getQuote(id: number): Promise<Quote | undefined> {
-  return apiFetch<Quote>(`/quotes/${id}`).catch(() => undefined);
+  return apiFetchDetail<Quote>(`/quotes/${id}`);
 }
 
 /**

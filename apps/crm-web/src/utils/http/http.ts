@@ -125,6 +125,24 @@ export async function apiFetch<T>(path: string): Promise<T> {
   return (await get(path)).json() as Promise<T>;
 }
 
+/**
+ * Detail read behind a `notFound()`: `undefined` ONLY when the row really is
+ * absent. Every other failure rethrows onto the route group's error.tsx.
+ *
+ * The bug this exists for: `apiFetch(...).catch(() => undefined)` made the page
+ * answer 404 for a 500 too, so an un-applied migration (the API failing on a
+ * column that doesn't exist yet) read as "this quote doesn't exist" — a made-up
+ * fact about the data instead of the outage it was.
+ */
+export async function apiFetchDetail<T>(path: string): Promise<T | undefined> {
+  try {
+    return await apiFetch<T>(path);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return undefined;
+    throw err;
+  }
+}
+
 /** Set by every paginated list endpoint — `crm-api-nest/src/common/pagination.ts`. */
 const TOTAL_COUNT_HEADER = "X-Total-Count";
 

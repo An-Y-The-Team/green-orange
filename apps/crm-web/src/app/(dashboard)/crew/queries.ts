@@ -1,6 +1,6 @@
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import type { DateRange } from "@/utils/date-range/date-range";
-import { apiFetch, apiFetchList, apiFetchSafe } from "@/utils/http/http";
+import { apiFetchDetail, apiFetchList, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
 
 import type { CrewMemberStatus } from "./enums";
@@ -56,7 +56,7 @@ export async function countCrew(status: CrewMemberStatus): Promise<number> {
 export async function getCrewMember(
   id: number
 ): Promise<CrewMember | undefined> {
-  return apiFetch<CrewMember>(`/crew/${id}`).catch(() => undefined);
+  return apiFetchDetail<CrewMember>(`/crew/${id}`);
 }
 
 export async function listAssignments(): Promise<Assignment[]> {

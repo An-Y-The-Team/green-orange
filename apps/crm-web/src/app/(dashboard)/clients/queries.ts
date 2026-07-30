@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchList, apiFetchSafe } from "@/utils/http/http";
+import { apiFetchDetail, apiFetchList, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
 
 import type { ClientDetail, ClientListItem } from "./types";
@@ -31,5 +31,5 @@ export async function listClientsPage(page: {
 
 // GET /clients/:id nests contacts + locations, so the detail page is one call.
 export async function getClient(id: number): Promise<ClientDetail | undefined> {
-  return apiFetch<ClientDetail>(`/clients/${id}`).catch(() => undefined);
+  return apiFetchDetail<ClientDetail>(`/clients/${id}`);
 }

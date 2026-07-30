@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchSafe } from "@/utils/http/http";
+import { apiFetch, apiFetchDetail, apiFetchSafe } from "@/utils/http/http";
 
 import type { Contract, ContractTemplate } from "./types";
 
@@ -7,7 +7,7 @@ export async function listContracts(): Promise<Contract[]> {
 }
 
 export async function getContract(id: number): Promise<Contract | undefined> {
-  return apiFetch<Contract>(`/contracts/${id}`).catch(() => undefined);
+  return apiFetchDetail<Contract>(`/contracts/${id}`);
 }
 
 /** All contracts for a project (mirrors GET /contracts?project_id=). */

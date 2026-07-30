@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchList, apiFetchSafe } from "@/utils/http/http";
+import { apiFetchDetail, apiFetchList, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
 
 import type { ProjectStatus } from "./enums";
@@ -45,7 +45,7 @@ export async function countProjects(status: ProjectStatus): Promise<number> {
 }
 
 export async function getProject(id: number): Promise<Project | undefined> {
-  return apiFetch<Project>(`/projects/${id}`).catch(() => undefined);
+  return apiFetchDetail<Project>(`/projects/${id}`);
 }
 
 export async function listPaperworkItems(

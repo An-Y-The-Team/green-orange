@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // stubbed fetch below only ever sees the request under test.
 process.env.CRM_API_URL = "http://api.test";
 process.env.CRM_API_TOKEN = "t";
-const { ApiError, apiFetch, apiFetchList, apiFetchSafe } =
+const { ApiError, apiFetch, apiFetchDetail, apiFetchList, apiFetchSafe } =
   await import("./http");
 
 // The bug this guards: apiFetchSafe used to catch EVERYTHING and return the
@@ -45,6 +45,27 @@ describe("apiFetchSafe", () => {
   it("passes a 200 through", async () => {
     stubStatus(200, JSON.stringify([{ id: 1 }]));
     await expect(apiFetchSafe("/projects", [])).resolves.toEqual([{ id: 1 }]);
+  });
+});
+
+describe("apiFetchDetail", () => {
+  // The bug this guards: the detail queries used `.catch(() => undefined)`, so a
+  // page calling notFound() on undefined told the user a record doesn't exist
+  // whenever the API merely broke (an un-applied migration, in the case that
+  // found this).
+  it("returns undefined on a 404 — the row really is gone", async () => {
+    stubStatus(404);
+    await expect(apiFetchDetail("/quotes/9")).resolves.toBeUndefined();
+  });
+
+  it("rethrows a 500 instead of reporting it as not found", async () => {
+    stubStatus(500);
+    await expect(apiFetchDetail("/quotes/9")).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it("passes a 200 through", async () => {
+    stubStatus(200, JSON.stringify({ id: 9 }));
+    await expect(apiFetchDetail("/quotes/9")).resolves.toEqual({ id: 9 });
   });
 });
 
