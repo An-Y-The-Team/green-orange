@@ -153,48 +153,47 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
           </>
         ) : null}
 
-        {quote.status === QuoteStatus.WAITING ? (
+        {/* Every non-draft version — waiting, chốt, hoãn, hủy — is frozen but
+            revisable: bargaining can reopen after a chốt (client changes scope,
+            price gets renegotiated), so no status hard-locks "phiên bản mới".
+            The chốt version stays chốt until the new one is decided, so the
+            contract keeps reading a real figure meanwhile. */}
+        {quote.status !== QuoteStatus.DRAFT ? (
           <>
-            <Button
-              size="sm"
-              disabled={busy}
-              onClick={() => decide(QuoteStatus.DEAL)}
-            >
-              Chốt ✓
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={() => setHoldOpen(true)}
-            >
-              Hoãn
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={() => setCancelOpen(true)}
-            >
-              Hủy
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSendOpen(true)}
-            >
-              Gửi lại
-            </Button>
-            {reviseBtn}
-            {printBtn}
-          </>
-        ) : null}
-
-        {isDeal ? printBtn : null}
-
-        {quote.status === QuoteStatus.ON_HOLD ||
-        quote.status === QuoteStatus.REJECTED ? (
-          <>
+            {quote.status === QuoteStatus.WAITING ? (
+              <>
+                <Button
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => decide(QuoteStatus.DEAL)}
+                >
+                  Chốt ✓
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => setHoldOpen(true)}
+                >
+                  Hoãn
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => setCancelOpen(true)}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSendOpen(true)}
+                >
+                  Gửi lại
+                </Button>
+              </>
+            ) : null}
             {reviseBtn}
             {printBtn}
           </>
@@ -204,7 +203,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
       {isDeal ? (
         <p className="text-sm text-emerald-700 dark:text-emerald-400">
           Báo giá đã chốt — dùng nút “→ Hợp đồng” ở thanh giai đoạn để chuyển
-          bước.
+          bước, hoặc tạo phiên bản mới nếu khách đổi ý.
         </p>
       ) : null}
 
