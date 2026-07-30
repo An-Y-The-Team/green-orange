@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { Badge } from "@yan/ui/components/badge";
@@ -61,7 +62,14 @@ export function MilestoneRow({
 
   return (
     <TableRow>
-      <TableCell className="font-medium">{projectCode}</TableCell>
+      <TableCell className="font-medium">
+        <Link
+          href={`/projects/${milestone.project_id}`}
+          className="hover:underline"
+        >
+          {projectCode}
+        </Link>
+      </TableCell>
       <TableCell className="text-muted-foreground">
         {MILESTONE_TYPES[milestone.type] ?? milestone.type}
       </TableCell>
@@ -132,7 +140,11 @@ export function BillRow({
 
   return (
     <TableRow>
-      <TableCell className="font-medium">{projectCode}</TableCell>
+      <TableCell className="font-medium">
+        <Link href={`/projects/${bill.project_id}`} className="hover:underline">
+          {projectCode}
+        </Link>
+      </TableCell>
       <TableCell className="text-right">
         {formatVND(bill.total_amount)}
       </TableCell>
