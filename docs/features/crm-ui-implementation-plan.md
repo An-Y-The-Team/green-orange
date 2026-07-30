@@ -397,7 +397,7 @@ the deferred list below).
 
 - Cost module (own design session), S3 uploads (attachments stay
   metadata-only), Zalo mini-app ingest, bank-feed bill auto-flip,
-  Python crm-api + docs/tasks update for students.
+  Python crm-api update for students.
 
 ## Changelog
 

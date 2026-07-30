@@ -71,9 +71,6 @@ Nothing here blocks a merge or a deploy. Verified state at the time of writing:
   protects templates authored from now on; a pre-existing body using one of the nine
   retired merge tokens still renders (loudly, in red) and fails its .docx export. Moot
   while prod has no data — reconsider if templates are ever authored before a migration.
-- **`docs/tasks/05-contacts-crud.md` says contacts is "currently a 501 stub"**, but the
-  Python sandbox now has all five handlers implemented. Whether to revert that worked
-  solution out of the student repo is a teaching call, not a docs fix.
 
 ## Files no fix owned
 

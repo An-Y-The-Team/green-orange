@@ -15,8 +15,7 @@ left for you to implement.
 >
 > Building the v1 contract **is** the exercise — the divergence changes only how you
 > check your work. Your feedback loop is Swagger (<http://localhost:8000/docs>) plus
-> `uv run pytest`, never a crm-web page. See
-> [`docs/tasks/00-choose-your-backend.md`](../../docs/tasks/00-choose-your-backend.md).
+> `uv run pytest`, never a crm-web page.
 
 ## Stack
 
@@ -86,11 +85,9 @@ For each: define the model + Create/Public/Update schemas, register it in
 (protect them with `CurrentUser`), generate + apply a migration, then check the
 round-trip in `/docs` and cover it with a test.
 
-The **field tables in [`docs/tasks/`](../../docs/tasks/README.md) are the contract**
-for each resource, and the `*Public` models already in `app/models/` are the shape to
-copy. (These tables used to be checked against `apps/crm-web/src/types/index.ts`;
-that file is gone, and crm-web's per-feature `types.ts` files describe v2 — don't
-match against them.)
+The `*Public` models already in `app/models/` are the shape to copy — they define the
+v1 contract for each resource. (Don't match against crm-web's per-feature `types.ts`
+files; those describe v2.)
 
 ## Auth modes
 

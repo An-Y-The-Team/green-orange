@@ -188,7 +188,7 @@ redirects to `…/application/o/authorize/` with `response_type=code`, the corre
    the session token accepted by the backend. _(Use `apps/crm-api-nest` on `:8001`
    for the page-renders-data half of this check — since the v2 cutover the Python
    `crm-api` on `:8000` no longer serves shapes crm-web can render, so it verifies
-   the token path only. See [tasks/00 — Choose your backend](tasks/00-choose-your-backend.md).)_
+   the token path only.)_
 
 ## Production notes (defer with the rest of prod wiring)
 

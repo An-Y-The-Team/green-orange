@@ -29,15 +29,15 @@ students build; it still implements the **v1** contract and is **not UI-compatib
 `crm-web`'s `CRM_API_URL` must point at `:8001` for a working app: pointing it at
 `:8000` renders **empty pages, not errors** (a failing list read degrades to `[]` —
 `apiFetchSafe` never falls back to mock data). Treat the two contracts as separate:
-`docs/tasks/` is a v1 exercise verified by `/docs` + `uv run pytest`, not by the UI.
+the Python sandbox is verified by `/docs` + `uv run pytest`, not by the UI.
 
 - First-class Node/Turbo citizen: real `dev|build|lint|check-types|test` (no CI
   exclusion). Uses Prisma migrations (`prisma migrate deploy` runs on container start).
 - Its **own** database `crm_nest` in the shared Postgres (Python's `crm` is untouched).
 - Contract rules live in `src/common/serialize.interceptor.ts` (BigInt→number,
   Date→`YYYY-MM-DD`); money columns are `BigInt` (VND > int32). Auth mirrors crm-api
-  (local HS256 / Authentik OIDC). See `apps/crm-api-nest/README.md` and
-  `docs/tasks/00-choose-your-backend.md`; deploy notes in `DEPLOY.md` §6c.
+  (local HS256 / Authentik OIDC). See `apps/crm-api-nest/README.md`; deploy notes
+  in `DEPLOY.md` §6c.
 
 <!-- END:nextjs-agent-rules -->
 
