@@ -166,6 +166,32 @@ const KNOWN_TOKENS: ReadonlySet<string> = new Set(
 export const unresolvedMarker = (token: string) => `⟨${token}?⟩`;
 
 /**
+ * Rewrite a stored body so each merge-field chip's display text is its live
+ * value from `ctx` (falling back to the label when the value is empty). Feeds
+ * the on-page editor, where there is no preview column — the chips themselves
+ * must read like the final document. Rendering/printing still resolves by
+ * `token`, so the baked text is display-only and can never go stale on paper.
+ * Unparsable body → returned unchanged.
+ */
+export function resolveMergeFieldText(body: string, ctx: MergeContext): string {
+  if (!body) return body;
+  try {
+    const state = JSON.parse(body) as { root?: LexNode };
+    const walk = (node: LexNode | undefined) => {
+      if (!node) return;
+      if (node.type === "merge-field" && node.token && ctx[node.token]) {
+        node.text = ctx[node.token];
+      }
+      node.children?.forEach(walk);
+    };
+    walk(state.root);
+    return JSON.stringify(state);
+  } catch {
+    return body;
+  }
+}
+
+/**
  * Merge tokens a stored Lexical `body` uses that are NOT in
  * {@link CONTRACT_TOKENS} — i.e. tokens nothing can ever resolve, which would
  * otherwise print as {@link unresolvedMarker} on a signed contract.

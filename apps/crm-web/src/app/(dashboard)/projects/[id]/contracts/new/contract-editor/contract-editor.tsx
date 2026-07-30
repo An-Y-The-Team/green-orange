@@ -1,17 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
-import { Label } from "@yan/ui/components/label";
 
 import { createContract } from "@/app/(dashboard)/contracts/actions/create-contract";
 import { updateContract } from "@/app/(dashboard)/contracts/actions/update-contract";
+import { DEFAULT_CONTRACT_BODY } from "@/app/(dashboard)/contracts/default-body";
 import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
 import type {
   Contract,
@@ -19,16 +15,25 @@ import type {
 } from "@/app/(dashboard)/contracts/types";
 import type { Project } from "@/app/(dashboard)/projects/types";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
-import {
-  DocumentShell,
-  SignatureBlocks,
-} from "@/components/document-shell/document-shell";
-import { LexicalDocument } from "@/components/editor/lexical-document/lexical-document";
-import { RichEditor } from "@/components/editor/rich-editor/rich-editor";
+import { PageEditor } from "@/components/editor/page-editor/page-editor";
+import { SaveStatusBadge, useAutosave } from "@/components/editor/use-autosave";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { DEFAULT_HEADER_VARIANT } from "@/constants/header-variant";
-import { buildContractContext } from "@/utils/merge-template/merge-template";
+import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import {
+  ensureLexicalBody,
+  lexicalPlainText,
+} from "@/utils/lexical-build/lexical-build";
+import {
+  buildContractContext,
+  resolveMergeFieldText,
+} from "@/utils/merge-template/merge-template";
 
+/**
+ * Google-Docs-style contract authoring: one editable A4 page (no separate
+ * preview column) under a sticky toolbar, saving automatically as you type.
+ * The first meaningful change mints the draft contract; later changes PATCH it.
+ */
 export function ContractEditor({
   project,
   dealQuote,
@@ -41,7 +46,6 @@ export function ContractEditor({
   contract?: Contract;
 }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
 
   const seedTemplate = contract?.template_id
     ? templates.find((t) => t.id === contract.template_id)
@@ -50,56 +54,13 @@ export function ContractEditor({
   const [templateId, setTemplateId] = useState<number | undefined>(
     contract?.template_id ?? undefined
   );
-  // The RichEditor only reads its initial value once; bump this key to remount
-  // it (and reseed its content) when the author picks a template.
+  const { status, schedule, flush } = useAutosave(contract ? "saved" : "idle");
+  // The editor reads its initial value once; bump this key to remount it
+  // (and reseed its content) when the author picks a template.
   const [seed, setSeed] = useState(0);
-  const [body, setBody] = useState(contract?.body ?? seedTemplate?.body ?? "");
 
-  // Bind create vs update to the (prevState, input) shape useActionState wants.
-  const action = contract
-    ? updateContract.bind(null, contract.id, project.id)
-    : createContract;
-  const [state, formAction] = useActionState(action, {
-    success: false,
-  } as ServerActionState);
-
-  useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
-    onSuccess: () => router.push(`/projects/${project.id}`),
-  });
-
-  const onPickTemplate = (value: string) => {
-    const id = value ? Number(value) : undefined;
-    setTemplateId(id);
-    // Pre-fill the body from the chosen template — the server does NOT copy it.
-    const tpl = templates.find((t) => t.id === id);
-    setBody(tpl?.body ?? "");
-    setSeed((s) => s + 1);
-  };
-
-  const onSave = () => {
-    // Superset payload: createContract needs project_id; updateContract's zod
-    // schema strips the extra key. One shape keeps useActionState's inferred
-    // payload type unambiguous across the create/update branches.
-    startTransition(() =>
-      formAction({
-        project_id: project.id,
-        template_id: templateId,
-        body,
-        note: contract?.note ?? undefined,
-      })
-    );
-  };
-
-  const selected = templates.find((t) => t.id === templateId);
-  const docTitle = selected?.doc_title ?? "HỢP ĐỒNG";
-  const headerVariant = selected?.header_style ?? DEFAULT_HEADER_VARIANT;
-  const lineItems = dealQuote
-    ? { items: dealQuote.items, vatRate: dealQuote.vat_rate }
-    : null;
-
-  // A Contract-shaped object for the live preview's merge context.
+  // The chips have no preview column to lean on anymore, so seed the editor
+  // with their live values baked into the display text (tokens stay intact).
   const previewContract: Contract = {
     id: contract?.id ?? 0,
     project_id: project.id,
@@ -108,7 +69,7 @@ export function ContractEditor({
     signed_date: contract?.signed_date ?? null,
     note: contract?.note ?? null,
     template_id: templateId ?? null,
-    body,
+    body: "",
     project: {
       id: project.id,
       code: project.code,
@@ -121,63 +82,129 @@ export function ContractEditor({
   };
   const ctx = buildContractContext(previewContract, dealQuote);
 
+  // ensureLexicalBody: v1-era contracts stored plain text, which would throw
+  // inside Lexical's initial parse — wrap it so older contracts stay editable.
+  // An existing contract with nothing stored at all seeds from the same
+  // default document its print page shows (a fresh contract stays blank so
+  // the template picker flow isn't nagged by the replace-content confirm).
+  const [seedBody, setSeedBody] = useState(() =>
+    resolveMergeFieldText(
+      ensureLexicalBody(contract?.body ?? seedTemplate?.body) ||
+        (contract ? DEFAULT_CONTRACT_BODY : ""),
+      ctx
+    )
+  );
+
+  // Refs (not state) so the debounced persist always sees the latest.
+  const bodyRef = useRef(seedBody);
+  const templateIdRef = useRef(templateId);
+  const contractIdRef = useRef(contract?.id);
+
+  const persist = async (): Promise<boolean> => {
+    // Superset payload: createContract needs project_id; updateContract's zod
+    // schema strips the extra key.
+    const payload = {
+      project_id: project.id,
+      template_id: templateIdRef.current,
+      body: bodyRef.current,
+      note: contract?.note ?? undefined,
+    };
+    const result = contractIdRef.current
+      ? await updateContract(
+          contractIdRef.current,
+          project.id,
+          INITIAL_ACTION_STATE,
+          payload
+        )
+      : await createContract(INITIAL_ACTION_STATE, payload);
+
+    if (result.success && !contractIdRef.current) {
+      contractIdRef.current = (result.data as Contract).id;
+      // Make a refresh resume this draft — without router.replace, which would
+      // re-render the page and remount the editor mid-typing.
+      window.history.replaceState(
+        null,
+        "",
+        `/projects/${project.id}/contracts/new?edit=${contractIdRef.current}`
+      );
+    }
+
+    return result.success;
+  };
+
+  const onBodyChange = (json: string) => {
+    if (json === bodyRef.current) return;
+    bodyRef.current = json;
+    // Never mint a draft for a still-empty document (e.g. Lexical's initial
+    // normalisation pass on mount).
+    if (!contractIdRef.current && lexicalPlainText(json) === "") return;
+    schedule(persist);
+  };
+
+  const onPickTemplate = (value: string) => {
+    const id = value ? Number(value) : undefined;
+    if (
+      lexicalPlainText(bodyRef.current) !== "" &&
+      !window.confirm("Thay nội dung hiện tại bằng nội dung mẫu?")
+    ) {
+      return;
+    }
+    setTemplateId(id);
+    templateIdRef.current = id;
+    // Pre-fill the body from the chosen template — the server does NOT copy it.
+    const tpl = templates.find((t) => t.id === id);
+    const next = resolveMergeFieldText(tpl?.body ?? "", ctx);
+    bodyRef.current = next;
+    setSeedBody(next);
+    setSeed((s) => s + 1);
+    if (contractIdRef.current || lexicalPlainText(next) !== "")
+      schedule(persist);
+  };
+
+  const onDone = async () => {
+    if (!(await flush())) return; // stay here — nothing was lost yet
+    router.push(`/projects/${project.id}`);
+  };
+
+  const selected = templates.find((t) => t.id === templateId);
+
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      {/* Editor column */}
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="contract-template">Mẫu hợp đồng</Label>
-          <select
-            id="contract-template"
-            className={SELECT_CLASS}
-            value={templateId ?? ""}
-            onChange={(e) => onPickTemplate(e.target.value)}
-          >
-            <option value="">— Không dùng mẫu —</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-muted-foreground">
-            Chọn mẫu để nạp nội dung; bạn có thể chỉnh sửa tự do bên dưới.
-          </p>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Nội dung hợp đồng</Label>
-          <RichEditor key={seed} value={body} onChange={setBody} />
-        </div>
-
-        <div className="flex justify-end gap-2">
+    <PageEditor
+      key={seed}
+      value={seedBody}
+      onChange={onBodyChange}
+      title={selected?.doc_title ?? "HỢP ĐỒNG"}
+      subtitle={contract ? `Số: ${contract.code}` : undefined}
+      headerVariant={selected?.header_style ?? DEFAULT_HEADER_VARIANT}
+      resolve={(token) => ctx[token]}
+      toolbarExtra={
+        <select
+          aria-label="Mẫu hợp đồng"
+          className={`${SELECT_CLASS} !h-7 max-w-56 text-xs`}
+          value={templateId ?? ""}
+          onChange={(e) => onPickTemplate(e.target.value)}
+        >
+          <option value="">— Không dùng mẫu —</option>
+          {templates.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      }
+      status={
+        <div className="flex items-center gap-2">
+          <SaveStatusBadge status={status} />
           <Button
             type="button"
-            variant="outline"
-            onClick={() => router.push(`/projects/${project.id}`)}
+            size="sm"
+            disabled={status === "saving"}
+            onClick={onDone}
           >
-            Hủy
-          </Button>
-          <Button type="button" disabled={isPending} onClick={onSave}>
-            {isPending ? "Đang lưu…" : "Lưu hợp đồng"}
+            Xong
           </Button>
         </div>
-      </div>
-
-      {/* Live preview column */}
-      <div className="lg:sticky lg:top-4 lg:self-start">
-        <p className="mb-2 text-sm font-medium text-muted-foreground">
-          Xem trước
-        </p>
-        <DocumentShell
-          title={docTitle}
-          subtitle={contract ? `Số: ${contract.code}` : undefined}
-          headerVariant={headerVariant}
-        >
-          <LexicalDocument body={body} ctx={ctx} lineItems={lineItems} />
-          <SignatureBlocks />
-        </DocumentShell>
-      </div>
-    </div>
+      }
+    />
   );
 }

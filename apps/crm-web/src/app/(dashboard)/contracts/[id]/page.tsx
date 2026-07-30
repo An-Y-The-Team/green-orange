@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -14,6 +14,7 @@ import { COMPANY } from "@/config/company";
 import { DEFAULT_HEADER_VARIANT } from "@/constants/header-variant";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { ensureLexicalBody } from "@/utils/lexical-build/lexical-build";
 import { buildContractContext } from "@/utils/merge-template/merge-template";
 import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
@@ -33,13 +34,31 @@ export default async function ContractDocumentPage({
   }
 
   const backLink = (
-    <Link
-      href="/contracts"
-      className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
-    >
-      <ArrowLeft className="size-4" />
-      Quay lại danh sách
-    </Link>
+    <div className="mb-4 flex items-center justify-between print:hidden">
+      <Link
+        href="/contracts"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" />
+        Quay lại danh sách
+      </Link>
+      {/* The editor lives under the project route, so standalone contracts
+          (project_id null) have no edit surface — view/print only. */}
+      {contract.project_id && (
+        <Button
+          size="sm"
+          variant="outline"
+          render={
+            <Link
+              href={`/projects/${contract.project_id}/contracts/new?edit=${contract.id}`}
+            >
+              <Pencil className="size-4" />
+              Sửa
+            </Link>
+          }
+        />
+      )}
+    </div>
   );
 
   // The chốt quote drives the line-items block and the money merge tokens.
@@ -81,7 +100,9 @@ export default async function ContractDocumentPage({
   const template = contract.template_id
     ? await getContractTemplate(contract.template_id)
     : undefined;
-  const body = contract.body ?? template?.body;
+  // ensureLexicalBody: v1-era contracts stored plain text — wrap it so older
+  // contracts still print/export instead of rendering "(Chưa có nội dung)".
+  const body = ensureLexicalBody(contract.body ?? template?.body);
 
   if (body) {
     const ctx = buildContractContext(contract, quote);

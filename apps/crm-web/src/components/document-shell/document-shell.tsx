@@ -25,7 +25,8 @@ export function DocumentShell({
   headerVariant = DEFAULT_HEADER_VARIANT,
   children,
 }: {
-  title: string;
+  /** Usually a string; the template editor passes an inline title input. */
+  title: React.ReactNode;
   subtitle?: string;
   /** Optional extra controls (e.g. "Xuất .docx") shown beside the print button. */
   actions?: React.ReactNode;

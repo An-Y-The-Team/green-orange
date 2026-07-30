@@ -110,6 +110,21 @@ export const lexicalRoot = (body: string): LexNode | undefined =>
   safeJSONParse<{ root?: LexNode }>(body)?.root;
 
 /**
+ * A body as editable/renderable Lexical JSON. v1-era contracts stored plain
+ * text; feeding that to the editor's `initialConfig.editorState` throws at
+ * parse time, and the document renderer shows "(Chưa có nội dung)". Anything
+ * that isn't parseable Lexical JSON is wrapped line-by-line into paragraphs;
+ * empty bodies become "" (the editor seeds a blank document).
+ */
+export function ensureLexicalBody(body: string | null | undefined): string {
+  if (!body || body.trim() === "") return "";
+  if (lexicalRoot(body)) return body;
+  return doc(
+    ...body.split(/\r?\n/).map((line) => p(...(line ? [t(line)] : [])))
+  );
+}
+
+/**
  * Flatten a stored body to its plain text (merge-field labels included). Used
  * for presence validation — an empty document serialises to a non-empty JSON
  * string, so length-of-JSON checks are meaningless; this checks real content.

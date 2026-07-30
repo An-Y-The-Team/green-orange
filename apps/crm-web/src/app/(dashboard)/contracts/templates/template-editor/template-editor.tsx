@@ -1,36 +1,22 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useActionState, useTransition } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useRef, useState } from "react";
 
-import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@yan/ui/components/form";
 import { Input } from "@yan/ui/components/input";
 
-import {
-  DocumentShell,
-  SignatureBlocks,
-} from "@/components/document-shell/document-shell";
 import { DocxExportButton } from "@/components/editor/docx-export-button/docx-export-button";
-import {
-  LexicalDocument,
-  type LineItemsData,
-} from "@/components/editor/lexical-document/lexical-document";
-import { RichEditor } from "@/components/editor/rich-editor/rich-editor";
+import type { LineItemsData } from "@/components/editor/lexical-document/lexical-document";
+import { PageEditor } from "@/components/editor/page-editor/page-editor";
+import { SaveStatusBadge, useAutosave } from "@/components/editor/use-autosave";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { HeaderVariant } from "@/constants/header-variant";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
-import { previewContext } from "@/utils/merge-template/merge-template";
+import {
+  previewContext,
+  resolveMergeFieldText,
+} from "@/utils/merge-template/merge-template";
 
 import { saveTemplate } from "../../actions/save-template";
 import {
@@ -41,7 +27,7 @@ import type { ContractTemplate } from "../../types";
 
 const SAMPLE_CTX = previewContext();
 
-// Stand-in pricing so authors see the báo giá block's shape in the preview.
+// Stand-in pricing so authors see the báo giá block's shape in a .docx export.
 const SAMPLE_LINE_ITEMS: LineItemsData = {
   vatRate: 0.08,
   items: [
@@ -66,178 +52,160 @@ const SAMPLE_LINE_ITEMS: LineItemsData = {
   ],
 };
 
+/**
+ * Google-Docs-style template authoring: one editable A4 page under a sticky
+ * toolbar, saving automatically as you type. The printed title is edited
+ * inline on the page itself; the template's meta (name, header style, active)
+ * lives in the toolbar. Chips show the tokens' sample values.
+ */
 export function TemplateEditor({ template }: { template?: ContractTemplate }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
 
-  // Bind the template id (edit) or undefined (create) to the action so the
-  // useActionState signature stays (prevState, input).
-  const action = saveTemplate.bind(null, template?.id);
-  const [state, formAction] = useActionState(action, INITIAL_ACTION_STATE);
+  const [name, setName] = useState(template?.name ?? "");
+  const [docTitle, setDocTitle] = useState(template?.doc_title ?? "");
+  const [headerStyle, setHeaderStyle] = useState<HeaderVariant>(
+    template?.header_style ?? HeaderVariant.NATIONAL
+  );
+  const [isActive, setIsActive] = useState(template?.is_active ?? true);
+  const [seedBody] = useState(() =>
+    resolveMergeFieldText(template?.body ?? "", SAMPLE_CTX)
+  );
+  const [body, setBody] = useState(seedBody);
 
-  const form = useForm<ContractTemplateFormValues>({
-    resolver: zodResolver(contractTemplateSchema),
-    mode: "onChange",
-    defaultValues: {
-      name: template?.name ?? "",
-      doc_title: template?.doc_title ?? "",
-      body: template?.body ?? "",
-      header_style: template?.header_style ?? HeaderVariant.NATIONAL,
-      is_active: template?.is_active ?? true,
-    },
-  });
+  const templateIdRef = useRef(template?.id);
+  const { status, schedule, flush } = useAutosave(template ? "saved" : "idle");
 
-  useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
-    onSuccess: () => router.push("/contracts/templates"),
-  });
+  const persist = async (
+    values: ContractTemplateFormValues
+  ): Promise<boolean | "invalid"> => {
+    const parsed = contractTemplateSchema.safeParse(values);
+    if (!parsed.success) return "invalid";
 
-  const onValid = (values: ContractTemplateFormValues) => {
-    startTransition(() => formAction(values));
+    const result = await saveTemplate(
+      templateIdRef.current,
+      INITIAL_ACTION_STATE,
+      parsed.data
+    );
+    if (result.success && !templateIdRef.current && result.data) {
+      templateIdRef.current = (result.data as ContractTemplate).id;
+      // Make a refresh resume this draft — without router.replace, which would
+      // re-render the page and remount the editor mid-typing.
+      window.history.replaceState(
+        null,
+        "",
+        `/contracts/templates/${templateIdRef.current}/edit`
+      );
+    }
+    return result.success;
   };
 
-  // useWatch (vs form.watch) is React-Compiler-safe — it subscribes via a hook
-  // rather than returning a non-memoizable function, so the live preview stays
-  // in sync without stale-UI warnings.
-  const watchedBody = useWatch({ control: form.control, name: "body" });
-  const watchedTitle = useWatch({ control: form.control, name: "doc_title" });
-  const watchedHeader = useWatch({
-    control: form.control,
-    name: "header_style",
-  });
+  // Schedules a save with the just-changed field patched over current state —
+  // the state setter hasn't landed yet when this runs in the same handler.
+  const scheduleSave = (patch: Partial<ContractTemplateFormValues>) => {
+    const values: ContractTemplateFormValues = {
+      name,
+      doc_title: docTitle,
+      body,
+      header_style: headerStyle,
+      is_active: isActive,
+      ...patch,
+    };
+    schedule(() => persist(values));
+  };
+
+  const onDone = async () => {
+    if (!(await flush())) return; // stay here — nothing was lost yet
+    router.push("/contracts/templates");
+  };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onValid)}
-        className="grid gap-8 lg:grid-cols-2"
-      >
-        {/* Editor column */}
-        <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tên mẫu</FormLabel>
-                <FormControl>
-                  <Input placeholder="Hợp đồng dịch vụ vệ sinh" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+    <PageEditor
+      value={seedBody}
+      onChange={(json) => {
+        if (json === body) return;
+        setBody(json);
+        scheduleSave({ body: json });
+      }}
+      title={
+        <input
+          aria-label="Tiêu đề tài liệu (in trên đầu trang)"
+          placeholder="TIÊU ĐỀ TÀI LIỆU"
+          value={docTitle}
+          onChange={(e) => {
+            setDocTitle(e.target.value);
+            scheduleSave({ doc_title: e.target.value });
+          }}
+          className="w-full bg-transparent text-center font-heading text-xl font-bold uppercase tracking-wide outline-none placeholder:text-zinc-300"
+        />
+      }
+      headerVariant={headerStyle}
+      resolve={(token) => SAMPLE_CTX[token]}
+      toolbarExtra={
+        <>
+          <Input
+            aria-label="Tên mẫu"
+            placeholder="Tên mẫu…"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              scheduleSave({ name: e.target.value });
+            }}
+            className="h-7 w-44 text-xs"
           />
-          <FormField
-            control={form.control}
-            name="doc_title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tiêu đề tài liệu (in trên đầu trang)</FormLabel>
-                <FormControl>
-                  <Input placeholder="HỢP ĐỒNG DỊCH VỤ VỆ SINH" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="body"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nội dung mẫu</FormLabel>
-                <FormControl>
-                  <RichEditor value={field.value} onChange={field.onChange} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="header_style"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Kiểu đầu trang</FormLabel>
-                <FormControl>
-                  <select {...field} className={SELECT_CLASS}>
-                    <option value={HeaderVariant.NATIONAL}>
-                      Quốc hiệu (CHXHCN Việt Nam) — hợp đồng
-                    </option>
-                    <option value={HeaderVariant.LETTERHEAD}>
-                      Letterhead công ty — báo giá/khác
-                    </option>
-                  </select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="is_active"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-2">
-                <FormControl>
-                  <input
-                    type="checkbox"
-                    checked={field.value}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                    className="size-4"
-                  />
-                </FormControl>
-                <FormLabel className="!mt-0">
-                  Đang sử dụng (hiện trong danh sách chọn mẫu)
-                </FormLabel>
-              </FormItem>
-            )}
-          />
-
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/contracts/templates")}
-            >
-              Hủy
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Đang lưu..." : "Lưu mẫu"}
-            </Button>
-          </div>
-        </div>
-
-        {/* Live preview column */}
-        <div className="lg:sticky lg:top-4 lg:self-start">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">
-              Xem trước (dữ liệu mẫu)
-            </p>
-            <DocxExportButton
-              body={watchedBody}
-              lineItems={SAMPLE_LINE_ITEMS}
-              title={watchedTitle || "MẪU HỢP ĐỒNG"}
-              fileName={`${watchedTitle || "mau-hop-dong"}.docx`}
-              label="Xuất .docx (mẫu)"
-            />
-          </div>
-          <DocumentShell
-            title={watchedTitle || "TIÊU ĐỀ TÀI LIỆU"}
-            headerVariant={watchedHeader}
+          <select
+            aria-label="Kiểu đầu trang"
+            className={`${SELECT_CLASS} !h-7 max-w-56 text-xs`}
+            value={headerStyle}
+            onChange={(e) => {
+              const value = e.target.value as HeaderVariant;
+              setHeaderStyle(value);
+              scheduleSave({ header_style: value });
+            }}
           >
-            <LexicalDocument
-              body={watchedBody}
-              ctx={SAMPLE_CTX}
-              lineItems={SAMPLE_LINE_ITEMS}
+            <option value={HeaderVariant.NATIONAL}>
+              Quốc hiệu (CHXHCN Việt Nam) — hợp đồng
+            </option>
+            <option value={HeaderVariant.LETTERHEAD}>
+              Letterhead công ty — báo giá/khác
+            </option>
+          </select>
+          <label className="flex items-center gap-1.5 text-xs">
+            <input
+              type="checkbox"
+              checked={isActive}
+              onChange={(e) => {
+                setIsActive(e.target.checked);
+                scheduleSave({ is_active: e.target.checked });
+              }}
+              className="size-3.5"
             />
-            <SignatureBlocks />
-          </DocumentShell>
+            Đang sử dụng
+          </label>
+          <DocxExportButton
+            body={body}
+            lineItems={SAMPLE_LINE_ITEMS}
+            title={docTitle || "MẪU HỢP ĐỒNG"}
+            fileName={`${docTitle || "mau-hop-dong"}.docx`}
+            label="Xuất .docx (mẫu)"
+          />
+        </>
+      }
+      status={
+        <div className="flex items-center gap-2">
+          <SaveStatusBadge
+            status={status}
+            invalidHint="Chưa lưu — cần tên mẫu, tiêu đề & nội dung"
+          />
+          <Button
+            type="button"
+            size="sm"
+            disabled={status === "saving"}
+            onClick={onDone}
+          >
+            Xong
+          </Button>
         </div>
-      </form>
-    </Form>
+      }
+    />
   );
 }
