@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 import { Button } from "@yan/ui/components/button";
 
 import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
-import { getCompany } from "@/app/(dashboard)/settings/company/queries";
+import { loadCompany } from "@/app/(dashboard)/settings/company/queries";
+import { CompanyUnavailable } from "@/components/document-shell/company-unavailable";
 import {
   DocumentShell,
   SignatureBlocks,
@@ -28,9 +29,9 @@ export default async function ContractDocumentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [contract, company] = await Promise.all([
+  const [contract, { company, degraded }] = await Promise.all([
     getContract(Number(id)),
-    getCompany(),
+    loadCompany(),
   ]);
 
   if (!contract) {
@@ -65,6 +66,18 @@ export default async function ContractDocumentPage({
       )}
     </div>
   );
+
+  // A contract states who Bên B legally is (name, MST, address, signatory).
+  // Printing built-in defaults because the profile could not be read would put
+  // the wrong party on a legal document — refuse, as with a missing quote.
+  if (degraded) {
+    return (
+      <>
+        {backLink}
+        <CompanyUnavailable what="Hợp đồng (kèm thông tin pháp lý Bên B)" />
+      </>
+    );
+  }
 
   // The chốt quote drives the line-items block and the money merge tokens.
   const quote = contract.project_id

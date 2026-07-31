@@ -9,7 +9,8 @@ import {
   getProjectBills,
   getProjectMilestones,
 } from "@/app/(dashboard)/receivables/queries";
-import { getCompany } from "@/app/(dashboard)/settings/company/queries";
+import { loadCompany } from "@/app/(dashboard)/settings/company/queries";
+import { CompanyUnavailable } from "@/components/document-shell/company-unavailable";
 import {
   DocumentShell,
   SignatureBlocks,
@@ -35,7 +36,7 @@ export default async function BillDocumentPage({
   params: Promise<{ id: string; billId: string }>;
 }) {
   const { id, billId } = await params;
-  const company = await getCompany();
+  const { company, degraded } = await loadCompany();
   const project = await getProject(Number(id));
   if (!project) notFound();
 
@@ -51,18 +52,34 @@ export default async function BillDocumentPage({
 
   const badge = labelOf(BILL_STATUSES, bill.status);
 
+  const backLink = (
+    <div className="mb-4 flex items-center justify-between print:hidden">
+      <Link
+        href={`/projects/${project.id}`}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" />
+        Quay lại công trình
+      </Link>
+      <Badge variant={badge.variant}>{badge.label}</Badge>
+    </div>
+  );
+
+  // This document instructs the client where to wire money. Printing the
+  // built-in default account because the profile could not be read would be a
+  // silent, expensive error — refuse instead.
+  if (degraded) {
+    return (
+      <>
+        {backLink}
+        <CompanyUnavailable what="Đề nghị thanh toán (kèm số tài khoản nhận tiền)" />
+      </>
+    );
+  }
+
   return (
     <>
-      <div className="mb-4 flex items-center justify-between print:hidden">
-        <Link
-          href={`/projects/${project.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Quay lại công trình
-        </Link>
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </div>
+      {backLink}
 
       <DocumentShell
         title="ĐỀ NGHỊ THANH TOÁN"
