@@ -34,6 +34,19 @@ import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 
 const CONTRACT_STATUS = ["draft", "signed"];
+
+/** Printable content — frozen once a contract is signed (see update()). */
+const CONTRACT_CONTENT_FIELDS = [
+  "body",
+  "note",
+  "template_id",
+  "rep_a_label",
+  "rep_a_name",
+  "rep_a_title",
+  "rep_b_label",
+  "rep_b_name",
+  "rep_b_title",
+] as const satisfies readonly (keyof UpdateContractDto)[];
 const HEADER_STYLE = ["letterhead", "national"];
 
 const PROJECT_INCLUDE = {
@@ -150,6 +163,18 @@ class ContractsController {
   ) {
     const row = await this.get(id);
     await assertProjectOpen(this.prisma, row.project_id);
+    // A signed contract is a legal document: its printable content is frozen.
+    // Only the status/date fields stay writable, so signing still works (and a
+    // mis-signed one can be corrected) — mirrors the DELETE guard below.
+    if (row.status !== "draft") {
+      const frozen = CONTRACT_CONTENT_FIELDS.filter(
+        (f) => dto[f] !== undefined
+      );
+      if (frozen.length > 0)
+        throw new ConflictException(
+          `Only draft contracts can be edited (attempted to change: ${frozen.join(", ")})`
+        );
+    }
     const data: Record<string, unknown> = { ...dto };
     if (dto.signed_date !== undefined)
       data.signed_date = toDate(dto.signed_date);

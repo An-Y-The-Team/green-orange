@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Button } from "@yan/ui/components/button";
 
+import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
 import { getCompany } from "@/app/(dashboard)/settings/company/queries";
 import {
   DocumentShell,
@@ -46,8 +47,9 @@ export default async function ContractDocumentPage({
         Quay lại danh sách
       </Link>
       {/* The editor lives under the project route, so standalone contracts
-          (project_id null) have no edit surface — view/print only. */}
-      {contract.project_id && (
+          (project_id null) have no edit surface — view/print only. A signed
+          contract's content is frozen (the server enforces it too). */}
+      {contract.project_id && contract.status === ContractStatus.DRAFT && (
         <Button
           size="sm"
           variant="outline"

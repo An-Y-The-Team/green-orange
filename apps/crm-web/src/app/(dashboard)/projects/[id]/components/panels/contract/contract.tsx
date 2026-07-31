@@ -330,17 +330,20 @@ function ContractRow({
       ) : null}
 
       <span className="ml-auto flex flex-wrap items-center gap-1.5">
-        <Button
-          size="sm"
-          variant="outline"
-          render={
-            <Link
-              href={`/projects/${project.id}/contracts/new?edit=${contract.id}`}
-            >
-              Sửa
-            </Link>
-          }
-        />
+        {/* A signed contract's content is frozen (the server enforces it too). */}
+        {signed ? null : (
+          <Button
+            size="sm"
+            variant="outline"
+            render={
+              <Link
+                href={`/projects/${project.id}/contracts/new?edit=${contract.id}`}
+              >
+                Sửa
+              </Link>
+            }
+          />
+        )}
         <Button
           size="sm"
           variant="outline"

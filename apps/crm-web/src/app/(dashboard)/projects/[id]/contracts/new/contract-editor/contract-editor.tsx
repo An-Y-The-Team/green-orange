@@ -28,6 +28,7 @@ import {
 import {
   buildContractContext,
   resolveMergeFieldText,
+  stripMergeFieldText,
 } from "@/utils/merge-template/merge-template";
 
 /** Signature footer lines, as edited (empty string = unset → fallback). */
@@ -201,7 +202,8 @@ export function ContractEditor({
     const payload = {
       project_id: project.id,
       template_id: templateIdRef.current,
-      body: bodyRef.current,
+      // Chips display live values while editing; storage keeps token labels.
+      body: stripMergeFieldText(bodyRef.current),
       note: contract?.note ?? undefined,
       // null clears a footer line (labels then fall back to ĐẠI DIỆN BÊN A/B,
       // the B-side signer to the company rep).

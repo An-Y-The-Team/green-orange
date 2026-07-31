@@ -16,6 +16,7 @@ import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import {
   previewContext,
   resolveMergeFieldText,
+  stripMergeFieldText,
 } from "@/utils/merge-template/merge-template";
 
 import { saveTemplate } from "../../actions/save-template";
@@ -78,7 +79,12 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
   const persist = async (
     values: ContractTemplateFormValues
   ): Promise<boolean | "invalid"> => {
-    const parsed = contractTemplateSchema.safeParse(values);
+    // Chips display SAMPLE values while editing; storage keeps token labels —
+    // otherwise the demo figures ride the template into real contracts.
+    const parsed = contractTemplateSchema.safeParse({
+      ...values,
+      body: stripMergeFieldText(values.body),
+    });
     if (!parsed.success) return "invalid";
 
     const result = await saveTemplate(

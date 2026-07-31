@@ -24,6 +24,7 @@ import {
   CONTRACT_TOKENS,
   companyContext,
   resolveMergeFieldText,
+  stripMergeFieldText,
 } from "@/utils/merge-template/merge-template";
 
 import { updateCompany } from "../actions/update-company";
@@ -65,9 +66,12 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
     const payload: Record<string, string | null> = Object.fromEntries(
       Object.entries(next).map(([k, v]) => [k, v.trim() || null])
     );
-    // An emptied-out header falls back to the built-in template.
+    // An emptied-out header falls back to the built-in template. Chips display
+    // live values while editing; storage keeps token labels.
     payload.header_body =
-      lexicalPlainText(headerRef.current) === "" ? null : headerRef.current;
+      lexicalPlainText(headerRef.current) === ""
+        ? null
+        : stripMergeFieldText(headerRef.current);
     const result = await updateCompany(INITIAL_ACTION_STATE, payload);
     return result.success;
   };

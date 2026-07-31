@@ -1,7 +1,10 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Button } from "@yan/ui/components/button";
+
+import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
 import {
   getContract,
   listContractTemplates,
@@ -33,15 +36,49 @@ export default async function NewContractPage({
     edit ? getContract(Number(edit)) : Promise.resolve(undefined),
   ]);
 
+  const backLink = (
+    <Link
+      href={`/projects/${projectId}`}
+      className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+    >
+      <ArrowLeft className="size-4" />
+      Quay lại công trình
+    </Link>
+  );
+
+  // A signed contract is frozen. The edit links are already hidden for one, but
+  // this URL is hand-typable — and the editor autosaves, so refuse to mount it
+  // rather than rely on the server rejecting the first keystroke.
+  if (contract && contract.status !== ContractStatus.DRAFT) {
+    return (
+      <>
+        {backLink}
+
+        <div className="rounded-lg border border-border bg-muted/40 p-6 text-sm">
+          <p className="font-medium">Hợp đồng đã ký — không thể sửa</p>
+          <p className="mt-1 text-muted-foreground">
+            Nội dung hợp đồng {contract.code} đã được khóa từ khi ký. Cần thay
+            đổi thì lập hợp đồng mới (phụ lục) thay vì sửa bản đã ký.
+          </p>
+          <Button
+            className="mt-4"
+            size="sm"
+            variant="outline"
+            render={
+              <Link href={`/contracts/${contract.id}`}>
+                <Printer className="size-4" />
+                Xem / In hợp đồng
+              </Link>
+            }
+          />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <Link
-        href={`/projects/${projectId}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Quay lại công trình
-      </Link>
+      {backLink}
 
       <h1 className="mb-4 text-xl font-semibold">
         {contract ? `Sửa hợp đồng ${contract.code}` : "Tạo hợp đồng"}

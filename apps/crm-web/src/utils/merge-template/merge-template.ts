@@ -176,6 +176,22 @@ const KNOWN_TOKENS: ReadonlySet<string> = new Set(
 /** How an unresolved token is shown. Editor/preview only — never in a .docx. */
 export const unresolvedMarker = (token: string) => `⟨${token}?⟩`;
 
+/** Walk every node of a stored body, mutating in place. Unparsable → null. */
+function mapBody(body: string, visit: (node: LexNode) => void): string | null {
+  try {
+    const state = JSON.parse(body) as { root?: LexNode };
+    const walk = (node: LexNode | undefined) => {
+      if (!node) return;
+      visit(node);
+      node.children?.forEach(walk);
+    };
+    walk(state.root);
+    return JSON.stringify(state);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Rewrite a stored body so each merge-field chip's display text is its live
  * value from `ctx` (falling back to the label when the value is empty). Feeds
@@ -183,23 +199,40 @@ export const unresolvedMarker = (token: string) => `⟨${token}?⟩`;
  * must read like the final document. Rendering/printing still resolves by
  * `token`, so the baked text is display-only and can never go stale on paper.
  * Unparsable body → returned unchanged.
+ *
+ * ALWAYS pair with {@link stripMergeFieldText} before persisting: baked text
+ * round-trips through storage (MergeFieldNode serialises its `text`), and a
+ * stored chip whose token has no live value keeps whatever text was baked in —
+ * which is how a template's sample figures would surface as fake financials on
+ * a real contract.
  */
 export function resolveMergeFieldText(body: string, ctx: MergeContext): string {
   if (!body) return body;
-  try {
-    const state = JSON.parse(body) as { root?: LexNode };
-    const walk = (node: LexNode | undefined) => {
-      if (!node) return;
+  return (
+    mapBody(body, (node) => {
       if (node.type === "merge-field" && node.token && ctx[node.token]) {
         node.text = ctx[node.token];
       }
-      node.children?.forEach(walk);
-    };
-    walk(state.root);
-    return JSON.stringify(state);
-  } catch {
-    return body;
-  }
+    }) ?? body
+  );
+}
+
+/**
+ * Inverse of {@link resolveMergeFieldText}: reset every merge-field chip's
+ * display text back to its token label, so the baked-in preview values stay
+ * editor-transient and never reach the database. Unparsable → unchanged.
+ */
+export function stripMergeFieldText(body: string): string {
+  if (!body) return body;
+  return (
+    mapBody(body, (node) => {
+      if (node.type === "merge-field" && node.token) {
+        node.text =
+          CONTRACT_TOKENS.find((t) => t.token === node.token)?.label ??
+          node.token;
+      }
+    }) ?? body
+  );
 }
 
 /**

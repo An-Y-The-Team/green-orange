@@ -100,8 +100,10 @@ export default async function ContractsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {/* The editor lives under the project route — standalone
-                        contracts (project_id null) are view/print only. */}
-                    {contract.project_id ? (
+                        contracts (project_id null) are view/print only, and a
+                        signed contract's content is frozen (server enforces). */}
+                    {contract.project_id &&
+                    contract.status === ContractStatus.DRAFT ? (
                       <Button
                         size="sm"
                         variant="outline"
