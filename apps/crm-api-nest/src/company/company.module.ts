@@ -1,10 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Module,
-  Patch,
-} from "@nestjs/common";
+import { Body, Controller, Get, Module, Patch } from "@nestjs/common";
 import { IsOptional, IsString } from "class-validator";
 
 import { PrismaService } from "../prisma/prisma.service";
@@ -38,9 +32,11 @@ class CompanyProfileController {
   /** The stored profile, or `{}` before the first save. */
   @Get()
   async get() {
-    return (await this.prisma.companyProfile.findUnique({
-      where: { id: 1 },
-    })) ?? {};
+    return (
+      (await this.prisma.companyProfile.findUnique({
+        where: { id: 1 },
+      })) ?? {}
+    );
   }
 
   @Patch()
