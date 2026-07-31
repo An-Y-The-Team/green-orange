@@ -9,6 +9,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@yan/ui/components/button";
 
@@ -16,7 +17,11 @@ import { EDITOR_NODES } from "@/components/editor/editor-nodes";
 import { EDITOR_THEME } from "@/components/editor/editor-theme";
 import { TokenPalette } from "@/components/editor/token-palette/token-palette";
 import { Toolbar } from "@/components/editor/toolbar/toolbar";
-import { SaveStatusBadge, useAutosave } from "@/components/editor/use-autosave";
+import {
+  type SaveResult,
+  SaveStatusBadge,
+  useAutosave,
+} from "@/components/editor/use-autosave";
 import type { CompanyData, CompanyInfo } from "@/config/company";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { lexicalPlainText } from "@/utils/lexical-build/lexical-build";
@@ -53,7 +58,7 @@ const COMPANY_TOKENS = CONTRACT_TOKENS.filter((t) =>
 export function CompanyEditor({ company }: { company: CompanyData }) {
   const router = useRouter();
   const [values, setValues] = useState<CompanyInfo>(company);
-  const { status, schedule, flush } = useAutosave("saved");
+  const { status, message, schedule, flush } = useAutosave("saved");
 
   // The header template, seeded once with chip values resolved from the
   // current profile (field edits reflect in chips on next open).
@@ -62,7 +67,7 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
   );
   const headerRef = useRef(seedHeader);
 
-  const persist = async (next: CompanyInfo): Promise<boolean> => {
+  const persist = async (next: CompanyInfo): Promise<SaveResult> => {
     const payload: Record<string, string | null> = Object.fromEntries(
       Object.entries(next).map(([k, v]) => [k, v.trim() || null])
     );
@@ -73,7 +78,9 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
         ? null
         : stripMergeFieldText(headerRef.current);
     const result = await updateCompany(INITIAL_ACTION_STATE, payload);
-    return result.success;
+    return result.success
+      ? { status: "saved" }
+      : { status: "error", message: result.message ?? undefined };
   };
 
   const onChange = (patch: Partial<CompanyInfo>) => {
@@ -90,7 +97,14 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
   };
 
   const onDone = async () => {
-    if (!(await flush())) return; // stay here — nothing was lost yet
+    const result = await flush();
+    if (result.status !== "saved") {
+      // Stay put — nothing is lost yet — but say why, or the button looks dead.
+      toast.error("Chưa lưu được thông tin công ty", {
+        description: result.message ?? "Vui lòng thử lại.",
+      });
+      return;
+    }
     router.push("/settings");
   };
 
@@ -135,7 +149,7 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
           </div>
         </details>
         <div className="ml-auto flex items-center gap-2">
-          <SaveStatusBadge status={status} />
+          <SaveStatusBadge status={status} message={message} />
           <Button
             type="button"
             size="sm"

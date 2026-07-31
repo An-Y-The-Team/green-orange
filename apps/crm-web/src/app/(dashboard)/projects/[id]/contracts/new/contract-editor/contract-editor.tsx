@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@yan/ui/components/button";
 
@@ -17,7 +18,11 @@ import type { Project } from "@/app/(dashboard)/projects/types";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
 import { useCompany } from "@/components/company-provider/company-provider";
 import { PageEditor } from "@/components/editor/page-editor/page-editor";
-import { SaveStatusBadge, useAutosave } from "@/components/editor/use-autosave";
+import {
+  type SaveResult,
+  SaveStatusBadge,
+  useAutosave,
+} from "@/components/editor/use-autosave";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { HeaderVariant } from "@/constants/header-variant";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
@@ -137,7 +142,9 @@ export function ContractEditor({
   const [templateId, setTemplateId] = useState<number | undefined>(
     contract?.template_id ?? undefined
   );
-  const { status, schedule, flush } = useAutosave(contract ? "saved" : "idle");
+  const { status, message, schedule, flush } = useAutosave(
+    contract ? "saved" : "idle"
+  );
   // The editor reads its initial value once; bump this key to remount it
   // (and reseed its content) when the author picks a template.
   const [seed, setSeed] = useState(0);
@@ -195,7 +202,7 @@ export function ContractEditor({
   const contractIdRef = useRef(contract?.id);
   const repsRef = useRef(reps);
 
-  const persist = async (): Promise<boolean> => {
+  const persist = async (): Promise<SaveResult> => {
     // Superset payload: createContract needs project_id; updateContract's zod
     // schema strips the extra key.
     const r = repsRef.current;
@@ -234,7 +241,11 @@ export function ContractEditor({
       );
     }
 
-    return result.success;
+    // Keep the server's wording: it carries the actionable reason (a frozen
+    // signed contract, a closed project), which a bare boolean would drop.
+    return result.success
+      ? { status: "saved" }
+      : { status: "error", message: result.message ?? undefined };
   };
 
   const onBodyChange = (json: string) => {
@@ -274,7 +285,14 @@ export function ContractEditor({
   };
 
   const onDone = async () => {
-    if (!(await flush())) return; // stay here — nothing was lost yet
+    const result = await flush();
+    if (result.status !== "saved") {
+      // Stay put — nothing is lost yet — but say why, or the button looks dead.
+      toast.error("Chưa lưu được hợp đồng", {
+        description: result.message ?? "Vui lòng thử lại.",
+      });
+      return;
+    }
     router.push(`/projects/${project.id}`);
   };
 
@@ -309,7 +327,7 @@ export function ContractEditor({
       }
       status={
         <div className="flex items-center gap-2">
-          <SaveStatusBadge status={status} />
+          <SaveStatusBadge status={status} message={message} />
           <Button
             type="button"
             size="sm"

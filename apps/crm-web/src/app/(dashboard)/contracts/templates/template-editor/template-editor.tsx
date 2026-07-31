@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@yan/ui/components/button";
 import { Input } from "@yan/ui/components/input";
@@ -9,7 +10,11 @@ import { Input } from "@yan/ui/components/input";
 import { DocxExportButton } from "@/components/editor/docx-export-button/docx-export-button";
 import type { LineItemsData } from "@/components/editor/lexical-document/lexical-document";
 import { PageEditor } from "@/components/editor/page-editor/page-editor";
-import { SaveStatusBadge, useAutosave } from "@/components/editor/use-autosave";
+import {
+  type SaveResult,
+  SaveStatusBadge,
+  useAutosave,
+} from "@/components/editor/use-autosave";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { HeaderVariant } from "@/constants/header-variant";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
@@ -74,18 +79,20 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
   const [body, setBody] = useState(seedBody);
 
   const templateIdRef = useRef(template?.id);
-  const { status, schedule, flush } = useAutosave(template ? "saved" : "idle");
+  const { status, message, schedule, flush } = useAutosave(
+    template ? "saved" : "idle"
+  );
 
   const persist = async (
     values: ContractTemplateFormValues
-  ): Promise<boolean | "invalid"> => {
+  ): Promise<SaveResult> => {
     // Chips display SAMPLE values while editing; storage keeps token labels —
     // otherwise the demo figures ride the template into real contracts.
     const parsed = contractTemplateSchema.safeParse({
       ...values,
       body: stripMergeFieldText(values.body),
     });
-    if (!parsed.success) return "invalid";
+    if (!parsed.success) return { status: "invalid" };
 
     const result = await saveTemplate(
       templateIdRef.current,
@@ -102,7 +109,11 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
         `/contracts/templates/${templateIdRef.current}/edit`
       );
     }
-    return result.success;
+    // saveTemplate refuses bodies with unresolvable merge tokens and explains
+    // which ones — that message is the fix instruction, so surface it.
+    return result.success
+      ? { status: "saved" }
+      : { status: "error", message: result.message ?? undefined };
   };
 
   // Schedules a save with the just-changed field patched over current state —
@@ -120,7 +131,16 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
   };
 
   const onDone = async () => {
-    if (!(await flush())) return; // stay here — nothing was lost yet
+    const result = await flush();
+    if (result.status !== "saved") {
+      // Stay put — nothing is lost yet — but say why, or the button looks dead.
+      toast.error("Chưa lưu được mẫu", {
+        description:
+          result.message ??
+          "Cần tên mẫu, tiêu đề tài liệu và nội dung trước khi lưu.",
+      });
+      return;
+    }
     router.push("/contracts/templates");
   };
 
@@ -200,6 +220,7 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
         <div className="flex items-center gap-2">
           <SaveStatusBadge
             status={status}
+            message={message}
             invalidHint="Chưa lưu — cần tên mẫu, tiêu đề & nội dung"
           />
           <Button
