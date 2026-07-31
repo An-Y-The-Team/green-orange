@@ -36,6 +36,12 @@ html {
     border: none !important;
     max-width: none !important;
     width: 100% !important;
+    min-height: 0 !important;
+  }
+  /* Undo the on-screen pagination pushes (editor page breaks) — the browser
+     paginates for itself in print. */
+  .page-push {
+    margin-top: 0 !important;
   }
   /* Keep a row together, and repeat table headers, when a table spans pages. */
   .print-sheet tr,

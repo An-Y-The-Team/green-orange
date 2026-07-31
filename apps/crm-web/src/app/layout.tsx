@@ -1,6 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
 
+import { ThemeScript } from "@yan/ui/components/theme-script";
+
 import { Providers } from "./providers/providers";
 
 export const metadata: Metadata = {
@@ -16,6 +18,8 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className="antialiased">
+        {/* Parse-time theme stamp — must render from this server layout. */}
+        <ThemeScript />
         <Providers>{children}</Providers>
       </body>
     </html>

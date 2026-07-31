@@ -202,11 +202,44 @@ model Contract {
   // printable-contract feature, kept from v1:
   template_id Int?
   body        String? // Lexical editorState JSON, opaque
+  // Signature footer (per-contract signer lines); B side falls back to the
+  // company representative when unset, labels to ĐẠI DIỆN BÊN A/B.
+  rep_a_label String?
+  rep_a_name  String?
+  rep_a_title String?
+  rep_b_label String?
+  rep_b_name  String?
+  rep_b_title String?
+  // Frozen at signing: the company details, header template, title and header
+  // style as they were on the signed paper (JSON). A later profile edit must
+  // never change what an already-signed contract reprints.
+  print_snapshot String?
 
   project  Project?          @relation(fields: [project_id], references: [id])
   template ContractTemplate? @relation(fields: [template_id], references: [id])
 
   @@index([project_id]) // GET /contracts?project_id, project delete guard _count
+}
+
+// Single-row company profile (id=1): the letterhead + Bên B details printed on
+// every A4 document. Null fields fall back to the web app's built-in defaults.
+model CompanyProfile {
+  id                   Int     @id @default(1)
+  name                 String?
+  tagline              String?
+  address              String?
+  phone                String?
+  email                String?
+  tax_id               String?
+  website              String?
+  representative       String?
+  representative_title String?
+  bank_account         String?
+  bank_name            String?
+  bank_branch          String?
+  // Rich-text document header (Lexical editorState JSON) — letterhead +
+  // Quốc hiệu; null = the web app's built-in default header.
+  header_body          String?
 }
 
 model ContractTemplate {

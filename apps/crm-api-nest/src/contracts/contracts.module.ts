@@ -34,6 +34,20 @@ import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 
 const CONTRACT_STATUS = ["draft", "signed"];
+
+/** Printable content — frozen once a contract is signed (see update()). */
+const CONTRACT_CONTENT_FIELDS = [
+  "body",
+  "note",
+  "template_id",
+  "rep_a_label",
+  "rep_a_name",
+  "rep_a_title",
+  "rep_b_label",
+  "rep_b_name",
+  "rep_b_title",
+  "print_snapshot",
+] as const satisfies readonly (keyof UpdateContractDto)[];
 const HEADER_STYLE = ["letterhead", "national"];
 
 const PROJECT_INCLUDE = {
@@ -55,6 +69,16 @@ class CreateContractDto {
   @IsOptional() @IsInt() template_id?: number;
   @IsOptional() @IsString() body?: string; // Lexical editorState JSON, opaque
   @IsOptional() @IsString() note?: string;
+  // Signature footer; null clears a line (labels fall back to ĐẠI DIỆN BÊN
+  // A/B, the B-side signer to the company rep)
+  @IsOptional() @IsString() rep_a_label?: string | null;
+  @IsOptional() @IsString() rep_a_name?: string | null;
+  @IsOptional() @IsString() rep_a_title?: string | null;
+  @IsOptional() @IsString() rep_b_label?: string | null;
+  @IsOptional() @IsString() rep_b_name?: string | null;
+  @IsOptional() @IsString() rep_b_title?: string | null;
+  // Frozen print snapshot (JSON), written when the contract is signed
+  @IsOptional() @IsString() print_snapshot?: string | null;
 }
 
 class UpdateContractDto {
@@ -63,6 +87,13 @@ class UpdateContractDto {
   @IsOptional() @IsInt() template_id?: number;
   @IsOptional() @IsIn(CONTRACT_STATUS) status?: string;
   @IsOptional() @IsDateString() signed_date?: string;
+  @IsOptional() @IsString() rep_a_label?: string | null;
+  @IsOptional() @IsString() rep_a_name?: string | null;
+  @IsOptional() @IsString() rep_a_title?: string | null;
+  @IsOptional() @IsString() rep_b_label?: string | null;
+  @IsOptional() @IsString() rep_b_name?: string | null;
+  @IsOptional() @IsString() rep_b_title?: string | null;
+  @IsOptional() @IsString() print_snapshot?: string | null;
 }
 
 @Controller("contracts")
@@ -116,6 +147,13 @@ class ContractsController {
         template_id: dto.template_id ?? null,
         body: dto.body ?? null,
         note: dto.note ?? null,
+        rep_a_label: dto.rep_a_label ?? null,
+        rep_a_name: dto.rep_a_name ?? null,
+        rep_a_title: dto.rep_a_title ?? null,
+        rep_b_label: dto.rep_b_label ?? null,
+        rep_b_name: dto.rep_b_name ?? null,
+        rep_b_title: dto.rep_b_title ?? null,
+        print_snapshot: dto.print_snapshot ?? null,
       },
       include: PROJECT_INCLUDE,
     });
@@ -130,6 +168,18 @@ class ContractsController {
   ) {
     const row = await this.get(id);
     await assertProjectOpen(this.prisma, row.project_id);
+    // A signed contract is a legal document: its printable content is frozen.
+    // Only the status/date fields stay writable, so signing still works (and a
+    // mis-signed one can be corrected) — mirrors the DELETE guard below.
+    if (row.status !== "draft") {
+      const frozen = CONTRACT_CONTENT_FIELDS.filter(
+        (f) => dto[f] !== undefined
+      );
+      if (frozen.length > 0)
+        throw new ConflictException(
+          `Only draft contracts can be edited (attempted to change: ${frozen.join(", ")})`
+        );
+    }
     const data: Record<string, unknown> = { ...dto };
     if (dto.signed_date !== undefined)
       data.signed_date = toDate(dto.signed_date);

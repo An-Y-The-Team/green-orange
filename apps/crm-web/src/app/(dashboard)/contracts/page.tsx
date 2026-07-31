@@ -57,6 +57,7 @@ export default async function ContractsPage() {
               <TableHead>Khách hàng</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead>Ngày ký</TableHead>
+              <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -96,6 +97,25 @@ export default async function ContractsPage() {
                     {contract.signed_date
                       ? formatDate(contract.signed_date)
                       : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {/* The editor lives under the project route — standalone
+                        contracts (project_id null) are view/print only, and a
+                        signed contract's content is frozen (server enforces). */}
+                    {contract.project_id &&
+                    contract.status === ContractStatus.DRAFT ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        render={
+                          <Link
+                            href={`/projects/${contract.project_id}/contracts/new?edit=${contract.id}`}
+                          >
+                            Sửa
+                          </Link>
+                        }
+                      />
+                    ) : null}
                   </TableCell>
                 </TableRow>
               );

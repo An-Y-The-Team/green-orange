@@ -15,7 +15,7 @@
  */
 import type { Contract } from "@/app/(dashboard)/contracts/types";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
-import { COMPANY } from "@/config/company";
+import { COMPANY, type CompanyInfo } from "@/config/company";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 // Cycle with lexical-build (it imports CONTRACT_TOKENS from here), but a safe
@@ -112,13 +112,33 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
 export type MergeContext = Record<string, string>;
 
 /**
+ * Just the `company.*` tokens — enough to render the document header template
+ * (which may only use company fields) anywhere, without a contract in hand.
+ */
+export function companyContext(company: CompanyInfo = COMPANY): MergeContext {
+  return {
+    "company.name": company.name,
+    "company.address": company.address,
+    "company.tax_id": company.tax_id,
+    "company.phone": company.phone,
+    "company.email": company.email,
+    "company.rep": company.representative,
+    "company.rep_title": company.representative_title,
+    "company.bank_account": company.bank_account,
+    "company.bank_name": company.bank_name,
+    "company.bank_branch": company.bank_branch,
+  };
+}
+
+/**
  * Real merge values for a contract — formatting (VND, dates) applied here.
  * `quote` is the project's chốt quote (drives the money tokens); when absent
  * the money tokens resolve to empty strings.
  */
 export function buildContractContext(
   contract: Contract,
-  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null
+  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null,
+  company: CompanyInfo = COMPANY
 ): MergeContext {
   // One VAT rule for screen, printable, .docx and these tokens.
   const money = quote ? storedTotals(quote) : undefined;
@@ -133,16 +153,7 @@ export function buildContractContext(
     // Bên A
     client: contract.project?.client.name ?? "",
     // Bên B
-    "company.name": COMPANY.name,
-    "company.address": COMPANY.address,
-    "company.tax_id": COMPANY.tax_id,
-    "company.phone": COMPANY.phone,
-    "company.email": COMPANY.email,
-    "company.rep": COMPANY.representative,
-    "company.rep_title": COMPANY.representative_title,
-    "company.bank_account": COMPANY.bank_account,
-    "company.bank_name": COMPANY.bank_name,
-    "company.bank_branch": COMPANY.bank_branch,
+    ...companyContext(company),
     // Tài chính
     value: money ? formatVND(money.total) : "",
     value_before_tax: money ? formatVND(money.subtotal) : "",
@@ -164,6 +175,65 @@ const KNOWN_TOKENS: ReadonlySet<string> = new Set(
 
 /** How an unresolved token is shown. Editor/preview only — never in a .docx. */
 export const unresolvedMarker = (token: string) => `⟨${token}?⟩`;
+
+/** Walk every node of a stored body, mutating in place. Unparsable → null. */
+function mapBody(body: string, visit: (node: LexNode) => void): string | null {
+  try {
+    const state = JSON.parse(body) as { root?: LexNode };
+    const walk = (node: LexNode | undefined) => {
+      if (!node) return;
+      visit(node);
+      node.children?.forEach(walk);
+    };
+    walk(state.root);
+    return JSON.stringify(state);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Rewrite a stored body so each merge-field chip's display text is its live
+ * value from `ctx` (falling back to the label when the value is empty). Feeds
+ * the on-page editor, where there is no preview column — the chips themselves
+ * must read like the final document. Rendering/printing still resolves by
+ * `token`, so the baked text is display-only and can never go stale on paper.
+ * Unparsable body → returned unchanged.
+ *
+ * ALWAYS pair with {@link stripMergeFieldText} before persisting: baked text
+ * round-trips through storage (MergeFieldNode serialises its `text`), and a
+ * stored chip whose token has no live value keeps whatever text was baked in —
+ * which is how a template's sample figures would surface as fake financials on
+ * a real contract.
+ */
+export function resolveMergeFieldText(body: string, ctx: MergeContext): string {
+  if (!body) return body;
+  return (
+    mapBody(body, (node) => {
+      if (node.type === "merge-field" && node.token && ctx[node.token]) {
+        node.text = ctx[node.token];
+      }
+    }) ?? body
+  );
+}
+
+/**
+ * Inverse of {@link resolveMergeFieldText}: reset every merge-field chip's
+ * display text back to its token label, so the baked-in preview values stay
+ * editor-transient and never reach the database. Unparsable → unchanged.
+ */
+export function stripMergeFieldText(body: string): string {
+  if (!body) return body;
+  return (
+    mapBody(body, (node) => {
+      if (node.type === "merge-field" && node.token) {
+        node.text =
+          CONTRACT_TOKENS.find((t) => t.token === node.token)?.label ??
+          node.token;
+      }
+    }) ?? body
+  );
+}
 
 /**
  * Merge tokens a stored Lexical `body` uses that are NOT in

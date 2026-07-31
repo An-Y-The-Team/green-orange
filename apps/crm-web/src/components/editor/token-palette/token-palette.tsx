@@ -16,7 +16,18 @@ import { $createMergeFieldNode } from "../merge-field-node";
  * Palette of merge tokens. Clicking inserts a MergeFieldNode at the caret. The
  * whitelist is CONTRACT_TOKENS, so only known tokens can ever be authored.
  */
-export function TokenPalette() {
+export function TokenPalette({
+  resolve,
+  tokens = CONTRACT_TOKENS,
+  showLineItems = true,
+}: {
+  /** When given, a fresh chip shows the token's live value instead of its label. */
+  resolve?: (token: string) => string | undefined;
+  /** Subset of CONTRACT_TOKENS to offer (e.g. only company.* in the header editor). */
+  tokens?: typeof CONTRACT_TOKENS;
+  /** Whether the "Chèn bảng báo giá" block button is offered. */
+  showLineItems?: boolean;
+}) {
   const [editor] = useLexicalComposerContext();
 
   const insert = (token: string) =>
@@ -24,7 +35,10 @@ export function TokenPalette() {
       const selection = $getSelection();
       if (!$isRangeSelection(selection)) return;
       // Insert the chip followed by a space so the caret lands outside it.
-      $insertNodes([$createMergeFieldNode(token)]);
+      const node = $createMergeFieldNode(token);
+      const value = resolve?.(token);
+      if (value) node.setTextContent(value);
+      $insertNodes([node]);
     });
 
   const insertLineItems = () =>
@@ -33,13 +47,13 @@ export function TokenPalette() {
     });
 
   return (
-    <div className="space-y-1.5 border-b bg-muted/40 px-2 py-1.5">
+    <div className="space-y-1.5 px-2 py-1.5">
       <div>
         <p className="mb-1 text-xs font-medium text-muted-foreground">
           Chèn trường dữ liệu
         </p>
         <div className="flex flex-wrap gap-1">
-          {CONTRACT_TOKENS.map((token) => (
+          {tokens.map((token) => (
             <Button
               key={token.token}
               type="button"
@@ -53,17 +67,19 @@ export function TokenPalette() {
           ))}
         </div>
       </div>
-      <div>
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          onClick={insertLineItems}
-        >
-          <Table />
-          Chèn bảng báo giá
-        </Button>
-      </div>
+      {showLineItems && (
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            onClick={insertLineItems}
+          >
+            <Table />
+            Chèn bảng báo giá
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

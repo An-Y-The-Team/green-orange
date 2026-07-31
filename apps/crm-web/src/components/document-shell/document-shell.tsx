@@ -4,11 +4,13 @@ import { Printer } from "lucide-react";
 
 import { Button } from "@yan/ui/components/button";
 
-import { COMPANY } from "@/config/company";
+import { useCompany } from "@/components/company-provider/company-provider";
+import { LexicalDocument } from "@/components/editor/lexical-document/lexical-document";
 import {
   DEFAULT_HEADER_VARIANT,
   HeaderVariant,
 } from "@/constants/header-variant";
+import { companyContext } from "@/utils/merge-template/merge-template";
 
 /**
  * A4-styled white sheet for printable documents (Báo giá / Quyết toán / Hợp
@@ -25,13 +27,15 @@ export function DocumentShell({
   headerVariant = DEFAULT_HEADER_VARIANT,
   children,
 }: {
-  title: string;
+  /** Usually a string; the template editor passes an inline title input. */
+  title: React.ReactNode;
   subtitle?: string;
   /** Optional extra controls (e.g. "Xuất .docx") shown beside the print button. */
   actions?: React.ReactNode;
   headerVariant?: HeaderVariant;
   children: React.ReactNode;
 }) {
+  const company = useCompany();
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-4 flex justify-end gap-2 print:hidden">
@@ -44,13 +48,14 @@ export function DocumentShell({
 
       <div className="print-sheet mx-auto bg-white p-10 text-sm text-zinc-900 shadow-sm ring-1 ring-border">
         {headerVariant === HeaderVariant.NATIONAL ? (
-          // National header for legal documents (Hợp đồng).
-          <header className="text-center">
-            <p className="text-sm font-bold uppercase">
-              Cộng Hòa Xã Hội Chủ Nghĩa Việt Nam
-            </p>
-            <p className="text-sm font-bold">Độc Lập – Tự Do – Hạnh Phúc</p>
-            <p className="mt-1 tracking-widest text-zinc-500">———oOo———</p>
+          // Legal documents (Hợp đồng): the editable rich-text header template
+          // (letterhead + Quốc hiệu) from settings → Thông tin công ty.
+          <header>
+            <LexicalDocument
+              body={company.header_body}
+              ctx={companyContext(company)}
+              className="space-y-1 text-xs leading-relaxed text-zinc-900"
+            />
           </header>
         ) : (
           // Company letterhead for quotes / settlements.
@@ -61,17 +66,17 @@ export function DocumentShell({
               </div>
               <div>
                 <p className="text-sm font-bold uppercase leading-tight">
-                  {COMPANY.name}
+                  {company.name}
                 </p>
-                <p className="text-xs text-zinc-600">{COMPANY.tagline}</p>
+                <p className="text-xs text-zinc-600">{company.tagline}</p>
               </div>
             </div>
             <div className="text-right text-xs leading-relaxed text-zinc-600">
-              <p>{COMPANY.address}</p>
+              <p>{company.address}</p>
               <p>
-                ĐT: {COMPANY.phone} · {COMPANY.email}
+                ĐT: {company.phone} · {company.email}
               </p>
-              <p>MST: {COMPANY.tax_id}</p>
+              <p>MST: {company.tax_id}</p>
             </div>
           </header>
         )}
@@ -100,8 +105,8 @@ export function SignatureBlocks({
   rightLabel = "ĐẠI DIỆN BÊN B",
   leftName,
   leftTitle,
-  rightName = COMPANY.representative,
-  rightTitle = COMPANY.representative_title,
+  rightName,
+  rightTitle,
 }: {
   leftLabel?: string;
   rightLabel?: string;
@@ -110,9 +115,14 @@ export function SignatureBlocks({
   rightName?: string;
   rightTitle?: string;
 }) {
+  const company = useCompany();
   const columns = [
     { label: leftLabel, name: leftName, title: leftTitle },
-    { label: rightLabel, name: rightName, title: rightTitle },
+    {
+      label: rightLabel,
+      name: rightName ?? company.representative,
+      title: rightTitle ?? company.representative_title,
+    },
   ];
   return (
     <div className="mt-10 grid grid-cols-2 gap-8 break-inside-avoid text-center text-xs">

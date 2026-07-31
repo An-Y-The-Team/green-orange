@@ -6,9 +6,13 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
+import { loadCompany } from "@/app/(dashboard)/settings/company/queries";
+import { HeaderVariant } from "@/constants/header-variant";
 import { apiSend } from "@/utils/http/http";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
+import { serializePrintSnapshot } from "../print-snapshot";
+import { getContract, getContractTemplate } from "../queries";
 import type { Contract } from "../types";
 
 const signContractSchema = z.object({
@@ -42,10 +46,39 @@ export async function signContract(
 
   const signedDate = parsed.data.signed_date || todayISO();
 
+  // Freeze how this contract prints BEFORE flipping it to signed: the company
+  // profile and its template stay editable afterwards, and without a snapshot
+  // a later edit would retroactively change an already-signed document.
+  const [{ company, degraded }, existing] = await Promise.all([
+    loadCompany(),
+    getContract(id),
+  ]);
+
+  // Signing with the built-in defaults would freeze the WRONG party onto the
+  // contract permanently — refuse rather than immortalise a guess.
+  if (degraded) {
+    return {
+      success: false,
+      message:
+        "Chưa đọc được thông tin công ty nên chưa thể ký. Tải lại trang (đăng nhập lại nếu cần) rồi thử lại.",
+    };
+  }
+
+  const template = existing?.template_id
+    ? await getContractTemplate(existing.template_id)
+    : undefined;
+
+  const printSnapshot = serializePrintSnapshot({
+    company,
+    header_variant: template?.header_style ?? HeaderVariant.NATIONAL,
+    doc_title: template?.doc_title ?? "HỢP ĐỒNG",
+  });
+
   try {
     const contract = await apiSend<Contract>(`/contracts/${id}`, "PATCH", {
       status: "signed",
       signed_date: signedDate,
+      print_snapshot: printSnapshot,
     });
 
     // The contract is signed from here on — revalidate before the chain so a
