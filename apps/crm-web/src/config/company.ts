@@ -1,7 +1,9 @@
 /**
- * The service company these documents (Báo giá / Hợp đồng) are issued by.
- * Printed in the header of every A4 document. Demo values — a real deployment
- * would source these from settings.
+ * Built-in defaults for the company these documents (Báo giá / Hợp đồng) are
+ * issued by, printed in the header of every A4 document. The live values come
+ * from the editable company profile (Danh mục → Thông tin công ty), which
+ * falls back to these per field — see settings/company/queries.ts and
+ * components/company-provider.
  */
 export const COMPANY = {
   name: "CÔNG TY TNHH DỊCH VỤ GREENORANGE",
@@ -19,3 +21,14 @@ export const COMPANY = {
   bank_name: "Ngân hàng TMCP Á Châu (ACB)",
   bank_branch: "PGD Quận 7 - TP.HCM",
 } as const;
+
+/** The company profile shape every document renders from. */
+export type CompanyInfo = Record<keyof typeof COMPANY, string>;
+
+/**
+ * Profile plus the rich-text document header (Lexical editorState JSON —
+ * letterhead + Quốc hiệu). The default lives in
+ * components/document-shell/default-header.ts, not here: building it needs the
+ * lexical-build helpers, which would import-cycle back into this module.
+ */
+export type CompanyData = CompanyInfo & { header_body: string };

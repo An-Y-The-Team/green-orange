@@ -12,11 +12,16 @@ import {
   $createParagraphNode,
   $getSelection,
   $isRangeSelection,
+  type ElementFormatType,
   type ElementNode,
+  FORMAT_ELEMENT_COMMAND,
   FORMAT_TEXT_COMMAND,
   type TextFormatType,
 } from "lexical";
 import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   Bold,
   Heading2,
   Heading3,
@@ -58,6 +63,9 @@ export function Toolbar() {
   const clearList = () =>
     editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined);
 
+  const align = (type: ElementFormatType) => () =>
+    editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, type);
+
   const items: Array<{
     icon: typeof Bold;
     label: string;
@@ -71,6 +79,9 @@ export function Toolbar() {
     { icon: Pilcrow, label: "Đoạn văn", onClick: toParagraph },
     { icon: List, label: "Danh sách", onClick: list("ul") },
     { icon: ListOrdered, label: "Danh sách số", onClick: list("ol") },
+    { icon: AlignLeft, label: "Căn trái", onClick: align("left") },
+    { icon: AlignCenter, label: "Căn giữa", onClick: align("center") },
+    { icon: AlignRight, label: "Căn phải", onClick: align("right") },
   ];
 
   return (

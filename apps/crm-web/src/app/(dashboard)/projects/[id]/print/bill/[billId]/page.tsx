@@ -9,11 +9,11 @@ import {
   getProjectBills,
   getProjectMilestones,
 } from "@/app/(dashboard)/receivables/queries";
+import { getCompany } from "@/app/(dashboard)/settings/company/queries";
 import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
-import { COMPANY } from "@/config/company";
 import {
   BILL_STATUSES,
   MILESTONE_STATUSES,
@@ -35,6 +35,7 @@ export default async function BillDocumentPage({
   params: Promise<{ id: string; billId: string }>;
 }) {
   const { id, billId } = await params;
+  const company = await getCompany();
   const project = await getProject(Number(id));
   if (!project) notFound();
 
@@ -130,15 +131,15 @@ export default async function BillDocumentPage({
           <p className="font-medium uppercase">Thông tin chuyển khoản</p>
           <p>
             <span className="text-zinc-500">Đơn vị thụ hưởng: </span>
-            {COMPANY.name}
+            {company.name}
           </p>
           <p>
             <span className="text-zinc-500">Số tài khoản: </span>
-            {COMPANY.bank_account}
+            {company.bank_account}
           </p>
           <p>
             <span className="text-zinc-500">Ngân hàng: </span>
-            {COMPANY.bank_name} — {COMPANY.bank_branch}
+            {company.bank_name} — {company.bank_branch}
           </p>
           <p>
             <span className="text-zinc-500">Nội dung: </span>

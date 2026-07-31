@@ -18,9 +18,15 @@ import { $createMergeFieldNode } from "../merge-field-node";
  */
 export function TokenPalette({
   resolve,
+  tokens = CONTRACT_TOKENS,
+  showLineItems = true,
 }: {
   /** When given, a fresh chip shows the token's live value instead of its label. */
   resolve?: (token: string) => string | undefined;
+  /** Subset of CONTRACT_TOKENS to offer (e.g. only company.* in the header editor). */
+  tokens?: typeof CONTRACT_TOKENS;
+  /** Whether the "Chèn bảng báo giá" block button is offered. */
+  showLineItems?: boolean;
 }) {
   const [editor] = useLexicalComposerContext();
 
@@ -47,7 +53,7 @@ export function TokenPalette({
           Chèn trường dữ liệu
         </p>
         <div className="flex flex-wrap gap-1">
-          {CONTRACT_TOKENS.map((token) => (
+          {tokens.map((token) => (
             <Button
               key={token.token}
               type="button"
@@ -61,17 +67,19 @@ export function TokenPalette({
           ))}
         </div>
       </div>
-      <div>
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          onClick={insertLineItems}
-        >
-          <Table />
-          Chèn bảng báo giá
-        </Button>
-      </div>
+      {showLineItems && (
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            onClick={insertLineItems}
+          >
+            <Table />
+            Chèn bảng báo giá
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

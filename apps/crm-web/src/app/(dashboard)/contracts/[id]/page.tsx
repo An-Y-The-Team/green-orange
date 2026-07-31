@@ -4,14 +4,14 @@ import { notFound } from "next/navigation";
 
 import { Button } from "@yan/ui/components/button";
 
+import { getCompany } from "@/app/(dashboard)/settings/company/queries";
 import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
 import { DocxExportButton } from "@/components/editor/docx-export-button/docx-export-button";
 import { LexicalDocument } from "@/components/editor/lexical-document/lexical-document";
-import { COMPANY } from "@/config/company";
-import { DEFAULT_HEADER_VARIANT } from "@/constants/header-variant";
+import { HeaderVariant } from "@/constants/header-variant";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { ensureLexicalBody } from "@/utils/lexical-build/lexical-build";
@@ -27,7 +27,10 @@ export default async function ContractDocumentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const contract = await getContract(Number(id));
+  const [contract, company] = await Promise.all([
+    getContract(Number(id)),
+    getCompany(),
+  ]);
 
   if (!contract) {
     notFound();
@@ -105,9 +108,10 @@ export default async function ContractDocumentPage({
   const body = ensureLexicalBody(contract.body ?? template?.body);
 
   if (body) {
-    const ctx = buildContractContext(contract, quote);
+    const ctx = buildContractContext(contract, quote, company);
     const docTitle = template?.doc_title ?? "HỢP ĐỒNG";
-    const headerVariant = template?.header_style ?? DEFAULT_HEADER_VARIANT;
+    // Contracts default to the national header (letterhead + Quốc hiệu).
+    const headerVariant = template?.header_style ?? HeaderVariant.NATIONAL;
     const lineItems = quote
       ? { items: quote.items, vatRate: quote.vat_rate }
       : null;
@@ -147,7 +151,11 @@ export default async function ContractDocumentPage({
     <>
       {backLink}
 
-      <DocumentShell title="HỢP ĐỒNG DỊCH VỤ" subtitle={`Số: ${contract.code}`}>
+      <DocumentShell
+        title="HỢP ĐỒNG DỊCH VỤ"
+        subtitle={`Số: ${contract.code}`}
+        headerVariant={HeaderVariant.NATIONAL}
+      >
         {contract.signed_date && (
           <p className="text-xs leading-relaxed text-zinc-600">
             Hôm nay, ngày {formatDate(contract.signed_date)}, hai bên gồm có:
@@ -163,9 +171,9 @@ export default async function ContractDocumentPage({
             <p className="font-semibold uppercase">
               Bên B (Nhà cung cấp dịch vụ)
             </p>
-            <p>{COMPANY.name}</p>
+            <p>{company.name}</p>
             <p className="text-zinc-600">
-              {COMPANY.address} · MST: {COMPANY.tax_id}
+              {company.address} · MST: {company.tax_id}
             </p>
           </div>
         </div>

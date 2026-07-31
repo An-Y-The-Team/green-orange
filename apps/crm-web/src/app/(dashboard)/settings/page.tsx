@@ -39,6 +39,25 @@ export default async function SettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Thông tin công ty</CardTitle>
+            <CardDescription>
+              Đầu trang tài liệu (letterhead) & thông tin Bên B — in trên mọi
+              báo giá, hợp đồng, quyết toán.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link
+              href="/settings/company"
+              className="flex items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-muted/50"
+            >
+              <span>Sửa thông tin công ty</span>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Mẫu hợp đồng</CardTitle>
             <CardDescription>Quản lý mẫu văn bản hợp đồng.</CardDescription>
           </CardHeader>

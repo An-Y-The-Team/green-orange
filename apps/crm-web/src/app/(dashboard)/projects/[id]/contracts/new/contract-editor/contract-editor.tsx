@@ -15,11 +15,11 @@ import type {
 } from "@/app/(dashboard)/contracts/types";
 import type { Project } from "@/app/(dashboard)/projects/types";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
+import { useCompany } from "@/components/company-provider/company-provider";
 import { PageEditor } from "@/components/editor/page-editor/page-editor";
 import { SaveStatusBadge, useAutosave } from "@/components/editor/use-autosave";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
-import { COMPANY } from "@/config/company";
-import { DEFAULT_HEADER_VARIANT } from "@/constants/header-variant";
+import { HeaderVariant } from "@/constants/header-variant";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import {
   ensureLexicalBody,
@@ -53,6 +53,7 @@ function EditableSignatureBlocks({
   reps: Reps;
   onChange: (patch: Partial<Reps>) => void;
 }) {
+  const company = useCompany();
   const line =
     "w-full bg-transparent text-center outline-none placeholder:italic placeholder:text-zinc-300";
   const columns = [
@@ -71,8 +72,8 @@ function EditableSignatureBlocks({
       nameKey: "rep_b_name",
       titleKey: "rep_b_title",
       labelPlaceholder: "ĐẠI DIỆN BÊN B",
-      namePlaceholder: COMPANY.representative,
-      titlePlaceholder: COMPANY.representative_title,
+      namePlaceholder: company.representative,
+      titlePlaceholder: company.representative_title,
     },
   ] as const;
 
@@ -126,6 +127,7 @@ export function ContractEditor({
   contract?: Contract;
 }) {
   const router = useRouter();
+  const company = useCompany();
 
   const seedTemplate = contract?.template_id
     ? templates.find((t) => t.id === contract.template_id)
@@ -160,7 +162,7 @@ export function ContractEditor({
       },
     },
   };
-  const ctx = buildContractContext(previewContract, dealQuote);
+  const ctx = buildContractContext(previewContract, dealQuote, company);
 
   // ensureLexicalBody: v1-era contracts stored plain text, which would throw
   // inside Lexical's initial parse — wrap it so older contracts stay editable.
@@ -283,7 +285,9 @@ export function ContractEditor({
       onChange={onBodyChange}
       title={selected?.doc_title ?? "HỢP ĐỒNG"}
       subtitle={contract ? `Số: ${contract.code}` : undefined}
-      headerVariant={selected?.header_style ?? DEFAULT_HEADER_VARIANT}
+      // Contracts default to the national header (letterhead + Quốc hiệu) —
+      // a Vietnamese contract must carry both.
+      headerVariant={selected?.header_style ?? HeaderVariant.NATIONAL}
       resolve={(token) => ctx[token]}
       footer={<EditableSignatureBlocks reps={reps} onChange={onRepsChange} />}
       toolbarExtra={

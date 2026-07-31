@@ -217,6 +217,27 @@ model Contract {
   @@index([project_id]) // GET /contracts?project_id, project delete guard _count
 }
 
+// Single-row company profile (id=1): the letterhead + Bên B details printed on
+// every A4 document. Null fields fall back to the web app's built-in defaults.
+model CompanyProfile {
+  id                   Int     @id @default(1)
+  name                 String?
+  tagline              String?
+  address              String?
+  phone                String?
+  email                String?
+  tax_id               String?
+  website              String?
+  representative       String?
+  representative_title String?
+  bank_account         String?
+  bank_name            String?
+  bank_branch          String?
+  // Rich-text document header (Lexical editorState JSON) — letterhead +
+  // Quốc hiệu; null = the web app's built-in default header.
+  header_body          String?
+}
+
 model ContractTemplate {
   id           Int     @id @default(autoincrement())
   name         String

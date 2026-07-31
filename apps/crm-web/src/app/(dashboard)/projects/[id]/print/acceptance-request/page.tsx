@@ -2,11 +2,11 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getCompany } from "@/app/(dashboard)/settings/company/queries";
 import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
-import { COMPANY } from "@/config/company";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import { getProject } from "../../../queries";
@@ -20,6 +20,7 @@ export default async function AcceptanceRequestPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const company = await getCompany();
   const project = await getProject(Number(id));
   if (!project) notFound();
 
@@ -60,7 +61,7 @@ export default async function AcceptanceRequestPage({
           </div>
 
           <p>
-            {COMPANY.name} xin trân trọng thông báo các hạng mục thi công tại
+            {company.name} xin trân trọng thông báo các hạng mục thi công tại
             công trình <span className="font-medium">{project.name}</span> đã
             hoàn tất. Để tiến hành nghiệm thu và bàn giao, kính đề nghị Quý
             khách phối hợp cung cấp các nội dung sau:

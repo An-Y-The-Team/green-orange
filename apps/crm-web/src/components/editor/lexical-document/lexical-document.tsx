@@ -42,6 +42,16 @@ export type LineItemsData = {
   vatRate: number;
 };
 
+/** Block alignment (Lexical element `format` string) → Tailwind class. */
+const ALIGN: Record<string, string> = {
+  center: "text-center",
+  right: "text-right",
+  end: "text-right",
+  justify: "text-justify",
+};
+const alignCls = (node: LexNode): string =>
+  typeof node.format === "string" ? (ALIGN[node.format] ?? "") : "";
+
 function inlineText(node: LexNode, ctx: MergeContext, key: number): ReactNode {
   let content: ReactNode;
   if (node.type === "merge-field") {
@@ -234,10 +244,14 @@ function block(
         <GenericTable node={node} ctx={ctx} lineItems={lineItems} key={key} />
       );
     case "heading": {
-      const cls =
+      const cls = [
         node.tag === "h3"
           ? "pt-1 text-xs font-semibold text-zinc-900"
-          : "pt-1 text-xs font-semibold uppercase text-zinc-900";
+          : "pt-1 text-xs font-semibold uppercase text-zinc-900",
+        alignCls(node),
+      ]
+        .filter(Boolean)
+        .join(" ");
       return node.tag === "h3" ? (
         <h3 key={key} className={cls}>
           {inline(node.children, ctx)}
@@ -277,7 +291,7 @@ function block(
       return (
         <blockquote
           key={key}
-          className="border-l-2 border-zinc-300 pl-3 italic text-zinc-600"
+          className={`border-l-2 border-zinc-300 pl-3 italic text-zinc-600 ${alignCls(node)}`}
         >
           {inline(node.children, ctx)}
         </blockquote>
@@ -286,7 +300,11 @@ function block(
     default: {
       const kids = inline(node.children, ctx);
       // Preserve empty paragraphs as spacing, like a blank line.
-      return <p key={key}>{node.children?.length ? kids : <br />}</p>;
+      return (
+        <p key={key} className={alignCls(node) || undefined}>
+          {node.children?.length ? kids : <br />}
+        </p>
+      );
     }
   }
 }
@@ -295,11 +313,14 @@ export function LexicalDocument({
   body,
   ctx,
   lineItems,
+  className = "mt-3 space-y-3 text-xs leading-relaxed text-zinc-700",
 }: {
   body: string;
   ctx: MergeContext;
   /** Pricing for the line-items block; null/undefined → placeholder note. */
   lineItems?: LineItemsData | null;
+  /** Wrapper classes — override for non-body uses (e.g. the page header). */
+  className?: string;
 }) {
   const root = lexicalRoot(body);
 
@@ -310,7 +331,7 @@ export function LexicalDocument({
   }
 
   return (
-    <div className="mt-3 space-y-3 text-xs leading-relaxed text-zinc-700">
+    <div className={className}>
       {root.children.map((node, i) => block(node, ctx, lineItems, i))}
     </div>
   );

@@ -46,12 +46,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
+    <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         {children}
         {/* sonner toasts — used by the shared useServerAction hook for

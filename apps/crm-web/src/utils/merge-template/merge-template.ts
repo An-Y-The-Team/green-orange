@@ -15,7 +15,7 @@
  */
 import type { Contract } from "@/app/(dashboard)/contracts/types";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
-import { COMPANY } from "@/config/company";
+import { COMPANY, type CompanyInfo } from "@/config/company";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 // Cycle with lexical-build (it imports CONTRACT_TOKENS from here), but a safe
@@ -112,13 +112,33 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
 export type MergeContext = Record<string, string>;
 
 /**
+ * Just the `company.*` tokens — enough to render the document header template
+ * (which may only use company fields) anywhere, without a contract in hand.
+ */
+export function companyContext(company: CompanyInfo = COMPANY): MergeContext {
+  return {
+    "company.name": company.name,
+    "company.address": company.address,
+    "company.tax_id": company.tax_id,
+    "company.phone": company.phone,
+    "company.email": company.email,
+    "company.rep": company.representative,
+    "company.rep_title": company.representative_title,
+    "company.bank_account": company.bank_account,
+    "company.bank_name": company.bank_name,
+    "company.bank_branch": company.bank_branch,
+  };
+}
+
+/**
  * Real merge values for a contract — formatting (VND, dates) applied here.
  * `quote` is the project's chốt quote (drives the money tokens); when absent
  * the money tokens resolve to empty strings.
  */
 export function buildContractContext(
   contract: Contract,
-  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null
+  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null,
+  company: CompanyInfo = COMPANY
 ): MergeContext {
   // One VAT rule for screen, printable, .docx and these tokens.
   const money = quote ? storedTotals(quote) : undefined;
@@ -133,16 +153,7 @@ export function buildContractContext(
     // Bên A
     client: contract.project?.client.name ?? "",
     // Bên B
-    "company.name": COMPANY.name,
-    "company.address": COMPANY.address,
-    "company.tax_id": COMPANY.tax_id,
-    "company.phone": COMPANY.phone,
-    "company.email": COMPANY.email,
-    "company.rep": COMPANY.representative,
-    "company.rep_title": COMPANY.representative_title,
-    "company.bank_account": COMPANY.bank_account,
-    "company.bank_name": COMPANY.bank_name,
-    "company.bank_branch": COMPANY.bank_branch,
+    ...companyContext(company),
     // Tài chính
     value: money ? formatVND(money.total) : "",
     value_before_tax: money ? formatVND(money.subtotal) : "",

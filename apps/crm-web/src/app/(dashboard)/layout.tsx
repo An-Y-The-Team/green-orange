@@ -3,9 +3,11 @@ import { LogOut } from "lucide-react";
 import { Button } from "@yan/ui/components/button";
 import { ThemeSwitcher } from "@yan/ui/components/theme-switcher";
 
+import { getCompany } from "@/app/(dashboard)/settings/company/queries";
 import { auth, signOut } from "@/auth";
 import { AUTH_ENABLED } from "@/auth.config";
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar";
+import { CompanyProvider } from "@/components/company-provider/company-provider";
 import { LoginOverlay } from "@/components/login-overlay/login-overlay";
 import { SessionWatch } from "@/components/session-watch/session-watch";
 
@@ -32,6 +34,10 @@ export default async function DashboardLayout({
   const needsLogin =
     AUTH_ENABLED && (!session?.user || session.error === "RefreshTokenError");
   const userLabel = session?.user?.email ?? session?.user?.name;
+  // The editable company profile — every document header/signature reads it
+  // (client components via CompanyProvider, server pages via getCompany).
+  // Never fetched while the login gate is up: no token → pointless 401.
+  const company = needsLogin ? null : await getCompany();
 
   return (
     <div className="flex h-dvh overflow-hidden print:block print:h-auto print:overflow-visible">
@@ -67,13 +73,13 @@ export default async function DashboardLayout({
           <ThemeSwitcher />
         </header>
         <main className="flex-1 overflow-y-auto p-6 print:overflow-visible print:p-0">
-          {needsLogin ? (
+          {needsLogin || !company ? (
             <LoginOverlay expired={Boolean(session?.error)} />
           ) : (
-            <>
+            <CompanyProvider company={company}>
               {AUTH_ENABLED && <SessionWatch />}
               {children}
-            </>
+            </CompanyProvider>
           )}
         </main>
       </div>

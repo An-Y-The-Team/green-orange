@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "./auth/auth.module";
 import { ClientsModule } from "./clients/clients.module";
+import { CompanyModule } from "./company/company.module";
 import { ContractsModule } from "./contracts/contracts.module";
 import { CrewModule } from "./crew/crew.module";
 import { HealthController } from "./health/health.controller";
@@ -19,6 +20,7 @@ import { ReceivablesModule } from "./receivables/receivables.module";
     ProjectsModule,
     QuotesModule,
     ContractsModule,
+    CompanyModule,
     PaperworkModule,
     CrewModule,
     ReceivablesModule,
