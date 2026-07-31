@@ -13,6 +13,9 @@ export default defineConfig({
   // TZ is set suite-wide: the date utils are only wrong in a UTC+ zone, so a
   // test running under UTC cannot catch the bug it guards.
   test: {
+    // Scoped to src, or vitest also collects e2e/*.spec.ts — Playwright specs it
+    // cannot run, which would fail `turbo run test` (the PR gate).
+    include: ["src/**/*.test.ts"],
     env: { TZ: "Asia/Ho_Chi_Minh" },
     server: { deps: { inline: ["next-auth"] } },
   },
