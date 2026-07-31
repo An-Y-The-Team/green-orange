@@ -19,5 +19,7 @@ test("creating a client shows it on the list", async ({ page }) => {
   await page.getByRole("button", { name: "Tạo khách hàng" }).click();
 
   await expect(page).toHaveURL(/\/clients$/);
-  await expect(page.getByText(name)).toBeVisible();
+  // The row, not any text: the success toast carries the name too, and it is
+  // still on screen when the list arrives.
+  await expect(page.getByRole("link", { name })).toBeVisible();
 });

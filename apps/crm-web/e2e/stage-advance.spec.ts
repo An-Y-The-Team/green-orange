@@ -1,11 +1,13 @@
-import { expect, test } from "@playwright/test";
-
 import { ProjectStage } from "@/app/(dashboard)/projects/enums";
 import { PROJECT_STAGES } from "@/constants/labels";
 
+import { expect, stepperButton, test } from "./fixtures";
+
 /**
- * The only spec that writes to a seeded row, and the only one that proves the
- * whole seam works: server action → API → `revalidatePath` → re-rendered panel.
+ * Manual stage moves are SOFT — no gates, forward or back
+ * (crm-business-flow.md, 2026-07-24) — and a backward move keeps the data
+ * entered in later stages. This also proves the write seam end to end: server
+ * action → API → `revalidatePath` → re-rendered panel.
  *
  * Project 1 (báo giá) is reserved for this — no other spec asserts its stage.
  * The test moves it forward and then back, so it leaves the dataset as it found
@@ -13,12 +15,6 @@ import { PROJECT_STAGES } from "@/constants/labels";
  * stepper hides both buttons on a hoãn/hủy one (project 9 is the parked
  * fixture), which reads as a missing button, not a failed rule.
  */
-
-// The stepper renders a mobile pill and a desktop rail, both in the DOM — only
-// one is visible at any viewport, so every button lookup filters on visibility.
-const stepperButton = (page: import("@playwright/test").Page, name: string) =>
-  page.getByRole("button", { name }).filter({ visible: true });
-
 test("advancing a stage re-renders the panel, and going back restores it", async ({
   page,
 }) => {

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { API_PORT, WEB_PORT } from "./e2e/ports";
+
 /**
  * E2E against a REAL stack. There is no mock mode: every read happens in a
  * server component through `CRM_API_URL` (server-only), so `page.route()` never
@@ -9,12 +11,10 @@ import { defineConfig, devices } from "@playwright/test";
  * Run:  bun run test:e2e   (from apps/crm-web — builds + seeds first)
  */
 
-// Dedicated ports. The everyday dev stack (:8001 API, :3002 web) is usually
-// running with Authentik/OIDC on, which would bounce every test to /login and
-// blocks the API's local /auth/token mint. E2E brings up its own pair in
-// AUTH_MODE=local instead, so both stacks can be up at the same time.
-const API_PORT = 8011;
-const WEB_PORT = 3012;
+// Dedicated ports (e2e/ports.ts). The everyday dev stack (:8001 API, :3002 web)
+// is usually running with Authentik/OIDC on, which would bounce every test to
+// /login and blocks the API's local /auth/token mint. E2E brings up its own pair
+// in AUTH_MODE=local instead, so both stacks can be up at the same time.
 const API_URL = `http://localhost:${API_PORT}`;
 
 // The same `crm_nest` database the dev stack uses. `bun run seed` upserts on
