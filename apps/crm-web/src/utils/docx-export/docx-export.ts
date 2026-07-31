@@ -176,6 +176,23 @@ export async function exportDocx({
       ),
     });
 
+  // Lexical stores block alignment as a string `format` on the element node
+  // (the toolbar's căn trái/giữa/phải). Without this the centred Quốc hiệu and
+  // any centred heading export left-aligned.
+  const alignmentOf = (node: LexNode) => {
+    switch (typeof node.format === "string" ? node.format : "") {
+      case "center":
+        return { alignment: AlignmentType.CENTER };
+      case "right":
+      case "end":
+        return { alignment: AlignmentType.RIGHT };
+      case "justify":
+        return { alignment: AlignmentType.JUSTIFIED };
+      default:
+        return {};
+    }
+  };
+
   const blocksFrom = (
     node: LexNode
   ): (InstanceType<typeof Paragraph> | InstanceType<typeof Table>)[] => {
@@ -192,6 +209,7 @@ export async function exportDocx({
                 ? HeadingLevel.HEADING_3
                 : HeadingLevel.HEADING_2,
             children: runsFrom(node.children),
+            ...alignmentOf(node),
           }),
         ];
       case "list": {
@@ -200,6 +218,7 @@ export async function exportDocx({
           (item) =>
             new Paragraph({
               children: runsFrom(item.children),
+              ...alignmentOf(item),
               ...(ordered
                 ? { numbering: { reference: "ol", level: 0 } }
                 : { bullet: { level: 0 } }),
@@ -211,11 +230,17 @@ export async function exportDocx({
           new Paragraph({
             children: runsFrom(node.children),
             indent: { left: 360 },
+            ...alignmentOf(node),
           }),
         ];
       case "paragraph":
       default:
-        return [new Paragraph({ children: runsFrom(node.children) })];
+        return [
+          new Paragraph({
+            children: runsFrom(node.children),
+            ...alignmentOf(node),
+          }),
+        ];
     }
   };
 

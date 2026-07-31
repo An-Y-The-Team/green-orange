@@ -50,19 +50,31 @@ export function PaginationPlugin() {
       // Blocks that may be pushed: the editor's top-level blocks, then the
       // sheet elements after the editable (signature blocks etc.). The header
       // and title above the editable stay put on page 1.
+      //
+      // The gap bands are portaled into this same sheet, so they turn up in
+      // this walk too — they must be skipped. Counting them as content made
+      // pagination self-feeding: each band added height, which added a page,
+      // which added a band, and the count could then never come back down.
       const trailing: HTMLElement[] = [];
       for (
         let el = root.parentElement?.nextElementSibling;
         el;
         el = el.nextElementSibling
       ) {
-        trailing.push(el as HTMLElement);
+        if (!(el as HTMLElement).dataset.pageBand) {
+          trailing.push(el as HTMLElement);
+        }
       }
       const blocks = [
         ...(Array.from(root.children) as HTMLElement[]),
         ...trailing,
       ];
 
+      // Reset everything this pass sets BEFORE measuring. `minHeight` matters
+      // as much as the pushes: it floors `scrollHeight`, so leaving the last
+      // pass's value in place makes the page count a ratchet — delete a page
+      // of text and the blank page it padded would never go away.
+      sheetEl.style.minHeight = "";
       for (const el of blocks) {
         el.classList.remove("page-push");
         el.style.marginTop = "";
@@ -71,6 +83,7 @@ export function PaginationPlugin() {
       // Each assignment reflows before the next measurement, so `top` already
       // includes every push applied to earlier blocks.
       const sheetTop = sheetEl.getBoundingClientRect().top;
+      let lastBottom = 0;
       for (const el of blocks) {
         const r = el.getBoundingClientRect();
         const top = r.top - sheetTop;
@@ -83,9 +96,17 @@ export function PaginationPlugin() {
           el.style.marginTop = `${(page + 1) * stride + PAD - top}px`;
           el.classList.add("page-push");
         }
+        lastBottom = Math.max(
+          lastBottom,
+          el.getBoundingClientRect().bottom - sheetTop
+        );
       }
 
-      const pages = Math.max(1, Math.ceil(sheetEl.scrollHeight / stride));
+      // Measure the real content, NOT scrollHeight: the gap bands below are
+      // absolutely positioned children of this sheet, so they keep scrollHeight
+      // at the tallest size the document has ever been — a second ratchet that
+      // would strand the blank pages this is meant to remove.
+      const pages = Math.max(1, Math.ceil((lastBottom + PAD) / stride));
       sheetEl.style.minHeight = `${pages * stride - GAP}px`;
 
       const next = Array.from(
@@ -123,6 +144,7 @@ export function PaginationPlugin() {
       <div
         key={top}
         aria-hidden
+        data-page-band="true"
         className="absolute -inset-x-px z-10 border-y border-border bg-muted print:hidden"
         style={{ top, height: GAP }}
       />
