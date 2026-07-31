@@ -237,9 +237,14 @@ model CompanyProfile {
   bank_account         String?
   bank_name            String?
   bank_branch          String?
-  // Rich-text document header (Lexical editorState JSON) — letterhead +
-  // Quốc hiệu; null = the web app's built-in default header.
-  header_body          String?
+  // Two rich-text header templates (Lexical editorState JSON), null = built-in
+  // default. Split on purpose: the letterhead prints on EVERY document, while
+  // the Quốc hiệu block is statutory and belongs only on legal ones (contracts)
+  // — one combined template leaked the Quốc hiệu onto quotes and bills.
+  letterhead_body      String?
+  national_body        String?
+  // Single company logo, stored inline as a data URL (small, one row).
+  logo                 String?
 }
 
 model ContractTemplate {
@@ -247,7 +252,11 @@ model ContractTemplate {
   name         String
   doc_title    String
   body         String // Lexical editorState JSON, opaque
-  header_style String  @default("letterhead") // letterhead | national
+  // Header blocks are INDEPENDENT, not alternatives: official Vietnamese
+  // paperwork carries the Quốc hiệu and the letterhead sits above it, so both
+  // default on. Per-template so every future paperwork type reuses this.
+  show_letterhead Boolean @default(true)
+  show_national   Boolean @default(true)
   is_active    Boolean @default(true)
 
   contracts Contract[]

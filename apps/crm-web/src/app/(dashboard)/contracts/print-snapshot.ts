@@ -1,7 +1,10 @@
 import { safeJSONParse } from "@yan/shared/utils";
 
 import type { CompanyData } from "@/config/company";
-import { HeaderVariant } from "@/constants/header-variant";
+import {
+  DEFAULT_HEADER_BLOCKS,
+  type HeaderBlocks,
+} from "@/constants/header-blocks";
 
 /**
  * Everything OUTSIDE a contract's own `body` that decides how it prints: who
@@ -19,7 +22,7 @@ import { HeaderVariant } from "@/constants/header-variant";
  */
 export type PrintSnapshot = {
   company: CompanyData;
-  header_variant: HeaderVariant;
+  header_blocks: HeaderBlocks;
   doc_title: string;
 };
 
@@ -38,10 +41,11 @@ export function parsePrintSnapshot(
   const parsed = safeJSONParse<Partial<PrintSnapshot>>(raw);
   // A half-written snapshot must not silently drop the company block and print
   // built-in defaults — fall back to live values instead.
-  if (!parsed?.company?.name || !parsed.company.header_body) return undefined;
+  if (!parsed?.company?.name || !parsed.company.letterhead_body)
+    return undefined;
   return {
     company: parsed.company,
-    header_variant: parsed.header_variant ?? HeaderVariant.NATIONAL,
+    header_blocks: parsed.header_blocks ?? DEFAULT_HEADER_BLOCKS,
     doc_title: parsed.doc_title ?? "HỢP ĐỒNG",
   };
 }

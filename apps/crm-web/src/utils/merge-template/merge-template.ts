@@ -57,9 +57,19 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
   // Bên B — Party B (our company)
   { token: "company.name", label: "Bên B: Tên", example: COMPANY.name },
   {
+    token: "company.tagline",
+    label: "Bên B: Slogan",
+    example: COMPANY.tagline,
+  },
+  {
     token: "company.address",
     label: "Bên B: Địa chỉ",
     example: COMPANY.address,
+  },
+  {
+    token: "company.website",
+    label: "Bên B: Website",
+    example: COMPANY.website,
   },
   { token: "company.tax_id", label: "Bên B: MST", example: COMPANY.tax_id },
   {
@@ -118,7 +128,9 @@ export type MergeContext = Record<string, string>;
 export function companyContext(company: CompanyInfo = COMPANY): MergeContext {
   return {
     "company.name": company.name,
+    "company.tagline": company.tagline,
     "company.address": company.address,
+    "company.website": company.website,
     "company.tax_id": company.tax_id,
     "company.phone": company.phone,
     "company.email": company.email,

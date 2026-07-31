@@ -16,7 +16,7 @@ import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
-import type { HeaderVariant } from "@/constants/header-variant";
+import type { HeaderBlocks } from "@/constants/header-blocks";
 
 import { DocxImportButton } from "../docx-import-button/docx-import-button";
 import { EDITOR_NODES } from "../editor-nodes";
@@ -38,7 +38,7 @@ export function PageEditor({
   onChange,
   title,
   subtitle,
-  headerVariant,
+  headerBlocks,
   resolve,
   toolbarExtra,
   status,
@@ -48,7 +48,7 @@ export function PageEditor({
   onChange: (json: string) => void;
   title: ReactNode;
   subtitle?: string;
-  headerVariant?: HeaderVariant;
+  headerBlocks?: HeaderBlocks;
   /** Resolves a merge token to its live value, so inserted chips read like the final document. */
   resolve?: (token: string) => string | undefined;
   /** Extra controls (e.g. template picker) shown in the sticky toolbar. */
@@ -93,7 +93,7 @@ export function PageEditor({
         <DocumentShell
           title={title}
           subtitle={subtitle}
-          headerVariant={headerVariant}
+          headerBlocks={headerBlocks}
         >
           <div className="relative mt-3">
             <RichTextPlugin

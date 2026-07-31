@@ -26,9 +26,17 @@ export const COMPANY = {
 export type CompanyInfo = Record<keyof typeof COMPANY, string>;
 
 /**
- * Profile plus the rich-text document header (Lexical editorState JSON —
- * letterhead + Quốc hiệu). The default lives in
- * components/document-shell/default-header.ts, not here: building it needs the
- * lexical-build helpers, which would import-cycle back into this module.
+ * Profile plus what the document header renders from:
+ *   • `letterhead_body` — rich-text template printed on EVERY document;
+ *   • `national_body`  — the statutory Quốc hiệu block, legal documents only;
+ *   • `logo`           — single logo as a data URL ("" = none).
+ *
+ * The template defaults live in components/document-shell/default-header.ts,
+ * not here: building them needs the lexical-build helpers, which would
+ * import-cycle back into this module.
  */
-export type CompanyData = CompanyInfo & { header_body: string };
+export type CompanyData = CompanyInfo & {
+  letterhead_body: string;
+  national_body: string;
+  logo: string;
+};

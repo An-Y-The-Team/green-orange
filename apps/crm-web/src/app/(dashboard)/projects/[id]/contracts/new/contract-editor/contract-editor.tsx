@@ -24,7 +24,7 @@ import {
   useAutosave,
 } from "@/components/editor/use-autosave";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
-import { HeaderVariant } from "@/constants/header-variant";
+import { DEFAULT_HEADER_BLOCKS } from "@/constants/header-blocks";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import {
   ensureLexicalBody,
@@ -305,9 +305,15 @@ export function ContractEditor({
       onChange={onBodyChange}
       title={selected?.doc_title ?? "HỢP ĐỒNG"}
       subtitle={contract ? `Số: ${contract.code}` : undefined}
-      // Contracts default to the national header (letterhead + Quốc hiệu) —
-      // a Vietnamese contract must carry both.
-      headerVariant={selected?.header_style ?? HeaderVariant.NATIONAL}
+      // A template may switch either block off; with no template, both print.
+      headerBlocks={
+        selected
+          ? {
+              letterhead: selected.show_letterhead ?? true,
+              national: selected.show_national ?? true,
+            }
+          : DEFAULT_HEADER_BLOCKS
+      }
       resolve={(token) => ctx[token]}
       footer={<EditableSignatureBlocks reps={reps} onChange={onRepsChange} />}
       toolbarExtra={

@@ -15,7 +15,7 @@ import {
 } from "@/components/document-shell/document-shell";
 import { DocxExportButton } from "@/components/editor/docx-export-button/docx-export-button";
 import { LexicalDocument } from "@/components/editor/lexical-document/lexical-document";
-import { HeaderVariant } from "@/constants/header-variant";
+import { DEFAULT_HEADER_BLOCKS } from "@/constants/header-blocks";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { ensureLexicalBody } from "@/utils/lexical-build/lexical-build";
@@ -133,11 +133,16 @@ export default async function ContractDocumentPage({
   if (body) {
     const ctx = buildContractContext(contract, quote, printCompany);
     const docTitle = snapshot?.doc_title ?? template?.doc_title ?? "HỢP ĐỒNG";
-    // Contracts default to the national header (letterhead + Quốc hiệu).
-    const headerVariant =
-      snapshot?.header_variant ??
-      template?.header_style ??
-      HeaderVariant.NATIONAL;
+    // Frozen blocks win for a signed contract; else the template's choice;
+    // else both (the compliant default).
+    const headerBlocks =
+      snapshot?.header_blocks ??
+      (template
+        ? {
+            letterhead: template.show_letterhead ?? true,
+            national: template.show_national ?? true,
+          }
+        : DEFAULT_HEADER_BLOCKS);
     const lineItems = quote
       ? { items: quote.items, vatRate: quote.vat_rate }
       : null;
@@ -152,7 +157,7 @@ export default async function ContractDocumentPage({
           <DocumentShell
             title={docTitle}
             subtitle={`Số: ${contract.code}`}
-            headerVariant={headerVariant}
+            headerBlocks={headerBlocks}
             actions={
               <DocxExportButton
                 body={body}
@@ -187,7 +192,7 @@ export default async function ContractDocumentPage({
         <DocumentShell
           title="HỢP ĐỒNG DỊCH VỤ"
           subtitle={`Số: ${contract.code}`}
-          headerVariant={snapshot?.header_variant ?? HeaderVariant.NATIONAL}
+          headerBlocks={snapshot?.header_blocks ?? DEFAULT_HEADER_BLOCKS}
         >
           {contract.signed_date && (
             <p className="text-xs leading-relaxed text-zinc-600">

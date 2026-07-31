@@ -1,7 +1,10 @@
 import { Body, Controller, Get, Module, Patch } from "@nestjs/common";
-import { IsOptional, IsString } from "class-validator";
+import { IsOptional, IsString, MaxLength } from "class-validator";
 
 import { PrismaService } from "../prisma/prisma.service";
+
+/** ~1.5 MB of base64 — generous for a letterhead mark, bounded for the row. */
+const LOGO_MAX_CHARS = 2_000_000;
 
 /**
  * Single-row company profile (id=1) — the letterhead + Bên B details printed
@@ -21,8 +24,12 @@ class UpdateCompanyProfileDto {
   @IsOptional() @IsString() bank_account?: string | null;
   @IsOptional() @IsString() bank_name?: string | null;
   @IsOptional() @IsString() bank_branch?: string | null;
-  // Lexical editorState JSON, opaque; null = built-in default header
-  @IsOptional() @IsString() header_body?: string | null;
+  // Lexical editorState JSON, opaque; null = built-in default
+  @IsOptional() @IsString() letterhead_body?: string | null;
+  @IsOptional() @IsString() national_body?: string | null;
+  // Logo as a data URL. Capped so one row cannot grow unbounded — the upload UI
+  // downscales before sending, this is the backstop.
+  @IsOptional() @IsString() @MaxLength(LOGO_MAX_CHARS) logo?: string | null;
 }
 
 @Controller("company-profile")

@@ -10,23 +10,32 @@ import {
 const center = (node: LexNode): LexNode => ({ ...node, format: "center" });
 
 /**
- * The built-in document header template: company letterhead followed by the
- * Quốc hiệu — a Vietnamese contract must carry both. Company fields are merge
- * chips, so the header follows the editable company profile; the stored
- * override lives in CompanyProfile.header_body (settings → Thông tin công ty).
+ * Default letterhead template — printed on EVERY document (báo giá, hợp đồng,
+ * quyết toán, đề nghị thanh toán…). Company details are merge chips, so the
+ * text follows the fields in settings → Thông tin công ty instead of being
+ * retyped here. Stored override: CompanyProfile.letterhead_body.
  */
-export const DEFAULT_HEADER_BODY = doc(
+export const DEFAULT_LETTERHEAD_BODY = doc(
   p({ ...mf("company.name"), format: TEXT_FORMAT.bold }),
-  p(t("Địa chỉ: "), mf("company.address")),
+  p(mf("company.tagline")),
+  p(mf("company.address")),
   p(
     t("ĐT: "),
     mf("company.phone"),
-    t(" · Email: "),
+    t(" · "),
     mf("company.email"),
-    t(" — MST: "),
+    t(" · MST: "),
     mf("company.tax_id")
-  ),
-  p(),
+  )
+);
+
+/**
+ * Default Quốc hiệu block — the statutory heading official Vietnamese
+ * paperwork carries. Printed on any document whose header blocks include it
+ * (both blocks are on by default). Stored override:
+ * CompanyProfile.national_body.
+ */
+export const DEFAULT_NATIONAL_BODY = doc(
   center(p(t("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", TEXT_FORMAT.bold))),
   center(p(t("Độc Lập – Tự Do – Hạnh Phúc", TEXT_FORMAT.bold))),
   center(p(t("———oOo———")))

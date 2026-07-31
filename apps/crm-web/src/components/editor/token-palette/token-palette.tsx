@@ -12,6 +12,10 @@ import { CONTRACT_TOKENS } from "@/utils/merge-template/merge-template";
 import { $createLineItemsNode } from "../line-items-node/line-items-node";
 import { $createMergeFieldNode } from "../merge-field-node";
 
+/** One palette entry. `label` is display-only, so a caller may relabel a token
+ * for its context (the header editor says "Tên công ty", not "Bên B: Tên"). */
+export type PaletteToken = { token: string; label: string };
+
 /**
  * Palette of merge tokens. Clicking inserts a MergeFieldNode at the caret. The
  * whitelist is CONTRACT_TOKENS, so only known tokens can ever be authored.
@@ -23,8 +27,8 @@ export function TokenPalette({
 }: {
   /** When given, a fresh chip shows the token's live value instead of its label. */
   resolve?: (token: string) => string | undefined;
-  /** Subset of CONTRACT_TOKENS to offer (e.g. only company.* in the header editor). */
-  tokens?: typeof CONTRACT_TOKENS;
+  /** Subset/relabelling of CONTRACT_TOKENS to offer. */
+  tokens?: readonly PaletteToken[];
   /** Whether the "Chèn bảng báo giá" block button is offered. */
   showLineItems?: boolean;
 }) {

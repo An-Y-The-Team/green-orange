@@ -1,22 +1,14 @@
 "use client";
 
-import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { ContentEditable } from "@lexical/react/LexicalContentEditable";
-import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { ChevronDown } from "lucide-react";
+import { ImageUp, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@yan/ui/components/button";
 
-import { EDITOR_NODES } from "@/components/editor/editor-nodes";
-import { EDITOR_THEME } from "@/components/editor/editor-theme";
-import { TokenPalette } from "@/components/editor/token-palette/token-palette";
-import { Toolbar } from "@/components/editor/toolbar/toolbar";
+import { TemplateBlock } from "@/components/editor/template-block/template-block";
+import type { PaletteToken } from "@/components/editor/token-palette/token-palette";
 import {
   type SaveResult,
   SaveStatusBadge,
@@ -26,62 +18,124 @@ import type { CompanyData, CompanyInfo } from "@/config/company";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { lexicalPlainText } from "@/utils/lexical-build/lexical-build";
 import {
-  CONTRACT_TOKENS,
   companyContext,
   resolveMergeFieldText,
   stripMergeFieldText,
 } from "@/utils/merge-template/merge-template";
 
 import { updateCompany } from "../actions/update-company";
+import { readLogoFile } from "./read-logo-file";
 
-/** The inline "type on the page" input style, sized by the caller. */
-const LINE =
-  "w-full bg-transparent outline-none placeholder:italic placeholder:text-zinc-300";
-/** Bordered input for the labelled detail rows below the letterhead. */
+/** Bordered input for the labelled data fields. */
 const FIELD =
-  "w-full rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-900 outline-none focus:border-zinc-500";
+  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
-/** Header templates may only use company fields. */
-const COMPANY_TOKENS = CONTRACT_TOKENS.filter((t) =>
-  t.token.startsWith("company.")
+/**
+ * The company fields, grouped as they are presented. Each one is a merge token
+ * the header templates above can insert, so the labels here and the chip labels
+ * in the "Chèn" menu deliberately match — an operator seeing a green chip should
+ * be able to find the field that fills it.
+ */
+const FIELD_GROUPS: {
+  heading: string;
+  fields: { key: keyof CompanyInfo; label: string; token: string }[];
+}[] = [
+  {
+    heading: "Thông tin công ty",
+    fields: [
+      { key: "name", label: "Tên công ty", token: "company.name" },
+      { key: "tagline", label: "Slogan", token: "company.tagline" },
+      { key: "address", label: "Địa chỉ", token: "company.address" },
+      { key: "tax_id", label: "Mã số thuế (MST)", token: "company.tax_id" },
+      { key: "phone", label: "Điện thoại", token: "company.phone" },
+      { key: "email", label: "Email", token: "company.email" },
+      { key: "website", label: "Website", token: "company.website" },
+    ],
+  },
+  {
+    heading: "Đại diện pháp luật",
+    fields: [
+      { key: "representative", label: "Họ tên", token: "company.rep" },
+      {
+        key: "representative_title",
+        label: "Chức vụ",
+        token: "company.rep_title",
+      },
+    ],
+  },
+  {
+    heading: "Tài khoản ngân hàng",
+    fields: [
+      {
+        key: "bank_account",
+        label: "Số tài khoản",
+        token: "company.bank_account",
+      },
+      { key: "bank_name", label: "Ngân hàng", token: "company.bank_name" },
+      {
+        key: "bank_branch",
+        label: "Chi nhánh/PGD",
+        token: "company.bank_branch",
+      },
+    ],
+  },
+];
+
+/** The "Chèn" menu, labelled for this page rather than for a contract's Bên B. */
+const HEADER_TOKENS: PaletteToken[] = FIELD_GROUPS.flatMap((g) =>
+  g.fields.map((f) => ({ token: f.token, label: f.label }))
 );
 
 /**
- * Docs-style company profile editor. Three parts, all autosaving:
- *   • the rich-text document header (letterhead + Quốc hiệu) used by contracts,
- *     edited like a contract template — chips, formatting, alignment;
- *   • the structured letterhead (quotes/settlements print this), edited inline
- *     exactly where it prints;
- *   • the Bên B details (representative, bank) merge tokens read.
- * Every field cleared falls back to the built-in default at print time.
+ * Company profile authoring. Both document header templates are rich text with
+ * merge chips (letterhead — on every document; Quốc hiệu — legal documents
+ * only), and the values they render come from the labelled fields below. The
+ * chips are visually distinct on purpose: they mark what the fields populate,
+ * so nobody retypes the company name into a template.
  */
 export function CompanyEditor({ company }: { company: CompanyData }) {
   const router = useRouter();
   const [values, setValues] = useState<CompanyInfo>(company);
+  const [logo, setLogo] = useState(company.logo);
   const { status, message, schedule, flush } = useAutosave("saved");
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  // The header template, seeded once with chip values resolved from the
-  // current profile (field edits reflect in chips on next open).
-  const [seedHeader] = useState(() =>
-    resolveMergeFieldText(company.header_body, companyContext(company))
-  );
-  const headerRef = useRef(seedHeader);
+  // Templates are seeded once with chips resolved against the current profile;
+  // refs (not state) so the debounced save always sees the latest text.
+  const [seed] = useState(() => {
+    const ctx = companyContext(company);
+    return {
+      letterhead: resolveMergeFieldText(company.letterhead_body, ctx),
+      national: resolveMergeFieldText(company.national_body, ctx),
+    };
+  });
+  const letterheadRef = useRef(seed.letterhead);
+  const nationalRef = useRef(seed.national);
+  const logoRef = useRef(company.logo);
 
   const persist = async (next: CompanyInfo): Promise<SaveResult> => {
     const payload: Record<string, string | null> = Object.fromEntries(
       Object.entries(next).map(([k, v]) => [k, v.trim() || null])
     );
-    // An emptied-out header falls back to the built-in template. Chips display
-    // live values while editing; storage keeps token labels.
-    payload.header_body =
-      lexicalPlainText(headerRef.current) === ""
+    // Emptied-out templates fall back to the built-in defaults. Chips show live
+    // values while editing; storage keeps the tokens.
+    payload.letterhead_body =
+      lexicalPlainText(letterheadRef.current) === ""
         ? null
-        : stripMergeFieldText(headerRef.current);
+        : stripMergeFieldText(letterheadRef.current);
+    payload.national_body =
+      lexicalPlainText(nationalRef.current) === ""
+        ? null
+        : stripMergeFieldText(nationalRef.current);
+    payload.logo = logoRef.current || null;
+
     const result = await updateCompany(INITIAL_ACTION_STATE, payload);
     return result.success
       ? { status: "saved" }
       : { status: "error", message: result.message ?? undefined };
   };
+
+  const save = () => schedule(() => persist(values));
 
   const onChange = (patch: Partial<CompanyInfo>) => {
     const next = { ...values, ...patch };
@@ -89,17 +143,40 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
     schedule(() => persist(next));
   };
 
-  const onHeaderChange = (json: string) => {
-    if (json === headerRef.current) return;
-    headerRef.current = json;
-    const next = values;
-    schedule(() => persist(next));
+  const onTemplateChange = (
+    ref: React.RefObject<string>,
+    json: string
+  ): void => {
+    if (json === ref.current) return;
+    ref.current = json;
+    save();
+  };
+
+  const onPickLogo = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const dataUrl = await readLogoFile(file);
+      logoRef.current = dataUrl;
+      setLogo(dataUrl);
+      save();
+    } catch (error) {
+      toast.error("Không dùng được ảnh này", {
+        description:
+          error instanceof Error ? error.message : "Vui lòng chọn ảnh khác.",
+      });
+    }
+  };
+
+  const onRemoveLogo = () => {
+    logoRef.current = "";
+    setLogo("");
+    if (fileInput.current) fileInput.current.value = "";
+    save();
   };
 
   const onDone = async () => {
     const result = await flush();
     if (result.status !== "saved") {
-      // Stay put — nothing is lost yet — but say why, or the button looks dead.
       toast.error("Chưa lưu được thông tin công ty", {
         description: result.message ?? "Vui lòng thử lại.",
       });
@@ -108,47 +185,17 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
     router.push("/settings");
   };
 
-  const field = (key: keyof CompanyInfo, className: string, label: string) => (
-    <input
-      aria-label={label}
-      className={className}
-      value={values[key]}
-      placeholder={label}
-      onChange={(e) => onChange({ [key]: e.target.value })}
-    />
-  );
-
-  const initialConfig = {
-    namespace: "company-header-editor",
-    theme: EDITOR_THEME,
-    nodes: [...EDITOR_NODES],
-    editorState: seedHeader,
-    onError(error: Error) {
-      throw error;
-    },
-  };
+  // Chips resolve against what is typed right now, so edits below show up in
+  // the templates as soon as a chip is inserted.
+  const ctx = companyContext(values);
 
   return (
-    <LexicalComposer initialConfig={initialConfig}>
-      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 rounded-md border bg-background/95 p-1.5 shadow-sm backdrop-blur">
-        <div className="flex items-center gap-0.5">
-          <Toolbar />
-        </div>
-        <span className="h-5 w-px bg-border" />
-        <details className="relative">
-          <summary className="flex cursor-pointer select-none list-none items-center gap-1 rounded-md px-2 py-1 text-xs font-medium hover:bg-accent [&::-webkit-details-marker]:hidden">
-            Chèn
-            <ChevronDown className="size-3.5" />
-          </summary>
-          <div className="absolute left-0 top-full z-30 mt-1 w-[26rem] max-w-[80vw] rounded-md border bg-popover p-1 shadow-md">
-            <TokenPalette
-              tokens={COMPANY_TOKENS}
-              showLineItems={false}
-              resolve={(token) => companyContext(values)[token]}
-            />
-          </div>
-        </details>
-        <div className="ml-auto flex items-center gap-2">
+    <>
+      <div className="sticky top-0 z-20 flex items-center justify-between gap-2 rounded-md border bg-background/95 p-1.5 shadow-sm backdrop-blur">
+        <p className="px-2 text-xs text-muted-foreground">
+          Đầu trang & thông tin in trên mọi báo giá, hợp đồng, quyết toán.
+        </p>
+        <div className="flex items-center gap-2">
           <SaveStatusBadge status={status} message={message} />
           <Button
             type="button"
@@ -161,105 +208,115 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
         </div>
       </div>
 
-      <div className="mt-4 rounded-lg bg-muted px-2 py-8 sm:px-8">
-        <div className="print-sheet mx-auto max-w-3xl bg-white p-10 text-sm text-zinc-900 shadow-sm ring-1 ring-border">
-          {/* Đầu trang hợp đồng — rich text, edited like a template. */}
-          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-            Đầu trang hợp đồng (letterhead + Quốc hiệu)
-          </p>
-          <div className="relative rounded-md border border-dashed border-zinc-300 p-3">
-            <RichTextPlugin
-              contentEditable={
-                <ContentEditable
-                  aria-label="Đầu trang tài liệu"
-                  className="min-h-[6rem] text-xs leading-relaxed text-zinc-900 outline-none"
-                />
-              }
-              placeholder={
-                <div className="pointer-events-none absolute left-3 top-3 text-xs text-zinc-400">
-                  Soạn đầu trang tài liệu…
-                </div>
-              }
-              ErrorBoundary={LexicalErrorBoundary}
-            />
+      <div className="mt-4 grid gap-6 lg:grid-cols-[1.15fr_1fr]">
+        {/* Templates — what the paper looks like. */}
+        <div className="space-y-5 rounded-lg border bg-muted/30 p-4">
+          <div className="space-y-1">
+            <h2 className="text-sm font-medium">Mẫu đầu trang</h2>
+            <p className="text-xs text-muted-foreground">
+              Các ô{" "}
+              <span className="rounded bg-emerald-100 px-1 font-medium text-emerald-800">
+                màu xanh
+              </span>{" "}
+              là trường dữ liệu — nội dung lấy từ các mục bên phải, không nhập
+              trực tiếp vào mẫu.
+            </p>
           </div>
 
-          {/* Letterhead báo giá/quyết toán — edited exactly where it prints. */}
-          <p className="mb-1 mt-8 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-            Letterhead báo giá / quyết toán
-          </p>
-          <header className="flex items-start justify-between gap-6 border-b border-zinc-300 pb-5">
-            <div className="flex flex-1 items-center gap-3">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-base font-bold text-white">
-                {values.name.trim().charAt(0) || "G"}
-              </div>
-              <div className="flex-1">
-                {field(
-                  "name",
-                  `${LINE} text-sm font-bold uppercase leading-tight`,
-                  "Tên công ty"
+          {/* Logo — not part of the rich text; it prints beside the letterhead. */}
+          <section className="space-y-1.5">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+              Logo
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-14 w-28 shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed bg-white">
+                {logo ? (
+                  /* A stored data URL; next/image cannot process one here. */
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={logo}
+                    alt="Logo công ty"
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">
+                    Chưa có logo
+                  </span>
                 )}
-                {field("tagline", `${LINE} text-xs text-zinc-600`, "Slogan")}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  className="hidden"
+                  onChange={(e) => void onPickLogo(e.target.files?.[0])}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => fileInput.current?.click()}
+                >
+                  <ImageUp className="size-4" />
+                  {logo ? "Đổi logo" : "Tải logo lên"}
+                </Button>
+                {logo && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={onRemoveLogo}
+                  >
+                    <Trash2 className="size-4" />
+                    Xoá
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="w-72 text-right text-xs leading-relaxed text-zinc-600">
-              {field("address", `${LINE} text-right`, "Địa chỉ")}
-              <div className="flex items-center justify-end gap-1">
-                <span className="shrink-0">ĐT:</span>
-                {field("phone", `${LINE} max-w-24 text-right`, "Điện thoại")}
-                <span>·</span>
-                {field("email", `${LINE} max-w-44 text-right`, "Email")}
-              </div>
-              <div className="flex items-center justify-end gap-1">
-                <span className="shrink-0">MST:</span>
-                {field("tax_id", `${LINE} max-w-28 text-right`, "Mã số thuế")}
-              </div>
-            </div>
-          </header>
+          </section>
 
-          {/* Bên B details — merge tokens + signature defaults read these. */}
-          <div className="mt-8 grid gap-8 text-xs sm:grid-cols-2">
-            <section className="space-y-2">
-              <h2 className="font-semibold uppercase">Đại diện pháp luật</h2>
-              <label className="block space-y-1">
-                <span className="text-zinc-500">Họ tên</span>
-                {field("representative", FIELD, "Họ tên đại diện")}
-              </label>
-              <label className="block space-y-1">
-                <span className="text-zinc-500">Chức vụ</span>
-                {field("representative_title", FIELD, "Chức vụ")}
-              </label>
-              <label className="block space-y-1">
-                <span className="text-zinc-500">Website</span>
-                {field("website", FIELD, "Website")}
-              </label>
+          <TemplateBlock
+            label="Letterhead — in trên MỌI tài liệu"
+            value={seed.letterhead}
+            onChange={(json) => onTemplateChange(letterheadRef, json)}
+            tokens={HEADER_TOKENS}
+            ctx={ctx}
+          />
+
+          <TemplateBlock
+            label="Quốc hiệu — chỉ in trên hợp đồng"
+            hint="Không xuất hiện trên báo giá, quyết toán hay đề nghị thanh toán."
+            value={seed.national}
+            onChange={(json) => onTemplateChange(nationalRef, json)}
+            tokens={HEADER_TOKENS}
+            ctx={ctx}
+          />
+        </div>
+
+        {/* Fields — the data those templates print. */}
+        <div className="space-y-5">
+          {FIELD_GROUPS.map((group) => (
+            <section key={group.heading} className="space-y-2.5">
+              <h2 className="text-sm font-medium">{group.heading}</h2>
+              {group.fields.map((f) => (
+                <label key={f.key} className="block space-y-1">
+                  <span className="text-xs text-muted-foreground">
+                    {f.label}
+                  </span>
+                  <input
+                    aria-label={f.label}
+                    className={FIELD}
+                    placeholder={f.label}
+                    value={values[f.key]}
+                    onChange={(e) => onChange({ [f.key]: e.target.value })}
+                  />
+                </label>
+              ))}
             </section>
-            <section className="space-y-2">
-              <h2 className="font-semibold uppercase">Tài khoản ngân hàng</h2>
-              <label className="block space-y-1">
-                <span className="text-zinc-500">Số tài khoản</span>
-                {field("bank_account", FIELD, "Số tài khoản")}
-              </label>
-              <label className="block space-y-1">
-                <span className="text-zinc-500">Ngân hàng</span>
-                {field("bank_name", FIELD, "Ngân hàng")}
-              </label>
-              <label className="block space-y-1">
-                <span className="text-zinc-500">Chi nhánh/PGD</span>
-                {field("bank_branch", FIELD, "Chi nhánh/PGD")}
-              </label>
-            </section>
-          </div>
+          ))}
         </div>
       </div>
-
-      <HistoryPlugin />
-      <OnChangePlugin
-        ignoreSelectionChange
-        onChange={(editorState) =>
-          onHeaderChange(JSON.stringify(editorState.toJSON()))
-        }
-      />
-    </LexicalComposer>
+    </>
   );
 }

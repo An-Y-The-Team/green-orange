@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-import {
-  DEFAULT_HEADER_VARIANT,
-  HeaderVariant,
-} from "@/constants/header-variant";
 import { lexicalPlainText } from "@/utils/lexical-build/lexical-build";
 
 // Mẫu hợp đồng form schema — shared by the template editor and its save action.
@@ -21,7 +17,8 @@ export const contractTemplateSchema = z.object({
       (v) => lexicalPlainText(v).length > 0,
       "Nội dung mẫu không được để trống"
     ),
-  header_style: z.nativeEnum(HeaderVariant).default(DEFAULT_HEADER_VARIANT),
+  show_letterhead: z.coerce.boolean().default(true),
+  show_national: z.coerce.boolean().default(true),
   is_active: z.coerce.boolean(),
 });
 export type ContractTemplateFormValues = z.infer<typeof contractTemplateSchema>;

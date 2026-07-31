@@ -7,7 +7,7 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
 import { loadCompany } from "@/app/(dashboard)/settings/company/queries";
-import { HeaderVariant } from "@/constants/header-variant";
+import { DEFAULT_HEADER_BLOCKS } from "@/constants/header-blocks";
 import { apiSend } from "@/utils/http/http";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
@@ -70,7 +70,12 @@ export async function signContract(
 
   const printSnapshot = serializePrintSnapshot({
     company,
-    header_variant: template?.header_style ?? HeaderVariant.NATIONAL,
+    header_blocks: template
+      ? {
+          letterhead: template.show_letterhead ?? true,
+          national: template.show_national ?? true,
+        }
+      : DEFAULT_HEADER_BLOCKS,
     doc_title: template?.doc_title ?? "HỢP ĐỒNG",
   });
 

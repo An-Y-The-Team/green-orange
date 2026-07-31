@@ -15,8 +15,6 @@ import {
   SaveStatusBadge,
   useAutosave,
 } from "@/components/editor/use-autosave";
-import { SELECT_CLASS } from "@/components/form-bits/form-bits";
-import { HeaderVariant } from "@/constants/header-variant";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import {
   previewContext,
@@ -69,8 +67,13 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
 
   const [name, setName] = useState(template?.name ?? "");
   const [docTitle, setDocTitle] = useState(template?.doc_title ?? "");
-  const [headerStyle, setHeaderStyle] = useState<HeaderVariant>(
-    template?.header_style ?? HeaderVariant.NATIONAL
+  // Both blocks on by default: official Vietnamese paperwork carries the Quốc
+  // hiệu, with the company letterhead above it.
+  const [showLetterhead, setShowLetterhead] = useState(
+    template?.show_letterhead ?? true
+  );
+  const [showNational, setShowNational] = useState(
+    template?.show_national ?? true
   );
   const [isActive, setIsActive] = useState(template?.is_active ?? true);
   const [seedBody] = useState(() =>
@@ -123,7 +126,8 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
       name,
       doc_title: docTitle,
       body,
-      header_style: headerStyle,
+      show_letterhead: showLetterhead,
+      show_national: showNational,
       is_active: isActive,
       ...patch,
     };
@@ -164,7 +168,7 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
           className="w-full bg-transparent text-center font-heading text-xl font-bold uppercase tracking-wide outline-none placeholder:text-zinc-300"
         />
       }
-      headerVariant={headerStyle}
+      headerBlocks={{ letterhead: showLetterhead, national: showNational }}
       resolve={(token) => SAMPLE_CTX[token]}
       toolbarExtra={
         <>
@@ -178,23 +182,32 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
             }}
             className="h-7 w-44 text-xs"
           />
-          <select
-            aria-label="Kiểu đầu trang"
-            className={`${SELECT_CLASS} !h-7 max-w-56 text-xs`}
-            value={headerStyle}
-            onChange={(e) => {
-              const value = e.target.value as HeaderVariant;
-              setHeaderStyle(value);
-              scheduleSave({ header_style: value });
-            }}
-          >
-            <option value={HeaderVariant.NATIONAL}>
-              Quốc hiệu (CHXHCN Việt Nam) — hợp đồng
-            </option>
-            <option value={HeaderVariant.LETTERHEAD}>
-              Letterhead công ty — báo giá/khác
-            </option>
-          </select>
+          {/* Header blocks are independent — a document may carry either or
+              both. Same mechanism for every future paperwork template. */}
+          <label className="flex items-center gap-1.5 text-xs">
+            <input
+              type="checkbox"
+              checked={showLetterhead}
+              onChange={(e) => {
+                setShowLetterhead(e.target.checked);
+                scheduleSave({ show_letterhead: e.target.checked });
+              }}
+              className="size-3.5"
+            />
+            Letterhead
+          </label>
+          <label className="flex items-center gap-1.5 text-xs">
+            <input
+              type="checkbox"
+              checked={showNational}
+              onChange={(e) => {
+                setShowNational(e.target.checked);
+                scheduleSave({ show_national: e.target.checked });
+              }}
+              className="size-3.5"
+            />
+            Quốc hiệu
+          </label>
           <label className="flex items-center gap-1.5 text-xs">
             <input
               type="checkbox"

@@ -48,7 +48,6 @@ const CONTRACT_CONTENT_FIELDS = [
   "rep_b_title",
   "print_snapshot",
 ] as const satisfies readonly (keyof UpdateContractDto)[];
-const HEADER_STYLE = ["letterhead", "national"];
 
 const PROJECT_INCLUDE = {
   project: {
@@ -213,7 +212,10 @@ class CreateTemplateDto {
   @IsString() @MinLength(3) name: string;
   @IsString() @MinLength(3) doc_title: string;
   @IsString() @MinLength(1) body: string;
-  @IsOptional() @IsIn(HEADER_STYLE) header_style?: string;
+  // Independent header blocks; both default on (official paperwork carries
+  // the Quốc hiệu with the letterhead above it).
+  @IsOptional() @IsBoolean() show_letterhead?: boolean;
+  @IsOptional() @IsBoolean() show_national?: boolean;
   @IsBoolean() is_active: boolean;
 }
 
@@ -221,7 +223,8 @@ class UpdateTemplateDto {
   @IsOptional() @IsString() name?: string;
   @IsOptional() @IsString() doc_title?: string;
   @IsOptional() @IsString() body?: string;
-  @IsOptional() @IsIn(HEADER_STYLE) header_style?: string;
+  @IsOptional() @IsBoolean() show_letterhead?: boolean;
+  @IsOptional() @IsBoolean() show_national?: boolean;
   @IsOptional() @IsBoolean() is_active?: boolean;
 }
 
@@ -251,7 +254,8 @@ class ContractTemplatesController {
         name: dto.name,
         doc_title: dto.doc_title,
         body: dto.body,
-        header_style: dto.header_style ?? "letterhead",
+        show_letterhead: dto.show_letterhead ?? true,
+        show_national: dto.show_national ?? true,
         is_active: dto.is_active,
       },
     });

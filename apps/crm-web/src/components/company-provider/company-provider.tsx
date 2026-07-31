@@ -2,7 +2,10 @@
 
 import { type ReactNode, createContext, useContext } from "react";
 
-import { DEFAULT_HEADER_BODY } from "@/components/document-shell/default-header";
+import {
+  DEFAULT_LETTERHEAD_BODY,
+  DEFAULT_NATIONAL_BODY,
+} from "@/components/document-shell/default-header";
 import { COMPANY, type CompanyData } from "@/config/company";
 
 /**
@@ -13,7 +16,9 @@ import { COMPANY, type CompanyData } from "@/config/company";
  */
 const CompanyContext = createContext<CompanyData>({
   ...COMPANY,
-  header_body: DEFAULT_HEADER_BODY,
+  letterhead_body: DEFAULT_LETTERHEAD_BODY,
+  national_body: DEFAULT_NATIONAL_BODY,
+  logo: "",
 });
 
 export function CompanyProvider({

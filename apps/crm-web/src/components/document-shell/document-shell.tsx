@@ -7,9 +7,9 @@ import { Button } from "@yan/ui/components/button";
 import { useCompany } from "@/components/company-provider/company-provider";
 import { LexicalDocument } from "@/components/editor/lexical-document/lexical-document";
 import {
-  DEFAULT_HEADER_VARIANT,
-  HeaderVariant,
-} from "@/constants/header-variant";
+  DEFAULT_HEADER_BLOCKS,
+  type HeaderBlocks,
+} from "@/constants/header-blocks";
 import { companyContext } from "@/utils/merge-template/merge-template";
 
 /**
@@ -24,7 +24,7 @@ export function DocumentShell({
   title,
   subtitle,
   actions,
-  headerVariant = DEFAULT_HEADER_VARIANT,
+  headerBlocks = DEFAULT_HEADER_BLOCKS,
   children,
 }: {
   /** Usually a string; the template editor passes an inline title input. */
@@ -32,7 +32,8 @@ export function DocumentShell({
   subtitle?: string;
   /** Optional extra controls (e.g. "Xuất .docx") shown beside the print button. */
   actions?: React.ReactNode;
-  headerVariant?: HeaderVariant;
+  /** Which header blocks to print; defaults to both. */
+  headerBlocks?: HeaderBlocks;
   children: React.ReactNode;
 }) {
   const company = useCompany();
@@ -47,38 +48,39 @@ export function DocumentShell({
       </div>
 
       <div className="print-sheet mx-auto bg-white p-10 text-sm text-zinc-900 shadow-sm ring-1 ring-border">
-        {headerVariant === HeaderVariant.NATIONAL ? (
-          // Legal documents (Hợp đồng): the editable rich-text header template
-          // (letterhead + Quốc hiệu) from settings → Thông tin công ty.
-          <header>
+        {/* Two independent blocks from settings → Thông tin công ty. Official
+            Vietnamese paperwork carries the Quốc hiệu with the letterhead above
+            it, so both print by default; a template may switch either off. */}
+        {headerBlocks.letterhead && (
+          <header className="border-b border-zinc-300 pb-5">
+            <div className="flex items-start gap-3">
+              {company.logo ? (
+                /* A stored data URL; next/image would need a loader it cannot
+                 apply here. */
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={company.logo}
+                  alt=""
+                  className="h-12 w-auto max-w-32 shrink-0 object-contain"
+                />
+              ) : null}
+              <LexicalDocument
+                body={company.letterhead_body}
+                ctx={companyContext(company)}
+                className="flex-1 space-y-0.5 text-xs leading-relaxed text-zinc-900"
+              />
+            </div>
+          </header>
+        )}
+
+        {headerBlocks.national && (
+          <div className="pt-5">
             <LexicalDocument
-              body={company.header_body}
+              body={company.national_body}
               ctx={companyContext(company)}
               className="space-y-1 text-xs leading-relaxed text-zinc-900"
             />
-          </header>
-        ) : (
-          // Company letterhead for quotes / settlements.
-          <header className="flex items-start justify-between gap-6 border-b border-zinc-300 pb-5">
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-md bg-emerald-600 text-base font-bold text-white">
-                G
-              </div>
-              <div>
-                <p className="text-sm font-bold uppercase leading-tight">
-                  {company.name}
-                </p>
-                <p className="text-xs text-zinc-600">{company.tagline}</p>
-              </div>
-            </div>
-            <div className="text-right text-xs leading-relaxed text-zinc-600">
-              <p>{company.address}</p>
-              <p>
-                ĐT: {company.phone} · {company.email}
-              </p>
-              <p>MST: {company.tax_id}</p>
-            </div>
-          </header>
+          </div>
         )}
 
         {/* Document title */}

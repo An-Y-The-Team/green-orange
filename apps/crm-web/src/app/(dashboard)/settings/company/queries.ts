@@ -1,5 +1,8 @@
-import { DEFAULT_HEADER_BODY } from "@/components/document-shell/default-header";
-import { COMPANY, type CompanyData, type CompanyInfo } from "@/config/company";
+import {
+  DEFAULT_LETTERHEAD_BODY,
+  DEFAULT_NATIONAL_BODY,
+} from "@/components/document-shell/default-header";
+import { COMPANY, type CompanyData } from "@/config/company";
 import { ApiError, apiFetch } from "@/utils/http/http";
 
 /** The Python teaching sandbox answers 501 for endpoints it hasn't built. */
@@ -50,9 +53,11 @@ export async function loadCompany(): Promise<CompanyLoad> {
 
   const company = {
     ...COMPANY,
-    header_body: DEFAULT_HEADER_BODY,
+    letterhead_body: DEFAULT_LETTERHEAD_BODY,
+    national_body: DEFAULT_NATIONAL_BODY,
+    logo: "",
   } as CompanyData;
-  for (const key of Object.keys(company) as (keyof CompanyInfo)[]) {
+  for (const key of Object.keys(company) as (keyof CompanyData)[]) {
     const value = stored[key];
     if (typeof value === "string" && value.trim() !== "") company[key] = value;
   }

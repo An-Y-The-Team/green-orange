@@ -16,7 +16,10 @@ export const updateCompanySchema = z.object({
   bank_account: field,
   bank_name: field,
   bank_branch: field,
-  // Rich-text document header (Lexical editorState JSON); null = built-in.
-  header_body: field,
+  // Rich-text header templates (Lexical editorState JSON); null = built-in.
+  letterhead_body: field,
+  national_body: field,
+  // Logo as a data URL; null clears it.
+  logo: field,
 });
 export type UpdateCompanyFormValues = z.infer<typeof updateCompanySchema>;

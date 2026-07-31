@@ -236,14 +236,16 @@ const CONTRACT_TEMPLATES: Seeded<Prisma.ContractTemplateUncheckedCreateInput>[] 
       id: 1,
       name: "Hợp đồng dịch vụ vệ sinh",
       doc_title: "HỢP ĐỒNG DỊCH VỤ VỆ SINH",
-      header_style: "national",
+      show_letterhead: true,
+      show_national: true,
       body: contractBody("Bên B cung cấp dịch vụ vệ sinh cho công trình "),
     },
     {
       id: 2,
       name: "Hợp đồng thi công",
       doc_title: "HỢP ĐỒNG THI CÔNG",
-      header_style: "national",
+      show_letterhead: true,
+      show_national: true,
       body: contractBody("Bên B thi công hạng mục thuộc công trình "),
     },
   ];
