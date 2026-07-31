@@ -46,6 +46,7 @@ const CONTRACT_CONTENT_FIELDS = [
   "rep_b_label",
   "rep_b_name",
   "rep_b_title",
+  "print_snapshot",
 ] as const satisfies readonly (keyof UpdateContractDto)[];
 const HEADER_STYLE = ["letterhead", "national"];
 
@@ -76,6 +77,8 @@ class CreateContractDto {
   @IsOptional() @IsString() rep_b_label?: string | null;
   @IsOptional() @IsString() rep_b_name?: string | null;
   @IsOptional() @IsString() rep_b_title?: string | null;
+  // Frozen print snapshot (JSON), written when the contract is signed
+  @IsOptional() @IsString() print_snapshot?: string | null;
 }
 
 class UpdateContractDto {
@@ -90,6 +93,7 @@ class UpdateContractDto {
   @IsOptional() @IsString() rep_b_label?: string | null;
   @IsOptional() @IsString() rep_b_name?: string | null;
   @IsOptional() @IsString() rep_b_title?: string | null;
+  @IsOptional() @IsString() print_snapshot?: string | null;
 }
 
 @Controller("contracts")
@@ -149,6 +153,7 @@ class ContractsController {
         rep_b_label: dto.rep_b_label ?? null,
         rep_b_name: dto.rep_b_name ?? null,
         rep_b_title: dto.rep_b_title ?? null,
+        print_snapshot: dto.print_snapshot ?? null,
       },
       include: PROJECT_INCLUDE,
     });

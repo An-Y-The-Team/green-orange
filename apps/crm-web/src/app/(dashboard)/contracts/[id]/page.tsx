@@ -5,7 +5,9 @@ import { notFound } from "next/navigation";
 import { Button } from "@yan/ui/components/button";
 
 import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
+import { parsePrintSnapshot } from "@/app/(dashboard)/contracts/print-snapshot";
 import { loadCompany } from "@/app/(dashboard)/settings/company/queries";
+import { CompanyProvider } from "@/components/company-provider/company-provider";
 import { CompanyUnavailable } from "@/components/document-shell/company-unavailable";
 import {
   DocumentShell,
@@ -67,10 +69,16 @@ export default async function ContractDocumentPage({
     </div>
   );
 
+  // A signed contract prints from its frozen snapshot, so a later profile edit
+  // (or an unreadable profile) cannot change it. Drafts render live.
+  const snapshot = parsePrintSnapshot(contract.print_snapshot);
+  const printCompany = snapshot?.company ?? company;
+
   // A contract states who Bên B legally is (name, MST, address, signatory).
   // Printing built-in defaults because the profile could not be read would put
   // the wrong party on a legal document — refuse, as with a missing quote.
-  if (degraded) {
+  // A snapshot makes the live profile irrelevant, so it is not a blocker.
+  if (degraded && !snapshot) {
     return (
       <>
         {backLink}
@@ -123,10 +131,13 @@ export default async function ContractDocumentPage({
   const body = ensureLexicalBody(contract.body ?? template?.body);
 
   if (body) {
-    const ctx = buildContractContext(contract, quote, company);
-    const docTitle = template?.doc_title ?? "HỢP ĐỒNG";
+    const ctx = buildContractContext(contract, quote, printCompany);
+    const docTitle = snapshot?.doc_title ?? template?.doc_title ?? "HỢP ĐỒNG";
     // Contracts default to the national header (letterhead + Quốc hiệu).
-    const headerVariant = template?.header_style ?? HeaderVariant.NATIONAL;
+    const headerVariant =
+      snapshot?.header_variant ??
+      template?.header_style ??
+      HeaderVariant.NATIONAL;
     const lineItems = quote
       ? { items: quote.items, vatRate: quote.vat_rate }
       : null;
@@ -134,21 +145,110 @@ export default async function ContractDocumentPage({
       <>
         {backLink}
 
-        <DocumentShell
-          title={docTitle}
-          subtitle={`Số: ${contract.code}`}
-          headerVariant={headerVariant}
-          actions={
-            <DocxExportButton
-              body={body}
-              ctx={ctx}
-              lineItems={lineItems}
-              title={docTitle}
-              fileName={`${contract.code}.docx`}
+        {/* The shell's letterhead, header template and Bên B signature
+            default all read the company from context — feed it the frozen
+            copy so a signed contract reprints as it was signed. */}
+        <CompanyProvider company={printCompany}>
+          <DocumentShell
+            title={docTitle}
+            subtitle={`Số: ${contract.code}`}
+            headerVariant={headerVariant}
+            actions={
+              <DocxExportButton
+                body={body}
+                ctx={ctx}
+                lineItems={lineItems}
+                title={docTitle}
+                fileName={`${contract.code}.docx`}
+              />
+            }
+          >
+            <LexicalDocument body={body} ctx={ctx} lineItems={lineItems} />
+            <SignatureBlocks
+              leftLabel={contract.rep_a_label ?? undefined}
+              leftName={contract.rep_a_name ?? undefined}
+              leftTitle={contract.rep_a_title ?? undefined}
+              rightLabel={contract.rep_b_label ?? undefined}
+              rightName={contract.rep_b_name ?? undefined}
+              rightTitle={contract.rep_b_title ?? undefined}
             />
-          }
+          </DocumentShell>
+        </CompanyProvider>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {backLink}
+
+      {/* Frozen company too — same reason as the rich-body branch above. */}
+      <CompanyProvider company={printCompany}>
+        <DocumentShell
+          title="HỢP ĐỒNG DỊCH VỤ"
+          subtitle={`Số: ${contract.code}`}
+          headerVariant={snapshot?.header_variant ?? HeaderVariant.NATIONAL}
         >
-          <LexicalDocument body={body} ctx={ctx} lineItems={lineItems} />
+          {contract.signed_date && (
+            <p className="text-xs leading-relaxed text-zinc-600">
+              Hôm nay, ngày {formatDate(contract.signed_date)}, hai bên gồm có:
+            </p>
+          )}
+
+          <div className="mt-3 space-y-3 text-xs">
+            <div>
+              <p className="font-semibold uppercase">Bên A (Khách hàng)</p>
+              <p>{contract.project?.client.name ?? "—"}</p>
+            </div>
+            <div>
+              <p className="font-semibold uppercase">
+                Bên B (Nhà cung cấp dịch vụ)
+              </p>
+              <p>{printCompany.name}</p>
+              <p className="text-zinc-600">
+                {printCompany.address} · MST: {printCompany.tax_id}
+              </p>
+            </div>
+          </div>
+
+          <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
+            <div>
+              <dt className="text-zinc-500">Công trình</dt>
+              <dd>
+                {contract.project
+                  ? `${contract.project.code} · ${contract.project.name}`
+                  : contract.project_id
+                    ? `#${contract.project_id}`
+                    : "Độc lập"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-zinc-500">Ngày ký</dt>
+              <dd>
+                {contract.signed_date ? formatDate(contract.signed_date) : "—"}
+              </dd>
+            </div>
+            {quote && (
+              <div>
+                <dt className="text-zinc-500">
+                  Giá trị (theo báo giá đã chốt)
+                </dt>
+                <dd className="font-semibold">
+                  {formatVND(storedTotals(quote).total)}
+                </dd>
+              </div>
+            )}
+          </dl>
+
+          {contract.note && (
+            <div className="mt-5 text-xs">
+              <p className="font-semibold uppercase">Ghi chú</p>
+              <p className="mt-1 leading-relaxed text-zinc-700">
+                {contract.note}
+              </p>
+            </div>
+          )}
+
           <SignatureBlocks
             leftLabel={contract.rep_a_label ?? undefined}
             leftName={contract.rep_a_name ?? undefined}
@@ -158,86 +258,7 @@ export default async function ContractDocumentPage({
             rightTitle={contract.rep_b_title ?? undefined}
           />
         </DocumentShell>
-      </>
-    );
-  }
-
-  return (
-    <>
-      {backLink}
-
-      <DocumentShell
-        title="HỢP ĐỒNG DỊCH VỤ"
-        subtitle={`Số: ${contract.code}`}
-        headerVariant={HeaderVariant.NATIONAL}
-      >
-        {contract.signed_date && (
-          <p className="text-xs leading-relaxed text-zinc-600">
-            Hôm nay, ngày {formatDate(contract.signed_date)}, hai bên gồm có:
-          </p>
-        )}
-
-        <div className="mt-3 space-y-3 text-xs">
-          <div>
-            <p className="font-semibold uppercase">Bên A (Khách hàng)</p>
-            <p>{contract.project?.client.name ?? "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold uppercase">
-              Bên B (Nhà cung cấp dịch vụ)
-            </p>
-            <p>{company.name}</p>
-            <p className="text-zinc-600">
-              {company.address} · MST: {company.tax_id}
-            </p>
-          </div>
-        </div>
-
-        <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
-          <div>
-            <dt className="text-zinc-500">Công trình</dt>
-            <dd>
-              {contract.project
-                ? `${contract.project.code} · ${contract.project.name}`
-                : contract.project_id
-                  ? `#${contract.project_id}`
-                  : "Độc lập"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Ngày ký</dt>
-            <dd>
-              {contract.signed_date ? formatDate(contract.signed_date) : "—"}
-            </dd>
-          </div>
-          {quote && (
-            <div>
-              <dt className="text-zinc-500">Giá trị (theo báo giá đã chốt)</dt>
-              <dd className="font-semibold">
-                {formatVND(storedTotals(quote).total)}
-              </dd>
-            </div>
-          )}
-        </dl>
-
-        {contract.note && (
-          <div className="mt-5 text-xs">
-            <p className="font-semibold uppercase">Ghi chú</p>
-            <p className="mt-1 leading-relaxed text-zinc-700">
-              {contract.note}
-            </p>
-          </div>
-        )}
-
-        <SignatureBlocks
-          leftLabel={contract.rep_a_label ?? undefined}
-          leftName={contract.rep_a_name ?? undefined}
-          leftTitle={contract.rep_a_title ?? undefined}
-          rightLabel={contract.rep_b_label ?? undefined}
-          rightName={contract.rep_b_name ?? undefined}
-          rightTitle={contract.rep_b_title ?? undefined}
-        />
-      </DocumentShell>
+      </CompanyProvider>
     </>
   );
 }

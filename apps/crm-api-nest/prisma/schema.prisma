@@ -210,6 +210,10 @@ model Contract {
   rep_b_label String?
   rep_b_name  String?
   rep_b_title String?
+  // Frozen at signing: the company details, header template, title and header
+  // style as they were on the signed paper (JSON). A later profile edit must
+  // never change what an already-signed contract reprints.
+  print_snapshot String?
 
   project  Project?          @relation(fields: [project_id], references: [id])
   template ContractTemplate? @relation(fields: [template_id], references: [id])

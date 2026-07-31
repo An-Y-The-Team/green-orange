@@ -25,6 +25,9 @@ export interface Contract {
   rep_b_label?: string | null;
   rep_b_name?: string | null;
   rep_b_title?: string | null;
+  // Frozen at signing (JSON) — see contracts/print-snapshot.ts. Absent on
+  // drafts and on contracts signed before snapshots existed.
+  print_snapshot?: string | null;
   // As included by crm-api-nest (list + detail).
   project?: {
     id: number;
