@@ -8,6 +8,7 @@ import { Card, CardContent } from "@yan/ui/components/card";
 import { Label } from "@yan/ui/components/label";
 
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
+import { ACTIONS, FIELDS } from "@/constants/labels";
 
 // The contract editor's live preview merges project + client + chốt-quote data,
 // so authoring starts from a project. This picker routes to that project's
@@ -25,7 +26,7 @@ export function ContractProjectPicker({
     <Card className="max-w-xl">
       <CardContent className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="project">Công trình</Label>
+          <Label htmlFor="project">{FIELDS.project}</Label>
           <select
             id="project"
             className={SELECT_CLASS}
@@ -47,7 +48,7 @@ export function ContractProjectPicker({
             disabled={!id}
             onClick={() => router.push(`/projects/${id}/contracts/new`)}
           >
-            Tiếp tục
+            {ACTIONS.continue}
           </Button>
         </div>
       </CardContent>

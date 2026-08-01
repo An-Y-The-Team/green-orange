@@ -23,6 +23,7 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import { BACK_TO } from "@/constants/labels";
 import { localDateOf, todayISO } from "@/utils/today-iso/today-iso";
 
 import { loadClient } from "../../clients/actions/load-client";
@@ -127,7 +128,7 @@ export default async function ProjectDetailPage({
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại danh sách
+        {BACK_TO.list}
       </Link>
 
       <WorkspaceHeader

@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { type UpdateCompanyFormValues, updateCompanySchema } from "../schema";
@@ -18,7 +23,7 @@ export async function updateCompany(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -29,7 +34,7 @@ export async function updateCompany(
     revalidatePath("/", "layout");
     return {
       success: true,
-      message: "Đã lưu thông tin công ty.",
+      message: ACTION_MESSAGES.saved(NOUNS.company),
       data: profile,
     };
   } catch (error) {
@@ -38,7 +43,7 @@ export async function updateCompany(
       message:
         error instanceof Error
           ? error.message
-          : "Không thể lưu thông tin công ty.",
+          : ACTION_MESSAGES.saveFailed(NOUNS.company),
     };
   }
 }

@@ -14,6 +14,7 @@ import {
 import { Input } from "@yan/ui/components/input";
 
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
+import { ACTIONS, FIELDS } from "@/constants/labels";
 
 import {
   createLocation,
@@ -67,7 +68,7 @@ export function LocationsSection({
         onChange={(e) => setDraft({ ...draft, name: e.target.value })}
       />
       <Input
-        placeholder="Địa chỉ"
+        placeholder={FIELDS.address}
         value={draft.address}
         onChange={(e) => setDraft({ ...draft, address: e.target.value })}
       />
@@ -94,10 +95,10 @@ export function LocationsSection({
           disabled={list.saving || !draft.name.trim() || !draft.address.trim()}
           onClick={list.save}
         >
-          Lưu
+          {ACTIONS.save}
         </Button>
         <Button size="sm" variant="ghost" onClick={list.cancel}>
-          Hủy
+          {ACTIONS.cancel}
         </Button>
       </div>
     </div>
@@ -111,7 +112,7 @@ export function LocationsSection({
           {list.mode !== ADD_MODE ? (
             <Button size="sm" variant="ghost" onClick={list.startAdd}>
               <Plus className="size-4" />
-              Thêm
+              {ACTIONS.add}
             </Button>
           ) : null}
         </div>

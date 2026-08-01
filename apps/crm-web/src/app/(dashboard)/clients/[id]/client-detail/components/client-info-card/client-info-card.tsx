@@ -20,7 +20,7 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { CLIENT_TYPES } from "@/constants/labels";
+import { ACTIONS, CLIENT_TYPES, FIELDS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -103,7 +103,7 @@ export function ClientInfoCard({
             {!editing ? (
               <Button size="sm" variant="ghost" onClick={startEdit}>
                 <Pencil className="size-4" />
-                Sửa
+                {ACTIONS.edit}
               </Button>
             ) : null}
           </div>
@@ -137,7 +137,7 @@ export function ClientInfoCard({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="note">Ghi chú</Label>
+              <Label htmlFor="note">{FIELDS.note}</Label>
               <Textarea
                 id="note"
                 rows={2}
@@ -151,26 +151,29 @@ export function ClientInfoCard({
                 disabled={pending || !draft.name.trim()}
                 onClick={() => start(() => action(draft))}
               >
-                {pending ? "Đang lưu..." : "Lưu"}
+                {pending ? ACTIONS.saving : ACTIONS.save}
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setEditing(false)}
               >
-                Hủy
+                {ACTIONS.cancel}
               </Button>
             </div>
           </div>
         ) : (
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Loại" value={CLIENT_TYPES[client.type]} />
-            <Field label="Ngày tạo" value={formatDate(client.created_at)} />
+            <Field
+              label={FIELDS.createdDate}
+              value={formatDate(client.created_at)}
+            />
             {isCompany ? (
               <Field label="Mã số thuế" value={info.tax_code || "—"} />
             ) : null}
             <Field label="Email" value={info.email || "—"} />
-            {info.note ? <Field label="Ghi chú" value={info.note} /> : null}
+            {info.note ? <Field label={FIELDS.note} value={info.note} /> : null}
           </dl>
         )}
       </CardContent>

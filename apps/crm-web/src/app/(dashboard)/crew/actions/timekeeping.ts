@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import { ACTION_MESSAGES, NOUNS } from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { TimekeepingSource } from "../enums";
@@ -49,12 +50,18 @@ export async function upsertTimekeeping(
     });
 
     revalidatePath("/crew");
-    return { success: true, message: "Đã lưu giờ công.", data: record };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.saved(NOUNS.timesheet),
+      data: record,
+    };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể lưu giờ công.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.saveFailed(NOUNS.timesheet),
     };
   }
 }
@@ -67,12 +74,14 @@ export async function deleteTimekeeping(
   try {
     await apiSend<void>(`/timekeeping/${id}`, "DELETE");
     revalidatePath("/crew");
-    return { success: true, message: "Đã xóa giờ công." };
+    return { success: true, message: ACTION_MESSAGES.deleted(NOUNS.timesheet) };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể xóa giờ công.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.deleteFailed(NOUNS.timesheet),
     };
   }
 }

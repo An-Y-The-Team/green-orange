@@ -5,6 +5,11 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { BillStatus } from "../enums";
@@ -32,7 +37,7 @@ export async function updateBill(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -43,12 +48,18 @@ export async function updateBill(
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/receivables");
 
-    return { success: true, message: "Đã cập nhật hóa đơn.", data: bill };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.updated(NOUNS.bill),
+      data: bill,
+    };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể cập nhật hóa đơn.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.updateFailed(NOUNS.bill),
     };
   }
 }

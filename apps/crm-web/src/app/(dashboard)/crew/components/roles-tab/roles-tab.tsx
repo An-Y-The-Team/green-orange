@@ -14,7 +14,11 @@ import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import { ACTIONS } from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 
 import { createRole, deleteRole, renameRole } from "../../actions/roles";
 import type { CrewRole } from "../../types";
@@ -49,8 +53,7 @@ export function RolesTab({ roles: initial }: { roles: CrewRole[] }) {
   };
 
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: handleCreated,
   });
 
@@ -101,7 +104,7 @@ export function RolesTab({ roles: initial }: { roles: CrewRole[] }) {
             onClick={add}
           >
             <Plus className="size-4" />
-            Thêm
+            {ACTIONS.add}
           </Button>
         </div>
       </CardContent>
@@ -136,8 +139,7 @@ function RoleRow({
   };
 
   useServerAction(renameState, renamePending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: handleRenamed,
   });
 
@@ -147,8 +149,7 @@ function RoleRow({
   );
   const [deletePending, startDelete] = useTransition();
   useServerAction(deleteState, deletePending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => onDeleted(role.id),
   });
 

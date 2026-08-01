@@ -7,6 +7,7 @@ import {
 } from "@/app/(dashboard)/projects/[id]/quotes/new/quote-builder-form/quote-builder-form";
 import { listProjects } from "@/app/(dashboard)/projects/queries";
 import { PageHeader } from "@/components/page-header/page-header";
+import { BACK_TO } from "@/constants/labels";
 
 // Standalone quote builder (crm-ui-redesign.md, 2026-07-24). Reuses the
 // project-scoped builder with no project; the optional picker lets the author
@@ -33,7 +34,7 @@ export default async function NewQuotePage() {
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại báo giá
+        {BACK_TO.quote}
       </Link>
 
       <PageHeader title="Lập báo giá" description="Báo giá mới" />

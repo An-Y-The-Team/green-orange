@@ -5,6 +5,11 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import {
@@ -60,7 +65,7 @@ export async function updateProject(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -75,7 +80,11 @@ export async function updateProject(
     revalidatePath(`/projects/${id}`);
     revalidatePath("/projects");
 
-    return { success: true, message: "Đã cập nhật công trình.", data };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.updated(NOUNS.project),
+      data,
+    };
   } catch (error) {
     // Live backend surfaces stage-gate / lock failures as the error message.
     return {
@@ -83,7 +92,7 @@ export async function updateProject(
       message:
         error instanceof Error
           ? error.message
-          : "Không thể cập nhật công trình.",
+          : ACTION_MESSAGES.updateFailed(NOUNS.project),
     };
   }
 }

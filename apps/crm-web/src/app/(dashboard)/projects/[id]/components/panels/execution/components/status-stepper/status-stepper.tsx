@@ -16,7 +16,7 @@ import {
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { EXECUTION_SUB_STATUSES } from "@/constants/labels";
+import { ACTIONS, EXECUTION_SUB_STATUSES } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -128,7 +128,9 @@ export function StatusStepper({ project }: { project: Project }) {
             />
           </div>
           <DialogFooter>
-            <DialogClose render={<Button variant="ghost">Đóng</Button>} />
+            <DialogClose
+              render={<Button variant="ghost">{ACTIONS.close}</Button>}
+            />
             <Button
               disabled={isPending}
               onClick={() =>
@@ -137,7 +139,7 @@ export function StatusStepper({ project }: { project: Project }) {
                 )
               }
             >
-              Tiếp tục
+              {ACTIONS.continue}
             </Button>
           </DialogFooter>
         </DialogContent>

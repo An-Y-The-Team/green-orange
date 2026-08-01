@@ -13,6 +13,7 @@ import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { Input } from "@yan/ui/components/input";
 
+import { ACTIONS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -122,7 +123,7 @@ export function TypeChips({
             disabled={isPending || !name.trim()}
             onClick={submit}
           >
-            {isPending ? "Đang lưu..." : "Lưu"}
+            {isPending ? ACTIONS.saving : ACTIONS.save}
           </Button>
           <Button
             type="button"
@@ -130,7 +131,7 @@ export function TypeChips({
             variant="ghost"
             onClick={() => setAdding(false)}
           >
-            Hủy
+            {ACTIONS.cancel}
           </Button>
         </>
       ) : (

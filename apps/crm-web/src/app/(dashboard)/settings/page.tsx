@@ -10,6 +10,7 @@ import {
 } from "@yan/ui/components/card";
 
 import { PageHeader } from "@/components/page-header/page-header";
+import { FIELDS } from "@/constants/labels";
 
 import { listProjectTypes } from "../projects/queries";
 import { ProjectTypesManager } from "./project-types-manager/project-types-manager";
@@ -27,7 +28,7 @@ export default async function SettingsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Loại công trình</CardTitle>
+            <CardTitle>{FIELDS.projectType}</CardTitle>
             <CardDescription>
               Nhãn phân loại công trình, dùng khi tiếp nhận yêu cầu.
             </CardDescription>
@@ -58,7 +59,7 @@ export default async function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Mẫu hợp đồng</CardTitle>
+            <CardTitle>{FIELDS.contractTemplate}</CardTitle>
             <CardDescription>Quản lý mẫu văn bản hợp đồng.</CardDescription>
           </CardHeader>
           <CardContent>

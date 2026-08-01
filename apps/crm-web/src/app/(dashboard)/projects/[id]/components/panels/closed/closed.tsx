@@ -21,7 +21,11 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import { ACTIONS } from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { todayISO } from "@/utils/today-iso/today-iso";
@@ -53,8 +57,7 @@ function ReopenButton({ project }: { project: Project }) {
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => setOpen(false),
   });
 
@@ -73,7 +76,9 @@ function ReopenButton({ project }: { project: Project }) {
           mở khóa để chỉnh sửa.
         </p>
         <DialogFooter>
-          <DialogClose render={<Button variant="ghost">Đóng</Button>} />
+          <DialogClose
+            render={<Button variant="ghost">{ACTIONS.close}</Button>}
+          />
           <Button
             disabled={isPending}
             onClick={() =>

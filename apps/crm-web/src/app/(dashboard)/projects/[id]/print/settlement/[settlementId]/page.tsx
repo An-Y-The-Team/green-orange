@@ -9,7 +9,12 @@ import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
-import { SETTLEMENT_STATUSES } from "@/constants/labels";
+import {
+  BACK_TO,
+  DOCUMENT_TEXT,
+  LINE_ITEM_COLUMNS,
+  SETTLEMENT_STATUSES,
+} from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
@@ -41,7 +46,7 @@ export default async function SettlementDocumentPage({
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
-          Quay lại công trình
+          {BACK_TO.project}
         </Link>
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>
@@ -73,11 +78,19 @@ export default async function SettlementDocumentPage({
           <thead>
             <tr className="border-y border-zinc-300 bg-zinc-50 text-left">
               <th className="w-8 px-2 py-2">#</th>
-              <th className="px-2 py-2">Hạng mục</th>
-              <th className="px-2 py-2 text-center">ĐVT</th>
-              <th className="px-2 py-2 text-right">Khối lượng</th>
-              <th className="px-2 py-2 text-right">Đơn giá</th>
-              <th className="px-2 py-2 text-right">Thành tiền</th>
+              <th className="px-2 py-2">{LINE_ITEM_COLUMNS.item}</th>
+              <th className="px-2 py-2 text-center">
+                {LINE_ITEM_COLUMNS.unit}
+              </th>
+              <th className="px-2 py-2 text-right">
+                {LINE_ITEM_COLUMNS.quantity}
+              </th>
+              <th className="px-2 py-2 text-right">
+                {LINE_ITEM_COLUMNS.unitPrice}
+              </th>
+              <th className="px-2 py-2 text-right">
+                {LINE_ITEM_COLUMNS.total}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -112,7 +125,7 @@ export default async function SettlementDocumentPage({
           </p>
         ) : null}
 
-        <SignatureBlocks leftLabel="ĐẠI DIỆN KHÁCH HÀNG" />
+        <SignatureBlocks leftLabel={DOCUMENT_TEXT.clientSignatory} />
       </DocumentShell>
     </>
   );

@@ -27,7 +27,12 @@ import { Input } from "@yan/ui/components/input";
 import { Separator } from "@yan/ui/components/separator";
 
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
-import { PROJECT_STAGES, PROJECT_STAGE_ORDER } from "@/constants/labels";
+import {
+  ACTIONS,
+  FIELDS,
+  PROJECT_STAGES,
+  PROJECT_STAGE_ORDER,
+} from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -230,7 +235,7 @@ export function IntakeForm({
               name="stage"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Giai đoạn</FormLabel>
+                  <FormLabel>{FIELDS.stage}</FormLabel>
                   <FormControl>
                     <select
                       className={SELECT_CLASS}
@@ -254,7 +259,7 @@ export function IntakeForm({
               name="client_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Khách hàng</FormLabel>
+                  <FormLabel>{FIELDS.client}</FormLabel>
                   <FormControl>
                     <select
                       className={SELECT_CLASS}
@@ -322,7 +327,7 @@ export function IntakeForm({
 
                 return (
                   <FormItem>
-                    <FormLabel>Loại công trình</FormLabel>
+                    <FormLabel>{FIELDS.projectType}</FormLabel>
                     <TypeChips
                       types={projectTypes}
                       selected={field.value}
@@ -346,7 +351,7 @@ export function IntakeForm({
 
                 return (
                   <FormItem>
-                    <FormLabel>Tên công trình</FormLabel>
+                    <FormLabel>{FIELDS.projectName}</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Vệ sinh Toà nhà A"
@@ -378,10 +383,10 @@ export function IntakeForm({
             variant="outline"
             onClick={() => router.push("/projects")}
           >
-            Hủy
+            {ACTIONS.cancel}
           </Button>
           <Button type="submit" disabled={isBusy}>
-            {isBusy ? "Đang tạo..." : "Tạo công trình"}
+            {isBusy ? ACTIONS.creating : "Tạo công trình"}
           </Button>
         </div>
       </form>

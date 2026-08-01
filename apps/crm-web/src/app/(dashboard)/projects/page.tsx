@@ -14,7 +14,7 @@ import {
 
 import { PageHeader } from "@/components/page-header/page-header";
 import { TablePager } from "@/components/table-pager/table-pager";
-import { PROJECT_STAGES, PROJECT_STATUSES } from "@/constants/labels";
+import { FIELDS, PROJECT_STAGES, PROJECT_STATUSES } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 import { pageFromParam } from "@/utils/page-param/page-param";
@@ -49,7 +49,7 @@ export default async function ProjectsPage({
   return (
     <>
       <PageHeader
-        title="Công trình"
+        title={FIELDS.project}
         description={`${total - cancelled} công trình`}
         action={
           <Button render={<Link href="/projects/new" />}>
@@ -62,12 +62,12 @@ export default async function ProjectsPage({
           <TableHeader>
             <TableRow>
               <TableHead>Mã</TableHead>
-              <TableHead>Tên công trình</TableHead>
-              <TableHead>Khách hàng</TableHead>
-              <TableHead>Địa điểm</TableHead>
+              <TableHead>{FIELDS.projectName}</TableHead>
+              <TableHead>{FIELDS.client}</TableHead>
+              <TableHead>{FIELDS.location}</TableHead>
               <TableHead>Loại</TableHead>
-              <TableHead>Giai đoạn</TableHead>
-              <TableHead>Trạng thái</TableHead>
+              <TableHead>{FIELDS.stage}</TableHead>
+              <TableHead>{FIELDS.status}</TableHead>
               <TableHead>Hẹn khảo sát</TableHead>
             </TableRow>
           </TableHeader>

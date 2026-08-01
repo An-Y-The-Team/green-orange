@@ -15,6 +15,7 @@ import {
   useAutosave,
 } from "@/components/editor/use-autosave";
 import type { CompanyData, CompanyInfo } from "@/config/company";
+import { ACTIONS, FIELDS } from "@/constants/labels";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import { lexicalPlainText } from "@/utils/lexical-build/lexical-build";
 import {
@@ -45,7 +46,7 @@ const FIELD_GROUPS: {
     fields: [
       { key: "name", label: "Tên công ty", token: "company.name" },
       { key: "tagline", label: "Slogan", token: "company.tagline" },
-      { key: "address", label: "Địa chỉ", token: "company.address" },
+      { key: "address", label: FIELDS.address, token: "company.address" },
       { key: "tax_id", label: "Mã số thuế (MST)", token: "company.tax_id" },
       { key: "phone", label: "Điện thoại", token: "company.phone" },
       { key: "email", label: "Email", token: "company.email" },
@@ -58,7 +59,7 @@ const FIELD_GROUPS: {
       { key: "representative", label: "Họ tên", token: "company.rep" },
       {
         key: "representative_title",
-        label: "Chức vụ",
+        label: FIELDS.jobTitle,
         token: "company.rep_title",
       },
     ],
@@ -88,8 +89,9 @@ const HEADER_TOKENS: PaletteToken[] = FIELD_GROUPS.flatMap((g) =>
 
 /**
  * Company profile authoring. Both document header templates are rich text with
- * merge chips (letterhead — on every document; Quốc hiệu — legal documents
- * only), and the values they render come from the labelled fields below. The
+ * merge chips, and the values they render come from the labelled fields below.
+ * Each template a document uses decides which blocks it prints (both by
+ * default — official Vietnamese paperwork carries the Quốc hiệu). The
  * chips are visually distinct on purpose: they mark what the fields populate,
  * so nobody retypes the company name into a template.
  */
@@ -269,7 +271,7 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
                     onClick={onRemoveLogo}
                   >
                     <Trash2 className="size-4" />
-                    Xoá
+                    {ACTIONS.delete}
                   </Button>
                 )}
               </div>
@@ -277,7 +279,8 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
           </section>
 
           <TemplateBlock
-            label="Letterhead — in trên MỌI tài liệu"
+            label="Letterhead"
+            hint="In trên mọi tài liệu, phía trên Quốc hiệu."
             value={seed.letterhead}
             onChange={(json) => onTemplateChange(letterheadRef, json)}
             tokens={HEADER_TOKENS}
@@ -285,8 +288,8 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
           />
 
           <TemplateBlock
-            label="Quốc hiệu — chỉ in trên hợp đồng"
-            hint="Không xuất hiện trên báo giá, quyết toán hay đề nghị thanh toán."
+            label="Quốc hiệu"
+            hint="In kèm letterhead trên mọi tài liệu. Từng mẫu có thể tắt riêng khối này."
             value={seed.national}
             onChange={(json) => onTemplateChange(nationalRef, json)}
             tokens={HEADER_TOKENS}

@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { type LocationFormValues, locationSchema } from "../schema";
@@ -13,7 +18,7 @@ const invalid = (e: {
   flatten: () => { fieldErrors: Record<string, string[]> };
 }): ServerActionState => ({
   success: false,
-  message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+  message: INVALID_INPUT_MESSAGE,
   errors: e.flatten().fieldErrors,
 });
 
@@ -35,9 +40,13 @@ export async function createLocation(
       ...parsed.data,
     });
     revalidatePath(`/clients/${clientId}`);
-    return { success: true, message: "Đã thêm địa điểm.", data: location };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.added(NOUNS.location),
+      data: location,
+    };
   } catch (error) {
-    return errorState(error, "Không thể thêm địa điểm.");
+    return errorState(error, ACTION_MESSAGES.addFailed(NOUNS.location));
   }
 }
 
@@ -56,9 +65,13 @@ export async function updateLocation(
       parsed.data
     );
     revalidatePath(`/clients/${clientId}`);
-    return { success: true, message: "Đã cập nhật địa điểm.", data: location };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.updated(NOUNS.location),
+      data: location,
+    };
   } catch (error) {
-    return errorState(error, "Không thể cập nhật địa điểm.");
+    return errorState(error, ACTION_MESSAGES.updateFailed(NOUNS.location));
   }
 }
 
@@ -70,8 +83,12 @@ export async function deleteLocation(
   try {
     await apiSend(`/locations/${id}`, "DELETE");
     revalidatePath(`/clients/${clientId}`);
-    return { success: true, message: "Đã xóa địa điểm.", data: { id } };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.deleted(NOUNS.location),
+      data: { id },
+    };
   } catch (error) {
-    return errorState(error, "Không thể xóa địa điểm.");
+    return errorState(error, ACTION_MESSAGES.deleteFailed(NOUNS.location));
   }
 }

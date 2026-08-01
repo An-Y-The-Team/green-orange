@@ -15,6 +15,7 @@ import { Label } from "@yan/ui/components/label";
 
 import { createMilestone } from "@/app/(dashboard)/receivables/actions/milestones";
 import { MoneyInput } from "@/components/money-input/money-input";
+import { ACTIONS, FIELDS } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
@@ -55,7 +56,7 @@ export function AddMilestone({
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label htmlFor="dot-amount">Số tiền</Label>
+              <Label htmlFor="dot-amount">{FIELDS.amount}</Label>
               <MoneyInput id="dot-amount" value={amount} onChange={setAmount} />
               {amount ? (
                 <p className="text-xs text-muted-foreground">
@@ -70,10 +71,10 @@ export function AddMilestone({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
-              Đóng
+              {ACTIONS.close}
             </Button>
             <Button disabled={pending || !amount} onClick={submit}>
-              Thêm
+              {ACTIONS.add}
             </Button>
           </DialogFooter>
         </DialogContent>

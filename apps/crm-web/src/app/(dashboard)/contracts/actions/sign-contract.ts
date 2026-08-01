@@ -8,6 +8,11 @@ import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
 import { loadCompany } from "@/app/(dashboard)/settings/company/queries";
 import { DEFAULT_HEADER_BLOCKS } from "@/constants/header-blocks";
+import { DOCUMENT_TEXT } from "@/constants/labels";
+import {
+  INVALID_INPUT_MESSAGE,
+  UNKNOWN_ERROR_MESSAGE,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
@@ -39,7 +44,7 @@ export async function signContract(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -76,7 +81,7 @@ export async function signContract(
           national: template.show_national ?? true,
         }
       : DEFAULT_HEADER_BLOCKS,
-    doc_title: template?.doc_title ?? "HỢP ĐỒNG",
+    doc_title: template?.doc_title ?? DOCUMENT_TEXT.contractHeading,
   });
 
   try {
@@ -101,7 +106,7 @@ export async function signContract(
       if (!chained.success) {
         return {
           success: false,
-          message: `Đã ký hợp đồng nhưng chưa ghi được ngày khách ký lên công trình: ${chained.message ?? "Lỗi không xác định."} Vui lòng cập nhật ngày khách ký thủ công — không cần ký lại hợp đồng.`,
+          message: `Đã ký hợp đồng nhưng chưa ghi được ngày khách ký lên công trình: ${chained.message ?? UNKNOWN_ERROR_MESSAGE} Vui lòng cập nhật ngày khách ký thủ công — không cần ký lại hợp đồng.`,
           data: contract,
         };
       }

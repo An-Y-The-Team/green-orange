@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header/page-header";
+import { BACK_TO } from "@/constants/labels";
 
 import { getContractTemplate } from "../../../queries";
 import { TemplateEditor } from "../../template-editor/template-editor";
@@ -26,7 +27,7 @@ export default async function EditContractTemplatePage({
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại danh sách mẫu
+        {BACK_TO.templates}
       </Link>
       <PageHeader title="Chỉnh sửa mẫu hợp đồng" description={template.name} />
       <TemplateEditor template={template} />

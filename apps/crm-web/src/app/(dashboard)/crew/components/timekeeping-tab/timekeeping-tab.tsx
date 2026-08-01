@@ -24,7 +24,7 @@ import {
 
 import type { Project } from "@/app/(dashboard)/projects/types";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
-import { TIMEKEEPING_SOURCES } from "@/constants/labels";
+import { FIELDS, TIMEKEEPING_SOURCES } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -184,7 +184,7 @@ export function TimekeepingTab({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-40">Nhân sự</TableHead>
+                  <TableHead className="min-w-40">{FIELDS.crew}</TableHead>
                   {days.map((d, i) => (
                     <TableHead key={d} className="text-center">
                       {WEEKDAYS[i]}

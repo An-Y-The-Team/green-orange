@@ -2,6 +2,7 @@ import { Skeleton } from "@yan/ui/components/skeleton";
 
 import { PageHeader } from "@/components/page-header/page-header";
 import { TableSkeleton } from "@/components/table-skeleton/table-skeleton";
+import { FIELDS } from "@/constants/labels";
 
 const TAB_COUNT = 3;
 
@@ -10,7 +11,7 @@ const TAB_COUNT = 3;
 export default function CrewLoading() {
   return (
     <>
-      <PageHeader title="Nhân sự" />
+      <PageHeader title={FIELDS.crew} />
       <div className="mb-4 flex gap-1 border-b pb-2">
         {Array.from({ length: TAB_COUNT }, (_, i) => (
           <Skeleton key={i} className="h-5 w-20" />

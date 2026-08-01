@@ -13,7 +13,11 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { CREW_MEMBER_STATUSES, EMPLOYMENT_TYPES } from "@/constants/labels";
+import {
+  CREW_MEMBER_STATUSES,
+  EMPLOYMENT_TYPES,
+  FIELDS,
+} from "@/constants/labels";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { EmploymentType } from "../../enums";
@@ -32,11 +36,11 @@ export function RosterTab({ members }: { members: CrewMember[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Họ và tên</TableHead>
-              <TableHead>Số điện thoại / Zalo</TableHead>
-              <TableHead>Vị trí mặc định</TableHead>
-              <TableHead>Hình thức</TableHead>
-              <TableHead>Trạng thái</TableHead>
+              <TableHead>{FIELDS.fullName}</TableHead>
+              <TableHead>{FIELDS.phone}</TableHead>
+              <TableHead>{FIELDS.defaultRole}</TableHead>
+              <TableHead>{FIELDS.employmentType}</TableHead>
+              <TableHead>{FIELDS.status}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

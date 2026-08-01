@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { type ContactFormValues, contactSchema } from "../schema";
@@ -11,7 +16,7 @@ import type { Contact } from "../types";
 
 const invalid = (e: unknown): ServerActionState => ({
   success: false,
-  message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+  message: INVALID_INPUT_MESSAGE,
   errors: (
     e as { flatten: () => { fieldErrors: Record<string, string[]> } }
   ).flatten().fieldErrors,
@@ -30,9 +35,13 @@ export async function createContact(
       ...toBody(parsed.data),
     });
     revalidatePath(`/clients/${clientId}`);
-    return { success: true, message: "Đã thêm liên hệ.", data: contact };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.added(NOUNS.contact),
+      data: contact,
+    };
   } catch (error) {
-    return errorState(error, "Không thể thêm liên hệ.");
+    return errorState(error, ACTION_MESSAGES.addFailed(NOUNS.contact));
   }
 }
 
@@ -51,9 +60,13 @@ export async function updateContact(
       toBody(parsed.data)
     );
     revalidatePath(`/clients/${clientId}`);
-    return { success: true, message: "Đã cập nhật liên hệ.", data: contact };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.updated(NOUNS.contact),
+      data: contact,
+    };
   } catch (error) {
-    return errorState(error, "Không thể cập nhật liên hệ.");
+    return errorState(error, ACTION_MESSAGES.updateFailed(NOUNS.contact));
   }
 }
 
@@ -65,9 +78,13 @@ export async function deleteContact(
   try {
     await apiSend(`/contacts/${id}`, "DELETE");
     revalidatePath(`/clients/${clientId}`);
-    return { success: true, message: "Đã xóa liên hệ.", data: { id } };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.deleted(NOUNS.contact),
+      data: { id },
+    };
   } catch (error) {
-    return errorState(error, "Không thể xóa liên hệ.");
+    return errorState(error, ACTION_MESSAGES.deleteFailed(NOUNS.contact));
   }
 }
 

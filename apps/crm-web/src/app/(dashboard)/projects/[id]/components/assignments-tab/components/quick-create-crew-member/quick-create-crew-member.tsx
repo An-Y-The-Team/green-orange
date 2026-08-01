@@ -14,7 +14,11 @@ import { Input } from "@yan/ui/components/input";
 import { createCrewMember } from "@/app/(dashboard)/crew/actions/members";
 import { CrewMemberStatus, EmploymentType } from "@/app/(dashboard)/crew/enums";
 import type { CrewMember } from "@/app/(dashboard)/crew/types";
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import { ACTIONS, FIELDS, PLACEHOLDERS } from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 
 import { toCrewMember } from "../../utils/to-crew-member/to-crew-member";
 
@@ -48,8 +52,7 @@ export function QuickCreateCrewMember({
   };
 
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: handleCreated,
   });
 
@@ -79,17 +82,17 @@ export function QuickCreateCrewMember({
   return (
     <div className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-background p-2">
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        Họ và tên
+        {FIELDS.fullName}
         <Input
           className="h-8 w-48"
-          placeholder="Nguyễn Văn A"
+          placeholder={PLACEHOLDERS.personName}
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={handleKeyDown}
         />
       </label>
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        Số điện thoại / Zalo
+        {FIELDS.phone}
         <Input
           className="h-8 w-40"
           placeholder="0901 234 567"
@@ -99,7 +102,7 @@ export function QuickCreateCrewMember({
         />
       </label>
       <Button size="sm" disabled={isPending || !trimmedName} onClick={submit}>
-        {isPending ? "Đang lưu…" : "Tạo nhân sự"}
+        {isPending ? ACTIONS.saving : "Tạo nhân sự"}
       </Button>
     </div>
   );

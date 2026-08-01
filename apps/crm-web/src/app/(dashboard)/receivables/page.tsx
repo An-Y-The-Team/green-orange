@@ -8,6 +8,7 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header/page-header";
+import { FIELDS } from "@/constants/labels";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 
 import { MilestoneStatus } from "./enums";
@@ -63,17 +64,19 @@ export default async function ReceivablesPage() {
       <div className="grid gap-6">
         <Card className="gap-3 py-4">
           <CardHeader>
-            <CardTitle className="text-base">Đợt thanh toán</CardTitle>
+            <CardTitle className="text-base">
+              {FIELDS.paymentMilestone}
+            </CardTitle>
           </CardHeader>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Công trình</TableHead>
+                <TableHead>{FIELDS.project}</TableHead>
                 <TableHead>Đợt</TableHead>
-                <TableHead className="text-right">Số tiền</TableHead>
-                <TableHead>Hạn thu</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Ngày thu</TableHead>
+                <TableHead className="text-right">{FIELDS.amount}</TableHead>
+                <TableHead>{FIELDS.dueDate}</TableHead>
+                <TableHead>{FIELDS.status}</TableHead>
+                <TableHead>{FIELDS.collectDate}</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
@@ -97,9 +100,9 @@ export default async function ReceivablesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Công trình</TableHead>
+                <TableHead>{FIELDS.project}</TableHead>
                 <TableHead className="text-right">Tổng tiền</TableHead>
-                <TableHead>Trạng thái</TableHead>
+                <TableHead>{FIELDS.status}</TableHead>
                 <TableHead>Ngày gửi</TableHead>
                 <TableHead>Ngày thanh toán</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import { ACTION_MESSAGES, NOUNS } from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import type { ProjectType } from "../types";
@@ -39,14 +40,18 @@ export async function createProjectType(
       parsed.data
     );
     revalidate();
-    return { success: true, message: `Đã thêm "${data.name}".`, data };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.added(`"${data.name}"`),
+      data,
+    };
   } catch (error) {
     return {
       success: false,
       message:
         error instanceof Error
           ? error.message
-          : "Không thể thêm loại công trình.",
+          : ACTION_MESSAGES.addFailed(NOUNS.projectType),
     };
   }
 }
@@ -88,7 +93,11 @@ export async function deleteProjectType(
   try {
     await apiSend(`/project-types/${id}`, "DELETE");
     revalidate();
-    return { success: true, message: "Đã xóa loại công trình.", data: { id } };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.deleted(NOUNS.projectType),
+      data: { id },
+    };
   } catch (error) {
     // 409 when still referenced. apiSend surfaces only the status line, not the
     // JSON body, so the referencing count (N) isn't available here.
@@ -97,7 +106,7 @@ export async function deleteProjectType(
       success: false,
       message: msg.includes("409")
         ? "Loại công trình đang được sử dụng bởi công trình khác, không thể xóa."
-        : msg || "Không thể xóa loại công trình.",
+        : msg || ACTION_MESSAGES.deleteFailed(NOUNS.projectType),
     };
   }
 }

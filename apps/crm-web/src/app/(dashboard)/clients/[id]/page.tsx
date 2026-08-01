@@ -2,6 +2,8 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BACK_TO } from "@/constants/labels";
+
 import { getClient } from "../queries";
 import { ClientDetailView } from "./client-detail/client-detail";
 
@@ -25,7 +27,7 @@ export default async function ClientDetailPage({
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại danh sách
+        {BACK_TO.list}
       </Link>
 
       <ClientDetailView client={client} />

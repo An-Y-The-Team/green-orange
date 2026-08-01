@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { type CreateQuoteInput, createQuoteSchema } from "../schema";
@@ -22,7 +27,7 @@ export async function createQuote(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -33,12 +38,18 @@ export async function createQuote(
     if (quote.project_id) revalidatePath(`/projects/${quote.project_id}`);
     revalidatePath("/quotes");
 
-    return { success: true, message: "Đã lưu báo giá nháp.", data: quote };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.saved(`${NOUNS.quote} nháp`),
+      data: quote,
+    };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể lưu báo giá.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.saveFailed(NOUNS.quote),
     };
   }
 }

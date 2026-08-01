@@ -23,7 +23,13 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { PROJECT_STAGES, PROJECT_STATUSES } from "@/constants/labels";
+import {
+  ACTIONS,
+  FIELDS,
+  PROJECT_STAGES,
+  PROJECT_STATUSES,
+} from "@/constants/labels";
+import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
@@ -51,8 +57,7 @@ export function WorkspaceHeader({
   const [isPending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => setEditing(false),
   });
 
@@ -133,7 +138,7 @@ export function WorkspaceHeader({
   const editForm = (
     <div className="space-y-3 rounded-lg border p-4">
       <div className="space-y-1.5">
-        <Label htmlFor="project-name">Tên công trình</Label>
+        <Label htmlFor="project-name">{FIELDS.projectName}</Label>
         <Input
           id="project-name"
           value={draft.name}
@@ -141,7 +146,7 @@ export function WorkspaceHeader({
         />
       </div>
       <div className="space-y-1.5">
-        <Label>Loại công trình</Label>
+        <Label>{FIELDS.projectType}</Label>
         <TypeChips
           types={projectTypes}
           selected={draft.type_ids}
@@ -150,7 +155,7 @@ export function WorkspaceHeader({
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="working-contact">Người liên hệ</Label>
+          <Label htmlFor="working-contact">{FIELDS.contactPerson}</Label>
           <select
             id="working-contact"
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
@@ -197,7 +202,7 @@ export function WorkspaceHeader({
         />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="referral-source">Nguồn</Label>
+        <Label htmlFor="referral-source">{FIELDS.source}</Label>
         <Input
           id="referral-source"
           value={draft.referral_source}
@@ -212,10 +217,10 @@ export function WorkspaceHeader({
           disabled={isPending || !draft.name.trim()}
           onClick={saveEdit}
         >
-          {isPending ? "Đang lưu..." : "Lưu"}
+          {isPending ? ACTIONS.saving : ACTIONS.save}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-          Hủy
+          {ACTIONS.cancel}
         </Button>
       </div>
     </div>
@@ -292,7 +297,9 @@ export function WorkspaceHeader({
                     </div>
                     <DialogFooter>
                       <DialogClose
-                        render={<Button variant="ghost">Đóng</Button>}
+                        render={
+                          <Button variant="ghost">{ACTIONS.close}</Button>
+                        }
                       />
                       <Button
                         disabled={isPending || !followUp}
@@ -310,7 +317,7 @@ export function WorkspaceHeader({
                     variant="destructive"
                     onClick={() => setCancelOpen(true)}
                   >
-                    Hủy
+                    {ACTIONS.cancel}
                   </Button>
                   <DialogContent>
                     <DialogHeader>
@@ -330,7 +337,9 @@ export function WorkspaceHeader({
                     </div>
                     <DialogFooter>
                       <DialogClose
-                        render={<Button variant="ghost">Đóng</Button>}
+                        render={
+                          <Button variant="ghost">{ACTIONS.close}</Button>
+                        }
                       />
                       <Button
                         variant="destructive"
@@ -346,7 +355,7 @@ export function WorkspaceHeader({
             )}
             <Button variant="ghost" onClick={openEdit}>
               <Pencil className="size-4" />
-              Sửa
+              {ACTIONS.edit}
             </Button>
           </div>
         </div>

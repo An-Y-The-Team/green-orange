@@ -13,6 +13,7 @@
  */
 import { Fragment, type ReactNode } from "react";
 
+import { LINE_ITEM_COLUMNS } from "@/constants/labels";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import {
   type LexNode,
@@ -135,12 +136,20 @@ function LineItemsTable({ data }: { data: LineItemsData | null | undefined }) {
       <table className="w-full border-collapse text-xs">
         <thead>
           <tr className="border-y border-zinc-300 bg-zinc-50 text-left">
-            <th className="w-8 px-2 py-1.5">STT</th>
-            <th className="px-2 py-1.5">Nội dung công việc</th>
-            <th className="px-2 py-1.5 text-center">ĐVT</th>
-            <th className="px-2 py-1.5 text-right">Khối lượng</th>
-            <th className="px-2 py-1.5 text-right">Đơn giá</th>
-            <th className="px-2 py-1.5 text-right">Thành tiền</th>
+            <th className="w-8 px-2 py-1.5">{LINE_ITEM_COLUMNS.index}</th>
+            <th className="px-2 py-1.5">{LINE_ITEM_COLUMNS.descriptionLong}</th>
+            <th className="px-2 py-1.5 text-center">
+              {LINE_ITEM_COLUMNS.unit}
+            </th>
+            <th className="px-2 py-1.5 text-right">
+              {LINE_ITEM_COLUMNS.quantity}
+            </th>
+            <th className="px-2 py-1.5 text-right">
+              {LINE_ITEM_COLUMNS.unitPrice}
+            </th>
+            <th className="px-2 py-1.5 text-right">
+              {LINE_ITEM_COLUMNS.total}
+            </th>
           </tr>
         </thead>
         <tbody>

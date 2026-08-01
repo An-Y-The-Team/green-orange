@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import { ACTION_MESSAGES, NOUNS } from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { SettlementStatus } from "../enums";
@@ -48,7 +49,7 @@ export async function sendSettlement(
     id,
     { status: SettlementStatus.SENT },
     "Đã đánh dấu đã gửi.",
-    "Không thể gửi quyết toán."
+    ACTION_MESSAGES.sendFailed(NOUNS.settlement)
   );
 }
 

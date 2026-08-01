@@ -17,7 +17,8 @@ import {
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
-import { QUOTE_CHANNELS } from "@/constants/labels";
+import { ACTIONS, QUOTE_CHANNELS } from "@/constants/labels";
+import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 
 import { sendQuote } from "../../actions/send-quote";
 import { QuoteChannel } from "../../enums";
@@ -50,8 +51,7 @@ export function SendQuoteDialog({
   const [isPending, startTransition] = useTransition();
 
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => {
       onOpenChange(false);
       onSent?.();
@@ -121,13 +121,13 @@ export function SendQuoteDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Hủy
+            {ACTIONS.cancel}
           </Button>
           <Button
             onClick={submit}
             disabled={isPending || channels.length === 0 || !sentBy.trim()}
           >
-            {isPending ? "Đang gửi…" : "Gửi"}
+            {isPending ? "Đang gửi…" : ACTIONS.send}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -19,10 +19,14 @@ import {
 import { Textarea } from "@yan/ui/components/textarea";
 
 import {
+  ACTIONS,
+  FIELDS,
+  LINE_ITEM_COLUMNS,
   OVERDUE_LABEL,
   PAPERWORK_STATUSES,
   QUOTE_STATUSES,
 } from "@/constants/labels";
+import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
@@ -40,7 +44,7 @@ type Tab = (typeof TABS)[number];
 const TAB_LABELS: Record<Tab, string> = {
   quotes: "Báo giá",
   paperwork: "Hồ sơ",
-  crew: "Nhân sự",
+  crew: FIELDS.crew,
   payment: "Thanh toán",
   notes: "Ghi chú & tệp",
 };
@@ -130,10 +134,10 @@ function PaperworkTab({ items }: { items: PaperworkItem[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Hạng mục</TableHead>
-          <TableHead>Trạng thái</TableHead>
+          <TableHead>{LINE_ITEM_COLUMNS.item}</TableHead>
+          <TableHead>{FIELDS.status}</TableHead>
           <TableHead>Hạn</TableHead>
-          <TableHead>Ghi chú</TableHead>
+          <TableHead>{FIELDS.note}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -177,8 +181,7 @@ function NotesTab({ project }: { project: Project }) {
   } as ServerActionState);
   const [isPending, startTransition] = useTransition();
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => setBody(""),
   });
 
@@ -199,7 +202,7 @@ function NotesTab({ project }: { project: Project }) {
               startTransition(() => formAction({ body: body.trim() }))
             }
           >
-            {isPending ? "Đang lưu…" : "Thêm ghi chú"}
+            {isPending ? ACTIONS.saving : "Thêm ghi chú"}
           </Button>
         </div>
       </div>

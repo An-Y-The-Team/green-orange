@@ -5,6 +5,11 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { MilestoneStatus, MilestoneType } from "../enums";
@@ -36,7 +41,7 @@ export async function createMilestone(
   input: CreateMilestoneInput
 ): Promise<ServerActionState> {
   const parsed = createSchema.safeParse(input);
-  if (!parsed.success) return fail("Vui lòng kiểm tra lại thông tin.");
+  if (!parsed.success) return fail(INVALID_INPUT_MESSAGE);
 
   try {
     const milestone = await apiSend<PaymentMilestone>(
@@ -48,12 +53,14 @@ export async function createMilestone(
     revalidate(projectId);
     return {
       success: true,
-      message: "Đã thêm đợt thanh toán.",
+      message: ACTION_MESSAGES.added(NOUNS.milestone),
       data: milestone,
     };
   } catch (error) {
     return fail(
-      error instanceof Error ? error.message : "Không thể thêm đợt thanh toán."
+      error instanceof Error
+        ? error.message
+        : ACTION_MESSAGES.addFailed(NOUNS.milestone)
     );
   }
 }
@@ -76,7 +83,7 @@ export async function updateMilestone(
   input: UpdateMilestoneInput
 ): Promise<ServerActionState> {
   const parsed = updateSchema.safeParse(input);
-  if (!parsed.success) return fail("Vui lòng kiểm tra lại thông tin.");
+  if (!parsed.success) return fail(INVALID_INPUT_MESSAGE);
 
   try {
     const milestone = await apiSend<PaymentMilestone>(
@@ -88,14 +95,14 @@ export async function updateMilestone(
     revalidate(projectId);
     return {
       success: true,
-      message: "Đã cập nhật đợt thanh toán.",
+      message: ACTION_MESSAGES.updated(NOUNS.milestone),
       data: milestone,
     };
   } catch (error) {
     return fail(
       error instanceof Error
         ? error.message
-        : "Không thể cập nhật đợt thanh toán."
+        : ACTION_MESSAGES.updateFailed(NOUNS.milestone)
     );
   }
 }
@@ -123,7 +130,7 @@ export async function markMilestonePaid(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -161,10 +168,16 @@ export async function deleteMilestone(
     await apiSend<unknown>(`/payment-milestones/${id}`, "DELETE");
 
     revalidate(projectId);
-    return { success: true, message: "Đã xóa đợt thanh toán.", data: { id } };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.deleted(NOUNS.milestone),
+      data: { id },
+    };
   } catch (error) {
     return fail(
-      error instanceof Error ? error.message : "Không thể xóa đợt thanh toán."
+      error instanceof Error
+        ? error.message
+        : ACTION_MESSAGES.deleteFailed(NOUNS.milestone)
     );
   }
 }

@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { type CreateContractFormValues, createContractSchema } from "../schema";
@@ -23,7 +28,7 @@ export async function createContract(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -40,7 +45,9 @@ export async function createContract(
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể tạo hợp đồng.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.createFailed(NOUNS.contract),
     };
   }
 }

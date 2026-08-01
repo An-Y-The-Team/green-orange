@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { updateQuoteSchema } from "../schema";
@@ -25,7 +30,7 @@ export async function updateQuote(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -37,12 +42,18 @@ export async function updateQuote(
     revalidatePath("/quotes");
     revalidatePath(`/quotes/${id}`);
 
-    return { success: true, message: "Đã cập nhật báo giá nháp.", data: quote };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.updated(`${NOUNS.quote} nháp`),
+      data: quote,
+    };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể cập nhật báo giá.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.updateFailed(NOUNS.quote),
     };
   }
 }

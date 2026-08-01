@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { ProjectStatus } from "@/app/(dashboard)/projects/enums";
+import {
+  INVALID_INPUT_MESSAGE,
+  UNKNOWN_ERROR_MESSAGE,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { updateProject } from "../../projects/actions/update-project";
@@ -36,7 +40,7 @@ export async function decideQuote(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -81,7 +85,7 @@ export async function decideQuote(
     if (chained && !chained.success) {
       return {
         success: false,
-        message: `Đã lưu quyết định báo giá nhưng chưa cập nhật được công trình: ${chained.message ?? "Lỗi không xác định."} Vui lòng cập nhật trạng thái công trình thủ công — không cần quyết định lại báo giá.`,
+        message: `Đã lưu quyết định báo giá nhưng chưa cập nhật được công trình: ${chained.message ?? UNKNOWN_ERROR_MESSAGE} Vui lòng cập nhật trạng thái công trình thủ công — không cần quyết định lại báo giá.`,
         data: quote,
       };
     }

@@ -34,7 +34,7 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
-import { SETTLEMENT_STATUSES } from "@/constants/labels";
+import { ACTIONS, FIELDS, SETTLEMENT_STATUSES } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -160,7 +160,7 @@ export function SettlementCard({
               />
             }
           >
-            Sửa
+            {ACTIONS.edit}
           </Button>
         ) : null}
         <Button
@@ -222,7 +222,7 @@ export function SettlementCard({
       {/* Đợt thanh toán */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-medium">Đợt thanh toán</h4>
+          <h4 className="text-sm font-medium">{FIELDS.paymentMilestone}</h4>
           {bill ? (
             <AddMilestone projectId={projectId} billId={bill.id} />
           ) : null}
@@ -252,7 +252,7 @@ export function SettlementCard({
             và đợt còn lại được tạo tự động.
           </p>
           <div className="space-y-1">
-            <Label htmlFor={`signed-${settlement.id}`}>Ngày ký</Label>
+            <Label htmlFor={`signed-${settlement.id}`}>{FIELDS.signDate}</Label>
             <DateInput
               id={`signed-${settlement.id}`}
               value={signedDate}
@@ -261,7 +261,7 @@ export function SettlementCard({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSignOpen(false)}>
-              Đóng
+              {ACTIONS.close}
             </Button>
             <Button
               disabled={busy || !signedDate}
@@ -287,7 +287,7 @@ export function SettlementCard({
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setUnsignOpen(false)}>
-              Đóng
+              {ACTIONS.close}
             </Button>
             <Button disabled={busy} onClick={() => runUnsign()}>
               Mở lại để sửa
@@ -307,14 +307,14 @@ export function SettlementCard({
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Đóng
+              {ACTIONS.close}
             </Button>
             <Button
               variant="destructive"
               disabled={deletePending}
               onClick={() => runDelete()}
             >
-              Xóa
+              {ACTIONS.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

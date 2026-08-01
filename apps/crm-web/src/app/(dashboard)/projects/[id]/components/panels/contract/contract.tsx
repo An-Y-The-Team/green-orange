@@ -29,7 +29,12 @@ import {
 } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
 import { MoneyInput } from "@/components/money-input/money-input";
-import { CONTRACT_STATUSES, QUOTE_STATUSES } from "@/constants/labels";
+import {
+  ACTIONS,
+  CONTRACT_STATUSES,
+  FIELDS,
+  QUOTE_STATUSES,
+} from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -169,7 +174,9 @@ export function ContractPanel({
                       <DialogTitle>Ghi nhận khách đã ký</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-1.5">
-                      <Label htmlFor="client-signed-date">Ngày ký</Label>
+                      <Label htmlFor="client-signed-date">
+                        {FIELDS.signDate}
+                      </Label>
                       <DateInput
                         id="client-signed-date"
                         value={signedDate}
@@ -178,7 +185,9 @@ export function ContractPanel({
                     </div>
                     <DialogFooter>
                       <DialogClose
-                        render={<Button variant="ghost">Đóng</Button>}
+                        render={
+                          <Button variant="ghost">{ACTIONS.close}</Button>
+                        }
                       />
                       <Button
                         disabled={signPending || !signedDate}
@@ -188,7 +197,7 @@ export function ContractPanel({
                           )
                         }
                       >
-                        Xác nhận
+                        {ACTIONS.confirm}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -239,7 +248,9 @@ export function ContractPanel({
                     </div>
                     <DialogFooter>
                       <DialogClose
-                        render={<Button variant="ghost">Đóng</Button>}
+                        render={
+                          <Button variant="ghost">{ACTIONS.close}</Button>
+                        }
                       />
                       <Button
                         disabled={depPending || !depAmount || !depDate}
@@ -252,7 +263,7 @@ export function ContractPanel({
                           )
                         }
                       >
-                        Xác nhận
+                        {ACTIONS.confirm}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -339,7 +350,7 @@ function ContractRow({
               <Link
                 href={`/projects/${project.id}/contracts/new?edit=${contract.id}`}
               >
-                Sửa
+                {ACTIONS.edit}
               </Link>
             }
           />
@@ -365,7 +376,7 @@ function ContractRow({
               </DialogHeader>
               <div className="space-y-1.5">
                 <Label htmlFor={`contract-signed-${contract.id}`}>
-                  Ngày ký
+                  {FIELDS.signDate}
                 </Label>
                 <DateInput
                   id={`contract-signed-${contract.id}`}
@@ -374,7 +385,9 @@ function ContractRow({
                 />
               </div>
               <DialogFooter>
-                <DialogClose render={<Button variant="ghost">Đóng</Button>} />
+                <DialogClose
+                  render={<Button variant="ghost">{ACTIONS.close}</Button>}
+                />
                 <Button
                   disabled={isPending || !date}
                   onClick={() =>
@@ -386,7 +399,7 @@ function ContractRow({
                     )
                   }
                 >
-                  Xác nhận
+                  {ACTIONS.confirm}
                 </Button>
               </DialogFooter>
             </DialogContent>

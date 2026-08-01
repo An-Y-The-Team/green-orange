@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header/page-header";
 import { TablePager } from "@/components/table-pager/table-pager";
+import { FIELDS } from "@/constants/labels";
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import { pageFromParam } from "@/utils/page-param/page-param";
 
@@ -39,7 +40,7 @@ export default async function CrewPage({
   return (
     <>
       <PageHeader
-        title="Nhân sự"
+        title={FIELDS.crew}
         description={`${total} nhân sự · ${workingCount} đang làm`}
       />
       <CrewTabs crew={members} roles={roles} projects={projects} />

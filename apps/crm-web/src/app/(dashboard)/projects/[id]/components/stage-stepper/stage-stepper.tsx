@@ -18,7 +18,12 @@ import {
 } from "@yan/ui/components/dialog";
 import { cn } from "@yan/ui/lib/utils";
 
-import { PROJECT_STAGES, PROJECT_STAGE_ORDER } from "@/constants/labels";
+import {
+  ACTIONS,
+  PROJECT_STAGES,
+  PROJECT_STAGE_ORDER,
+} from "@/constants/labels";
+import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { updateProject } from "../../../actions/update-project";
@@ -32,8 +37,7 @@ export function StageStepper({ project }: { project: Project }) {
   );
   const [isPending, startTransition] = useTransition();
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
   });
 
   const currentIndex = PROJECT_STAGE_ORDER.indexOf(project.stage);
@@ -71,7 +75,7 @@ export function StageStepper({ project }: { project: Project }) {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmBack(false)}>
-              Hủy
+              {ACTIONS.cancel}
             </Button>
             <Button disabled={isPending} onClick={confirmGoBack}>
               Quay lại

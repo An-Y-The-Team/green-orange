@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { type UpdateClientFormValues, updateClientSchema } from "../schema";
@@ -18,7 +23,7 @@ export async function updateClient(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -33,7 +38,11 @@ export async function updateClient(
     );
     revalidatePath("/clients");
     revalidatePath(`/clients/${id}`);
-    return { success: true, message: "Đã cập nhật khách hàng.", data: client };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.updated(NOUNS.client),
+      data: client,
+    };
   } catch (error) {
     return {
       success: false,

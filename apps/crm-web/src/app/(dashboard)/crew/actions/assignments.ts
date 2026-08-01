@@ -5,6 +5,11 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import type { Assignment } from "../types";
@@ -47,7 +52,7 @@ export async function createAssignment(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -60,11 +65,15 @@ export async function createAssignment(
 
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/crew");
-    return { success: true, message: "Đã thêm phân công.", data };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.added(NOUNS.assignment),
+      data,
+    };
   } catch (error) {
     return {
       success: false,
-      message: errorMessage(error, "Không thể thêm phân công."),
+      message: errorMessage(error, ACTION_MESSAGES.addFailed(NOUNS.assignment)),
     };
   }
 }
@@ -79,7 +88,7 @@ export async function updateAssignment(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -93,11 +102,18 @@ export async function updateAssignment(
 
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/crew");
-    return { success: true, message: "Đã cập nhật phân công.", data };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.updated(NOUNS.assignment),
+      data,
+    };
   } catch (error) {
     return {
       success: false,
-      message: errorMessage(error, "Không thể cập nhật phân công."),
+      message: errorMessage(
+        error,
+        ACTION_MESSAGES.updateFailed(NOUNS.assignment)
+      ),
     };
   }
 }
@@ -111,12 +127,18 @@ export async function deleteAssignment(
     await apiSend<unknown>(`/assignments/${id}`, "DELETE");
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/crew");
-    return { success: true, message: "Đã xóa phân công.", data: { id } };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.deleted(NOUNS.assignment),
+      data: { id },
+    };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể xóa phân công.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.deleteFailed(NOUNS.assignment),
     };
   }
 }

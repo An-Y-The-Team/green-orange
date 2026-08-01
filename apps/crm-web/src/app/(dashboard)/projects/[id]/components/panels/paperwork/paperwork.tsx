@@ -24,8 +24,11 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import { OVERDUE_LABEL, PAPERWORK_STATUSES } from "@/constants/labels";
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import { FIELDS, OVERDUE_LABEL, PAPERWORK_STATUSES } from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 import { labelOf } from "@/utils/label-of/label-of";
 import { todayISO } from "@/utils/today-iso/today-iso";
@@ -62,12 +65,10 @@ function PaperworkRow({
   );
   const [isPending, startTransition] = useTransition();
   useServerAction(updateState, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
   });
   useServerAction(deleteState, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
   });
 
   const [due, setDue] = useState(item.due_date ?? "");
@@ -161,8 +162,7 @@ function AddPaperworkRow({ projectId }: { projectId: number }) {
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => setName(""),
   });
 
@@ -249,9 +249,9 @@ export function PaperworkPanel({
           <TableHeader>
             <TableRow>
               <TableHead>Hồ sơ</TableHead>
-              <TableHead>Trạng thái</TableHead>
+              <TableHead>{FIELDS.status}</TableHead>
               <TableHead>Hạn</TableHead>
-              <TableHead>Ghi chú</TableHead>
+              <TableHead>{FIELDS.note}</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>

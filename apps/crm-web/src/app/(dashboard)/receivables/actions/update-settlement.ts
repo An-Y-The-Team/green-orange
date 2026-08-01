@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { updateSettlementSchema } from "../schema";
@@ -25,7 +30,7 @@ export async function updateSettlement(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -42,7 +47,7 @@ export async function updateSettlement(
 
     return {
       success: true,
-      message: "Đã cập nhật quyết toán.",
+      message: ACTION_MESSAGES.updated(NOUNS.settlement),
       data: settlement,
     };
   } catch (error) {
@@ -51,7 +56,7 @@ export async function updateSettlement(
       message:
         error instanceof Error
           ? error.message
-          : "Không thể cập nhật quyết toán.",
+          : ACTION_MESSAGES.updateFailed(NOUNS.settlement),
     };
   }
 }

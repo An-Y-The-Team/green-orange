@@ -8,6 +8,7 @@ import { Button } from "@yan/ui/components/button";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
+import { FIELDS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -88,7 +89,7 @@ export function FinishConfirm({ project }: { project: Project }) {
           />
           <Input
             value={imgNote}
-            placeholder="Ghi chú"
+            placeholder={FIELDS.note}
             className="h-8 w-48"
             onChange={(e) => setImgNote(e.target.value)}
           />

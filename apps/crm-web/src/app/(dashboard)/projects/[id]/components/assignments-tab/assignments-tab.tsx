@@ -27,7 +27,8 @@ import {
 } from "@yan/ui/components/table";
 
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
-import { CREW_MEMBER_STATUSES } from "@/constants/labels";
+import { ACTIONS, CREW_MEMBER_STATUSES, FIELDS } from "@/constants/labels";
+import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
@@ -117,7 +118,7 @@ export function AssignmentsTab({
           <TableHeader>
             <TableRow>
               <TableHead>Nhân viên</TableHead>
-              <TableHead>Vị trí</TableHead>
+              <TableHead>{FIELDS.role}</TableHead>
               <TableHead>Thời gian</TableHead>
               <TableHead />
             </TableRow>
@@ -191,8 +192,7 @@ function AssignmentRow({
   );
   const [isPending, startTransition] = useTransition();
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => setConfirm(false),
   });
 
@@ -220,10 +220,10 @@ function AssignmentRow({
       <TableCell className="text-right">
         <div className="flex justify-end gap-2">
           <Button variant="outline" size="sm" onClick={onEdit}>
-            Sửa
+            {ACTIONS.edit}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setConfirm(true)}>
-            Xóa
+            {ACTIONS.delete}
           </Button>
         </div>
         <Dialog open={confirm} onOpenChange={setConfirm}>
@@ -236,14 +236,14 @@ function AssignmentRow({
             </p>
             <DialogFooter>
               <Button variant="outline" onClick={() => setConfirm(false)}>
-                Hủy
+                {ACTIONS.cancel}
               </Button>
               <Button
                 variant="destructive"
                 disabled={isPending}
                 onClick={() => startTransition(() => formAction())}
               >
-                Xóa
+                {ACTIONS.delete}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -280,8 +280,7 @@ function AssignmentForm({
   const [state, formAction] = useActionState(action, INITIAL_STATE);
   const [isPending, startTransition] = useTransition();
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: onSaved,
   });
 
@@ -334,7 +333,7 @@ function AssignmentForm({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          Vị trí
+          {FIELDS.role}
           <select
             className={SELECT_CLASS}
             value={f.role_id}
@@ -349,7 +348,7 @@ function AssignmentForm({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          Từ ngày
+          {FIELDS.fromDate}
           <DateInput
             className="w-auto"
             value={f.from_date}
@@ -357,7 +356,7 @@ function AssignmentForm({
           />
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          Đến ngày
+          {FIELDS.toDate}
           <DateInput
             className="w-auto"
             value={f.to_date}
@@ -370,11 +369,15 @@ function AssignmentForm({
             disabled={isPending || !f.crew_member_id || !f.from_date}
             onClick={submit}
           >
-            {isPending ? "Đang lưu…" : assignmentId ? "Lưu" : "Thêm"}
+            {isPending
+              ? ACTIONS.saving
+              : assignmentId
+                ? ACTIONS.save
+                : ACTIONS.add}
           </Button>
           {onCancel ? (
             <Button variant="outline" size="sm" onClick={onCancel}>
-              Hủy
+              {ACTIONS.cancel}
             </Button>
           ) : null}
         </div>

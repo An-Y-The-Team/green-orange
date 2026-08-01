@@ -14,7 +14,7 @@ import {
 
 import { PageHeader } from "@/components/page-header/page-header";
 import { TablePager } from "@/components/table-pager/table-pager";
-import { CLIENT_TYPES } from "@/constants/labels";
+import { CLIENT_TYPES, FIELDS } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { pageFromParam } from "@/utils/page-param/page-param";
 
@@ -41,7 +41,7 @@ export default async function ClientsPage({
   return (
     <>
       <PageHeader
-        title="Khách hàng"
+        title={FIELDS.client}
         description={`${total} khách hàng`}
         action={
           <Button size="sm" render={<Link href="/clients/new" />}>
@@ -55,9 +55,9 @@ export default async function ClientsPage({
             <TableRow>
               <TableHead>Tên</TableHead>
               <TableHead>Loại</TableHead>
-              <TableHead className="text-right">Địa điểm</TableHead>
+              <TableHead className="text-right">{FIELDS.location}</TableHead>
               <TableHead className="text-right">Dự án</TableHead>
-              <TableHead>Ngày tạo</TableHead>
+              <TableHead>{FIELDS.createdDate}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

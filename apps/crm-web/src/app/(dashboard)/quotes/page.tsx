@@ -14,6 +14,7 @@ import {
 
 import { PageHeader } from "@/components/page-header/page-header";
 import {
+  FIELDS,
   QUOTE_CHANNELS,
   QUOTE_STATUSES,
   QUOTE_SUPERSEDED_LABEL,
@@ -62,10 +63,10 @@ export default async function QuotesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Báo giá</TableHead>
-              <TableHead>Công trình</TableHead>
-              <TableHead>Khách hàng</TableHead>
+              <TableHead>{FIELDS.project}</TableHead>
+              <TableHead>{FIELDS.client}</TableHead>
               <TableHead className="text-right">Tổng (trước VAT)</TableHead>
-              <TableHead>Trạng thái</TableHead>
+              <TableHead>{FIELDS.status}</TableHead>
               <TableHead>Đã gửi</TableHead>
               <TableHead>Ngày chốt</TableHead>
             </TableRow>

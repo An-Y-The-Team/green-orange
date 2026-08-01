@@ -7,6 +7,7 @@ import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
+import { BACK_TO, DOCUMENT_TEXT } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import { getProject } from "../../../queries";
@@ -33,7 +34,7 @@ export default async function AcceptanceRequestPage({
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
       >
         <ArrowLeft className="size-4" />
-        Quay lại công trình
+        {BACK_TO.project}
       </Link>
 
       <DocumentShell
@@ -80,7 +81,7 @@ export default async function AcceptanceRequestPage({
             Xin chân thành cảm ơn sự hợp tác của Quý khách.
           </p>
 
-          <SignatureBlocks leftLabel="ĐẠI DIỆN KHÁCH HÀNG" />
+          <SignatureBlocks leftLabel={DOCUMENT_TEXT.clientSignatory} />
         </div>
       </DocumentShell>
     </>

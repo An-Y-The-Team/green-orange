@@ -12,8 +12,16 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
 import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
-import { CLIENT_TYPES } from "@/constants/labels";
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import {
+  ACTIONS,
+  CLIENT_TYPES,
+  FIELDS,
+  PLACEHOLDERS,
+} from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 
 import { createClient } from "../../actions/create-client";
 import { ClientType } from "../../enums";
@@ -44,8 +52,7 @@ export function ClientForm() {
   const type = useWatch({ control: form.control, name: "type" });
 
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => router.push("/clients"),
   });
 
@@ -57,17 +64,17 @@ export function ClientForm() {
       <Card>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="name">Tên khách hàng</Label>
+            <Label htmlFor="name">{FIELDS.clientName}</Label>
             <Input
               id="name"
-              placeholder="Công ty TNHH ABC"
+              placeholder={PLACEHOLDERS.companyName}
               {...form.register("name")}
             />
             {fieldError(form.formState.errors.name)}
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="type">Loại khách hàng</Label>
+            <Label htmlFor="type">{FIELDS.clientType}</Label>
             <select
               id="type"
               className={SELECT_CLASS}
@@ -95,10 +102,10 @@ export function ClientForm() {
 
           {type === ClientType.INDIVIDUAL ? (
             <div className="space-y-1.5">
-              <Label htmlFor="address">Địa chỉ</Label>
+              <Label htmlFor="address">{FIELDS.address}</Label>
               <Input
                 id="address"
-                placeholder="123 Đường ABC, Quận 1, TP.HCM"
+                placeholder={PLACEHOLDERS.address}
                 {...form.register("address")}
               />
               {fieldError(form.formState.errors.address)}
@@ -113,10 +120,10 @@ export function ClientForm() {
           variant="outline"
           onClick={() => router.push("/clients")}
         >
-          Hủy
+          {ACTIONS.cancel}
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Đang tạo..." : "Tạo khách hàng"}
+          {isPending ? ACTIONS.creating : "Tạo khách hàng"}
         </Button>
       </div>
     </form>

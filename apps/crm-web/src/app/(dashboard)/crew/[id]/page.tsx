@@ -19,8 +19,10 @@ import {
 } from "@yan/ui/components/table";
 
 import {
+  BACK_TO,
   CREW_MEMBER_STATUSES,
   EMPLOYMENT_TYPES,
+  FIELDS,
   TIMEKEEPING_SOURCES,
 } from "@/constants/labels";
 import { addDays } from "@/utils/add-days/add-days";
@@ -58,12 +60,12 @@ export default async function CrewDetailPage({
   const statusBadge = labelOf(CREW_MEMBER_STATUSES, member.status);
   const fields: [string, string][] = [
     [
-      "Hình thức",
+      FIELDS.employmentType,
       EMPLOYMENT_TYPES[member.employment_type] ?? member.employment_type,
     ],
-    ["Số điện thoại / Zalo", member.phone ?? "—"],
-    ["Vị trí mặc định", member.default_role?.name ?? "—"],
-    ["Ngày tạo", formatDate(member.created_at)],
+    [FIELDS.phone, member.phone ?? "—"],
+    [FIELDS.defaultRole, member.default_role?.name ?? "—"],
+    [FIELDS.createdDate, formatDate(member.created_at)],
   ];
 
   return (
@@ -73,7 +75,7 @@ export default async function CrewDetailPage({
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại danh sách
+        {BACK_TO.list}
       </Link>
       <div className="grid gap-6">
         <Card>
@@ -96,7 +98,9 @@ export default async function CrewDetailPage({
               ))}
               {member.note && (
                 <div className="sm:col-span-2">
-                  <dt className="text-xs text-muted-foreground">Ghi chú</dt>
+                  <dt className="text-xs text-muted-foreground">
+                    {FIELDS.note}
+                  </dt>
                   <dd className="text-sm">{member.note}</dd>
                 </div>
               )}
@@ -117,10 +121,10 @@ export default async function CrewDetailPage({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Công trình</TableHead>
-                    <TableHead>Vị trí</TableHead>
-                    <TableHead>Từ ngày</TableHead>
-                    <TableHead>Đến ngày</TableHead>
+                    <TableHead>{FIELDS.project}</TableHead>
+                    <TableHead>{FIELDS.role}</TableHead>
+                    <TableHead>{FIELDS.fromDate}</TableHead>
+                    <TableHead>{FIELDS.toDate}</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
@@ -185,8 +189,8 @@ export default async function CrewDetailPage({
                   <TableRow>
                     <TableHead>Ngày</TableHead>
                     <TableHead className="text-right">Số giờ</TableHead>
-                    <TableHead>Nguồn</TableHead>
-                    <TableHead>Ghi chú</TableHead>
+                    <TableHead>{FIELDS.source}</TableHead>
+                    <TableHead>{FIELDS.note}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

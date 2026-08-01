@@ -12,6 +12,8 @@ import {
 } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 
+import { ACTIONS, FIELDS } from "@/constants/labels";
+
 import {
   createContact,
   deleteContact,
@@ -62,7 +64,7 @@ export function ContactsSection({
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
         />
         <Input
-          placeholder="Số điện thoại / Zalo"
+          placeholder={FIELDS.phone}
           value={draft.phone}
           onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
         />
@@ -72,7 +74,7 @@ export function ContactsSection({
           onChange={(e) => setDraft({ ...draft, email: e.target.value })}
         />
         <Input
-          placeholder="Chức vụ"
+          placeholder={FIELDS.jobTitle}
           value={draft.title}
           onChange={(e) => setDraft({ ...draft, title: e.target.value })}
         />
@@ -83,10 +85,10 @@ export function ContactsSection({
           disabled={list.saving || !draft.name.trim()}
           onClick={list.save}
         >
-          Lưu
+          {ACTIONS.save}
         </Button>
         <Button size="sm" variant="ghost" onClick={list.cancel}>
-          Hủy
+          {ACTIONS.cancel}
         </Button>
       </div>
     </div>
@@ -102,7 +104,7 @@ export function ContactsSection({
           {list.mode !== ADD_MODE ? (
             <Button size="sm" variant="ghost" onClick={list.startAdd}>
               <Plus className="size-4" />
-              Thêm
+              {ACTIONS.add}
             </Button>
           ) : null}
         </div>

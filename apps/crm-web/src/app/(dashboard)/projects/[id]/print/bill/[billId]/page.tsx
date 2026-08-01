@@ -16,7 +16,10 @@ import {
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
 import {
+  BACK_TO,
   BILL_STATUSES,
+  DOCUMENT_TEXT,
+  FIELDS,
   MILESTONE_STATUSES,
   MILESTONE_TYPES,
   OVERDUE_LABEL,
@@ -59,7 +62,7 @@ export default async function BillDocumentPage({
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại công trình
+        {BACK_TO.project}
       </Link>
       <Badge variant={badge.variant}>{badge.label}</Badge>
     </div>
@@ -103,10 +106,10 @@ export default async function BillDocumentPage({
             <thead>
               <tr className="border-y border-zinc-300 bg-zinc-50 text-left">
                 <th className="w-8 px-2 py-2">#</th>
-                <th className="px-2 py-2">Đợt thanh toán</th>
-                <th className="px-2 py-2">Hạn thu</th>
-                <th className="px-2 py-2">Trạng thái</th>
-                <th className="px-2 py-2 text-right">Số tiền</th>
+                <th className="px-2 py-2">{FIELDS.paymentMilestone}</th>
+                <th className="px-2 py-2">{FIELDS.dueDate}</th>
+                <th className="px-2 py-2">{FIELDS.status}</th>
+                <th className="px-2 py-2 text-right">{FIELDS.amount}</th>
               </tr>
             </thead>
             <tbody>
@@ -138,7 +141,7 @@ export default async function BillDocumentPage({
 
         <div className="mt-3 ml-auto w-64 space-y-1 text-xs">
           <div className="flex justify-between border-t border-zinc-300 pt-1 text-sm font-bold">
-            <span>Tổng cộng</span>
+            <span>{DOCUMENT_TEXT.grandTotal}</span>
             <span>{formatVND(bill.total_amount)}</span>
           </div>
         </div>
@@ -164,7 +167,7 @@ export default async function BillDocumentPage({
           </p>
         </div>
 
-        <SignatureBlocks leftLabel="ĐẠI DIỆN KHÁCH HÀNG" />
+        <SignatureBlocks leftLabel={DOCUMENT_TEXT.clientSignatory} />
       </DocumentShell>
     </>
   );

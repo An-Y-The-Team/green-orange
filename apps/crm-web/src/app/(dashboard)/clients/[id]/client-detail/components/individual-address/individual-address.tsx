@@ -17,6 +17,7 @@ import {
 } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 
+import { ACTIONS, FIELDS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -77,11 +78,11 @@ export function IndividualAddress({
     <Card className="gap-3">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Địa chỉ</CardTitle>
+          <CardTitle className="text-base">{FIELDS.address}</CardTitle>
           {!editing ? (
             <Button size="sm" variant="ghost" onClick={startEdit}>
               <Pencil className="size-4" />
-              Sửa
+              {ACTIONS.edit}
             </Button>
           ) : null}
         </div>
@@ -96,14 +97,14 @@ export function IndividualAddress({
                 disabled={pending || !draft.trim()}
                 onClick={save}
               >
-                {pending ? "Đang lưu..." : "Lưu"}
+                {pending ? ACTIONS.saving : ACTIONS.save}
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setEditing(false)}
               >
-                Hủy
+                {ACTIONS.cancel}
               </Button>
             </div>
           </div>

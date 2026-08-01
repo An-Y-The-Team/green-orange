@@ -39,7 +39,11 @@ import {
 } from "@/app/(dashboard)/quotes/schema";
 import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
 import { MoneyInput } from "@/components/money-input/money-input";
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import { ACTIONS, DOCUMENT_TEXT, LINE_ITEM_COLUMNS } from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { groupByCategory } from "@/utils/group-by-category/group-by-category";
 import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
@@ -123,8 +127,7 @@ export function QuoteBuilderForm({
   });
 
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: (data) => {
       // The action echoes back the saved quote; narrow before reading its id.
       const savedId =
@@ -208,12 +211,20 @@ export function QuoteBuilderForm({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-48">Nội dung</TableHead>
-                    <TableHead className="w-20">ĐV</TableHead>
-                    <TableHead className="w-24">SL</TableHead>
-                    <TableHead className="w-36">Đơn giá</TableHead>
+                    <TableHead className="min-w-48">
+                      {LINE_ITEM_COLUMNS.description}
+                    </TableHead>
+                    <TableHead className="w-20">
+                      {LINE_ITEM_COLUMNS.unitShort}
+                    </TableHead>
+                    <TableHead className="w-24">
+                      {LINE_ITEM_COLUMNS.quantityShort}
+                    </TableHead>
+                    <TableHead className="w-36">
+                      {LINE_ITEM_COLUMNS.unitPrice}
+                    </TableHead>
                     <TableHead className="w-36 text-right">
-                      Thành tiền
+                      {LINE_ITEM_COLUMNS.total}
                     </TableHead>
                     <TableHead className="w-10" />
                   </TableRow>
@@ -314,7 +325,7 @@ export function QuoteBuilderForm({
                                 size="icon"
                                 disabled={fields.length === 1}
                                 onClick={() => remove(i)}
-                                aria-label="Xóa dòng"
+                                aria-label={ACTIONS.deleteRow}
                               >
                                 <Trash2 className="size-4" />
                               </Button>
@@ -339,7 +350,7 @@ export function QuoteBuilderForm({
                                 })
                               }
                             >
-                              + Thêm dòng
+                              {ACTIONS.addRow}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -385,7 +396,9 @@ export function QuoteBuilderForm({
                 </div>
                 <dl className="ml-auto w-56 space-y-1 text-sm">
                   <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Tạm tính</dt>
+                    <dt className="text-muted-foreground">
+                      {DOCUMENT_TEXT.subtotal}
+                    </dt>
                     <dd className="tabular-nums">{formatVND(subtotal)}</dd>
                   </div>
                   <div className="flex justify-between">
@@ -419,7 +432,7 @@ export function QuoteBuilderForm({
                       (intentRef.current = QuoteSubmitIntent.DRAFT)
                     }
                   >
-                    {isPending ? "Đang lưu…" : "Lưu nháp"}
+                    {isPending ? ACTIONS.saving : ACTIONS.saveDraft}
                   </Button>
                   <Button
                     type="submit"

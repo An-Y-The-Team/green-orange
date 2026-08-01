@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { listProjects } from "@/app/(dashboard)/projects/queries";
 import { PageHeader } from "@/components/page-header/page-header";
+import { BACK_TO } from "@/constants/labels";
 
 import { ContractProjectPicker } from "./contract-project-picker/contract-project-picker";
 
@@ -22,7 +23,7 @@ export default async function NewContractPage() {
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại hợp đồng
+        {BACK_TO.contract}
       </Link>
 
       <PageHeader title="Tạo hợp đồng" description="Chọn công trình để soạn" />

@@ -14,7 +14,7 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header/page-header";
-import { CONTRACT_STATUSES } from "@/constants/labels";
+import { ACTIONS, CONTRACT_STATUSES, FIELDS } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
@@ -40,7 +40,7 @@ export default async function ContractsPage() {
               render={<Link href="/contracts/templates" />}
             >
               <FileText />
-              Mẫu hợp đồng
+              {FIELDS.contractTemplate}
             </Button>
             <Button size="sm" render={<Link href="/contracts/new" />}>
               + Hợp đồng mới
@@ -53,10 +53,10 @@ export default async function ContractsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Mã</TableHead>
-              <TableHead>Công trình</TableHead>
-              <TableHead>Khách hàng</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead>Ngày ký</TableHead>
+              <TableHead>{FIELDS.project}</TableHead>
+              <TableHead>{FIELDS.client}</TableHead>
+              <TableHead>{FIELDS.status}</TableHead>
+              <TableHead>{FIELDS.signDate}</TableHead>
               <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
@@ -111,7 +111,7 @@ export default async function ContractsPage() {
                           <Link
                             href={`/projects/${contract.project_id}/contracts/new?edit=${contract.id}`}
                           >
-                            Sửa
+                            {ACTIONS.edit}
                           </Link>
                         }
                       />

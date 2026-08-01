@@ -5,6 +5,11 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { AttachmentKind } from "../enums";
@@ -29,7 +34,7 @@ export async function addAttachment(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -45,11 +50,18 @@ export async function addAttachment(
 
     revalidatePath(`/projects/${projectId}`);
 
-    return { success: true, message: "Đã thêm tệp.", data };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.added(NOUNS.attachment),
+      data,
+    };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Không thể thêm tệp.",
+      message:
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.addFailed(NOUNS.attachment),
     };
   }
 }

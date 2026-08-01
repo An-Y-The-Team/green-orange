@@ -11,6 +11,7 @@ import {
 } from "@yan/ui/components/form";
 
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
+import { FIELDS } from "@/constants/labels";
 
 import type { CreateProjectFormValues } from "../../../../schema";
 import type { ClientDetail } from "../../types";
@@ -35,7 +36,7 @@ export function ClientCascadeSelects({
         name="working_contact_id"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Người liên hệ</FormLabel>
+            <FormLabel>{FIELDS.contactPerson}</FormLabel>
             <FormControl>
               <select
                 className={SELECT_CLASS}
@@ -65,7 +66,7 @@ export function ClientCascadeSelects({
         name="location_id"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Địa điểm</FormLabel>
+            <FormLabel>{FIELDS.location}</FormLabel>
             <FormControl>
               <select
                 className={SELECT_CLASS}

@@ -33,6 +33,8 @@ import {
 } from "@/app/(dashboard)/receivables/schema";
 import { fieldError } from "@/components/form-bits/form-bits";
 import { MoneyInput } from "@/components/money-input/money-input";
+import { ACTIONS, FIELDS, LINE_ITEM_COLUMNS } from "@/constants/labels";
+import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { itemAmount } from "@/utils/quote-totals/quote-totals";
 
@@ -80,8 +82,7 @@ export function SettlementBuilderForm({
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => router.push(`/projects/${initial.projectId}`),
   });
 
@@ -116,11 +117,21 @@ export function SettlementBuilderForm({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-48">Hạng mục</TableHead>
-                <TableHead className="w-20">ĐV</TableHead>
-                <TableHead className="w-24">Khối lượng</TableHead>
-                <TableHead className="w-36">Đơn giá</TableHead>
-                <TableHead className="w-36 text-right">Thành tiền</TableHead>
+                <TableHead className="min-w-48">
+                  {LINE_ITEM_COLUMNS.item}
+                </TableHead>
+                <TableHead className="w-20">
+                  {LINE_ITEM_COLUMNS.unitShort}
+                </TableHead>
+                <TableHead className="w-24">
+                  {LINE_ITEM_COLUMNS.quantity}
+                </TableHead>
+                <TableHead className="w-36">
+                  {LINE_ITEM_COLUMNS.unitPrice}
+                </TableHead>
+                <TableHead className="w-36 text-right">
+                  {LINE_ITEM_COLUMNS.total}
+                </TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -177,7 +188,7 @@ export function SettlementBuilderForm({
                         size="icon"
                         disabled={fields.length === 1}
                         onClick={() => remove(i)}
-                        aria-label="Xóa dòng"
+                        aria-label={ACTIONS.deleteRow}
                       >
                         <Trash2 className="size-4" />
                       </Button>
@@ -194,7 +205,7 @@ export function SettlementBuilderForm({
             size="sm"
             onClick={() => append(BLANK_ROW)}
           >
-            + Thêm dòng
+            {ACTIONS.addRow}
           </Button>
 
           <Separator />
@@ -209,7 +220,7 @@ export function SettlementBuilderForm({
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="note">Ghi chú</Label>
+            <Label htmlFor="note">{FIELDS.note}</Label>
             <Textarea
               id="note"
               rows={3}
@@ -220,7 +231,11 @@ export function SettlementBuilderForm({
 
           <div className="flex justify-end gap-2">
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Đang lưu…" : initial.editId ? "Lưu" : "Lưu nháp"}
+              {isPending
+                ? ACTIONS.saving
+                : initial.editId
+                  ? ACTIONS.save
+                  : ACTIONS.saveDraft}
             </Button>
           </div>
         </form>

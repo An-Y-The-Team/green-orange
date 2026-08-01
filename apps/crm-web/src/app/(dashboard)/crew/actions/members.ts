@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import {
@@ -22,7 +27,7 @@ export async function createCrewMember(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -35,14 +40,16 @@ export async function createCrewMember(
 
     return {
       success: true,
-      message: `Đã lưu nhân sự "${member.name}".`,
+      message: ACTION_MESSAGES.saved(`${NOUNS.crewMember} "${member.name}"`),
       data: member,
     };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể lưu nhân sự.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.saveFailed(NOUNS.crewMember),
     };
   }
 }
@@ -56,7 +63,7 @@ export async function updateCrewMember(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -71,12 +78,18 @@ export async function updateCrewMember(
     revalidatePath("/crew");
     revalidatePath(`/crew/${id}`);
 
-    return { success: true, message: "Đã cập nhật nhân sự.", data: member };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.updated(NOUNS.crewMember),
+      data: member,
+    };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể cập nhật nhân sự.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.updateFailed(NOUNS.crewMember),
     };
   }
 }
@@ -90,7 +103,11 @@ export async function deleteCrewMember(
 
     revalidatePath("/crew");
 
-    return { success: true, message: "Đã xóa nhân sự.", data: { id } };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.deleted(NOUNS.crewMember),
+      data: { id },
+    };
   } catch (error) {
     // 409 when the member has assignments/timekeeping — the message tells the
     // user to set status "Nghỉ việc" instead.

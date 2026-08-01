@@ -4,7 +4,11 @@ import {
   DocumentShell,
   SignatureBlocks,
 } from "@/components/document-shell/document-shell";
-import { QUOTE_CHANNELS } from "@/constants/labels";
+import {
+  DOCUMENT_TEXT,
+  LINE_ITEM_COLUMNS,
+  QUOTE_CHANNELS,
+} from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { groupByCategory } from "@/utils/group-by-category/group-by-category";
@@ -101,11 +105,19 @@ export function QuoteDocument({
           <thead>
             <tr className="border-y border-zinc-300 bg-zinc-50 text-left">
               <th className="w-8 px-2 py-2">#</th>
-              <th className="px-2 py-2">Nội dung</th>
-              <th className="px-2 py-2 text-center">ĐVT</th>
-              <th className="px-2 py-2 text-right">SL</th>
-              <th className="px-2 py-2 text-right">Đơn giá</th>
-              <th className="px-2 py-2 text-right">Thành tiền</th>
+              <th className="px-2 py-2">{LINE_ITEM_COLUMNS.description}</th>
+              <th className="px-2 py-2 text-center">
+                {LINE_ITEM_COLUMNS.unit}
+              </th>
+              <th className="px-2 py-2 text-right">
+                {LINE_ITEM_COLUMNS.quantityShort}
+              </th>
+              <th className="px-2 py-2 text-right">
+                {LINE_ITEM_COLUMNS.unitPrice}
+              </th>
+              <th className="px-2 py-2 text-right">
+                {LINE_ITEM_COLUMNS.total}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -148,7 +160,7 @@ export function QuoteDocument({
         {/* Totals */}
         <div className="mt-3 ml-auto w-64 space-y-1 text-xs">
           <div className="flex justify-between">
-            <span className="text-zinc-500">Tạm tính</span>
+            <span className="text-zinc-500">{DOCUMENT_TEXT.subtotal}</span>
             <span>{formatVND(subtotal)}</span>
           </div>
           <div className="flex justify-between">
@@ -158,7 +170,7 @@ export function QuoteDocument({
             <span>{formatVND(vat)}</span>
           </div>
           <div className="flex justify-between border-t border-zinc-300 pt-1 text-sm font-bold">
-            <span>Tổng cộng</span>
+            <span>{DOCUMENT_TEXT.grandTotal}</span>
             <span>{formatVND(total)}</span>
           </div>
         </div>

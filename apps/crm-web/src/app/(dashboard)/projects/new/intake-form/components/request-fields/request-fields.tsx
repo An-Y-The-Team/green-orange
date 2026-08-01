@@ -13,6 +13,8 @@ import {
 import { Input } from "@yan/ui/components/input";
 import { Textarea } from "@yan/ui/components/textarea";
 
+import { FIELDS } from "@/constants/labels";
+
 import type { CreateProjectFormValues } from "../../../../schema";
 
 /**
@@ -61,7 +63,7 @@ export function RequestFields({
         name="referral_source"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Nguồn</FormLabel>
+            <FormLabel>{FIELDS.source}</FormLabel>
             <FormControl>
               <Input
                 placeholder="Giới thiệu, Facebook, khách cũ..."

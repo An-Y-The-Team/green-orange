@@ -1,12 +1,15 @@
 /**
- * Vietnamese display labels + badge variants for every v2 domain enum — the
- * ONLY place Vietnamese lives in code (glossary:
- * docs/features/crm-database-schema.md). List pages, the workspace, and
- * printed documents all read from here.
+ * Vietnamese display text shared across the app — enum labels (glossary:
+ * docs/features/crm-database-schema.md) plus the field names, buttons and
+ * document boilerplate that appear on more than one page. Change a word here
+ * and every screen follows.
  *
  * `variant` matches the @yan/ui Badge variants. User-managed catalogs
  * (project types, crew roles) come from the API already in Vietnamese —
- * no maps here.
+ * no maps here. Action/toast messages live in `constants/server-action.ts`.
+ *
+ * ponytail: copy used by exactly one page stays inline at that page — a
+ * dictionary entry only pays off once a string has two call sites.
  */
 import { ClientType } from "@/app/(dashboard)/clients/enums";
 import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
@@ -178,3 +181,119 @@ export const TIMEKEEPING_SOURCES: Record<TimekeepingSource, string> = {
   [TimekeepingSource.MANUAL]: "Nhập tay",
   [TimekeepingSource.ZALO_APP]: "Zalo app",
 };
+
+/**
+ * Column headers and form-field names reused across pages.
+ *
+ * Keyed by meaning, not by literal: a word that means two different things
+ * gets two keys. `Hủy` the button (`ACTIONS.cancel`) is not `Hủy` the project
+ * status (`PROJECT_STATUSES`) — never collapse them, or renaming one silently
+ * renames the other.
+ */
+export const FIELDS = {
+  status: "Trạng thái",
+  client: "Khách hàng",
+  clientName: "Tên khách hàng",
+  clientType: "Loại khách hàng",
+  contactPerson: "Người liên hệ",
+  project: "Công trình",
+  projectName: "Tên công trình",
+  projectType: "Loại công trình",
+  crew: "Nhân sự",
+  /** The job a crew member does on site — "Vị trí", not "Vai trò". */
+  role: "Vị trí",
+  defaultRole: "Vị trí mặc định",
+  employmentType: "Hình thức",
+  fullName: "Họ và tên",
+  jobTitle: "Chức vụ",
+  phone: "Số điện thoại / Zalo",
+  address: "Địa chỉ",
+  location: "Địa điểm",
+  note: "Ghi chú",
+  source: "Nguồn",
+  stage: "Giai đoạn",
+  amount: "Số tiền",
+  signDate: "Ngày ký",
+  createdDate: "Ngày tạo",
+  collectDate: "Ngày thu",
+  dueDate: "Hạn thu",
+  fromDate: "Từ ngày",
+  toDate: "Đến ngày",
+  contractTemplate: "Mẫu hợp đồng",
+  paymentMilestone: "Đợt thanh toán",
+} as const;
+
+/**
+ * Quote/settlement line-item table columns, rendered by the on-screen
+ * builders, the print pages, the Lexical document node and the docx export.
+ *
+ * The builders use the short forms (`ĐV`, `SL`) because their columns are
+ * narrow; documents spell them out. Whether that split is deliberate or old
+ * drift is unclear, so it is preserved verbatim — collapsing it here would
+ * silently change what prints on a signed document.
+ */
+export const LINE_ITEM_COLUMNS = {
+  index: "STT",
+  item: "Hạng mục",
+  description: "Nội dung",
+  descriptionLong: "Nội dung công việc",
+  unit: "ĐVT",
+  unitShort: "ĐV",
+  quantity: "Khối lượng",
+  quantityShort: "SL",
+  unitPrice: "Đơn giá",
+  total: "Thành tiền",
+} as const;
+
+/** Button and control captions. */
+export const ACTIONS = {
+  save: "Lưu",
+  saveDraft: "Lưu nháp",
+  saving: "Đang lưu…",
+  creating: "Đang tạo…",
+  cancel: "Hủy",
+  close: "Đóng",
+  edit: "Sửa",
+  delete: "Xóa",
+  add: "Thêm",
+  confirm: "Xác nhận",
+  retry: "Thử lại",
+  continue: "Tiếp tục",
+  send: "Gửi",
+  addRow: "+ Thêm dòng",
+  deleteRow: "Xóa dòng",
+} as const;
+
+/**
+ * Example values shown as form-input hints. Deliberately NOT the `COMPANY`
+ * defaults in config/company.ts — those are GreenOrange's real profile, and
+ * wiring a hint to them would print the company's own representative as the
+ * suggestion for a customer's contact name.
+ */
+export const PLACEHOLDERS = {
+  personName: "Nguyễn Văn A",
+  companyName: "Công ty TNHH ABC",
+  address: "123 Đường ABC, Quận 1, TP.HCM",
+} as const;
+
+/** "Quay lại …" back-links out of a detail page. */
+export const BACK_TO = {
+  list: "Quay lại danh sách",
+  project: "Quay lại công trình",
+  quote: "Quay lại báo giá",
+  contract: "Quay lại hợp đồng",
+  templates: "Quay lại danh sách mẫu",
+} as const;
+
+/** Boilerplate on printed/exported documents. */
+export const DOCUMENT_TEXT = {
+  contractHeading: "HỢP ĐỒNG",
+  partyA: "Bên A (Khách hàng)",
+  partyB: "Bên B (Nhà cung cấp dịch vụ)",
+  partyASignatory: "ĐẠI DIỆN BÊN A",
+  partyBSignatory: "ĐẠI DIỆN BÊN B",
+  clientSignatory: "ĐẠI DIỆN KHÁCH HÀNG",
+  signHint: "(Ký, ghi rõ họ tên)",
+  subtotal: "Tạm tính",
+  grandTotal: "Tổng cộng",
+} as const;

@@ -11,6 +11,7 @@ import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
 import type { Assignment } from "@/app/(dashboard)/crew/types";
+import { ACTIONS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -96,7 +97,7 @@ export function Personnel({
             disabled={isPending}
             onClick={() => startTransition(() => formAction({ approaches }))}
           >
-            Lưu
+            {ACTIONS.save}
           </Button>
         </div>
       </div>

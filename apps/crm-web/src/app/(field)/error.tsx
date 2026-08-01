@@ -8,6 +8,8 @@ import {
   CardTitle,
 } from "@yan/ui/components/card";
 
+import { ACTIONS } from "@/constants/labels";
+
 /**
  * Group-level error boundary, the (field) twin of (dashboard)/error.tsx. Needed
  * now that reads rethrow a backend outage instead of degrading to an empty list
@@ -27,7 +29,7 @@ export default function FieldError({ reset }: { reset: () => void }) {
           Không tải được dữ liệu. Kiểm tra kết nối rồi thử lại.
         </p>
         <Button className="w-full" size="lg" onClick={reset}>
-          Thử lại
+          {ACTIONS.retry}
         </Button>
       </CardContent>
     </Card>

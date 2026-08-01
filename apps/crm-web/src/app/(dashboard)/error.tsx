@@ -4,6 +4,7 @@ import { Button } from "@yan/ui/components/button";
 import { Card } from "@yan/ui/components/card";
 
 import { PageHeader } from "@/components/page-header/page-header";
+import { ACTIONS } from "@/constants/labels";
 
 /**
  * Group-level error boundary. Most failures here are the crm-api being
@@ -36,7 +37,7 @@ export default function DashboardError({
           </p>
         ) : null}
         <Button size="sm" onClick={reset}>
-          Thử lại
+          {ACTIONS.retry}
         </Button>
       </Card>
     </>

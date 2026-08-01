@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { FIELDS } from "@/constants/labels";
+
 import type { Project } from "../../../projects/types";
 import type { CrewMember, CrewRole } from "../../types";
 import { RolesTab } from "../roles-tab/roles-tab";
@@ -13,7 +15,7 @@ type Tab = (typeof TABS)[number];
 
 const TAB_LABELS: Record<Tab, string> = {
   roster: "Danh sách",
-  roles: "Vị trí",
+  roles: FIELDS.role,
   timekeeping: "Chấm công",
 };
 

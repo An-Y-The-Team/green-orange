@@ -13,6 +13,7 @@ import {
 
 import { getProjectAssignments } from "@/app/(dashboard)/crew/queries";
 import { DocumentShell } from "@/components/document-shell/document-shell";
+import { BACK_TO, FIELDS } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import { getProject } from "../../../queries";
@@ -38,7 +39,7 @@ export default async function WorkerListPage({
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
       >
         <ArrowLeft className="size-4" />
-        Quay lại công trình
+        {BACK_TO.project}
       </Link>
 
       <DocumentShell
@@ -50,9 +51,9 @@ export default async function WorkerListPage({
             <TableRow>
               <TableHead className="w-10">#</TableHead>
               <TableHead>Họ tên</TableHead>
-              <TableHead>Vị trí</TableHead>
-              <TableHead>Từ ngày</TableHead>
-              <TableHead>Đến ngày</TableHead>
+              <TableHead>{FIELDS.role}</TableHead>
+              <TableHead>{FIELDS.fromDate}</TableHead>
+              <TableHead>{FIELDS.toDate}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

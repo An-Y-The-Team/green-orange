@@ -5,6 +5,11 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { PaperworkStatus } from "../enums";
@@ -38,7 +43,7 @@ export async function createPaperworkItem(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -50,11 +55,18 @@ export async function createPaperworkItem(
     });
 
     revalidatePath(`/projects/${projectId}`);
-    return { success: true, message: `Đã thêm "${item.name}".`, data: item };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.added(`"${item.name}"`),
+      data: item,
+    };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Không thể thêm mục.",
+      message:
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.addFailed(NOUNS.paperworkItem),
     };
   }
 }
@@ -69,7 +81,7 @@ export async function updatePaperworkItem(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -87,7 +99,9 @@ export async function updatePaperworkItem(
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể cập nhật mục.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.updateFailed(NOUNS.paperworkItem),
     };
   }
 }
@@ -100,11 +114,17 @@ export async function deletePaperworkItem(
   try {
     await apiSend<void>(`/paperwork-items/${id}`, "DELETE");
     revalidatePath(`/projects/${projectId}`);
-    return { success: true, message: "Đã xóa mục." };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.deleted(NOUNS.paperworkItem),
+    };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Không thể xóa mục.",
+      message:
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.deleteFailed(NOUNS.paperworkItem),
     };
   }
 }

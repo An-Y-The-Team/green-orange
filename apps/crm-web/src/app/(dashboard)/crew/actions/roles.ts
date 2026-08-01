@@ -5,6 +5,11 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import type { CrewRole } from "../types";
@@ -22,7 +27,7 @@ export async function createRole(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -34,7 +39,7 @@ export async function createRole(
 
     return {
       success: true,
-      message: `Đã thêm vị trí "${role.name}".`,
+      message: ACTION_MESSAGES.added(`${NOUNS.role} "${role.name}"`),
       data: role,
     };
   } catch (error) {
@@ -42,7 +47,9 @@ export async function createRole(
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể thêm vị trí.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.addFailed(NOUNS.role),
     };
   }
 }
@@ -56,7 +63,7 @@ export async function renameRole(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -70,12 +77,18 @@ export async function renameRole(
 
     revalidatePath("/crew");
 
-    return { success: true, message: "Đã đổi tên vị trí.", data: role };
+    return {
+      success: true,
+      message: `Đã đổi tên ${NOUNS.role}.`,
+      data: role,
+    };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể đổi tên vị trí.",
+        error instanceof Error
+          ? error.message
+          : `Không thể đổi tên ${NOUNS.role}.`,
     };
   }
 }
@@ -89,7 +102,11 @@ export async function deleteRole(
 
     revalidatePath("/crew");
 
-    return { success: true, message: "Đã xóa vị trí.", data: { id } };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.deleted(NOUNS.role),
+      data: { id },
+    };
   } catch (error) {
     // 409 when the role is in use by members or assignments.
     return {

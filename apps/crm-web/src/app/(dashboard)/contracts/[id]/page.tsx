@@ -16,6 +16,7 @@ import {
 import { DocxExportButton } from "@/components/editor/docx-export-button/docx-export-button";
 import { LexicalDocument } from "@/components/editor/lexical-document/lexical-document";
 import { DEFAULT_HEADER_BLOCKS } from "@/constants/header-blocks";
+import { ACTIONS, BACK_TO, DOCUMENT_TEXT, FIELDS } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { ensureLexicalBody } from "@/utils/lexical-build/lexical-build";
@@ -47,7 +48,7 @@ export default async function ContractDocumentPage({
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại danh sách
+        {BACK_TO.list}
       </Link>
       {/* The editor lives under the project route, so standalone contracts
           (project_id null) have no edit surface — view/print only. A signed
@@ -61,7 +62,7 @@ export default async function ContractDocumentPage({
               href={`/projects/${contract.project_id}/contracts/new?edit=${contract.id}`}
             >
               <Pencil className="size-4" />
-              Sửa
+              {ACTIONS.edit}
             </Link>
           }
         />
@@ -132,7 +133,10 @@ export default async function ContractDocumentPage({
 
   if (body) {
     const ctx = buildContractContext(contract, quote, printCompany);
-    const docTitle = snapshot?.doc_title ?? template?.doc_title ?? "HỢP ĐỒNG";
+    const docTitle =
+      snapshot?.doc_title ??
+      template?.doc_title ??
+      DOCUMENT_TEXT.contractHeading;
     // Frozen blocks win for a signed contract; else the template's choice;
     // else both (the compliant default).
     const headerBlocks =
@@ -202,13 +206,11 @@ export default async function ContractDocumentPage({
 
           <div className="mt-3 space-y-3 text-xs">
             <div>
-              <p className="font-semibold uppercase">Bên A (Khách hàng)</p>
+              <p className="font-semibold uppercase">{DOCUMENT_TEXT.partyA}</p>
               <p>{contract.project?.client.name ?? "—"}</p>
             </div>
             <div>
-              <p className="font-semibold uppercase">
-                Bên B (Nhà cung cấp dịch vụ)
-              </p>
+              <p className="font-semibold uppercase">{DOCUMENT_TEXT.partyB}</p>
               <p>{printCompany.name}</p>
               <p className="text-zinc-600">
                 {printCompany.address} · MST: {printCompany.tax_id}
@@ -218,7 +220,7 @@ export default async function ContractDocumentPage({
 
           <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
             <div>
-              <dt className="text-zinc-500">Công trình</dt>
+              <dt className="text-zinc-500">{FIELDS.project}</dt>
               <dd>
                 {contract.project
                   ? `${contract.project.code} · ${contract.project.name}`
@@ -228,7 +230,7 @@ export default async function ContractDocumentPage({
               </dd>
             </div>
             <div>
-              <dt className="text-zinc-500">Ngày ký</dt>
+              <dt className="text-zinc-500">{FIELDS.signDate}</dt>
               <dd>
                 {contract.signed_date ? formatDate(contract.signed_date) : "—"}
               </dd>
@@ -247,7 +249,7 @@ export default async function ContractDocumentPage({
 
           {contract.note && (
             <div className="mt-5 text-xs">
-              <p className="font-semibold uppercase">Ghi chú</p>
+              <p className="font-semibold uppercase">{FIELDS.note}</p>
               <p className="mt-1 leading-relaxed text-zinc-700">
                 {contract.note}
               </p>

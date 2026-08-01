@@ -26,7 +26,12 @@ import {
 } from "@yan/ui/components/table";
 
 import type { TimekeepingRecord } from "@/app/(dashboard)/crew/types";
-import { OVERDUE_LABEL, TIMEKEEPING_SOURCES } from "@/constants/labels";
+import {
+  ACTIONS,
+  FIELDS,
+  OVERDUE_LABEL,
+  TIMEKEEPING_SOURCES,
+} from "@/constants/labels";
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import {
   ACTION_TOAST_TITLES,
@@ -188,9 +193,9 @@ export function DurationForm({
             <TableHeader>
               <TableRow>
                 <TableHead>Ngày</TableHead>
-                <TableHead>Nhân sự</TableHead>
+                <TableHead>{FIELDS.crew}</TableHead>
                 <TableHead>Giờ</TableHead>
-                <TableHead>Nguồn</TableHead>
+                <TableHead>{FIELDS.source}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -209,7 +214,9 @@ export function DurationForm({
             </TableBody>
           </Table>
           <DialogFooter>
-            <DialogClose render={<Button variant="ghost">Đóng</Button>} />
+            <DialogClose
+              render={<Button variant="ghost">{ACTIONS.close}</Button>}
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>

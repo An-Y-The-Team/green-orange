@@ -19,6 +19,7 @@ import {
 } from "@yan/ui/components/dialog";
 import { Input } from "@yan/ui/components/input";
 
+import { ACTIONS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -166,17 +167,17 @@ export function ProjectTypesManager({
                   disabled={renamePending || !editName.trim()}
                   onClick={() => saveRename(t.id)}
                 >
-                  Lưu
+                  {ACTIONS.save}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={cancelEdit}>
-                  Hủy
+                  {ACTIONS.cancel}
                 </Button>
               </>
             ) : (
               <>
                 <span className="flex-1 text-sm">{t.name}</span>
                 <Button size="sm" variant="ghost" onClick={() => startEdit(t)}>
-                  Sửa
+                  {ACTIONS.edit}
                 </Button>
                 <Button
                   size="sm"
@@ -184,7 +185,7 @@ export function ProjectTypesManager({
                   className="text-destructive"
                   onClick={() => setConfirmId(t.id)}
                 >
-                  Xóa
+                  {ACTIONS.delete}
                 </Button>
               </>
             )}
@@ -210,7 +211,7 @@ export function ProjectTypesManager({
           disabled={createPending || !newName.trim()}
           onClick={addType}
         >
-          {createPending ? "Đang thêm..." : "Thêm"}
+          {createPending ? "Đang thêm..." : ACTIONS.add}
         </Button>
       </div>
 
@@ -225,13 +226,15 @@ export function ProjectTypesManager({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <DialogClose render={<Button variant="ghost">Đóng</Button>} />
+            <DialogClose
+              render={<Button variant="ghost">{ACTIONS.close}</Button>}
+            />
             <Button
               variant="destructive"
               disabled={deletePending || confirmId === null}
               onClick={confirmDelete}
             >
-              {deletePending ? "Đang xóa..." : "Xóa"}
+              {deletePending ? "Đang xóa..." : ACTIONS.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

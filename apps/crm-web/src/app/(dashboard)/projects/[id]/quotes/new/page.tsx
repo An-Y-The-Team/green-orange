@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header/page-header";
+import { BACK_TO } from "@/constants/labels";
 
 import { getProject } from "../../../queries";
 import {
@@ -56,7 +57,7 @@ export default async function QuoteBuilderPage({
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại công trình
+        {BACK_TO.project}
       </Link>
 
       <PageHeader

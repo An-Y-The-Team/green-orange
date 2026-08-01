@@ -3,6 +3,8 @@
 import { Check, CloudOff, Loader2, TriangleAlert } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { ACTIONS } from "@/constants/labels";
+
 export type SaveStatus = "idle" | "saving" | "saved" | "error" | "invalid";
 
 /**
@@ -115,7 +117,7 @@ export function SaveStatusBadge({
       {status === "saving" && (
         <>
           <Loader2 className="size-3.5 shrink-0 animate-spin" />
-          Đang lưu…
+          {ACTIONS.saving}
         </>
       )}
       {status === "saved" && (

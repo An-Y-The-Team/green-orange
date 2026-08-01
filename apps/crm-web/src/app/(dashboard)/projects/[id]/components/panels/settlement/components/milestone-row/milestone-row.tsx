@@ -18,6 +18,8 @@ import { markMilestonePaid } from "@/app/(dashboard)/receivables/actions/milesto
 import { MilestoneStatus } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
 import {
+  ACTIONS,
+  FIELDS,
   MILESTONE_STATUSES,
   MILESTONE_TYPES,
   OVERDUE_LABEL,
@@ -84,7 +86,9 @@ export function MilestoneRow({
                 <DialogTitle>Ghi nhận đã thu</DialogTitle>
               </DialogHeader>
               <div className="space-y-1">
-                <Label htmlFor={`paid-${milestone.id}`}>Ngày thu</Label>
+                <Label htmlFor={`paid-${milestone.id}`}>
+                  {FIELDS.collectDate}
+                </Label>
                 <DateInput
                   id={`paid-${milestone.id}`}
                   value={paidDate}
@@ -93,13 +97,13 @@ export function MilestoneRow({
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>
-                  Đóng
+                  {ACTIONS.close}
                 </Button>
                 <Button
                   disabled={pending || !paidDate}
                   onClick={() => run({ paid_date: paidDate })}
                 >
-                  Xác nhận
+                  {ACTIONS.confirm}
                 </Button>
               </DialogFooter>
             </DialogContent>

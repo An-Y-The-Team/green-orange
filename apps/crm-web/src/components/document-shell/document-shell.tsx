@@ -10,6 +10,7 @@ import {
   DEFAULT_HEADER_BLOCKS,
   type HeaderBlocks,
 } from "@/constants/header-blocks";
+import { DOCUMENT_TEXT } from "@/constants/labels";
 import { companyContext } from "@/utils/merge-template/merge-template";
 
 /**
@@ -103,8 +104,8 @@ export function DocumentShell({
  * or to fill Party A.
  */
 export function SignatureBlocks({
-  leftLabel = "ĐẠI DIỆN BÊN A",
-  rightLabel = "ĐẠI DIỆN BÊN B",
+  leftLabel = DOCUMENT_TEXT.partyASignatory,
+  rightLabel = DOCUMENT_TEXT.partyBSignatory,
   leftName,
   leftTitle,
   rightName,
@@ -131,7 +132,7 @@ export function SignatureBlocks({
       {columns.map((col) => (
         <div key={col.label}>
           <p className="font-semibold uppercase">{col.label}</p>
-          <p className="mt-1 italic text-zinc-500">(Ký, ghi rõ họ tên)</p>
+          <p className="mt-1 italic text-zinc-500">{DOCUMENT_TEXT.signHint}</p>
           <div className="h-20" />
           {col.name && <p className="font-semibold uppercase">{col.name}</p>}
           {col.title && <p className="text-zinc-600">{col.title}</p>}

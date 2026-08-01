@@ -5,6 +5,11 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import type { ProjectNote } from "../types";
@@ -26,7 +31,7 @@ export async function addNote(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -39,12 +44,18 @@ export async function addNote(
 
     revalidatePath(`/projects/${projectId}`);
 
-    return { success: true, message: "Đã thêm ghi chú.", data: note };
+    return {
+      success: true,
+      message: ACTION_MESSAGES.added(NOUNS.note),
+      data: note,
+    };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể thêm ghi chú.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.addFailed(NOUNS.note),
     };
   }
 }

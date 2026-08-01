@@ -27,8 +27,8 @@ export type CompanyInfo = Record<keyof typeof COMPANY, string>;
 
 /**
  * Profile plus what the document header renders from:
- *   • `letterhead_body` — rich-text template printed on EVERY document;
- *   • `national_body`  — the statutory Quốc hiệu block, legal documents only;
+ *   • `letterhead_body` — rich-text letterhead template;
+ *   • `national_body`  — the statutory Quốc hiệu block;
  *   • `logo`           — single logo as a data URL ("" = none).
  *
  * The template defaults live in components/document-shell/default-header.ts,

@@ -11,8 +11,17 @@ import { FormLabel } from "@yan/ui/components/form";
 import { Input } from "@yan/ui/components/input";
 
 import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
-import { CLIENT_TYPES } from "@/constants/labels";
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import {
+  ACTIONS,
+  CLIENT_TYPES,
+  FIELDS,
+  PLACEHOLDERS,
+} from "@/constants/labels";
+import {
+  ACTION_MESSAGES,
+  INITIAL_ACTION_STATE,
+  NOUNS,
+} from "@/constants/server-action";
 
 import { createContact } from "../../../../../clients/actions/contacts";
 import { createClient } from "../../../../../clients/actions/create-client";
@@ -110,7 +119,8 @@ export function QuickCreateClient({
       const client = clientRes.success ? toClientOption(clientRes.data) : null;
       if (!client) {
         toast.error("Lỗi", {
-          description: clientRes.message ?? "Không thể tạo khách hàng.",
+          description:
+            clientRes.message ?? ACTION_MESSAGES.createFailed(NOUNS.client),
         });
         return false;
       }
@@ -170,12 +180,15 @@ export function QuickCreateClient({
   return (
     <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
       <div className="space-y-1">
-        <FormLabel>Tên khách hàng</FormLabel>
-        <Input placeholder="Công ty TNHH ABC" {...form.register("name")} />
+        <FormLabel>{FIELDS.clientName}</FormLabel>
+        <Input
+          placeholder={PLACEHOLDERS.companyName}
+          {...form.register("name")}
+        />
         {fieldError(form.formState.errors.name)}
       </div>
       <div className="space-y-1">
-        <FormLabel>Loại khách hàng</FormLabel>
+        <FormLabel>{FIELDS.clientType}</FormLabel>
         <select className={SELECT_CLASS} {...form.register("type")}>
           <option value={ClientType.COMPANY}>
             {CLIENT_TYPES[ClientType.COMPANY]}
@@ -187,9 +200,9 @@ export function QuickCreateClient({
       </div>
       {type === ClientType.INDIVIDUAL ? (
         <div className="space-y-1">
-          <FormLabel>Địa chỉ</FormLabel>
+          <FormLabel>{FIELDS.address}</FormLabel>
           <Input
-            placeholder="123 Đường ABC, Quận 1, TP.HCM"
+            placeholder={PLACEHOLDERS.address}
             {...form.register("address")}
           />
           {fieldError(form.formState.errors.address)}
@@ -197,9 +210,9 @@ export function QuickCreateClient({
       ) : (
         <>
           <div className="space-y-1">
-            <FormLabel>Người liên hệ</FormLabel>
+            <FormLabel>{FIELDS.contactPerson}</FormLabel>
             <Input
-              placeholder="Nguyễn Văn A"
+              placeholder={PLACEHOLDERS.personName}
               {...form.register("contact_name")}
             />
             {fieldError(form.formState.errors.contact_name)}
@@ -221,9 +234,9 @@ export function QuickCreateClient({
             {fieldError(form.formState.errors.location_name)}
           </div>
           <div className="space-y-1">
-            <FormLabel>Địa điểm</FormLabel>
+            <FormLabel>{FIELDS.location}</FormLabel>
             <Input
-              placeholder="123 Đường ABC, Quận 1, TP.HCM"
+              placeholder={PLACEHOLDERS.address}
               {...form.register("location_address")}
             />
             {fieldError(form.formState.errors.location_address)}
@@ -237,7 +250,7 @@ export function QuickCreateClient({
           disabled={pending}
           onClick={() => void submit()}
         >
-          {pending ? "Đang tạo..." : "Tạo khách hàng"}
+          {pending ? ACTIONS.creating : "Tạo khách hàng"}
         </Button>
       </div>
     </div>

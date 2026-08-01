@@ -27,6 +27,7 @@ import {
 } from "@/app/(dashboard)/quotes/enums";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
 import {
+  ACTIONS,
   QUOTE_CHANNELS,
   QUOTE_STATUSES,
   QUOTE_SUPERSEDED_LABEL,
@@ -136,10 +137,10 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
               size="sm"
               render={<Link href={`/quotes/${quote.id}`} />}
             >
-              Sửa
+              {ACTIONS.edit}
             </Button>
             <Button size="sm" onClick={() => setSendOpen(true)}>
-              Gửi
+              {ACTIONS.send}
             </Button>
             <Button
               variant="outline"
@@ -183,7 +184,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
                   disabled={busy}
                   onClick={() => setCancelOpen(true)}
                 >
-                  Hủy
+                  {ACTIONS.cancel}
                 </Button>
                 <Button
                   variant="outline"
@@ -229,7 +230,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setHoldOpen(false)}>
-              Đóng
+              {ACTIONS.close}
             </Button>
             <Button disabled={busy || !followUp} onClick={handleConfirmHold}>
               Xác nhận hoãn
@@ -254,7 +255,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelOpen(false)}>
-              Đóng
+              {ACTIONS.close}
             </Button>
             <Button
               variant="destructive"
@@ -278,14 +279,14 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Đóng
+              {ACTIONS.close}
             </Button>
             <Button
               variant="destructive"
               disabled={deletePending}
               onClick={() => runDelete()}
             >
-              Xóa
+              {ACTIONS.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

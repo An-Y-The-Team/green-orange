@@ -14,6 +14,7 @@ import {
 } from "@yan/ui/components/table";
 
 import { PageHeader } from "@/components/page-header/page-header";
+import { BACK_TO, FIELDS } from "@/constants/labels";
 
 import { listContractTemplates } from "../queries";
 
@@ -27,10 +28,10 @@ export default async function ContractTemplatesPage() {
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại hợp đồng
+        {BACK_TO.contract}
       </Link>
       <PageHeader
-        title="Mẫu hợp đồng"
+        title={FIELDS.contractTemplate}
         description={`${templates.length} mẫu · dùng khi tạo hợp đồng`}
         action={
           <Button size="sm" render={<Link href="/contracts/templates/new" />}>
@@ -45,7 +46,7 @@ export default async function ContractTemplatesPage() {
             <TableRow>
               <TableHead>Tên mẫu</TableHead>
               <TableHead>Tiêu đề tài liệu</TableHead>
-              <TableHead>Trạng thái</TableHead>
+              <TableHead>{FIELDS.status}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

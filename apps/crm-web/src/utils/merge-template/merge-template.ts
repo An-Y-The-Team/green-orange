@@ -16,6 +16,7 @@
 import type { Contract } from "@/app/(dashboard)/contracts/types";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
 import { COMPANY, type CompanyInfo } from "@/config/company";
+import { FIELDS } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 // Cycle with lexical-build (it imports CONTRACT_TOKENS from here), but a safe
@@ -43,10 +44,10 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
   { token: "project_code", label: "Mã công trình", example: "CT-2026-001" },
   {
     token: "project_name",
-    label: "Tên công trình",
+    label: FIELDS.projectName,
     example: "Vệ sinh kính mặt ngoài Vincom Plaza Q.1",
   },
-  { token: "signed_date", label: "Ngày ký", example: "10/03/2026" },
+  { token: "signed_date", label: FIELDS.signDate, example: "10/03/2026" },
   {
     token: "note",
     label: "Ghi chú hợp đồng",

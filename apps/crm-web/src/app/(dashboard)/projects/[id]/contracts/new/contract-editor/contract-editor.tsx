@@ -25,6 +25,7 @@ import {
 } from "@/components/editor/use-autosave";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { DEFAULT_HEADER_BLOCKS } from "@/constants/header-blocks";
+import { DOCUMENT_TEXT, FIELDS } from "@/constants/labels";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
 import {
   ensureLexicalBody,
@@ -68,16 +69,16 @@ function EditableSignatureBlocks({
       labelKey: "rep_a_label",
       nameKey: "rep_a_name",
       titleKey: "rep_a_title",
-      labelPlaceholder: "ĐẠI DIỆN BÊN A",
+      labelPlaceholder: DOCUMENT_TEXT.partyASignatory,
       namePlaceholder: "Họ tên người ký",
-      titlePlaceholder: "Chức vụ",
+      titlePlaceholder: FIELDS.jobTitle,
     },
     {
       key: "b",
       labelKey: "rep_b_label",
       nameKey: "rep_b_name",
       titleKey: "rep_b_title",
-      labelPlaceholder: "ĐẠI DIỆN BÊN B",
+      labelPlaceholder: DOCUMENT_TEXT.partyBSignatory,
       namePlaceholder: company.representative,
       titlePlaceholder: company.representative_title,
     },
@@ -94,7 +95,7 @@ function EditableSignatureBlocks({
             value={reps[col.labelKey]}
             onChange={(e) => onChange({ [col.labelKey]: e.target.value })}
           />
-          <p className="mt-1 italic text-zinc-500">(Ký, ghi rõ họ tên)</p>
+          <p className="mt-1 italic text-zinc-500">{DOCUMENT_TEXT.signHint}</p>
           <div className="h-20" />
           <input
             aria-label={`${col.labelPlaceholder} — họ tên`}
@@ -188,10 +189,10 @@ export function ContractEditor({
   // Labels prefill with the standard text (still editable); clearing one
   // falls back to the same default at print time.
   const [reps, setReps] = useState<Reps>({
-    rep_a_label: contract?.rep_a_label ?? "ĐẠI DIỆN BÊN A",
+    rep_a_label: contract?.rep_a_label ?? DOCUMENT_TEXT.partyASignatory,
     rep_a_name: contract?.rep_a_name ?? "",
     rep_a_title: contract?.rep_a_title ?? "",
-    rep_b_label: contract?.rep_b_label ?? "ĐẠI DIỆN BÊN B",
+    rep_b_label: contract?.rep_b_label ?? DOCUMENT_TEXT.partyBSignatory,
     rep_b_name: contract?.rep_b_name ?? "",
     rep_b_title: contract?.rep_b_title ?? "",
   });
@@ -303,7 +304,7 @@ export function ContractEditor({
       key={seed}
       value={seedBody}
       onChange={onBodyChange}
-      title={selected?.doc_title ?? "HỢP ĐỒNG"}
+      title={selected?.doc_title ?? DOCUMENT_TEXT.contractHeading}
       subtitle={contract ? `Số: ${contract.code}` : undefined}
       // A template may switch either block off; with no template, both print.
       headerBlocks={
@@ -318,7 +319,7 @@ export function ContractEditor({
       footer={<EditableSignatureBlocks reps={reps} onChange={onRepsChange} />}
       toolbarExtra={
         <select
-          aria-label="Mẫu hợp đồng"
+          aria-label={FIELDS.contractTemplate}
           className={`${SELECT_CLASS} !h-7 max-w-56 text-xs`}
           value={templateId ?? ""}
           onChange={(e) => onPickTemplate(e.target.value)}

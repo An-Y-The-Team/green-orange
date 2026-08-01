@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import { INVALID_INPUT_MESSAGE } from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { MilestoneStatus, MilestoneType } from "../enums";
@@ -32,7 +33,7 @@ export async function recordDeposit(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }

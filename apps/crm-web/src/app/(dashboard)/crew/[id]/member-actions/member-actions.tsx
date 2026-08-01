@@ -16,7 +16,11 @@ import {
   DialogTitle,
 } from "@yan/ui/components/dialog";
 
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import { ACTIONS } from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 
 import { deleteCrewMember, updateCrewMember } from "../../actions/members";
 import { CrewMemberStatus } from "../../enums";
@@ -37,8 +41,7 @@ export function MemberActions({
   );
   const [leavePending, startLeave] = useTransition();
   useServerAction(leaveState, leavePending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
   });
 
   const [deleteState, deleteAction] = useActionState(
@@ -47,8 +50,7 @@ export function MemberActions({
   );
   const [deletePending, startDelete] = useTransition();
   useServerAction(deleteState, deletePending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () => router.push("/crew"),
   });
 
@@ -60,7 +62,7 @@ export function MemberActions({
         render={<Link href={`/crew/${id}/edit`} />}
       >
         <Pencil className="size-4" />
-        Sửa
+        {ACTIONS.edit}
       </Button>
       {status !== CrewMemberStatus.LEFT ? (
         <Button
@@ -76,7 +78,7 @@ export function MemberActions({
       ) : null}
       <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(true)}>
         <Trash2 className="size-4" />
-        Xóa
+        {ACTIONS.delete}
       </Button>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -90,14 +92,14 @@ export function MemberActions({
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              Hủy
+              {ACTIONS.cancel}
             </Button>
             <Button
               variant="destructive"
               disabled={deletePending}
               onClick={() => startDelete(() => deleteAction())}
             >
-              Xóa
+              {ACTIONS.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

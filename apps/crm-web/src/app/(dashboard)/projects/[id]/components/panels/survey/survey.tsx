@@ -21,7 +21,11 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import { ACTIONS, FIELDS, LINE_ITEM_COLUMNS } from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import {
@@ -50,8 +54,7 @@ export function SurveyPanel({
   );
   const [savePending, startSave] = useTransition();
   useServerAction(saveState, savePending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
   });
   const save = (input: Parameters<typeof updateProject>[2]) =>
     startSave(() => saveAction(input));
@@ -63,8 +66,7 @@ export function SurveyPanel({
   );
   const [exitPending, startExit] = useTransition();
   useServerAction(exitState, exitPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: () =>
       router.push(`/projects/${project.id}/quotes/new?from=survey`),
   });
@@ -95,8 +97,7 @@ export function SurveyPanel({
   );
   const [addPending, startAdd] = useTransition();
   useServerAction(addState, addPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: (data: Attachment) => {
       setRows((prev) => [data, ...prev]);
       setNewFilename("");
@@ -120,8 +121,7 @@ export function SurveyPanel({
   );
   const [delPending, startDel] = useTransition();
   useServerAction(delState, delPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: (data: { id: number }) =>
       setRows((prev) => prev.filter((r) => r.id !== data.id)),
   });
@@ -162,12 +162,14 @@ export function SurveyPanel({
               />
             </div>
             <DialogFooter>
-              <DialogClose render={<Button variant="ghost">Đóng</Button>} />
+              <DialogClose
+                render={<Button variant="ghost">{ACTIONS.close}</Button>}
+              />
               <Button
                 disabled={savePending || !visitDate}
                 onClick={handleSaveVisitDate}
               >
-                Lưu
+                {ACTIONS.save}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -183,7 +185,7 @@ export function SurveyPanel({
             size="sm"
             onClick={() => setItems((prev) => [...prev, { name: "" }])}
           >
-            + Thêm dòng
+            {ACTIONS.addRow}
           </Button>
         </div>
         {items.length > 0 ? (
@@ -192,7 +194,7 @@ export function SurveyPanel({
               <div key={i} className="flex flex-wrap items-center gap-2">
                 <Input
                   className="min-w-40 flex-1"
-                  placeholder="Hạng mục"
+                  placeholder={LINE_ITEM_COLUMNS.item}
                   value={it.name}
                   onChange={(e) => setItem(i, { name: e.target.value })}
                 />
@@ -218,7 +220,7 @@ export function SurveyPanel({
                 />
                 <Input
                   className="min-w-32 flex-1"
-                  placeholder="Ghi chú"
+                  placeholder={FIELDS.note}
                   value={it.note ?? ""}
                   onChange={(e) => setItem(i, { note: e.target.value })}
                 />
@@ -229,7 +231,7 @@ export function SurveyPanel({
                     setItems((prev) => prev.filter((_, j) => j !== i))
                   }
                 >
-                  Xoá
+                  {ACTIONS.delete}
                 </Button>
               </div>
             ))}
@@ -295,7 +297,7 @@ export function SurveyPanel({
                   disabled={delPending && deletingId === a.id}
                   onClick={() => handleDeleteAttachment(a.id)}
                 >
-                  Xoá
+                  {ACTIONS.delete}
                 </Button>
               </li>
             ))}
@@ -313,7 +315,7 @@ export function SurveyPanel({
             />
             <Input
               className="min-w-40 flex-1"
-              placeholder="Ghi chú"
+              placeholder={FIELDS.note}
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
             />
@@ -330,7 +332,7 @@ export function SurveyPanel({
                 )
               }
             >
-              Thêm
+              {ACTIONS.add}
             </Button>
           </div>
         ) : null}

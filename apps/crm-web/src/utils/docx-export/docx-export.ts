@@ -16,6 +16,7 @@
  * unresolved token must never reach a customer-facing file.
  */
 import type { LineItemsData } from "@/components/editor/lexical-document/lexical-document";
+import { LINE_ITEM_COLUMNS } from "@/constants/labels";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import {
   type LexNode,
@@ -115,12 +116,12 @@ export async function exportDocx({
     const header = new TableRow({
       tableHeader: true,
       children: [
-        "STT",
-        "Nội dung công việc",
-        "ĐVT",
-        "Khối lượng",
-        "Đơn giá",
-        "Thành tiền",
+        LINE_ITEM_COLUMNS.index,
+        LINE_ITEM_COLUMNS.descriptionLong,
+        LINE_ITEM_COLUMNS.unit,
+        LINE_ITEM_COLUMNS.quantity,
+        LINE_ITEM_COLUMNS.unitPrice,
+        LINE_ITEM_COLUMNS.total,
       ].map((h) => textCell(h, true)),
     });
     const rows = data.items.map(

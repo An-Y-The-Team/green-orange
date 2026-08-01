@@ -4,6 +4,8 @@ import { Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@yan/ui/components/button";
 
+import { ACTIONS } from "@/constants/labels";
+
 /**
  * Trailing edit/delete buttons for a contact or location row. Delete is a
  * two-tap inline confirm (tap the bin, then "Xóa?") rather than a dialog.
@@ -35,7 +37,7 @@ export function EntityRowActions({
           Xóa?
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setConfirmId(null)}>
-          Hủy
+          {ACTIONS.cancel}
         </Button>
       </>
     );

@@ -19,6 +19,7 @@ import {
   type QuoteDecision,
   QuoteStatus,
 } from "@/app/(dashboard)/quotes/enums";
+import { ACTIONS } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 
@@ -91,7 +92,7 @@ export function FieldQuoteCard({
           disabled={isPending}
           onClick={() => setCancelOpen(true)}
         >
-          Hủy
+          {ACTIONS.cancel}
         </Button>
       </div>
 
@@ -110,7 +111,7 @@ export function FieldQuoteCard({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setHoldOpen(false)}>
-              Đóng
+              {ACTIONS.close}
             </Button>
             <Button disabled={isPending || !followUp} onClick={confirmHold}>
               Xác nhận hoãn
@@ -134,7 +135,7 @@ export function FieldQuoteCard({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelOpen(false)}>
-              Đóng
+              {ACTIONS.close}
             </Button>
             <Button
               variant="destructive"

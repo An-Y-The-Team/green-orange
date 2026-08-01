@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { sendQuoteSchema } from "../schema";
@@ -23,7 +28,7 @@ export async function sendQuote(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -54,7 +59,9 @@ export async function sendQuote(
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể gửi báo giá.",
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.sendFailed(NOUNS.quote),
     };
   }
 }

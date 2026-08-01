@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 import { unknownTokens } from "@/utils/merge-template/merge-template";
 
@@ -31,7 +36,7 @@ export async function saveTemplate(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      message: INVALID_INPUT_MESSAGE,
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -69,14 +74,17 @@ export async function saveTemplate(
     return {
       success: true,
       message: id
-        ? `Đã cập nhật mẫu "${template.name}".`
-        : `Đã tạo mẫu "${template.name}".`,
+        ? ACTION_MESSAGES.updated(`${NOUNS.template} "${template.name}"`)
+        : ACTION_MESSAGES.created(`${NOUNS.template} "${template.name}"`),
       data: template,
     };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Không thể lưu mẫu.",
+      message:
+        error instanceof Error
+          ? error.message
+          : ACTION_MESSAGES.saveFailed(NOUNS.template),
     };
   }
 }

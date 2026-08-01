@@ -16,7 +16,11 @@ import {
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import { ACTIONS, FIELDS } from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
@@ -41,8 +45,7 @@ export function RequestPanel({
   );
   const [isPending, startTransition] = useTransition();
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
   });
 
   const run = (input: Parameters<typeof updateProject>[2]) =>
@@ -80,7 +83,7 @@ export function RequestPanel({
         ) : null}
         {project.referral_source ? (
           <div className="contents">
-            <dt className="text-muted-foreground">Nguồn</dt>
+            <dt className="text-muted-foreground">{FIELDS.source}</dt>
             <dd>{project.referral_source}</dd>
           </div>
         ) : null}
@@ -125,12 +128,14 @@ export function RequestPanel({
                 </div>
               </div>
               <DialogFooter>
-                <DialogClose render={<Button variant="ghost">Đóng</Button>} />
+                <DialogClose
+                  render={<Button variant="ghost">{ACTIONS.close}</Button>}
+                />
                 <Button
                   disabled={isPending || !apptDate}
                   onClick={handleReschedule}
                 >
-                  Lưu
+                  {ACTIONS.save}
                 </Button>
               </DialogFooter>
             </DialogContent>

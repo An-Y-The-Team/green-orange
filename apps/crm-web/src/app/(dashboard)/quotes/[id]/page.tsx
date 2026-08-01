@@ -10,7 +10,11 @@ import {
   type QuoteBuilderInitial,
 } from "@/app/(dashboard)/projects/[id]/quotes/new/quote-builder-form/quote-builder-form";
 import { PageHeader } from "@/components/page-header/page-header";
-import { QUOTE_STATUSES, QUOTE_SUPERSEDED_LABEL } from "@/constants/labels";
+import {
+  BACK_TO,
+  QUOTE_STATUSES,
+  QUOTE_SUPERSEDED_LABEL,
+} from "@/constants/labels";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { ReviseQuoteButton } from "../components/revise-quote-button/revise-quote-button";
@@ -67,7 +71,7 @@ export default async function QuotePage({
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
-          {quote.project_id ? "Quay lại công trình" : "Quay lại danh sách"}
+          {quote.project_id ? BACK_TO.project : BACK_TO.list}
         </Link>
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>

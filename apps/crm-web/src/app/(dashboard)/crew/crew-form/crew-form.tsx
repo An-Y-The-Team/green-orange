@@ -14,8 +14,17 @@ import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
 import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
-import { CREW_MEMBER_STATUSES, EMPLOYMENT_TYPES } from "@/constants/labels";
-import { INITIAL_ACTION_STATE } from "@/constants/server-action";
+import {
+  ACTIONS,
+  CREW_MEMBER_STATUSES,
+  EMPLOYMENT_TYPES,
+  FIELDS,
+  PLACEHOLDERS,
+} from "@/constants/labels";
+import {
+  ACTION_TOAST_TITLES,
+  INITIAL_ACTION_STATE,
+} from "@/constants/server-action";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { createCrewMember, updateCrewMember } from "../actions/members";
@@ -67,8 +76,7 @@ export function CrewForm({
   };
 
   useServerAction(state, isPending, {
-    successToastTitle: "Thành công",
-    errorToastTitle: "Lỗi",
+    ...ACTION_TOAST_TITLES,
     onSuccess: goToMember,
   });
 
@@ -80,19 +88,22 @@ export function CrewForm({
       <Card>
         <CardContent className="space-y-4">
           <div className="space-y-1">
-            <Label>Họ và tên</Label>
-            <Input placeholder="Nguyễn Văn A" {...form.register("name")} />
+            <Label>{FIELDS.fullName}</Label>
+            <Input
+              placeholder={PLACEHOLDERS.personName}
+              {...form.register("name")}
+            />
             {fieldError(errors.name)}
           </div>
 
           <div className="space-y-1">
-            <Label>Số điện thoại / Zalo</Label>
+            <Label>{FIELDS.phone}</Label>
             <Input placeholder="0901 234 567" {...form.register("phone")} />
             {fieldError(errors.phone)}
           </div>
 
           <div className="space-y-1">
-            <Label>Hình thức</Label>
+            <Label>{FIELDS.employmentType}</Label>
             <select
               className={SELECT_CLASS}
               {...form.register("employment_type")}
@@ -106,7 +117,7 @@ export function CrewForm({
           </div>
 
           <div className="space-y-1">
-            <Label>Vị trí mặc định</Label>
+            <Label>{FIELDS.defaultRole}</Label>
             <select
               className={SELECT_CLASS}
               {...form.register("default_role_id", {
@@ -124,7 +135,7 @@ export function CrewForm({
           </div>
 
           <div className="space-y-1">
-            <Label>Trạng thái</Label>
+            <Label>{FIELDS.status}</Label>
             <select className={SELECT_CLASS} {...form.register("status")}>
               {Object.values(CrewMemberStatus).map((s) => (
                 <option key={s} value={s}>
@@ -135,7 +146,7 @@ export function CrewForm({
           </div>
 
           <div className="space-y-1">
-            <Label>Ghi chú</Label>
+            <Label>{FIELDS.note}</Label>
             <Textarea
               rows={3}
               placeholder="Ghi chú nội bộ…"
@@ -151,10 +162,14 @@ export function CrewForm({
           variant="outline"
           onClick={() => router.push(member ? `/crew/${member.id}` : "/crew")}
         >
-          Hủy
+          {ACTIONS.cancel}
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Đang lưu…" : member ? "Lưu thay đổi" : "Thêm nhân sự"}
+          {isPending
+            ? ACTIONS.saving
+            : member
+              ? "Lưu thay đổi"
+              : "Thêm nhân sự"}
         </Button>
       </div>
     </form>

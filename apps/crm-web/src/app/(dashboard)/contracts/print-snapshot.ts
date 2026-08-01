@@ -5,6 +5,7 @@ import {
   DEFAULT_HEADER_BLOCKS,
   type HeaderBlocks,
 } from "@/constants/header-blocks";
+import { DOCUMENT_TEXT } from "@/constants/labels";
 
 /**
  * Everything OUTSIDE a contract's own `body` that decides how it prints: who
@@ -46,6 +47,6 @@ export function parsePrintSnapshot(
   return {
     company: parsed.company,
     header_blocks: parsed.header_blocks ?? DEFAULT_HEADER_BLOCKS,
-    doc_title: parsed.doc_title ?? "HỢP ĐỒNG",
+    doc_title: parsed.doc_title ?? DOCUMENT_TEXT.contractHeading,
   };
 }

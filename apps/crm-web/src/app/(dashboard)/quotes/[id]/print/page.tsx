@@ -4,7 +4,11 @@ import { notFound } from "next/navigation";
 
 import { Badge } from "@yan/ui/components/badge";
 
-import { QUOTE_STATUSES, QUOTE_SUPERSEDED_LABEL } from "@/constants/labels";
+import {
+  BACK_TO,
+  QUOTE_STATUSES,
+  QUOTE_SUPERSEDED_LABEL,
+} from "@/constants/labels";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { getQuote, isSuperseded } from "../../queries";
@@ -36,7 +40,7 @@ export default async function QuotePrintPage({
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
-          Quay lại báo giá
+          {BACK_TO.quote}
         </Link>
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>

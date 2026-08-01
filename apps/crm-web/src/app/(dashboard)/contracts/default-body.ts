@@ -1,3 +1,4 @@
+import { DOCUMENT_TEXT } from "@/constants/labels";
 import { doc, h2, mf, p, t } from "@/utils/lexical-build/lexical-build";
 
 /**
@@ -10,9 +11,9 @@ import { doc, h2, mf, p, t } from "@/utils/lexical-build/lexical-build";
  */
 export const DEFAULT_CONTRACT_BODY = doc(
   p(t("Hôm nay, ngày "), mf("signed_date"), t(", hai bên gồm có:")),
-  h2(t("Bên A (Khách hàng)")),
+  h2(t(DOCUMENT_TEXT.partyA)),
   p(mf("client")),
-  h2(t("Bên B (Nhà cung cấp dịch vụ)")),
+  h2(t(DOCUMENT_TEXT.partyB)),
   p(mf("company.name")),
   p(mf("company.address"), t(" · MST: "), mf("company.tax_id")),
   h2(t("Thông tin hợp đồng")),
