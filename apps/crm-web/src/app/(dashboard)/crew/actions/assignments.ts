@@ -27,7 +27,7 @@ const updateSchema = createSchema.partial();
 const BACKEND_MESSAGES: Record<string, string> = {
   'status "working"': "Nhân viên này đã nghỉ nên không thể phân công.",
   "crew_member_id does not exist": "Không tìm thấy nhân viên đã chọn.",
-  "role_id does not exist": "Không tìm thấy vai trò đã chọn.",
+  "role_id does not exist": "Không tìm thấy vị trí đã chọn.",
 };
 
 function errorMessage(error: unknown, fallback: string): string {

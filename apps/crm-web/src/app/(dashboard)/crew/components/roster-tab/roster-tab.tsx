@@ -34,7 +34,7 @@ export function RosterTab({ members }: { members: CrewMember[] }) {
             <TableRow>
               <TableHead>Họ và tên</TableHead>
               <TableHead>Số điện thoại / Zalo</TableHead>
-              <TableHead>Vai trò mặc định</TableHead>
+              <TableHead>Vị trí mặc định</TableHead>
               <TableHead>Hình thức</TableHead>
               <TableHead>Trạng thái</TableHead>
             </TableRow>

@@ -50,7 +50,7 @@ export default async function WorkerListPage({
             <TableRow>
               <TableHead className="w-10">#</TableHead>
               <TableHead>Họ tên</TableHead>
-              <TableHead>Vai trò</TableHead>
+              <TableHead>Vị trí</TableHead>
               <TableHead>Từ ngày</TableHead>
               <TableHead>Đến ngày</TableHead>
             </TableRow>

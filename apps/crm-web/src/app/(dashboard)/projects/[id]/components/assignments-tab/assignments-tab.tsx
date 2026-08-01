@@ -117,7 +117,7 @@ export function AssignmentsTab({
           <TableHeader>
             <TableRow>
               <TableHead>Nhân viên</TableHead>
-              <TableHead>Vai trò</TableHead>
+              <TableHead>Vị trí</TableHead>
               <TableHead>Thời gian</TableHead>
               <TableHead />
             </TableRow>
@@ -334,7 +334,7 @@ function AssignmentForm({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          Vai trò
+          Vị trí
           <select
             className={SELECT_CLASS}
             value={f.role_id}

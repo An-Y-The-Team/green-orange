@@ -22,8 +22,8 @@ import { toCrewMember } from "../../utils/to-crew-member/to-crew-member";
  * Inline "tạo nhanh nhân sự" for the phân công form — the common case of a
  * worker who turns up on site and is not in the roster yet.
  *
- * ponytail: name + phone only. Hình thức/vai trò mặc định/ghi chú are edited in
- * Nhân sự; the phân công form's own Vai trò select already covers this project.
+ * ponytail: name + phone only. Hình thức/vị trí mặc định/ghi chú are edited in
+ * Nhân sự; the phân công form's own Vị trí select already covers this project.
  */
 export function QuickCreateCrewMember({
   onCreated,

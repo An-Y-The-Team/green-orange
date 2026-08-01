@@ -6,7 +6,7 @@ import type {
   TimekeepingSource,
 } from "./enums";
 
-/** Vai trò — user-managed name list (DB rows, not an enum). */
+/** Vị trí — user-managed name list (DB rows, not an enum). */
 export interface CrewRole {
   id: number;
   name: string;

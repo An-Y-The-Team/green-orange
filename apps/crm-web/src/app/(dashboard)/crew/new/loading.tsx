@@ -3,7 +3,7 @@ import { Skeleton } from "@yan/ui/components/skeleton";
 
 import { PageHeader } from "@/components/page-header/page-header";
 
-// CrewForm fields: họ và tên, điện thoại, hình thức, vai trò, trạng thái.
+// CrewForm fields: họ và tên, điện thoại, hình thức, vị trí, trạng thái.
 const FIELD_COUNT = 5;
 
 // Thêm nhân sự awaits the role list before its form renders. The nearest

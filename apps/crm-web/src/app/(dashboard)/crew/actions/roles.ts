@@ -10,7 +10,7 @@ import { apiSend } from "@/utils/http/http";
 import type { CrewRole } from "../types";
 
 const roleSchema = z.object({
-  name: z.string().min(1, "Vui lòng nhập tên vai trò."),
+  name: z.string().min(1, "Vui lòng nhập tên vị trí."),
 });
 export type RoleFormValues = z.infer<typeof roleSchema>;
 
@@ -34,7 +34,7 @@ export async function createRole(
 
     return {
       success: true,
-      message: `Đã thêm vai trò "${role.name}".`,
+      message: `Đã thêm vị trí "${role.name}".`,
       data: role,
     };
   } catch (error) {
@@ -42,7 +42,7 @@ export async function createRole(
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể thêm vai trò.",
+        error instanceof Error ? error.message : "Không thể thêm vị trí.",
     };
   }
 }
@@ -70,12 +70,12 @@ export async function renameRole(
 
     revalidatePath("/crew");
 
-    return { success: true, message: "Đã đổi tên vai trò.", data: role };
+    return { success: true, message: "Đã đổi tên vị trí.", data: role };
   } catch (error) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Không thể đổi tên vai trò.",
+        error instanceof Error ? error.message : "Không thể đổi tên vị trí.",
     };
   }
 }
@@ -89,7 +89,7 @@ export async function deleteRole(
 
     revalidatePath("/crew");
 
-    return { success: true, message: "Đã xóa vai trò.", data: { id } };
+    return { success: true, message: "Đã xóa vị trí.", data: { id } };
   } catch (error) {
     // 409 when the role is in use by members or assignments.
     return {
@@ -97,7 +97,7 @@ export async function deleteRole(
       message:
         error instanceof Error
           ? error.message
-          : "Vai trò đang được sử dụng, không thể xóa.",
+          : "Vị trí đang được sử dụng, không thể xóa.",
     };
   }
 }

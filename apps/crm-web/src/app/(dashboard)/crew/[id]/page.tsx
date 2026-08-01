@@ -62,7 +62,7 @@ export default async function CrewDetailPage({
       EMPLOYMENT_TYPES[member.employment_type] ?? member.employment_type,
     ],
     ["Số điện thoại / Zalo", member.phone ?? "—"],
-    ["Vai trò mặc định", member.default_role?.name ?? "—"],
+    ["Vị trí mặc định", member.default_role?.name ?? "—"],
     ["Ngày tạo", formatDate(member.created_at)],
   ];
 
@@ -118,7 +118,7 @@ export default async function CrewDetailPage({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Công trình</TableHead>
-                    <TableHead>Vai trò</TableHead>
+                    <TableHead>Vị trí</TableHead>
                     <TableHead>Từ ngày</TableHead>
                     <TableHead>Đến ngày</TableHead>
                     <TableHead />

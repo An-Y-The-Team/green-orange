@@ -12,7 +12,7 @@ import { countCrew, listCrewPage, listCrewRoles } from "./queries";
 // and the offsets it builds agree with what is actually rendered.
 const PAGE_ROWS = 100;
 
-// Tabbed Nhân sự shell: Danh sách · Vai trò · Chấm công. Data fetched here
+// Tabbed Nhân sự shell: Danh sách · Vị trí · Chấm công. Data fetched here
 // (server) and handed to the client tab switcher.
 export default async function CrewPage({
   searchParams,
@@ -45,7 +45,7 @@ export default async function CrewPage({
       <CrewTabs crew={members} roles={roles} projects={projects} />
       {/* Pages the roster (the default tab). ponytail: shown on every tab because
           the active tab is client state, not a URL param — moving the tab into
-          `?tab=` would let this hide itself on Vai trò / Chấm công. */}
+          `?tab=` would let this hide itself on Vị trí / Chấm công. */}
       <TablePager
         page={page}
         total={total}

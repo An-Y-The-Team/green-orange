@@ -13,7 +13,7 @@ type Tab = (typeof TABS)[number];
 
 const TAB_LABELS: Record<Tab, string> = {
   roster: "Danh sách",
-  roles: "Vai trò",
+  roles: "Vị trí",
   timekeeping: "Chấm công",
 };
 

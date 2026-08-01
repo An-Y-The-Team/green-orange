@@ -20,7 +20,7 @@ import { createRole, deleteRole, renameRole } from "../../actions/roles";
 import type { CrewRole } from "../../types";
 
 /**
- * Action payloads arrive as `unknown`; a vai trò row is just `{ id, name }`, so
+ * Action payloads arrive as `unknown`; a vị trí row is just `{ id, name }`, so
  * anything else is dropped here instead of putting a blank row in the list.
  */
 function toRole(data: unknown): CrewRole | null {
@@ -90,7 +90,7 @@ export function RolesTab({ roles: initial }: { roles: CrewRole[] }) {
 
         <div className="flex items-center gap-2 pt-2">
           <Input
-            placeholder="Tên vai trò mới…"
+            placeholder="Tên vị trí mới…"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={handleNewNameKeyDown}

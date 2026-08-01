@@ -106,7 +106,7 @@ export function CrewForm({
           </div>
 
           <div className="space-y-1">
-            <Label>Vai trò mặc định</Label>
+            <Label>Vị trí mặc định</Label>
             <select
               className={SELECT_CLASS}
               {...form.register("default_role_id", {
