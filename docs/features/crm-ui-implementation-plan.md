@@ -37,7 +37,11 @@ the changelog.
 - **Pages, not dialogs**: entity create/edit = dedicated route or inline
   form. Dialogs ONLY for tiny confirms (Hủy reason, date pick, status
   flip, channel picker). User strongly dislikes modal forms.
-- Vietnamese ONLY via `src/constants/labels.ts`; enums/fields English.
+- Vietnamese shared across pages via `src/constants/labels.ts` (enum labels,
+  `FIELDS`, `ACTIONS`, `BACK_TO`, `LINE_ITEM_COLUMNS`, `DOCUMENT_TEXT`,
+  `PLACEHOLDERS`) and `src/constants/server-action.ts` (toast titles,
+  `ACTION_MESSAGES` + `NOUNS`); enums/fields English. Copy used by exactly one
+  page stays inline there — a dictionary entry earns its keep at two call sites.
 - `*_date` = 'YYYY-MM-DD' strings; `*_at` = full ISO; money/hours numbers.
 - Derived, never stored: Quá hạn (`src/utils/is-overdue/is-overdue.ts`), trễ
   chip, superseded quotes (`version < max` per project), timekeeping
