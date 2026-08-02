@@ -9,14 +9,6 @@ import {
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@yan/ui/components/dialog";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
@@ -26,7 +18,6 @@ import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
-import { formatDate } from "@/utils/format-date/format-date";
 
 import {
   addAttachment,
@@ -71,8 +62,7 @@ export function SurveyPanel({
       router.push(`/projects/${project.id}/quotes/new?from=survey`),
   });
 
-  // --- visit_date [sửa] --------------------------------------------------
-  const [visitOpen, setVisitOpen] = useState(false);
+  // --- visit_date --------------------------------------------------------
   const [visitDate, setVisitDate] = useState(project.visit_date ?? "");
 
   // --- survey_items inline rows -----------------------------------------
@@ -106,13 +96,6 @@ export function SurveyPanel({
     },
   });
 
-  // Saves the edited visit date, then closes the dialog optimistically — the
-  // toast reports the outcome, so there's nothing left to see behind it.
-  const handleSaveVisitDate = () => {
-    save({ visit_date: visitDate });
-    setVisitOpen(false);
-  };
-
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [delState, delAction] = useActionState(
     (prev: ServerActionState, id: number) =>
@@ -134,46 +117,26 @@ export function SurveyPanel({
 
   return (
     <div className="space-y-6 border-t border-border pt-4">
-      {/* Đã gặp khách + [sửa] */}
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span>
-          Đã gặp khách:{" "}
-          {project.visit_date ? formatDate(project.visit_date) : "—"}
-        </span>
-        <Dialog open={visitOpen} onOpenChange={setVisitOpen}>
-          <Button
-            variant="link"
-            size="sm"
-            className="h-auto p-0"
-            onClick={() => setVisitOpen(true)}
-          >
-            sửa
-          </Button>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Sửa ngày gặp khách</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-1.5">
-              <Label htmlFor="visit-date">Ngày gặp khách</Label>
-              <DateInput
-                id="visit-date"
-                value={visitDate}
-                onChange={setVisitDate}
-              />
-            </div>
-            <DialogFooter>
-              <DialogClose
-                render={<Button variant="ghost">{ACTIONS.close}</Button>}
-              />
-              <Button
-                disabled={savePending || !visitDate}
-                onClick={handleSaveVisitDate}
-              >
-                {ACTIONS.save}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {/* Ngày gặp khách */}
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="visit-date">Ngày gặp khách</Label>
+          <DateInput
+            id="visit-date"
+            className="w-auto"
+            value={visitDate}
+            onChange={setVisitDate}
+          />
+        </div>
+        <Button
+          variant="outline"
+          disabled={
+            savePending || !visitDate || visitDate === project.visit_date
+          }
+          onClick={() => save({ visit_date: visitDate })}
+        >
+          {ACTIONS.save}
+        </Button>
       </div>
 
       {/* Hạng mục đo đạc */}

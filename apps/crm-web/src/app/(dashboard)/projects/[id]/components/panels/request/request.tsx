@@ -5,14 +5,6 @@ import { useActionState, useState, useTransition } from "react";
 import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@yan/ui/components/dialog";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
@@ -21,7 +13,6 @@ import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
-import { formatDate } from "@/utils/format-date/format-date";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { updateProject } from "../../../../actions/update-project";
@@ -51,8 +42,7 @@ export function RequestPanel({
   const run = (input: Parameters<typeof updateProject>[2]) =>
     startTransition(() => formAction(input));
 
-  // Dời hẹn dialog — edit appointment_at in place (no history).
-  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  // Dời hẹn — edit appointment_at in place (no history).
   const initialDate = project.appointment_at?.slice(0, 10) ?? todayISO();
   const initialTime = project.appointment_at?.slice(11, 16) ?? "09:00";
   const [apptDate, setApptDate] = useState(initialDate);
@@ -61,16 +51,14 @@ export function RequestPanel({
   // "Đã gặp khách" — visit date defaults to today, editable inline.
   const [visitDate, setVisitDate] = useState(todayISO);
 
-  // Dời hẹn — combines the date + time inputs into one ISO instant, then closes
-  // the dialog; the toast reports the outcome.
-  const handleReschedule = () => {
+  // Combines the date + time inputs into one ISO instant; the toast reports
+  // the outcome.
+  const handleReschedule = () =>
     run({
       appointment_at: new Date(
         `${apptDate}T${apptTime || "00:00"}`
       ).toISOString(),
     });
-    setRescheduleOpen(false);
-  };
 
   return (
     <StageCard project={project} contentClassName="space-y-4">
@@ -90,56 +78,44 @@ export function RequestPanel({
       </dl>
 
       {project.appointment_at ? (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span>
-            📅 Hẹn gặp {formatDate(project.appointment_at)}
-            {project.location ? ` · ${project.location.name}` : ""}
-          </span>
-          <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
+        <div className="space-y-2">
+          {project.location ? (
+            <p className="text-sm text-muted-foreground">
+              📍 {project.location.name}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="appt-date">Ngày hẹn gặp</Label>
+              <DateInput
+                id="appt-date"
+                className="w-auto"
+                value={apptDate}
+                onChange={setApptDate}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="appt-time">Giờ</Label>
+              <Input
+                id="appt-time"
+                className="w-auto"
+                type="time"
+                value={apptTime}
+                onChange={(e) => setApptTime(e.target.value)}
+              />
+            </div>
             <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0"
-              onClick={() => setRescheduleOpen(true)}
+              variant="outline"
+              disabled={
+                isPending ||
+                !apptDate ||
+                (apptDate === initialDate && apptTime === initialTime)
+              }
+              onClick={handleReschedule}
             >
-              Dời hẹn
+              {ACTIONS.save}
             </Button>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Dời hẹn gặp</DialogTitle>
-              </DialogHeader>
-              <div className="flex gap-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="appt-date">Ngày</Label>
-                  <DateInput
-                    id="appt-date"
-                    value={apptDate}
-                    onChange={setApptDate}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="appt-time">Giờ</Label>
-                  <Input
-                    id="appt-time"
-                    type="time"
-                    value={apptTime}
-                    onChange={(e) => setApptTime(e.target.value)}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose
-                  render={<Button variant="ghost">{ACTIONS.close}</Button>}
-                />
-                <Button
-                  disabled={isPending || !apptDate}
-                  onClick={handleReschedule}
-                >
-                  {ACTIONS.save}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          </div>
         </div>
       ) : null}
 

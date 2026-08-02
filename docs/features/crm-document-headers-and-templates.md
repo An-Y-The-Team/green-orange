@@ -55,11 +55,11 @@ only the template type itself.
 
 `/settings/company` is deliberately split in two, mirroring contract templates:
 
-| Left — templates | Right — data |
-|---|---|
+| Left — templates                      | Right — data                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------ |
 | Letterhead (rich text + `Chèn` chips) | Thông tin công ty: tên, slogan, địa chỉ, MST, điện thoại, email, website |
-| Quốc hiệu (rich text + `Chèn` chips) | Đại diện pháp luật: họ tên, chức vụ |
-| Logo upload | Tài khoản ngân hàng: số TK, ngân hàng, chi nhánh |
+| Quốc hiệu (rich text + `Chèn` chips)  | Đại diện pháp luật: họ tên, chức vụ                                      |
+| Logo upload                           | Tài khoản ngân hàng: số TK, ngân hàng, chi nhánh                         |
 
 Templates never contain typed-in company data — they contain **merge chips**
 (green), which are populated from the fields on the right. Chip labels in the
@@ -69,7 +69,7 @@ an operator can trace a chip back to the field that fills it.
 **Chips are display-resolved but token-stored.** While editing, a chip shows its
 live value (`resolveMergeFieldText`); before saving, the display text is reset to
 the token label (`stripMergeFieldText`). Without that pairing, a template's
-*sample* values were persisted and later surfaced as fake financial figures on
+_sample_ values were persisted and later surfaced as fake financial figures on
 real contracts (see §6).
 
 ### Logo
@@ -87,7 +87,7 @@ prints to the left of the letterhead on every document.
 - `getCompany()` → just the company (for chrome that can live with defaults)
 
 `degraded` means **the stored profile could not be read** (expired session, dead
-backend) — deliberately distinct from *"no profile saved yet"*, where the
+backend) — deliberately distinct from _"no profile saved yet"_, where the
 built-in defaults in `config/company.ts` are the truth and nothing is wrong. A
 200 with `{}` and a 501 (Python sandbox) are **not** degraded.
 
@@ -119,8 +119,7 @@ everything outside its `body` into `Contract.print_snapshot` (JSON):
 Enforced in three layers, because hiding a link is not enforcement:
 
 1. **Backend** (`contracts.module.ts`): PATCH rejects changes to any
-   `CONTRACT_CONTENT_FIELDS` (body, note, template_id, the six `rep_*` fields,
-   `print_snapshot`) once `status !== "draft"`. `status`/`signed_date` stay
+   `CONTRACT_CONTENT_FIELDS` (body, note, template*id, the six `rep*\*`fields,`print_snapshot`) once `status !== "draft"`. `status`/`signed_date` stay
    writable so signing still works.
 2. **Page**: `/projects/:id/contracts/new?edit=:id` refuses to mount the editor
    for a signed contract — the URL is hand-typable and the editor autosaves.
@@ -131,11 +130,11 @@ Enforced in three layers, because hiding a link is not enforcement:
 
 Three editors share one stack (Lexical 0.41):
 
-| Editor | Component | Shape |
-|---|---|---|
-| Contract | `contract-editor.tsx` | Full A4 sheet (`PageEditor`) |
-| Contract template | `template-editor.tsx` | Full A4 sheet (`PageEditor`) |
-| Header templates | `TemplateBlock` | Small standalone blocks, several per page |
+| Editor            | Component             | Shape                                     |
+| ----------------- | --------------------- | ----------------------------------------- |
+| Contract          | `contract-editor.tsx` | Full A4 sheet (`PageEditor`)              |
+| Contract template | `template-editor.tsx` | Full A4 sheet (`PageEditor`)              |
+| Header templates  | `TemplateBlock`       | Small standalone blocks, several per page |
 
 ### 7a. `PageEditor` — the shared A4 surface
 
