@@ -1,7 +1,9 @@
 // Cross-entity ownership guards (F10) + single-write create (F14), unit-tested
 // against a fake Prisma — no DB. The HTTP roundtrip is the README smoke check.
 import { describe, expect, test } from "bun:test";
+import type { Response } from "express";
 
+import type { PrismaService } from "../prisma/prisma.service";
 import { AttachmentsController, ProjectsController } from "./projects.module";
 
 describe("project create — contacts must belong to the client", () => {
@@ -75,6 +77,65 @@ describe("project create — contacts must belong to the client", () => {
     const data = prisma.created[0] as Record<string, unknown>;
     expect(data.working_contact_id).toBe(42);
     expect(data.appointment_at).toEqual(new Date("2026-07-30T02:00:00.000Z"));
+  });
+});
+
+describe("project list — filters, search, sort", () => {
+  // The captured Prisma call args — only what the assertions read. The list
+  // DTO isn't exported; the handler signature carries it.
+  type ListArgs = { where: Record<string, unknown>; orderBy: unknown };
+  type ListQuery = Parameters<ProjectsController["list"]>[1];
+
+  const capture = () => {
+    const findMany: ListArgs[] = [];
+    const counts: ListArgs[] = [];
+    const prisma = {
+      project: {
+        findMany: async (args: ListArgs) => {
+          findMany.push(args);
+          return [];
+        },
+        count: async (args: ListArgs) => {
+          counts.push(args);
+          return 0;
+        },
+      },
+    } as unknown as PrismaService;
+    const res = { setHeader: () => undefined } as unknown as Response;
+    return {
+      findMany,
+      counts,
+      list: (q: ListQuery) => new ProjectsController(prisma).list(res, q),
+    };
+  };
+
+  test("stage/status csv land as `in` on BOTH queries", async () => {
+    const { findMany, counts, list } = capture();
+    await list({ stage: ["request", "quote"], status: ["active", "on_hold"] });
+    expect(findMany[0]?.where.stage).toEqual({ in: ["request", "quote"] });
+    expect(findMany[0]?.where.status).toEqual({ in: ["active", "on_hold"] });
+    expect(counts[0]?.where).toBe(findMany[0]?.where as never);
+  });
+
+  test("search ORs name, code and the client's name", async () => {
+    const { findMany, list } = capture();
+    await list({ search: "villa" });
+    expect(findMany[0]?.where.OR).toEqual([
+      { name: { contains: "villa", mode: "insensitive" } },
+      { code: { contains: "villa", mode: "insensitive" } },
+      { client: { name: { contains: "villa", mode: "insensitive" } } },
+    ]);
+  });
+
+  test("whitelisted sort gets the id tiebreak; none keeps id desc", async () => {
+    const { findMany, list } = capture();
+    await list({ sort_by: "appointment_at", sort_order: "asc" });
+    await list({});
+    expect(findMany[0]?.orderBy).toEqual([
+      { appointment_at: "asc" },
+      { id: "desc" },
+    ]);
+    expect(findMany[1]?.orderBy).toEqual([{ id: "desc" }]);
   });
 });
 

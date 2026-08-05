@@ -29,6 +29,13 @@ import type { Response } from "express";
 
 import { businessToday } from "../common/business-date";
 import { toDate } from "../common/coerce";
+import {
+  CsvIn,
+  CsvIntIn,
+  ListQueryDto,
+  insensitive,
+  orderByArgs,
+} from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { PrismaService } from "../prisma/prisma.service";
@@ -129,6 +136,16 @@ class UpdateCrewDto {
   @IsOptional() @IsString() note?: string;
 }
 
+class ListCrewQuery extends ListQueryDto {
+  @IsOptional() @CsvIn() @IsIn(CREW_STATUS, { each: true }) status?: string[];
+  @IsOptional()
+  @CsvIn()
+  @IsIn(EMPLOYMENT_TYPE, { each: true })
+  employment_type?: string[];
+  @IsOptional() @CsvIntIn() @IsInt({ each: true }) role_id?: number[];
+  @IsOptional() @IsIn(["name", "created_at"]) sort_by?: "name" | "created_at";
+}
+
 @Controller("crew")
 // (exported for the X-Total-Count unit test in crew.test.ts)
 export class CrewController {
@@ -137,25 +154,44 @@ export class CrewController {
   @Get()
   list(
     @Res({ passthrough: true }) res: Response,
-    @Query() page: PageQuery,
-    @Query("status") status?: string,
-    @Query("employment_type") employmentType?: string
+    @Query() query: ListCrewQuery
   ) {
     // One `where`, both queries — a filtered list reports its filtered total,
     // never the whole roster.
     const where = {
-      ...(status ? { status } : {}),
-      ...(employmentType ? { employment_type: employmentType } : {}),
+      status: query.status?.length ? { in: query.status } : undefined,
+      employment_type: query.employment_type?.length
+        ? { in: query.employment_type }
+        : undefined,
+      default_role_id: query.role_id?.length
+        ? { in: query.role_id }
+        : undefined,
+      ...(query.search
+        ? {
+            OR: [
+              { name: insensitive(query.search) },
+              { phone: insensitive(query.search) },
+            ],
+          }
+        : {}),
     };
     return withTotalCount(
       res,
       this.prisma.crewMember.findMany({
         where,
         include: { default_role: true },
-        // Namesakes are common on a roster — id breaks the tie so pages are
-        // stable.
-        orderBy: [{ name: "asc" }, { id: "asc" }],
-        ...pageArgs(page),
+        orderBy: orderByArgs({
+          map: {
+            name: (o) => ({ name: o }),
+            created_at: (o) => ({ created_at: o }),
+          },
+          sortBy: query.sort_by,
+          sortOrder: query.sort_order,
+          // Namesakes are common on a roster — id breaks the tie so pages are
+          // stable.
+          fallback: [{ name: "asc" }, { id: "asc" }],
+        }),
+        ...pageArgs(query),
       }),
       this.prisma.crewMember.count({ where })
     );

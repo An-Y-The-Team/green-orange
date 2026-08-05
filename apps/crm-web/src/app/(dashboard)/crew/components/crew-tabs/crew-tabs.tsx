@@ -50,7 +50,7 @@ export function CrewTabs({
         ))}
       </div>
 
-      {tab === "roster" ? <RosterTab members={crew} /> : null}
+      {tab === "roster" ? <RosterTab roles={roles} /> : null}
       {tab === "roles" ? <RolesTab roles={roles} /> : null}
       {tab === "timekeeping" ? (
         <TimekeepingTab crew={crew} projects={projects} />

@@ -1,4 +1,4 @@
-import { apiFetchDetail, apiFetchList, apiFetchSafe } from "@/utils/http/http";
+import { apiFetchDetail, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
 
 import type { ClientDetail, ClientListItem } from "./types";
@@ -15,18 +15,6 @@ export async function listClients({
     `/clients${pageQuery({ limit, offset })}`,
     []
   );
-}
-
-/**
- * One page of the list PLUS how many khách hàng exist in total, from the
- * response's `X-Total-Count`. Separate from {@link listClients} because that one
- * is a picker window whose callers want rows and nothing else.
- */
-export async function listClientsPage(page: {
-  limit: number;
-  offset: number;
-}): Promise<{ rows: ClientListItem[]; total: number }> {
-  return apiFetchList<ClientListItem>(`/clients${pageQuery(page)}`);
 }
 
 // GET /clients/:id nests contacts + locations, so the detail page is one call.

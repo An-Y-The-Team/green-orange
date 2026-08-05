@@ -34,6 +34,12 @@ import type { Response } from "express";
 import { businessToday } from "../common/business-date";
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
+import {
+  CsvIn,
+  ListQueryDto,
+  insensitive,
+  orderByArgs,
+} from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { STAGE_ORDER } from "../common/stage";
@@ -178,6 +184,17 @@ const DATE_FIELDS = [
   "works_done_at",
 ] as const;
 
+const PROJECT_SORT = ["code", "name", "appointment_at", "created_at"];
+
+class ListProjectsQuery extends ListQueryDto {
+  @IsOptional() @IsString() client_id?: string;
+  @IsOptional() @CsvIn() @IsIn(STAGE, { each: true }) stage?: string[];
+  @IsOptional() @CsvIn() @IsIn(STATUS, { each: true }) status?: string[];
+  @IsOptional()
+  @IsIn(PROJECT_SORT)
+  sort_by?: "code" | "name" | "appointment_at" | "created_at";
+}
+
 @Controller("projects")
 export class ProjectsController {
   constructor(private readonly prisma: PrismaService) {}
@@ -201,16 +218,22 @@ export class ProjectsController {
   @Get()
   list(
     @Res({ passthrough: true }) res: Response,
-    @Query() page: PageQuery,
-    @Query("client_id") clientId?: string,
-    @Query("stage") stage?: string,
-    @Query("status") status?: string
+    @Query() query: ListProjectsQuery
   ) {
     // One `where`, both queries — the count cannot drift from the rows.
     const where = {
-      client_id: clientId ? Number(clientId) : undefined,
-      stage: stage || undefined,
-      status: status || undefined,
+      client_id: query.client_id ? Number(query.client_id) : undefined,
+      stage: query.stage?.length ? { in: query.stage } : undefined,
+      status: query.status?.length ? { in: query.status } : undefined,
+      ...(query.search
+        ? {
+            OR: [
+              { name: insensitive(query.search) },
+              { code: insensitive(query.search) },
+              { client: { name: insensitive(query.search) } },
+            ],
+          }
+        : {}),
     };
     return withTotalCount(
       res,
@@ -228,8 +251,18 @@ export class ProjectsController {
           working_contact: { select: { id: true, name: true, phone: true } },
           decision_maker: { select: { id: true, name: true, phone: true } },
         },
-        orderBy: { id: "desc" },
-        ...pageArgs(page),
+        orderBy: orderByArgs({
+          map: {
+            code: (o) => ({ code: o }),
+            name: (o) => ({ name: o }),
+            appointment_at: (o) => ({ appointment_at: o }),
+            created_at: (o) => ({ created_at: o }),
+          },
+          sortBy: query.sort_by,
+          sortOrder: query.sort_order,
+          fallback: [{ id: "desc" }],
+        }),
+        ...pageArgs(query),
       }),
       this.prisma.project.count({ where })
     );

@@ -20,7 +20,9 @@ import { validateWithSchema } from "./utils/validate-with-schema/validate-with-s
 
 export interface UsePageParamsOptions<T extends Record<string, unknown>> {
   defaultParams?: T;
-  schema?: z.ZodType<T>;
+  // Input is `unknown` so schemas built from field-level `.catch()` (the
+  // self-healing URL pattern) are accepted — see validate-with-schema.ts.
+  schema?: z.ZodType<T, z.ZodTypeDef, unknown>;
 }
 
 export interface UsePageParamsReturn<T extends Record<string, unknown>> {

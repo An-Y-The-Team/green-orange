@@ -226,21 +226,21 @@ describe("GET /crew → X-Total-Count", () => {
   }) => {
     const wheres: unknown[] = [];
     const headers: Record<string, unknown> = {};
-    const match = (where: { status?: string }) =>
-      roster.filter((m) => !where.status || m.status === where.status);
+    const match = (where: { status?: { in: string[] } }) =>
+      roster.filter((m) => !where.status || where.status.in.includes(m.status));
     const prisma = {
       crewMember: {
         findMany: async ({
           where,
           take,
         }: {
-          where: { status?: string };
+          where: { status?: { in: string[] } };
           take: number;
         }) => {
           wheres.push(where);
           return match(where).slice(0, take);
         },
-        count: async ({ where }: { where: { status?: string } }) => {
+        count: async ({ where }: { where: { status?: { in: string[] } } }) => {
           wheres.push(where);
           return match(where).length;
         },
@@ -249,7 +249,12 @@ describe("GET /crew → X-Total-Count", () => {
     const res = {
       setHeader: (key: string, value: unknown) => (headers[key] = value),
     } as unknown as Response;
-    const rows = await new CrewController(prisma).list(res, { limit }, status);
+    // The handler takes the DTO post-ValidationPipe, so csv params arrive as
+    // arrays here (the pipe itself is covered in common/list-query.test.ts).
+    const rows = await new CrewController(prisma).list(res, {
+      limit,
+      status: status ? [status] : undefined,
+    });
     return { rows, wheres, total: headers[TOTAL_COUNT_HEADER] };
   };
 
@@ -274,5 +279,51 @@ describe("GET /crew → X-Total-Count", () => {
 
   test("unfiltered: every row is counted", async () => {
     expect((await listCrew({})).total).toBe(3);
+  });
+});
+
+describe("crew list — search and sort", () => {
+  // The captured Prisma call args — only what the assertions read. The list
+  // DTO isn't exported; the handler signature carries it.
+  type ListArgs = { where: Record<string, unknown>; orderBy: unknown };
+  type ListQuery = Parameters<CrewController["list"]>[1];
+
+  const capture = () => {
+    const findMany: ListArgs[] = [];
+    const prisma = {
+      crewMember: {
+        findMany: async (args: ListArgs) => {
+          findMany.push(args);
+          return [];
+        },
+        count: async () => 0,
+      },
+    } as unknown as PrismaService;
+    const res = { setHeader: () => undefined } as unknown as Response;
+    return {
+      findMany,
+      list: (q: ListQuery) => new CrewController(prisma).list(res, q),
+    };
+  };
+
+  test("search ORs name and phone; role_id csv lands as `in`", async () => {
+    const { findMany, list } = capture();
+    await list({ search: "0903", role_id: [1, 2] });
+    expect(findMany[0]?.where.OR).toEqual([
+      { name: { contains: "0903", mode: "insensitive" } },
+      { phone: { contains: "0903", mode: "insensitive" } },
+    ]);
+    expect(findMany[0]?.where.default_role_id).toEqual({ in: [1, 2] });
+  });
+
+  test("whitelisted sort gets the id tiebreak; none keeps name asc", async () => {
+    const { findMany, list } = capture();
+    await list({ sort_by: "created_at", sort_order: "desc" });
+    await list({});
+    expect(findMany[0]?.orderBy).toEqual([
+      { created_at: "desc" },
+      { id: "desc" },
+    ]);
+    expect(findMany[1]?.orderBy).toEqual([{ name: "asc" }, { id: "asc" }]);
   });
 });
