@@ -8,7 +8,7 @@ import { Input } from "@yan/ui/components/input";
 import { TableCell } from "@yan/ui/components/table";
 import { cn } from "@yan/ui/lib/utils";
 
-import { TIMEKEEPING_SOURCES } from "@/constants/labels";
+import { TIMEKEEPING_SOURCES, TIMEKEEPING_STATUSES } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 
@@ -158,6 +158,8 @@ export function TimekeepingCell({
             title="Giờ từ ứng dụng Zalo — nhập tay để ghi đè"
           >
             {TIMEKEEPING_SOURCES[zalo.source] ?? zalo.source}
+            {" · "}
+            {TIMEKEEPING_STATUSES[zalo.status] ?? zalo.status}
           </Badge>
         ) : null}
       </div>

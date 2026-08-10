@@ -14,5 +14,11 @@ export enum CrewMemberStatus {
 
 export enum TimekeepingSource {
   MANUAL = "manual", // source of truth
-  ZALO_APP = "zalo_app", // future mini-app feed, read-only in UI
+  ZALO_APP = "zalo_app", // mini-app feed, read-only in UI
+}
+
+export enum TimekeepingStatus {
+  PENDING = "pending", // Chờ duyệt — mini-app submission awaiting the operator
+  APPROVED = "approved", // Đã duyệt — manual rows are born approved
+  REJECTED = "rejected", // Từ chối — worker may resubmit (back to pending)
 }

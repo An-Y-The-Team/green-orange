@@ -3,6 +3,7 @@ import type { DateRange } from "@/utils/date-range/date-range";
 import { apiFetchDetail, apiFetchList, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
 
+import { TimekeepingStatus } from "./enums";
 import type { CrewMemberStatus } from "./enums";
 import type {
   Assignment,
@@ -94,6 +95,22 @@ export async function getProjectTimekeeping({
 }): Promise<TimekeepingRecord[]> {
   return apiFetchSafe<TimekeepingRecord[]>(
     `/timekeeping?project_id=${projectId}&${rangeQuery(range)}`,
+    []
+  );
+}
+
+// Pending submissions can be older than the API's 31-day dateless default (a
+// worker logs Friday, the operator opens the tab after Tết) — so this read
+// states an explicitly wide window instead of relying on it.
+const PENDING_WINDOW_DAYS = 365;
+
+/** GET /timekeeping?status=pending — every mini-app submission awaiting duyệt. */
+export async function getPendingTimekeeping(): Promise<TimekeepingRecord[]> {
+  const from = new Date();
+  from.setUTCDate(from.getUTCDate() - PENDING_WINDOW_DAYS);
+  const fromParam = from.toISOString().slice(0, 10);
+  return apiFetchSafe<TimekeepingRecord[]>(
+    `/timekeeping?status=${TimekeepingStatus.PENDING}&from=${fromParam}&limit=${MAX_PAGE_SIZE}`,
     []
   );
 }

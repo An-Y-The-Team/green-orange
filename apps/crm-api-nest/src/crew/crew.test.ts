@@ -12,6 +12,7 @@ import { TOTAL_COUNT_HEADER } from "../common/pagination";
 import type { PrismaService } from "../prisma/prisma.service";
 import {
   CrewController,
+  TimekeepingController,
   assertAssignmentRefs,
   timekeepingSummary,
 } from "./crew.module";
@@ -198,10 +199,66 @@ describe("timekeepingSummary (manual wins over zalo_app)", () => {
     expect(summary.total_hours).toBe(15.3);
   });
 
-  test("only the requested project is aggregated", async () => {
+  // Pending/rejected mini-app rows are claims, not công — they must be filtered
+  // out in Postgres (the groupBy where), entering the total only once duyệt.
+  test("only the requested project's APPROVED rows are aggregated", async () => {
     const { prisma, calls } = fakeTimekeeping([]);
     await timekeepingSummary(prisma, 42);
-    expect(calls[0]?.where).toEqual({ project_id: 42 });
+    expect(calls[0]?.where).toEqual({ project_id: 42, status: "approved" });
+  });
+});
+
+// Operator duyệt/từ chối. What must not regress: only a pending row can be
+// decided — an approved day cannot be flipped (or re-approved) and a manual row
+// (born approved) can never be "decided" at all — and the write is exactly
+// { status }, nothing else.
+describe("POST /timekeeping/:id/decide", () => {
+  const decide = async (row: { status: string } | null, status: string) => {
+    const updates: Record<string, unknown>[] = [];
+    const prisma = {
+      timekeepingRecord: {
+        findUnique: async () => row && { id: 6, project_id: 2, ...row },
+        update: async (args: Record<string, unknown>) => {
+          updates.push(args);
+          return { id: 6, project_id: 2, ...(args.data as object) };
+        },
+      },
+      project: {
+        findUnique: async () => ({ id: 2, stage: "execution" }),
+      },
+    } as unknown as PrismaService;
+    const result = await new TimekeepingController(prisma).decide(6, {
+      status,
+    });
+    return { result, updates };
+  };
+
+  test("pending → approved writes exactly the status", async () => {
+    const { result, updates } = await decide({ status: "pending" }, "approved");
+    expect(result.status).toBe("approved");
+    expect(updates[0]?.data).toEqual({ status: "approved" });
+  });
+
+  test("pending → rejected works the same", async () => {
+    const { result } = await decide({ status: "pending" }, "rejected");
+    expect(result.status).toBe("rejected");
+  });
+
+  test("an already-approved row cannot be decided again", async () => {
+    await expect(decide({ status: "approved" }, "rejected")).rejects.toThrow(
+      /only pending records/
+    );
+  });
+
+  // Manual rows are born approved, so this same guard covers them.
+  test("a rejected row cannot be flipped by decide (worker resubmits instead)", async () => {
+    await expect(decide({ status: "rejected" }, "approved")).rejects.toThrow(
+      /only pending records/
+    );
+  });
+
+  test("an unknown id is a 404", async () => {
+    await expect(decide(null, "approved")).rejects.toThrow(/not found/);
   });
 });
 

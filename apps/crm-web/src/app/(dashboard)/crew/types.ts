@@ -4,6 +4,7 @@ import type {
   CrewMemberStatus,
   EmploymentType,
   TimekeepingSource,
+  TimekeepingStatus,
 } from "./enums";
 
 /** Vị trí — user-managed name list (DB rows, not an enum). */
@@ -57,5 +58,9 @@ export interface TimekeepingRecord {
   work_date: string;
   hours: number;
   source: TimekeepingSource; // manual is source of truth
+  status: TimekeepingStatus; // only zalo_app rows are ever pending/rejected
+  start_time?: string | null; // "HH:mm" — mini-app submissions only
+  end_time?: string | null;
   note?: string | null;
+  created_at: string; // full ISO
 }

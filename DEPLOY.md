@@ -477,15 +477,18 @@ internal network).
 `crm-api-nest` (NestJS + Prisma) implements the **v2** contract and is the **only**
 backend that serves the current UI — every dashboard page shows live data. It is no
 longer interchangeable with `crm-api`, which still implements **v1** (see step 5 and
-AGENTS.md). Like `crm-api` it is **internal-only** (no `ports:`, no Caddy route),
-reached at `http://crm-api-nest:8001`. In prod, **crm-web points at it by default**
+AGENTS.md). crm-web reaches it internally at `http://crm-api-nest:8001`; since the
+Zalo mini app (§6d) it is **also published at `CRM_API_DOMAIN`** via Caddy — every
+route is JWT-guarded, and worker tokens only unlock `/worker/*`. The Python
+`crm-api` stays internal-only. In prod, **crm-web points at it by default**
 (`CRM_API_URL: http://crm-api-nest:8001` in
 [`docker-compose.prod.yml`](docker-compose.prod.yml)); the Python `crm-api` keeps
 running so switching back is one line (see step 5). CI builds + pushes the
 `crm-api-nest` image and pins `CRM_API_NEST_IMAGE` in `deploy/deploy.env`.
 
-**1. No DNS / no Caddy route** — it's internal-only, same as `crm-api`. Nothing to
-add; crm-web already reaches it over the docker network.
+**1. DNS / Caddy route** — crm-web reaches it over the docker network with no route
+needed. For the Zalo mini app, `CRM_API_DOMAIN` (deploy.env) must resolve to the
+edge and pass through to Caddy :8001 — see §6d.
 
 **2. Create the `crm_nest` database** — it runs `prisma migrate deploy` on start,
 but the database must exist first. As with `crm` (§6b), the multi-DB init script
@@ -658,6 +661,74 @@ the nightly dump (§8).
 >   out as `http://`, that header is the first thing to check.
 > - Locking an account takes effect within one access-token lifetime (Authentik
 >   refuses the refresh), not at the instant the button is pressed.
+
+---
+
+## 6d. Zalo mini app "Chấm công" (apps/zalo-timekeeping)
+
+Workers log hours from a Zalo Mini App; logs land as **pending**
+`TimekeepingRecord` rows (`source: zalo_app`) that the operator duyệt/từ chối on
+the CRM's Nhân sự → Chấm công tab. **Zalo hosts the app bundle** (`zmp deploy`,
+not our Docker pipeline) — only the CRM API needs public reachability. Full app
+docs in [`apps/zalo-timekeeping/README.md`](apps/zalo-timekeeping/README.md).
+
+**1. Zalo Developers console (longest lead time — start first)**
+
+- Create the Mini App under the company Zalo App at developers.zalo.me; note the
+  Mini App ID and the Zalo App's **secret key**.
+- Register the **getPhoneNumber** permission in the Mini App Center (written
+  justification + screenshot; reviewed with the version submission — login
+  depends on it).
+- Whitelist `https://api-crm.dichvuyan.com` in the app's request-domain list.
+
+**2. Secrets in Dockhand** (both new, both required by crm-api-nest):
+
+- `CRM_JWT_SECRET` — signs crew HS256 JWTs. Crew tokens are HS256 **even in
+  AUTH_MODE=oidc** (`src/auth/jwt.guard.ts`), so prod now needs this set:
+  `openssl rand -hex 32`.
+- `ZALO_APP_SECRET` — the Zalo App secret key from step 1; converts phone-number
+  tokens via graph.zalo.me in `POST /auth/zalo-token`.
+
+**3. Phone dedup pre-check** — the release's migration normalizes
+`CrewMember.phone` (`+84`/`84` → `0…`, strip separators) and adds a UNIQUE index.
+Duplicates make `prisma migrate deploy` **fail loudly on container start** (by
+design — never auto-merge two workers). Before deploying, on the VPS:
+
+```bash
+PG=$(docker ps -qf label=com.docker.compose.service=postgres)
+docker exec "$PG" psql -U postgres -d crm_nest -c \
+  "SELECT regexp_replace(phone,'\D','','g'), count(*) FROM \"CrewMember\" \
+   WHERE phone IS NOT NULL GROUP BY 1 HAVING count(*) > 1"
+```
+
+Rows returned → fix those members' phones in crm-web first.
+
+**4. Edge (Pangolin/Newt)** — add the public hostname `api-crm.dichvuyan.com` →
+VPS `:8001` (same pattern as the existing domains). DNS + Caddy
+(`CRM_API_DOMAIN` in deploy.env) are already wired by the release.
+
+**5. Deploy the release** — tag as usual; migration runs on container start.
+Smoke: `curl https://api-crm.dichvuyan.com/health` → `{"status":"ok",...}` and an
+unauthenticated `curl https://api-crm.dichvuyan.com/projects` → 401.
+
+**6. Deploy the mini app** (developer machine, needs Zalo login):
+
+```bash
+cd apps/zalo-timekeeping
+bun run build            # bundle in www/
+bunx zmp-cli login       # QR scan with the company Zalo account
+bunx zmp-cli deploy      # "Deploy your existing project" → www/
+```
+
+This uploads a **testing** version (deep link `https://zalo.me/s/<miniAppId>`,
+QR in the console) usable by registered testers. When it checks out: submit the
+version for **Zalo review** in the Mini App Center, then **publish**. Workers
+install nothing — the app lives inside Zalo.
+
+**7. Roster** — a worker can log in only if their Zalo phone matches a
+`CrewMember.phone` (normalized `0…` form) and they're not `left`; they can log
+time only on projects they have an Assignment covering that date. Both are
+maintained in crm-web (Nhân sự page).
 
 ---
 

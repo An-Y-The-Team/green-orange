@@ -5,10 +5,14 @@ import { z } from "zod";
 
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
-import { ACTION_MESSAGES, NOUNS } from "@/constants/server-action";
+import {
+  ACTION_MESSAGES,
+  INVALID_INPUT_MESSAGE,
+  NOUNS,
+} from "@/constants/server-action";
 import { apiSend, toActionError } from "@/utils/http/http";
 
-import { TimekeepingSource } from "../enums";
+import { TimekeepingSource, TimekeepingStatus } from "../enums";
 import { getProjectAssignments, getProjectTimekeeping } from "../queries";
 import type { Assignment, TimekeepingRecord } from "../types";
 
@@ -81,6 +85,50 @@ export async function deleteTimekeeping(
       message: toActionError(
         error,
         ACTION_MESSAGES.deleteFailed(NOUNS.timesheet)
+      ),
+    };
+  }
+}
+
+// Duyệt / từ chối a pending mini-app submission. POST /timekeeping/:id/decide
+// 409s unless the row is pending (an approved day cannot be flipped; the
+// worker resubmitting is what turns a rejected day back to pending).
+const decideSchema = z.object({
+  id: z.number().int().positive(),
+  status: z.enum([TimekeepingStatus.APPROVED, TimekeepingStatus.REJECTED]),
+});
+
+export type DecideTimekeepingValues = z.infer<typeof decideSchema>;
+
+export async function decideTimekeeping(
+  _prev: ServerActionState,
+  input: DecideTimekeepingValues
+): Promise<ServerActionState> {
+  const parsed = decideSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, message: INVALID_INPUT_MESSAGE };
+  }
+
+  const approved = parsed.data.status === TimekeepingStatus.APPROVED;
+  try {
+    await apiSend<TimekeepingRecord>(
+      `/timekeeping/${parsed.data.id}/decide`,
+      "POST",
+      { status: parsed.data.status }
+    );
+    revalidatePath("/crew");
+    return {
+      success: true,
+      message: approved
+        ? `Đã duyệt ${NOUNS.timesheet}.`
+        : `Đã từ chối ${NOUNS.timesheet}.`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.updateFailed(NOUNS.timesheet)
       ),
     };
   }

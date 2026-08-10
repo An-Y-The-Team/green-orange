@@ -399,7 +399,7 @@ model CrewMember {
   /// it as a plain column and search would silently stop updating; the
   /// generated expression lives in that migration.
   name_norm  String?
-  phone           String? // Zalo — future mini-app identity, capture from day one
+  phone           String?  @unique // Zalo mini-app identity — normalized "0…" 10 digits, see common/phone.ts
   employment_type String // permanent | day_hire
   default_role_id Int?
   status          String   @default("working") // working | on_leave | left
@@ -440,7 +440,11 @@ model TimekeepingRecord {
   work_date      DateTime @db.Date
   hours          Decimal // raw hours worked that day
   source         String // manual | zalo_app — manual is source of truth
+  status         String   @default("approved") // pending | approved | rejected — manual rows are born approved
+  start_time     String? // "HH:mm", zalo_app rows only (String, not @db.Time: interceptor would emit 1970 ISO)
+  end_time       String? // "HH:mm"; end <= start means overnight (+24h)
   note           String?
+  created_at     DateTime @default(now())
 
   crew_member CrewMember @relation(fields: [crew_member_id], references: [id])
   project     Project    @relation(fields: [project_id], references: [id])

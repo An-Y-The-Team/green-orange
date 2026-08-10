@@ -20,6 +20,14 @@ http://{$CMS_DOMAIN}:8055 {
 	reverse_proxy cms:8055
 }
 
+# CRM API (NestJS) — public for the Zalo mini app (Zalo hosts the bundle, so
+# workers' requests arrive over the internet). Every route is JWT-guarded and
+# crew tokens only unlock /worker/* (src/auth/jwt.guard.ts). The Python
+# crm-api (:8000) is NOT proxied — it stays internal-only.
+http://{$CRM_API_DOMAIN}:8001 {
+	reverse_proxy crm-api-nest:8001
+}
+
 # CRM dashboard (Next.js). crm-api is NOT proxied here — it stays internal-only.
 # Force X-Forwarded-Proto https: TLS terminates upstream at the Newt/Pangolin
 # edge, so Caddy sees plain HTTP. Without this, Auth.js builds its OAuth callback

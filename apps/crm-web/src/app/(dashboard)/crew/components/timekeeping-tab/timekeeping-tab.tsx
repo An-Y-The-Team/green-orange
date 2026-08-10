@@ -33,7 +33,11 @@ import {
   loadProjectAssignments,
   loadProjectTimekeeping,
 } from "../../actions/timekeeping";
-import { CrewMemberStatus, TimekeepingSource } from "../../enums";
+import {
+  CrewMemberStatus,
+  TimekeepingSource,
+  TimekeepingStatus,
+} from "../../enums";
 import type { CrewMember, TimekeepingRecord } from "../../types";
 import { TimekeepingCell } from "./components/timekeeping-cell/timekeeping-cell";
 
@@ -136,9 +140,13 @@ export function TimekeepingTab({ crew }: { crew: CrewMember[] }) {
       zalo: cell.find((r) => r.source === TimekeepingSource.ZALO_APP),
     };
   };
+  // A lone zalo row only counts once duyệt — pending/rejected submissions are
+  // claims, not công (mirrors the server's summary rule).
   const hoursFor = (memberId: number, date: string) => {
     const { manual, zalo } = cellFor(memberId, date);
-    return manual?.hours ?? zalo?.hours ?? 0;
+    const zaloHours =
+      zalo?.status === TimekeepingStatus.APPROVED ? zalo.hours : 0;
+    return manual?.hours ?? zaloHours;
   };
 
   const dayTotal = (date: string) =>

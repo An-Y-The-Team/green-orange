@@ -46,8 +46,16 @@ const EMPLOYMENT_TYPE = ["permanent", "day_hire"];
 const CREW_STATUS_WORKING = "working";
 const CREW_STATUS = [CREW_STATUS_WORKING, "on_leave", "left"];
 // Manual is the source of truth for a member+day — see timekeepingSummary.
+// Source + status constants are exported: worker.module.ts (the mini-app
+// ingest path) writes the same rows and must never drift from these.
 const TIMEKEEPING_SOURCE_MANUAL = "manual";
-const TIMEKEEPING_SOURCE = [TIMEKEEPING_SOURCE_MANUAL, "zalo_app"];
+export const TIMEKEEPING_SOURCE_ZALO = "zalo_app";
+const TIMEKEEPING_SOURCE = [TIMEKEEPING_SOURCE_MANUAL, TIMEKEEPING_SOURCE_ZALO];
+// Rows are born approved (manual entry by the operator IS the approval);
+// only the mini-app ingest writes "pending", and only "pending" can be decided.
+export const TIMEKEEPING_STATUS_PENDING = "pending";
+export const TIMEKEEPING_STATUS_APPROVED = "approved";
+export const TIMEKEEPING_STATUS_REJECTED = "rejected";
 
 // GET /timekeeping has all-optional filters over the fastest-growing table (one
 // row per member per work day per source), so a dateless call used to sort the
@@ -56,7 +64,8 @@ const DEFAULT_TIMEKEEPING_WINDOW_DAYS = 31;
 
 // businessToday() (not `new Date()`) so the window lines up with the business
 // calendar day the @db.Date work_date column stores.
-const defaultWindowStart = (): Date => {
+// Exported for worker.module.ts — the worker history list uses the same window.
+export const defaultWindowStart = (): Date => {
   const start = businessToday();
   start.setUTCDate(start.getUTCDate() - DEFAULT_TIMEKEEPING_WINDOW_DAYS);
   return start;
@@ -429,6 +438,13 @@ class TimekeepingSummaryQuery {
   @IsInt() @Min(1) project_id: number;
 }
 
+// Only the two terminal states — a decide never puts a row BACK to pending
+// (the worker resubmitting does that, see worker.module.ts).
+class DecideTimekeepingDto {
+  @IsIn([TIMEKEEPING_STATUS_APPROVED, TIMEKEEPING_STATUS_REJECTED])
+  status: string;
+}
+
 /**
  * One project's chấm công totals: hours summed and distinct work days counted,
  * over EVERY row the project has. The execution panel used to reduce one page of
@@ -459,9 +475,11 @@ export const timekeepingSummary = async (
   // trình, which is fine. If it ever isn't, this becomes a $queryRaw with
   // `DISTINCT ON (crew_member_id, work_date) ORDER BY source = 'manual' DESC`
   // and the rule below moves into SQL.
+  // Only approved rows count: a pending/rejected mini-app submission is a
+  // claim, not công — it enters the total the moment the operator duyệts it.
   const groups = await prisma.timekeepingRecord.groupBy({
     by: ["crew_member_id", "work_date", "source"],
-    where: { project_id: projectId },
+    where: { project_id: projectId, status: TIMEKEEPING_STATUS_APPROVED },
     _sum: { hours: true },
   });
 
@@ -490,7 +508,8 @@ export const timekeepingSummary = async (
 };
 
 @Controller("timekeeping")
-class TimekeepingController {
+// (exported for the decide unit test in crew.test.ts)
+export class TimekeepingController {
   constructor(private readonly prisma: PrismaService) {}
 
   // A dateless call gets the last DEFAULT_TIMEKEEPING_WINDOW_DAYS, not all time:
@@ -502,6 +521,7 @@ class TimekeepingController {
     @Query() page: PageQuery,
     @Query("project_id") projectId?: string,
     @Query("crew_member_id") crewMemberId?: string,
+    @Query("status") status?: string,
     @Query("from") from?: string,
     @Query("to") to?: string
   ) {
@@ -510,6 +530,7 @@ class TimekeepingController {
     const where = {
       ...(projectId ? { project_id: Number(projectId) } : {}),
       ...(crewMemberId ? { crew_member_id: Number(crewMemberId) } : {}),
+      ...(status ? { status } : {}),
       ...(from || to
         ? {
             work_date: {
@@ -557,6 +578,28 @@ class TimekeepingController {
       where: { crew_member_id_project_id_work_date_source: key },
       create: { ...key, hours: dto.hours, note: dto.note ?? null },
       update: { hours: dto.hours, note: dto.note ?? null },
+    });
+  }
+
+  // Operator duyệt/từ chối of a mini-app submission — same shape as
+  // POST /quotes/:id/decide. Only pending rows can be decided, which also
+  // blocks deciding manual rows (born approved). Rejected is terminal here;
+  // the worker resubmitting flips the row back to pending (worker.module.ts).
+  @Post(":id/decide")
+  async decide(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: DecideTimekeepingDto
+  ) {
+    const row = await this.prisma.timekeepingRecord.findUnique({
+      where: { id },
+    });
+    if (!row) throw new NotFoundException("Timekeeping record not found");
+    await assertProjectOpen(this.prisma, row.project_id);
+    if (row.status !== TIMEKEEPING_STATUS_PENDING)
+      throw new ConflictException("only pending records can be decided");
+    return this.prisma.timekeepingRecord.update({
+      where: { id },
+      data: { status: dto.status },
     });
   }
 

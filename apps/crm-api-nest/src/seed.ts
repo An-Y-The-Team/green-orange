@@ -1034,6 +1034,20 @@ export const TIMEKEEPING: Seeded<Prisma.TimekeepingRecordUncheckedCreateInput>[]
       hours: 8,
       source: "manual",
     },
+    // Fresh mini-app submission awaiting approval — feeds the pending-approvals
+    // card in crm-web. id 4 above stays implicitly approved (status default) so
+    // the manual/zalo cell collision scenario is preserved.
+    {
+      id: 6,
+      crew_member_id: 1,
+      project_id: 2,
+      work_date: day(-1),
+      hours: 9,
+      source: "zalo_app",
+      status: "pending",
+      start_time: "07:30",
+      end_time: "16:30",
+    },
   ];
 
 // Metadata only — no upload. s3_key doubles as the display filename.

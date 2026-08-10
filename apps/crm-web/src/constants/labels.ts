@@ -17,6 +17,7 @@ import {
   CrewMemberStatus,
   EmploymentType,
   TimekeepingSource,
+  TimekeepingStatus,
 } from "@/app/(dashboard)/crew/enums";
 import {
   AcceptanceSubStatus,
@@ -188,6 +189,12 @@ export const CREW_MEMBER_STATUSES: Record<CrewMemberStatus, Label> = {
 export const TIMEKEEPING_SOURCES: Record<TimekeepingSource, string> = {
   [TimekeepingSource.MANUAL]: "Nhập tay",
   [TimekeepingSource.ZALO_APP]: "Zalo app",
+};
+
+export const TIMEKEEPING_STATUSES: Record<TimekeepingStatus, string> = {
+  [TimekeepingStatus.PENDING]: "Chờ duyệt",
+  [TimekeepingStatus.APPROVED]: "Đã duyệt",
+  [TimekeepingStatus.REJECTED]: "Từ chối",
 };
 
 /**
