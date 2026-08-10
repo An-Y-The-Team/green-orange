@@ -26,6 +26,12 @@ import {
 } from "class-validator";
 import type { Response } from "express";
 
+import {
+  CsvIn,
+  ListQueryDto,
+  insensitive,
+  orderByArgs,
+} from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -56,21 +62,51 @@ class UpdateClientDto {
   @IsOptional() @IsString() note?: string;
 }
 
+class ListClientsQuery extends ListQueryDto {
+  @IsOptional() @CsvIn() @IsIn(CLIENT_TYPE, { each: true }) type?: string[];
+  @IsOptional() @IsIn(["name", "created_at"]) sort_by?: "name" | "created_at";
+}
+
 @Controller("clients")
-class ClientsController {
+// (exported for the list filter/search unit test in clients.test.ts)
+export class ClientsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  list(@Res({ passthrough: true }) res: Response, @Query() page: PageQuery) {
+  list(
+    @Res({ passthrough: true }) res: Response,
+    @Query() query: ListClientsQuery
+  ) {
+    // One `where`, both queries — the count cannot drift from the rows.
+    const where = {
+      type: query.type?.length ? { in: query.type } : undefined,
+      ...(query.search
+        ? {
+            OR: [
+              { name: insensitive(query.search) },
+              { tax_code: insensitive(query.search) },
+            ],
+          }
+        : {}),
+    };
     return withTotalCount(
       res,
       this.prisma.client.findMany({
+        where,
         include: { _count: { select: { locations: true, projects: true } } },
-        // Was unordered: paging an unordered query overlaps and drops rows.
-        orderBy: { id: "asc" },
-        ...pageArgs(page),
+        orderBy: orderByArgs({
+          map: {
+            name: (o) => ({ name: o }),
+            created_at: (o) => ({ created_at: o }),
+          },
+          sortBy: query.sort_by,
+          sortOrder: query.sort_order,
+          // Was unordered: paging an unordered query overlaps and drops rows.
+          fallback: [{ id: "asc" }],
+        }),
+        ...pageArgs(query),
       }),
-      this.prisma.client.count()
+      this.prisma.client.count({ where })
     );
   }
 

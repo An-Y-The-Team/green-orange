@@ -144,6 +144,10 @@ model Project {
   @@index([location_id]) // location delete guard + its FK RESTRICT check
   @@index([working_contact_id]) // contact/client delete guards + FK RESTRICT check
   @@index([decision_maker_contact_id]) // contact/client delete guards + FK RESTRICT check
+  // ponytail: no trgm index for ?search= — ILIKE %x% over ~10^3 rows seq-scans
+  // fine; add a pg_trgm GIN on the searched name columns when it doesn't.
+  @@index([stage]) // GET /projects?stage=
+  @@index([status]) // GET /projects?status=
 }
 
 model Quote {
@@ -161,6 +165,7 @@ model Quote {
   send_logs QuoteSendLog[]
 
   @@unique([project_id, version])
+  @@index([status]) // GET /quotes?status=
 }
 
 model QuoteItem {
@@ -358,6 +363,10 @@ model CrewMember {
   default_role CrewRole?           @relation(fields: [default_role_id], references: [id])
   assignments  Assignment[]
   timekeeping  TimekeepingRecord[]
+
+  @@index([status]) // GET /crew?status=
+  @@index([employment_type]) // GET /crew?employment_type=
+  @@index([default_role_id]) // GET /crew?role_id=, role delete guard
 }
 
 model Assignment {

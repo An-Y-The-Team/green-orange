@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
+    "@yan/shared": "*",
     "@radix-ui/react-label": "^2.1.9",
     "@radix-ui/react-slot": "^1.2.5",
     "class-variance-authority": "^0.7.1",

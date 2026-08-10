@@ -28,18 +28,6 @@ export async function listCrew({
 }
 
 /**
- * One page of the roster PLUS how many nhân sự exist in total, from the
- * response's `X-Total-Count`. Separate from {@link listCrew} because that one is
- * a picker window whose callers want rows and nothing else.
- */
-export async function listCrewPage(page: {
-  limit: number;
-  offset: number;
-}): Promise<{ rows: CrewMember[]; total: number }> {
-  return apiFetchList<CrewMember>(`/crew${pageQuery(page)}`);
-}
-
-/**
  * How many nhân sự have `status`, counted server-side — the roster page used to
  * count the members on its page, which undercounts from page 2 on. `limit=1`
  * because the API floors a smaller limit to its 100-row default and the answer is

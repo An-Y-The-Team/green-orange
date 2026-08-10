@@ -98,10 +98,50 @@ describe("GET /quotes → is_latest", () => {
       [{ id: 1, project_id: 5, version: 1 }],
       [{ project_id: 5, version: 2 }]
     );
-    const rows = await new QuotesController(prisma).list(res(), {}, "5");
+    const rows = await new QuotesController(prisma).list(res(), {
+      project_id: "5",
+    });
     expect(prisma.findManyArgs[0].include.items).toBeTruthy(); // F22/F23 split
     expect(prisma.groupByArgs).toEqual([]);
     expect(rows[0]).not.toHaveProperty("is_latest");
+  });
+});
+
+describe("quote list — filters, search, sort", () => {
+  test("status csv lands as `in`; search reaches through the project relation", async () => {
+    const prisma = fake([], []);
+    await new QuotesController(prisma).list(res(), {
+      status: ["deal", "waiting"],
+      search: "villa",
+    });
+    const where = prisma.findManyArgs[0].where;
+    expect(where.status).toEqual({ in: ["deal", "waiting"] });
+    expect(where.OR).toEqual([
+      { project: { name: { contains: "villa", mode: "insensitive" } } },
+      { project: { code: { contains: "villa", mode: "insensitive" } } },
+      {
+        project: {
+          client: { name: { contains: "villa", mode: "insensitive" } },
+        },
+      },
+    ]);
+  });
+
+  test("whitelisted sort gets the id tiebreak; none keeps version desc", async () => {
+    const prisma = fake([], []);
+    // The list DTO isn't exported; the handler signature carries it.
+    const list = (q: Parameters<QuotesController["list"]>[1]) =>
+      new QuotesController(prisma).list(res(), q);
+    await list({ sort_by: "total_amount", sort_order: "desc" });
+    await list({});
+    expect(prisma.findManyArgs[0].orderBy).toEqual([
+      { total_amount: "desc" },
+      { id: "desc" },
+    ]);
+    expect(prisma.findManyArgs[1].orderBy).toEqual([
+      { version: "desc" },
+      { id: "desc" },
+    ]);
   });
 });
 

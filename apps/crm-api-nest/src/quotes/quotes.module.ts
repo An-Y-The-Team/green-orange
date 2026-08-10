@@ -32,13 +32,22 @@ import type { Response } from "express";
 
 import { businessToday } from "../common/business-date";
 import { toBig } from "../common/coerce";
-import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
+import {
+  CsvIn,
+  ListQueryDto,
+  insensitive,
+  orderByArgs,
+} from "../common/list-query";
+import { pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 
 const CHANNEL = ["zalo", "email", "print"];
 const DECISION = ["deal", "on_hold", "rejected"];
+// Full lifecycle values (schema.prisma Quote.status) — DECISION is only the
+// closing subset the decide endpoint accepts.
+const QUOTE_STATUS = ["draft", "waiting", ...DECISION];
 
 // F23: `client` and `project_code` used to be denormalized onto Quote; both were
 // dropped, so consumers need the relation to print anything but `#12`. Same shape
@@ -169,6 +178,14 @@ const computeItems = (items: QuoteItemDto[]) => {
   return { rows, total };
 };
 
+class ListQuotesQuery extends ListQueryDto {
+  @IsOptional() @IsString() project_id?: string;
+  @IsOptional() @CsvIn() @IsIn(QUOTE_STATUS, { each: true }) status?: string[];
+  @IsOptional()
+  @IsIn(["id", "version", "total_amount", "decided_date"])
+  sort_by?: "id" | "version" | "total_amount" | "decided_date";
+}
+
 @Controller("quotes")
 export class QuotesController {
   constructor(private readonly prisma: PrismaService) {}
@@ -180,17 +197,41 @@ export class QuotesController {
   @Get()
   async list(
     @Res({ passthrough: true }) res: Response,
-    @Query() page: PageQuery,
-    @Query("project_id") projectId?: string
+    @Query() query: ListQuotesQuery
   ) {
+    const projectId = query.project_id;
     // One `where` for both queries — the count cannot drift from the rows.
-    const where = projectId ? { project_id: Number(projectId) } : undefined;
+    // Quotes have no name of their own — search reaches through the (nullable)
+    // project relation, so standalone quotes never match a search term.
+    const where = {
+      project_id: projectId ? Number(projectId) : undefined,
+      status: query.status?.length ? { in: query.status } : undefined,
+      ...(query.search
+        ? {
+            OR: [
+              { project: { name: insensitive(query.search) } },
+              { project: { code: insensitive(query.search) } },
+              { project: { client: { name: insensitive(query.search) } } },
+            ],
+          }
+        : {}),
+    };
     const args = {
       where,
-      // Every project restarts at version 1, so version alone is not a total
-      // order across projects — id breaks the tie.
-      orderBy: [{ version: "desc" as const }, { id: "desc" as const }],
-      ...pageArgs(page),
+      orderBy: orderByArgs({
+        map: {
+          id: (o) => ({ id: o }),
+          version: (o) => ({ version: o }),
+          total_amount: (o) => ({ total_amount: o }),
+          decided_date: (o) => ({ decided_date: o }),
+        },
+        sortBy: query.sort_by,
+        sortOrder: query.sort_order,
+        // Every project restarts at version 1, so version alone is not a total
+        // order across projects — id breaks the tie.
+        fallback: [{ version: "desc" as const }, { id: "desc" as const }],
+      }),
+      ...pageArgs(query),
     };
     const total = this.prisma.quote.count({ where });
     // `is_latest` is for the cross-project list, whose rows are a page out of
