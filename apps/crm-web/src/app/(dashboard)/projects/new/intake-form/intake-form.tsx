@@ -314,7 +314,13 @@ export function IntakeForm({
                 variant="link"
                 size="sm"
                 className="h-auto p-0"
-                onClick={() => setShowQuickCreate((v) => !v)}
+                onClick={() => {
+                  const opening = !showQuickCreate;
+                  setShowQuickCreate(opening);
+                  // A new client supersedes any selection — drop it so the
+                  // contact/location selects of the old client disappear.
+                  if (opening) void selectClient(0);
+                }}
               >
                 + Thêm khách hàng mới
               </Button>
