@@ -50,12 +50,12 @@ export const quickClientSchema = z
 export type QuickClientFormValues = z.infer<typeof quickClientSchema>;
 
 export const createProjectSchema = z.object({
-  client_id: z.number().int().positive(),
-  location_id: z.number().int().positive(),
+  client_id: z.number().int().positive("Chọn khách hàng"),
+  location_id: z.number().int().positive("Chọn địa điểm thi công"),
   working_contact_id: z.number().int().positive().optional(),
   decision_maker_contact_id: z.number().int().positive().optional(),
-  name: z.string().min(1),
-  type_ids: z.array(z.number().int().positive()).min(1),
+  name: z.string().min(1, "Nhập tên công trình"),
+  type_ids: z.array(z.number().int().positive()).min(1, "Chọn ít nhất 1 loại"),
   // Starting stage — default Yêu cầu. Direct create / pre-CRM backfill can
   // start mid-pipeline; stage-1 fields below are only sent for REQUEST.
   stage: z.nativeEnum(ProjectStage).default(ProjectStage.REQUEST),

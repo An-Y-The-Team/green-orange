@@ -155,7 +155,9 @@ export function IntakeForm({
   // auto-pick the returned location and hide those selects. Returns the load so
   // the submit path can wait for the auto-picked location.
   function selectClient(id: number) {
-    form.setValue("client_id", id, { shouldValidate: true });
+    // Clearing the selection is a step, not a mistake — only submit complains.
+    form.setValue("client_id", id, { shouldValidate: Boolean(id) });
+    if (!id) form.clearErrors("client_id");
     form.setValue("location_id", 0);
     form.setValue("working_contact_id", undefined);
     form.setValue("decision_maker_contact_id", undefined);
