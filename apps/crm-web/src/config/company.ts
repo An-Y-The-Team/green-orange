@@ -1,7 +1,7 @@
 /**
  * Built-in defaults for the company these documents (Báo giá / Hợp đồng) are
  * issued by, printed in the header of every A4 document. The live values come
- * from the editable company profile (Danh mục → Thông tin công ty), which
+ * from the editable company profile (nav → Thông tin công ty), which
  * falls back to these per field — see settings/company/queries.ts and
  * components/company-provider.
  */

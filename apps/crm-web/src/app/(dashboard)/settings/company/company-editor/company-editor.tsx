@@ -1,7 +1,6 @@
 "use client";
 
 import { ImageUp, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -96,7 +95,6 @@ const HEADER_TOKENS: PaletteToken[] = FIELD_GROUPS.flatMap((g) =>
  * so nobody retypes the company name into a template.
  */
 export function CompanyEditor({ company }: { company: CompanyData }) {
-  const router = useRouter();
   const [values, setValues] = useState<CompanyInfo>(company);
   const [logo, setLogo] = useState(company.logo);
   const { status, message, schedule, flush } = useAutosave("saved");
@@ -176,6 +174,8 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
     save();
   };
 
+  // Standalone page — nothing to go back to, so "Lưu" just forces the pending
+  // autosave through and says so either way.
   const onDone = async () => {
     const result = await flush();
     if (result.status !== "saved") {
@@ -184,7 +184,7 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
       });
       return;
     }
-    router.push("/settings");
+    toast.success("Đã lưu thông tin công ty");
   };
 
   // Chips resolve against what is typed right now, so edits below show up in
@@ -195,7 +195,7 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
     <>
       <div className="sticky top-0 z-20 flex items-center justify-between gap-2 rounded-md border bg-background/95 p-1.5 shadow-sm backdrop-blur">
         <p className="px-2 text-xs text-muted-foreground">
-          Đầu trang & thông tin in trên mọi báo giá, hợp đồng, quyết toán.
+          In trên mọi báo giá, hợp đồng, quyết toán.
         </p>
         <div className="flex items-center gap-2">
           <SaveStatusBadge status={status} message={message} />
@@ -205,7 +205,7 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
             disabled={status === "saving"}
             onClick={onDone}
           >
-            Xong
+            {ACTIONS.save}
           </Button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import {
+  Building2,
   FileSignature,
   FileText,
   HardHat,
@@ -28,5 +29,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Hợp đồng", href: "/contracts", icon: FileSignature },
   { label: "Thu & công nợ", href: "/receivables", icon: Wallet },
   { label: FIELDS.crew, href: "/crew", icon: UsersRound },
+  // Company profile is its own destination: nobody looks for the letterhead
+  // under "Danh mục".
+  { label: "Thông tin công ty", href: "/settings/company", icon: Building2 },
   { label: "Danh mục", href: "/settings", icon: Tags },
 ];

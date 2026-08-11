@@ -9,6 +9,11 @@ import { NAV_ITEMS } from "@/config/nav";
 
 export function AppSidebar({ footer }: { footer?: React.ReactNode }) {
   const pathname = usePathname();
+  // Longest match wins, so /settings/company highlights only its own item and
+  // not the /settings one above it.
+  const activeHref = NAV_ITEMS.map((i) => i.href)
+    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
@@ -20,8 +25,7 @@ export function AppSidebar({ footer }: { footer?: React.ReactNode }) {
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 px-2 py-2">
         {NAV_ITEMS.map((item) => {
-          const active =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active = activeHref === item.href;
           const Icon = item.icon;
           return (
             <Link
