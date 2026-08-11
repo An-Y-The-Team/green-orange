@@ -19,7 +19,7 @@ import { labelOf } from "@/utils/label-of/label-of";
 
 import { ReviseQuoteButton } from "../components/revise-quote-button/revise-quote-button";
 import { QuoteStatus } from "../enums";
-import { getQuote, isSuperseded } from "../queries";
+import { getQuote, isSuperseded, quoteFormSeed } from "../queries";
 
 /**
  * A quote's own page — the line grid, editable in place. This is where a báo giá
@@ -52,15 +52,7 @@ export default async function QuotePage({
     projectId: quote.project_id ?? undefined,
     version: quote.version,
     editId: quote.id,
-    items: quote.items.map((it) => ({
-      category: it.category ?? undefined,
-      description: it.description,
-      unit: it.unit ?? undefined,
-      quantity: it.quantity,
-      unit_price: it.unit_price,
-    })),
-    vatPercent: Math.round(quote.vat_rate * 100),
-    note: quote.note ?? "",
+    ...quoteFormSeed(quote),
   };
 
   return (
@@ -86,7 +78,10 @@ export default async function QuotePage({
         action={
           <div className="flex gap-2">
             {frozen && !superseded ? (
-              <ReviseQuoteButton quoteId={quote.id} />
+              <ReviseQuoteButton
+                quoteId={quote.id}
+                projectId={quote.project_id}
+              />
             ) : null}
             <Button
               variant="outline"

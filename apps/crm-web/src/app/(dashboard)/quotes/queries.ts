@@ -20,6 +20,26 @@ export async function getQuote(id: number): Promise<Quote | undefined> {
 }
 
 /**
+ * A saved quote's content as builder-form values — shared by the edit page and
+ * the ?copy= revise flow. The caller adds projectId/version/editId.
+ */
+export function quoteFormSeed(quote: Quote) {
+  return {
+    items: quote.items.map((it) => ({
+      category: it.category ?? undefined,
+      description: it.description,
+      unit: it.unit ?? undefined,
+      quantity: it.quantity,
+      unit_price: it.unit_price,
+    })),
+    vatPercent: Math.round(quote.vat_rate * 100),
+    note: quote.note ?? "",
+    repName: quote.rep_name ?? "",
+    repTitle: quote.rep_title ?? "",
+  };
+}
+
+/**
  * "Đã thay thế" — a higher version exists for the same project. Standalone
  * quotes have no siblings, so they never supersede. (The list rows carry
  * `is_latest` from the server; a single-quote read has to ask.)

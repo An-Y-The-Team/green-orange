@@ -32,6 +32,8 @@ export interface Quote {
   vat_rate: number; // e.g. 0.08
   decided_date?: string | null; // YYYY-MM-DD
   note?: string | null; // terms block on the printable
+  rep_name?: string | null; // signer on the printable; null = company representative
+  rep_title?: string | null;
   // Slim project relation, exactly as crm-api-nest includes it on the list AND
   // the detail response. Absent on standalone quotes (project_id: null) — the
   // denormalized `client` / `project_code` columns are gone, so this is the only

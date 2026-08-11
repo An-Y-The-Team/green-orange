@@ -159,6 +159,10 @@ model Quote {
   vat_rate     Float     @default(0.08) // kept from v1 (printable A4 shows VAT)
   decided_date DateTime? @db.Date
   note         String?
+  // Signature footer (per-quote signer); falls back to the company
+  // representative when unset — same pattern as Contract.rep_b_*.
+  rep_name     String?
+  rep_title    String?
 
   project   Project?       @relation(fields: [project_id], references: [id])
   items     QuoteItem[]

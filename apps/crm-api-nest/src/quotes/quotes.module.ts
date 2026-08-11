@@ -99,6 +99,9 @@ class CreateQuoteDto {
   items: QuoteItemDto[];
   @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
   @IsOptional() @IsString() note?: string;
+  // Per-quote signer; unset = the company representative signs.
+  @IsOptional() @IsString() rep_name?: string;
+  @IsOptional() @IsString() rep_title?: string;
 }
 
 class UpdateQuoteDto {
@@ -110,6 +113,8 @@ class UpdateQuoteDto {
   items?: QuoteItemDto[];
   @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
   @IsOptional() @IsString() note?: string;
+  @IsOptional() @IsString() rep_name?: string;
+  @IsOptional() @IsString() rep_title?: string;
 }
 
 class SendQuoteDto {
@@ -287,6 +292,10 @@ export class QuotesController {
         total_amount: total,
         ...(dto.vat_rate !== undefined && { vat_rate: dto.vat_rate }),
         note: dto.note,
+        // Blank normalizes to null — the printable falls back to the company
+        // representative only when the signer was never set.
+        rep_name: dto.rep_name?.trim() || null,
+        rep_title: dto.rep_title?.trim() || null,
         items: { create: rows },
         // status defaults to "draft" in the schema
       },
@@ -308,6 +317,9 @@ export class QuotesController {
     const data: Record<string, unknown> = {};
     if (dto.vat_rate !== undefined) data.vat_rate = dto.vat_rate;
     if (dto.note !== undefined) data.note = dto.note;
+    if (dto.rep_name !== undefined) data.rep_name = dto.rep_name.trim() || null;
+    if (dto.rep_title !== undefined)
+      data.rep_title = dto.rep_title.trim() || null;
     if (dto.items) {
       const { rows, total } = computeItems(dto.items);
       data.total_amount = total;
@@ -380,6 +392,8 @@ export class QuotesController {
         total_amount: quote.total_amount,
         vat_rate: quote.vat_rate,
         note: quote.note,
+        rep_name: quote.rep_name,
+        rep_title: quote.rep_title,
         items: {
           create: quote.items.map((it) => ({
             category: it.category,

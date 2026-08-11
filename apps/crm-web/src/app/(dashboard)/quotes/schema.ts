@@ -24,6 +24,9 @@ export const createQuoteSchema = z.object({
   items: z.array(quoteItemSchema).min(1, "Cần ít nhất một dòng"),
   vat_rate: z.number().min(0).max(1),
   note: z.string().optional(),
+  // Per-quote signer; unset = the company representative signs the printable.
+  rep_name: z.string().optional(),
+  rep_title: z.string().optional(),
 });
 export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
 
@@ -33,6 +36,8 @@ export const updateQuoteSchema = z.object({
   items: z.array(quoteItemSchema).min(1).optional(),
   vat_rate: z.number().min(0).max(1).optional(),
   note: z.string().optional(),
+  rep_name: z.string().optional(),
+  rep_title: z.string().optional(),
 });
 
 export const sendQuoteSchema = z.object({
@@ -55,5 +60,9 @@ export const quoteFormSchema = z.object({
   items: z.array(quoteItemSchema).min(1, "Cần ít nhất một dòng"),
   vat_percent: z.number().min(0).max(100),
   note: z.string().optional(),
+  // Signer is mandatory (prefilled with the company representative); the title
+  // is optional and prints only when given.
+  rep_name: z.string().trim().min(1, "Nhập người ký"),
+  rep_title: z.string().optional(),
 });
 export type QuoteFormValues = z.infer<typeof quoteFormSchema>;

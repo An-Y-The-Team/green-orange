@@ -107,7 +107,13 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
       Xem bản in
     </Button>
   );
-  const reviseBtn = <ReviseQuoteButton quoteId={quote.id} disabled={busy} />;
+  const reviseBtn = (
+    <ReviseQuoteButton
+      quoteId={quote.id}
+      projectId={project.id}
+      disabled={busy}
+    />
+  );
 
   return (
     <div

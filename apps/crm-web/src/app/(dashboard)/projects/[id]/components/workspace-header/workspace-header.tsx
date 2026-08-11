@@ -213,13 +213,17 @@ export function WorkspaceHeader({
       </div>
       <div className="flex gap-2">
         <Button
-          size="sm"
+          size="lg"
           disabled={isPending || !draft.name.trim()}
           onClick={saveEdit}
         >
           {isPending ? ACTIONS.saving : ACTIONS.save}
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+        <Button
+          size="lg"
+          variant="destructive"
+          onClick={() => setEditing(false)}
+        >
           {ACTIONS.cancel}
         </Button>
       </div>

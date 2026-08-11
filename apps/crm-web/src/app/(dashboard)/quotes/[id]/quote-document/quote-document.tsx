@@ -43,12 +43,12 @@ export function QuoteDocument({
 
   return (
     <DocumentShell
-      title="BÁO GIÁ DỊCH VỤ"
+      title="BẢNG BÁO GIÁ"
       actions={actions}
+      // Mã số leads; the version prints in the meta grid, not here.
       subtitle={
-        projectLabel
-          ? `Phiên bản ${quote.version} · ${projectLabel}`
-          : `Phiên bản ${quote.version} · Báo giá độc lập`
+        projectLabel ??
+        `BG-${String(quote.id).padStart(3, "0")} · Báo giá độc lập`
       }
     >
       <div className="relative">
@@ -177,13 +177,21 @@ export function QuoteDocument({
 
         {/* Terms block */}
         {quote.note && (
-          <p className="mt-5 text-xs text-zinc-600">
-            <span className="font-medium">Điều khoản & ghi chú: </span>
-            {quote.note}
-          </p>
+          <div className="mt-5 text-xs text-zinc-600">
+            <p className="font-medium">Điều khoản & ghi chú:</p>
+            {/* The textarea's line breaks must survive onto the printable. */}
+            <p className="whitespace-pre-line">{quote.note}</p>
+          </div>
         )}
 
-        <SignatureBlocks />
+        {/* Per-quote signer. No signer at all → company defaults (name AND
+            title). A named signer prints exactly what was typed — a missing
+            title stays blank ("" defeats the company-title fallback), never
+            "Giám đốc" next to someone else's name. */}
+        <SignatureBlocks
+          rightName={quote.rep_name ?? undefined}
+          rightTitle={quote.rep_name ? (quote.rep_title ?? "") : undefined}
+        />
       </div>
     </DocumentShell>
   );

@@ -37,6 +37,7 @@ import {
   type QuoteFormValues,
   quoteFormSchema,
 } from "@/app/(dashboard)/quotes/schema";
+import { useCompany } from "@/components/company-provider/company-provider";
 import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
 import { MoneyInput } from "@/components/money-input/money-input";
 import { ACTIONS, DOCUMENT_TEXT, LINE_ITEM_COLUMNS } from "@/constants/labels";
@@ -61,6 +62,9 @@ export interface QuoteBuilderInitial {
   }[];
   vatPercent: number;
   note: string;
+  // Signer on the printable; empty = the company representative signs.
+  repName: string;
+  repTitle: string;
 }
 
 const BLANK_ROW = {
@@ -86,6 +90,7 @@ export function QuoteBuilderForm({
   readOnly?: boolean;
 }) {
   const router = useRouter();
+  const company = useCompany();
   const [isPending, startTransition] = useTransition();
   const intentRef = useRef<QuoteSubmitIntent>(QuoteSubmitIntent.DRAFT);
   const [sendId, setSendId] = useState<number | null>(null);
@@ -118,6 +123,10 @@ export function QuoteBuilderForm({
       items: initial.items.length ? initial.items : [BLANK_ROW],
       vat_percent: initial.vatPercent,
       note: initial.note,
+      // Mandatory signer, prefilled with the company representative; swap the
+      // name when someone else signs. Title stays blank unless typed.
+      rep_name: initial.repName || company.representative,
+      rep_title: initial.repTitle,
     },
   });
   const { register, control, handleSubmit, formState, setValue } = form;
@@ -172,6 +181,9 @@ export function QuoteBuilderForm({
       })),
       vat_rate: values.vat_percent / 100,
       note: values.note || undefined,
+      rep_name: values.rep_name,
+      // Always sent (never undefined) so clearing the title persists on PATCH.
+      rep_title: values.rep_title ?? "",
     };
     startTransition(() => formAction(payload));
   };
@@ -420,6 +432,20 @@ export function QuoteBuilderForm({
                   placeholder="Báo giá hiệu lực 30 ngày…"
                   {...register("note")}
                 />
+              </div>
+
+              {/* Signer on the printable. Name is required (prefilled with the
+                  company representative); the title prints only when given. */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="rep_name">Đại diện</Label>
+                  <Input id="rep_name" {...register("rep_name")} />
+                  {fieldError(formState.errors.rep_name)}
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="rep_title">Chức vụ (không bắt buộc)</Label>
+                  <Input id="rep_title" {...register("rep_title")} />
+                </div>
               </div>
 
               {readOnly ? null : (
