@@ -54,7 +54,7 @@ function toClientOption(data: unknown): ClientOption | null {
   return { id, name };
 }
 
-function toContact(data: unknown, clientId: number): Contact | null {
+export function toContact(data: unknown, clientId: number): Contact | null {
   if (!isObject(data)) return null;
   const { id, client_id } = data;
   if (typeof id !== "number") return null;
@@ -69,7 +69,7 @@ function toContact(data: unknown, clientId: number): Contact | null {
   };
 }
 
-function toLocation(data: unknown, clientId: number): Location | null {
+export function toLocation(data: unknown, clientId: number): Location | null {
   if (!isObject(data)) return null;
   const { id, client_id, manager_contact_id } = data;
   if (typeof id !== "number") return null;

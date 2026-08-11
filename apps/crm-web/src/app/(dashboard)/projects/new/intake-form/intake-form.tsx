@@ -42,7 +42,7 @@ import { nowHHmm, todayISO } from "@/utils/today-iso/today-iso";
 
 import { loadClient } from "../../../clients/actions/load-client";
 import { ClientType } from "../../../clients/enums";
-import type { ClientListItem } from "../../../clients/types";
+import type { ClientListItem, Contact, Location } from "../../../clients/types";
 import { createProject } from "../../actions/create-project";
 import { TypeChips } from "../../components/type-chips/type-chips";
 import { ProjectStage } from "../../enums";
@@ -53,6 +53,8 @@ import {
 import type { Project, ProjectType } from "../../types";
 import { ClientCascadeSelects } from "./components/client-cascade-selects/client-cascade-selects";
 import { QuickCreateClient } from "./components/quick-create-client/quick-create-client";
+import { QuickCreateContact } from "./components/quick-create-contact/quick-create-contact";
+import { QuickCreateLocation } from "./components/quick-create-location/quick-create-location";
 import { RequestFields } from "./components/request-fields/request-fields";
 import type {
   ClientDetail,
@@ -84,6 +86,8 @@ export function IntakeForm({
     () => initialClientDetail ?? null
   );
   const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [showQuickLocation, setShowQuickLocation] = useState(false);
+  const [showQuickContact, setShowQuickContact] = useState(false);
   const [isSavingClient, setIsSavingClient] = useState(false);
   const quickCreate = useRef<QuickCreateHandle>(null);
   const [nameTouched, setNameTouched] = useState(false);
@@ -156,7 +160,11 @@ export function IntakeForm({
     form.setValue("working_contact_id", undefined);
     form.setValue("decision_maker_contact_id", undefined);
     setDetail(null);
+    setShowQuickLocation(false);
+    setShowQuickContact(false);
     if (!id) return Promise.resolve();
+    // Picking an existing client supersedes a half-filled quick-create block.
+    setShowQuickCreate(false);
     const load = applyClient(id);
     startDetail(() => load);
     return load;
@@ -186,6 +194,27 @@ export function IntakeForm({
     setDetail(nextDetail);
     form.setValue("client_id", client.id, { shouldValidate: true });
     form.setValue("working_contact_id", contact.id, { shouldValidate: true });
+    form.setValue("location_id", location.id, { shouldValidate: true });
+    maybeSuggestName(form.getValues("type_ids"), location.id, nextDetail);
+  }
+
+  // Quick-create contact (repeat client, new contact person): append + pre-select.
+  function handleContactCreated(contact: Contact) {
+    if (!detail) return;
+    setDetail({ ...detail, contacts: [...detail.contacts, contact] });
+    setShowQuickContact(false);
+    form.setValue("working_contact_id", contact.id, { shouldValidate: true });
+  }
+
+  // Quick-create location (repeat client, new site): append + pre-select it.
+  function handleLocationCreated(location: Location) {
+    if (!detail) return;
+    const nextDetail = {
+      ...detail,
+      locations: [...detail.locations, location],
+    };
+    setDetail(nextDetail);
+    setShowQuickLocation(false);
     form.setValue("location_id", location.id, { shouldValidate: true });
     maybeSuggestName(form.getValues("type_ids"), location.id, nextDetail);
   }
@@ -287,7 +316,7 @@ export function IntakeForm({
                 className="h-auto p-0"
                 onClick={() => setShowQuickCreate((v) => !v)}
               >
-                + tạo nhanh khách hàng
+                + Thêm khách hàng mới
               </Button>
             </div>
 
@@ -299,13 +328,52 @@ export function IntakeForm({
             ) : null}
 
             {detail && !isIndividual ? (
-              <ClientCascadeSelects
-                form={form}
-                detail={detail}
-                onLocationChange={(id) =>
-                  maybeSuggestName(form.getValues("type_ids"), id)
-                }
-              />
+              <>
+                <ClientCascadeSelects
+                  form={form}
+                  detail={detail}
+                  // Picking an existing row supersedes a half-filled add block.
+                  onContactChange={(id) => {
+                    if (id) setShowQuickContact(false);
+                  }}
+                  onLocationChange={(id) => {
+                    if (id) setShowQuickLocation(false);
+                    maybeSuggestName(form.getValues("type_ids"), id);
+                  }}
+                />
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0"
+                    onClick={() => setShowQuickContact((v) => !v)}
+                  >
+                    + thêm người liên hệ
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0"
+                    onClick={() => setShowQuickLocation((v) => !v)}
+                  >
+                    + thêm địa điểm thi công
+                  </Button>
+                </div>
+                {showQuickContact ? (
+                  <QuickCreateContact
+                    clientId={form.getValues("client_id")}
+                    onCreated={handleContactCreated}
+                  />
+                ) : null}
+                {showQuickLocation ? (
+                  <QuickCreateLocation
+                    clientId={form.getValues("client_id")}
+                    onCreated={handleLocationCreated}
+                  />
+                ) : null}
+              </>
             ) : null}
 
             <Separator />

@@ -10,8 +10,8 @@ import { IsIn, IsInt, IsOptional } from "class-validator";
 import {
   CsvIn,
   CsvIntIn,
-  insensitive,
   ListQueryDto,
+  insensitive,
   orderByArgs,
 } from "./list-query";
 

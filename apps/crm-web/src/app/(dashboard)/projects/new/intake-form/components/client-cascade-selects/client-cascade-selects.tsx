@@ -23,10 +23,12 @@ import type { ClientDetail } from "../../types";
 export function ClientCascadeSelects({
   form,
   detail,
+  onContactChange,
   onLocationChange,
 }: {
   form: UseFormReturn<CreateProjectFormValues>;
   detail: ClientDetail;
+  onContactChange: (contactId: number) => void;
   onLocationChange: (locationId: number) => void;
 }) {
   return (
@@ -41,11 +43,13 @@ export function ClientCascadeSelects({
               <select
                 className={SELECT_CLASS}
                 value={field.value ?? ""}
-                onChange={(e) =>
-                  field.onChange(
-                    e.target.value ? Number(e.target.value) : undefined
-                  )
-                }
+                onChange={(e) => {
+                  const id = e.target.value
+                    ? Number(e.target.value)
+                    : undefined;
+                  field.onChange(id);
+                  onContactChange(id ?? 0);
+                }}
               >
                 <option value="">— Chọn người liên hệ —</option>
                 {detail.contacts.map((c) => (

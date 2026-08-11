@@ -60,7 +60,7 @@ export const NOUNS = {
   contact: "liên hệ",
   contract: "hợp đồng",
   crewMember: "nhân sự",
-  location: "địa điểm",
+  location: "địa điểm thi công",
   milestone: "đợt thanh toán",
   note: "ghi chú",
   paperworkItem: "mục",
