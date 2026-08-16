@@ -31,6 +31,7 @@ export type CreateClientFormValues = z.infer<typeof createClientSchema>;
 export const updateClientSchema = z.object({
   name: z.string().min(1),
   tax_code: z.string().optional(),
+  address: z.string().optional(),
   email: clientEmail,
   note: z.string().optional(),
 });

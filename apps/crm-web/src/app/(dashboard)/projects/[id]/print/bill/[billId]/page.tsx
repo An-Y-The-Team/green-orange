@@ -28,6 +28,7 @@ import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 import { labelOf } from "@/utils/label-of/label-of";
+import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
 import { getProject } from "../../../../queries";
 
@@ -85,20 +86,41 @@ export default async function BillDocumentPage({
       {backLink}
 
       <DocumentShell
-        title="ĐỀ NGHỊ THANH TOÁN"
+        title="GIẤY ĐỀ NGHỊ THANH TOÁN"
         subtitle={`HĐ #${bill.id} · ${project.code} · ${project.name}`}
       >
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
+        {/* Kính gửi + căn cứ, as on the paper form (xlsx "đề nghị thanh toán"). */}
+        <div className="space-y-1 text-xs leading-relaxed">
           <p>
-            <span className="text-zinc-500">Công trình: </span>
-            <span className="font-medium">{project.code}</span>
+            <span className="text-zinc-500">Kính gửi: </span>
+            <span className="font-medium uppercase">
+              {project.client?.name ?? "—"}
+            </span>
           </p>
-          {project.client?.name ? (
+          {project.location?.address ? (
             <p>
-              <span className="text-zinc-500">Khách hàng: </span>
-              {project.client.name}
+              <span className="text-zinc-500">Địa chỉ: </span>
+              {project.location.address}
             </p>
           ) : null}
+          <p>
+            <span className="text-zinc-500">Công trình: </span>
+            <span className="font-medium">
+              {project.code} · {project.name}
+            </span>
+          </p>
+          {project.types?.length ? (
+            <p>
+              <span className="text-zinc-500">Hạng mục: </span>
+              {project.types.map((t) => t.name).join(", ")}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-4 space-y-0.5 text-xs leading-relaxed">
+          <p>- Căn cứ vào biên bản nghiệm thu công trình giữa hai bên;</p>
+          <p>- Căn cứ vào bảng giá trị quyết toán khối lượng;</p>
+          <p>- Căn cứ vào biên bản quyết toán.</p>
         </div>
 
         {milestones.length > 0 ? (
@@ -146,6 +168,15 @@ export default async function BillDocumentPage({
           </div>
         </div>
 
+        {/* The request sentence itself — the figure in words is what the payer
+            checks against the numeral. */}
+        <p className="mt-5 text-xs leading-relaxed">
+          {company.name} đề nghị Quý Công ty {project.client?.name ?? ""} thanh
+          toán số tiền{" "}
+          <span className="font-semibold">{formatVND(bill.total_amount)}</span>{" "}
+          (Bằng chữ: {vndInWords(bill.total_amount)}).
+        </p>
+
         {/* Bank details for the transfer */}
         <div className="mt-6 rounded-md bg-zinc-50 p-4 text-xs leading-relaxed">
           <p className="font-medium uppercase">Thông tin chuyển khoản</p>
@@ -166,6 +197,10 @@ export default async function BillDocumentPage({
             Thanh toan {project.code} HD {bill.id}
           </p>
         </div>
+
+        <p className="mt-5 text-xs leading-relaxed">
+          Rất mong sự hợp tác của Quý Công ty. Trân trọng cảm ơn!
+        </p>
 
         <SignatureBlocks leftLabel={DOCUMENT_TEXT.clientSignatory} />
       </DocumentShell>

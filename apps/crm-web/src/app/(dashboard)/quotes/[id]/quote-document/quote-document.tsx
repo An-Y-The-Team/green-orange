@@ -184,6 +184,12 @@ export function QuoteDocument({
           </div>
         )}
 
+        {/* The closing clause the paper form carries (xlsx "Bang bao gia" c). */}
+        <p className="mt-5 text-xs text-zinc-600">
+          Bảng báo giá được lập thành 02 bản, mỗi bên giữ 01 bản có giá trị như
+          nhau.
+        </p>
+
         {/* Per-quote signer. No signer at all → company defaults (name AND
             title). A named signer prints exactly what was typed — a missing
             title stays blank ("" defeats the company-title fallback), never

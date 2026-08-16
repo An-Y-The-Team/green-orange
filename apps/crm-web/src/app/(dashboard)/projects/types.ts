@@ -33,6 +33,10 @@ export interface SurveyItem {
 export interface ProjectClient {
   id: number;
   name: string;
+  /** Bên A's MST + registered address on printed paperwork. GET /projects/:id
+   * only (the list include narrows the select). */
+  tax_code?: string | null;
+  address?: string | null;
 }
 
 export interface ProjectLocation {
@@ -46,6 +50,8 @@ export interface ProjectContact {
   id: number;
   name: string;
   phone?: string | null;
+  /** Chức vụ — the Bên A signatory line on a contract. GET /projects/:id only. */
+  title?: string | null;
 }
 
 export interface Project {

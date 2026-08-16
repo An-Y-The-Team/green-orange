@@ -48,6 +48,10 @@ class CreateClientDto {
   @IsOptional() @IsEmail() email?: string;
   // individual clients: phone seeds the auto-created default contact
   @IsOptional() @IsString() phone?: string;
+  // Registered address — stored on the client (Bên A on a contract) and, for an
+  // individual, also the address of their auto-created default location. The
+  // ValidateIf makes it required for individuals only (that location cannot be
+  // created without one) and optional-but-accepted for companies.
   @ValidateIf((o) => o.type === "individual")
   @IsString()
   @MinLength(1)
@@ -58,6 +62,7 @@ class UpdateClientDto {
   @IsOptional() @IsString() @MinLength(1) name?: string;
   @IsOptional() @IsIn(CLIENT_TYPE) type?: string;
   @IsOptional() @IsString() tax_code?: string;
+  @IsOptional() @IsString() address?: string;
   @IsOptional() @IsEmail() email?: string;
   @IsOptional() @IsString() note?: string;
 }
@@ -127,6 +132,7 @@ export class ClientsController {
       name: dto.name,
       type: dto.type,
       tax_code: dto.tax_code,
+      address: dto.address,
       email: dto.email,
       note: dto.note,
     };

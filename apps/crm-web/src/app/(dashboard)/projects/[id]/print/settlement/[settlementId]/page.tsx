@@ -51,8 +51,11 @@ export default async function SettlementDocumentPage({
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>
 
+      {/* Named for what it actually is on paper: the khối-lượng valuation
+          sheet. The separate "Biên bản quyết toán" (the A–E reconciliation of
+          hợp đồng vs quyết toán vs đã thanh toán) is not modelled yet. */}
       <DocumentShell
-        title="BIÊN BẢN QUYẾT TOÁN"
+        title="BẢNG GIÁ TRỊ QUYẾT TOÁN KHỐI LƯỢNG"
         subtitle={`QT #${settlement.id} · ${project.code} · ${project.name}`}
       >
         <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">

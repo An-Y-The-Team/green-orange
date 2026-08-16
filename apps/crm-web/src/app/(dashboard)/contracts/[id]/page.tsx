@@ -23,6 +23,7 @@ import { ensureLexicalBody } from "@/utils/lexical-build/lexical-build";
 import { buildContractContext } from "@/utils/merge-template/merge-template";
 import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
+import { getProject } from "../../projects/queries";
 import { getDealQuote } from "../../quotes/queries";
 import { getContract, getContractTemplate } from "../queries";
 
@@ -88,10 +89,15 @@ export default async function ContractDocumentPage({
     );
   }
 
-  // The chốt quote drives the line-items block and the money merge tokens.
-  const quote = contract.project_id
-    ? await getDealQuote(contract.project_id)
-    : undefined;
+  // The chốt quote drives the line-items block and the money merge tokens; the
+  // full project drives the Bên A (MST, đại diện, chức vụ, ĐT) and site/schedule
+  // tokens — the contract's own embedded project is only id/code/name/client.
+  const [quote, project] = contract.project_id
+    ? await Promise.all([
+        getDealQuote(contract.project_id),
+        getProject(contract.project_id),
+      ])
+    : [undefined, undefined];
 
   // A project-linked contract takes its giá trị from the chốt quote. Without
   // one there is no agreed figure, so refuse the printable rather than emit a
@@ -132,7 +138,7 @@ export default async function ContractDocumentPage({
   const body = ensureLexicalBody(contract.body ?? template?.body);
 
   if (body) {
-    const ctx = buildContractContext(contract, quote, printCompany);
+    const ctx = buildContractContext(contract, quote, printCompany, project);
     const docTitle =
       snapshot?.doc_title ??
       template?.doc_title ??

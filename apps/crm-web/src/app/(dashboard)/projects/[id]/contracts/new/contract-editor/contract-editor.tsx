@@ -171,7 +171,12 @@ export function ContractEditor({
       },
     },
   };
-  const ctx = buildContractContext(previewContract, dealQuote, company);
+  const ctx = buildContractContext(
+    previewContract,
+    dealQuote,
+    company,
+    project
+  );
 
   // ensureLexicalBody: v1-era contracts stored plain text, which would throw
   // inside Lexical's initial parse — wrap it so older contracts stay editable.
