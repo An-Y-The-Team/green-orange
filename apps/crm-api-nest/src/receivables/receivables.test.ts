@@ -8,8 +8,39 @@ import { businessToday } from "../common/business-date";
 import {
   PaymentMilestonesController,
   SettlementsController,
+  payableTotal,
   settlementRemainder,
 } from "./receivables.module";
+
+// The quyết toán settles a VAT-priced hợp đồng, so what reaches the hóa đơn is
+// the payable, never the pre-tax Σ the sheet prints as "Cộng". Billing the
+// subtotal under-asks by the tax.
+describe("payableTotal (what the hóa đơn asks for)", () => {
+  const at = (total: bigint, vat_rate: number, discount = 0n) =>
+    payableTotal({ total_amount: total, discount_amount: discount, vat_rate });
+
+  test("adds VAT to the Σ of items", () => {
+    expect(at(36_000_000n, 0.08)).toBe(38_880_000n);
+  });
+
+  test("giảm giá comes off BEFORE the tax, not after", () => {
+    // (36.000.000 − 6.000.000) × 1,08 — taxing first would give 32.880.000.
+    expect(at(36_000_000n, 0.08, 6_000_000n)).toBe(32_400_000n);
+  });
+
+  test("VAT rounds to the đồng, matching the printed sheet", () => {
+    expect(at(34_050_000n, 0.08)).toBe(36_774_000n);
+    expect(at(1n, 0.08)).toBe(1n); // round(0,08) = 0
+  });
+
+  test("a VAT-free quyết toán bills its subtotal", () => {
+    expect(at(36_000_000n, 0)).toBe(36_000_000n);
+  });
+
+  test("a giảm giá above the subtotal is rejected, not a negative bill", () => {
+    expect(() => at(10_000_000n, 0.08, 11_000_000n)).toThrow(/giảm giá/);
+  });
+});
 
 describe("settlementRemainder (balance đợt on sign)", () => {
   test("no cọc → the whole total is the balance", () => {
@@ -38,7 +69,7 @@ describe("settlementRemainder (balance đợt on sign)", () => {
   test("cọc exceeding the total is a conflict, not a negative đợt", () => {
     expect(() =>
       settlementRemainder(100_000_000n, [{ amount: 150_000_000n }])
-    ).toThrow(/exceeds the settlement total/);
+    ).toThrow(/exceeds the quyết toán payable/);
   });
 });
 
@@ -48,6 +79,8 @@ describe("settlement sign (PATCH items + status together)", () => {
     project_id: 3,
     status: "sent",
     total_amount: 300_000_000n,
+    discount_amount: 0n,
+    vat_rate: 0.08,
     bill: { id: 9, status: "draft" },
   };
 
@@ -88,15 +121,18 @@ describe("settlement sign (PATCH items + status together)", () => {
       status: "signed",
     } as any);
 
-  test("bill gets the NEW total, not the one stored before the PATCH", async () => {
+  // 480.000.000 of items at 8% — the bill takes 518.400.000, never the Σ.
+  const PAYABLE = 518_400_000n;
+
+  test("bill gets the NEW total (with VAT), not the one stored before the PATCH", async () => {
     const prisma = fake([]);
     await signWith480m(prisma);
     expect(prisma.writes).toContainEqual({
-      bill: { status: "official", total_amount: 480_000_000n },
+      bill: { status: "official", total_amount: PAYABLE },
     });
   });
 
-  test("attaches every unallocated cọc and bills total − their sum", async () => {
+  test("attaches every unallocated cọc and bills payable − their sum", async () => {
     const prisma = fake([
       { id: 1, amount: 100_000_000n },
       { id: 2, amount: 100_000_000n },
@@ -108,15 +144,15 @@ describe("settlement sign (PATCH items + status together)", () => {
         project_id: 3,
         bill_id: 9,
         type: "progress",
-        amount: 280_000_000n,
+        amount: PAYABLE - 200_000_000n,
       },
     });
   });
 
-  test("cọc over the new total → 409, nothing written", async () => {
-    const prisma = fake([{ id: 1, amount: 500_000_000n }]);
+  test("cọc over the new payable → 409, nothing written", async () => {
+    const prisma = fake([{ id: 1, amount: 600_000_000n }]);
     await expect(signWith480m(prisma)).rejects.toThrow(
-      /exceeds the settlement total/
+      /exceeds the quyết toán payable/
     );
     expect(prisma.writes).toEqual([{ bill: expect.anything() }]);
   });

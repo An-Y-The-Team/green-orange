@@ -39,6 +39,7 @@ import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
+import { settlementTotals } from "@/utils/quote-totals/quote-totals";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { AddMilestone } from "../add-milestone/add-milestone";
@@ -113,6 +114,10 @@ export function SettlementCard({
 
   const milestones = [...extraMilestones, ...billMilestones];
 
+  // Headline figure = what the client owes (Σ − giảm giá, + VAT), which is what
+  // signing puts on the hóa đơn. The pre-tax Σ only appears on the printed sheet.
+  const { total: payable } = settlementTotals(settlement);
+
   // Mirrors the server's un-sign guard (receivables.module.ts): once the bill is
   // paid, or any đợt other than the cọc is collected, un-signing is refused —
   // so don't offer it. Correcting a partly-collected quyết toán needs an
@@ -137,7 +142,7 @@ export function SettlementCard({
         <span className="font-medium">QT #{settlement.id}</span>
         <Badge variant={badge.variant}>{badge.label}</Badge>
         <span className="ml-auto font-semibold tabular-nums">
-          {formatVND(settlement.total_amount)}
+          {formatVND(payable)}
         </span>
       </div>
 
@@ -247,9 +252,8 @@ export function SettlementCard({
             <DialogTitle>Xác nhận khách đã ký</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Hóa đơn sẽ thành chính thức với tổng{" "}
-            {formatVND(settlement.total_amount)}, đợt cọc được gắn vào hóa đơn
-            và đợt còn lại được tạo tự động.
+            Hóa đơn sẽ thành chính thức với tổng {formatVND(payable)}, đợt cọc
+            được gắn vào hóa đơn và đợt còn lại được tạo tự động.
           </p>
           <div className="space-y-1">
             <Label htmlFor={`signed-${settlement.id}`}>{FIELDS.signDate}</Label>

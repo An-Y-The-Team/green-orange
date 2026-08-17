@@ -33,7 +33,11 @@ export interface Settlement {
   id: number;
   project_id: number;
   status: SettlementStatus;
-  total_amount: number; // server-computed Σ item amounts
+  total_amount: number; // server-computed Σ item amounts — BEFORE giảm giá and VAT
+  // What the client owes = (total_amount − discount_amount) + VAT. The bill
+  // takes THAT figure on sign, never total_amount — see settlementTotals.
+  discount_amount: number; // giảm giá trước thuế
+  vat_rate: number;
   signed_date?: string | null;
   note?: string | null;
   items: SettlementItem[]; // include, ordered by sort_order

@@ -7,6 +7,7 @@ import { SettlementStatus } from "@/app/(dashboard)/receivables/enums";
 import { getProjectSettlements } from "@/app/(dashboard)/receivables/queries";
 import { PageHeader } from "@/components/page-header/page-header";
 import { BACK_TO } from "@/constants/labels";
+import { DEFAULT_VAT_RATE } from "@/utils/merge-template/merge-template";
 
 import { getProject } from "../../../queries";
 import {
@@ -48,6 +49,10 @@ export default async function NewSettlementPage({
     projectId: project.id,
     projectCode: project.code,
     items,
+    discountAmount: 0,
+    // Settle at the rate the job was priced at — a quyết toán that drops the
+    // quote's VAT bills less than the hợp đồng says.
+    vatPercent: Math.round((dealQuote?.vat_rate ?? DEFAULT_VAT_RATE) * 100),
     note: "",
   };
 

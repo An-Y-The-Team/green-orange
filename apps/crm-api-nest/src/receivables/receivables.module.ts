@@ -33,6 +33,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
   MinLength,
   ValidateNested,
@@ -87,6 +88,8 @@ class CreateSettlementDto {
   @ValidateNested({ each: true })
   @Type(() => SettlementItemDto)
   items?: SettlementItemDto[];
+  @IsOptional() @IsNumber() @Min(0) discount_amount?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
   @IsOptional() @IsString() note?: string;
 }
 
@@ -96,6 +99,8 @@ class UpdateSettlementDto {
   @ValidateNested({ each: true })
   @Type(() => SettlementItemDto)
   items?: SettlementItemDto[];
+  @IsOptional() @IsNumber() @Min(0) discount_amount?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
   @IsOptional() @IsIn(SETTLEMENT_STATUS) status?: string;
   @IsOptional() @IsDateString() signed_date?: string;
   @IsOptional() @IsString() note?: string;
@@ -115,7 +120,32 @@ const computeItems = (items: SettlementItemDto[]) => {
   return { rows, total };
 };
 
-// Balance đợt on sign = settlement total − EVERY unallocated cọc.
+/**
+ * What the client actually owes on a quyết toán: (Σ items − giảm giá) + VAT.
+ *
+ * `total_amount` stays the pre-tax Σ (the quyết toán sheet prints it as "Cộng"),
+ * so this is the ONLY figure that may reach a bill or an đợt thanh toán —
+ * billing the subtotal under-asks by the tax the hợp đồng charged.
+ *
+ * VAT rounds through Number, exactly as the web app's quoteTotals does, so the
+ * printed sheet and the billed figure cannot disagree by a đồng. Safe for VND:
+ * a settlement would have to exceed 9×10^15 to lose precision.
+ * (exported for the unit test in receivables.test.ts)
+ */
+export const payableTotal = (s: {
+  total_amount: bigint;
+  discount_amount: bigint;
+  vat_rate: number;
+}): bigint => {
+  const net = s.total_amount - s.discount_amount;
+  if (net < 0n)
+    throw new BadRequestException(
+      `giảm giá (${s.discount_amount}) exceeds the quyết toán subtotal (${s.total_amount})`
+    );
+  return net + BigInt(Math.round(Number(net) * s.vat_rate));
+};
+
+// Balance đợt on sign = settlement payable − EVERY unallocated cọc.
 // Deliberately status-blind: đợt thanh toán are a payment SCHEDULE, so
 // sum(bill's đợt) must equal bill.total_amount. An unpaid `not_due` cọc is
 // still a scheduled obligation — subtracting only the paid ones would bill the
@@ -130,7 +160,7 @@ export const settlementRemainder = (
   const remainder = total - allocated;
   if (remainder < 0n)
     throw new ConflictException(
-      `cọc already scheduled (${allocated}) exceeds the settlement total (${total}) — correct the đợt thanh toán before signing`
+      `cọc already scheduled (${allocated}) exceeds the quyết toán payable (${total}) — correct the đợt thanh toán before signing`
     );
   return remainder;
 };
@@ -191,6 +221,10 @@ export class SettlementsController {
           project_id: dto.project_id,
           note: dto.note,
           total_amount: total,
+          discount_amount: toBig(dto.discount_amount ?? 0)!,
+          // Omitted → the schema default (8%), not 0: an untaxed quyết toán is
+          // the exception, and defaulting to 0 silently under-bills.
+          vat_rate: dto.vat_rate,
           items: { create: rows },
         },
       });
@@ -222,6 +256,18 @@ export class SettlementsController {
     if (dto.note !== undefined) data.note = dto.note;
     if (dto.signed_date !== undefined)
       data.signed_date = toDate(dto.signed_date);
+    // Frozen on sign for the same reason as items: both feed payableTotal, and
+    // the bill + its đợt were derived from that figure.
+    if (
+      (dto.discount_amount !== undefined || dto.vat_rate !== undefined) &&
+      row.status === "signed"
+    )
+      throw new BadRequestException(
+        "giảm giá / VAT are frozen once signed — un-sign to correct"
+      );
+    if (dto.discount_amount !== undefined)
+      data.discount_amount = toBig(dto.discount_amount)!;
+    if (dto.vat_rate !== undefined) data.vat_rate = dto.vat_rate;
     if (dto.items) {
       // Doc rule: editable while nháp/đã gửi. Signing derives the bill total +
       // milestones, so a signed settlement is corrected by un-signing first.
@@ -249,13 +295,16 @@ export class SettlementsController {
           // Read the total off the UPDATED row: a PATCH carrying both `items`
           // and status:"signed" recomputed it above, so `row` is stale.
           const signed = await tx.settlement.update({ where: { id }, data });
+          // The bill and its đợt carry what the client owes — subtotal + VAT,
+          // less giảm giá — not the pre-tax Σ the sheet prints as "Cộng".
+          const payable = payableTotal(signed);
           const bill = await tx.bill.findFirst({
             where: { settlement_id: id },
           });
           if (!bill) return;
           await tx.bill.update({
             where: { id: bill.id },
-            data: { status: "official", total_amount: signed.total_amount },
+            data: { status: "official", total_amount: payable },
           });
           // All of them: a leftover cọc would stay unallocated and unsubtracted.
           const deposits = await tx.paymentMilestone.findMany({
@@ -265,7 +314,7 @@ export class SettlementsController {
               bill_id: null,
             },
           });
-          const remainder = settlementRemainder(signed.total_amount, deposits);
+          const remainder = settlementRemainder(payable, deposits);
           if (deposits.length)
             await tx.paymentMilestone.updateMany({
               where: { id: { in: deposits.map((d) => d.id) } },

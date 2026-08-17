@@ -18,6 +18,7 @@ import {
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
+import { settlementTotals } from "@/utils/quote-totals/quote-totals";
 
 import { getProject } from "../../../../queries";
 
@@ -37,6 +38,9 @@ export default async function SettlementDocumentPage({
   if (!settlement) notFound();
 
   const badge = labelOf(SETTLEMENT_STATUSES, settlement.status);
+  // Same split the server bills from (payableTotal) — the sheet and the hóa
+  // đơn cannot disagree.
+  const money = settlementTotals(settlement);
 
   return (
     <>
@@ -114,10 +118,28 @@ export default async function SettlementDocumentPage({
           </tbody>
         </table>
 
+        {/* Cộng → giảm giá → VAT → tổng, the block the paper form carries. The
+            bottom line is what the hóa đơn asks for. */}
         <div className="mt-3 ml-auto w-64 space-y-1 text-xs">
+          <div className="flex justify-between">
+            <span className="text-zinc-500">Cộng trước thuế</span>
+            <span>{formatVND(money.subtotal)}</span>
+          </div>
+          {money.discount > 0 ? (
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Giảm giá trước thuế</span>
+              <span>−{formatVND(money.discount)}</span>
+            </div>
+          ) : null}
+          <div className="flex justify-between">
+            <span className="text-zinc-500">
+              VAT ({Math.round(settlement.vat_rate * 100)}%)
+            </span>
+            <span>{formatVND(money.vat)}</span>
+          </div>
           <div className="flex justify-between border-t border-zinc-300 pt-1 text-sm font-bold">
             <span>Tổng quyết toán</span>
-            <span>{formatVND(settlement.total_amount)}</span>
+            <span>{formatVND(money.total)}</span>
           </div>
         </div>
 

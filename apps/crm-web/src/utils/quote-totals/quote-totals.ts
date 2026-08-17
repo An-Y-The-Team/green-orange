@@ -33,6 +33,29 @@ export function quoteTotals(items: QuoteTotalsItem[], vatRate: number) {
 }
 
 /**
+ * Money split for a quyết toán: Σ items, less giảm giá, then VAT — mirroring
+ * `payableTotal` in crm-api-nest receivables.module.ts, which is what the hóa
+ * đơn is actually billed for. `total` is the payable; `subtotal` is the pre-tax
+ * Σ the sheet prints as "Cộng".
+ *
+ * Works on a saved Settlement or on live builder rows (pass a computed Σ).
+ */
+export function settlementTotals({
+  total_amount,
+  discount_amount = 0,
+  vat_rate = 0,
+}: {
+  total_amount: number;
+  discount_amount?: number;
+  vat_rate?: number;
+}) {
+  const discount = Math.min(discount_amount, total_amount);
+  const net = total_amount - discount;
+  const vat = Math.round(net * vat_rate);
+  return { subtotal: total_amount, discount, net, vat, total: net + vat };
+}
+
+/**
  * VAT split for a SAVED quote — `total_amount` is the server's Σ item amounts
  * (before VAT). Single VAT rule for screen, printable, .docx and merge tokens.
  */

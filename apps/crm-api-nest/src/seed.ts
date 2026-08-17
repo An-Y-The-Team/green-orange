@@ -814,15 +814,16 @@ export const SETTLEMENT_ITEMS: Seeded<Prisma.SettlementItemUncheckedCreateInput>
   ];
 
 // Bills are born with their quyết toán; signing officializes them, so both are
-// past `draft`. total_amount mirrors the settlement total and sum(its đợt)
-// equals it — the invariant receivables.module.ts maintains on sign.
+// past `draft`. total_amount is the settlement's PAYABLE (Σ items − giảm giá,
+// + VAT — payableTotal in receivables.module.ts), not its pre-tax Σ, and
+// sum(its đợt) equals that — the invariant sign maintains.
 export const BILLS: Seeded<Prisma.BillUncheckedCreateInput>[] = [
   {
     id: 1,
     project_id: 8,
     settlement_id: 1,
     status: "sent",
-    total_amount: 60_000_000n,
+    total_amount: 64_800_000n, // 60.000.000 + 8%
     sent_date: day(-6),
   },
   {
@@ -830,7 +831,7 @@ export const BILLS: Seeded<Prisma.BillUncheckedCreateInput>[] = [
     project_id: 3,
     settlement_id: 2,
     status: "paid",
-    total_amount: 34_050_000n,
+    total_amount: 36_774_000n, // 34.050.000 + 8%
     sent_date: day(-44),
     paid_date: day(-40),
   },
@@ -904,7 +905,8 @@ export const MILESTONES: Seeded<Prisma.PaymentMilestoneUncheckedCreateInput>[] =
       project_id: 8,
       bill_id: 1,
       type: "acceptance",
-      amount: 15_000_000n,
+      // Balance đợt: 64.800.000 − 20.000.000 cọc − 25.000.000 progress.
+      amount: 19_800_000n,
       due_date: day(15),
       status: "not_due",
     },
@@ -924,7 +926,8 @@ export const MILESTONES: Seeded<Prisma.PaymentMilestoneUncheckedCreateInput>[] =
       project_id: 3,
       bill_id: 2,
       type: "progress",
-      amount: 24_050_000n,
+      // Balance đợt: 36.774.000 − 10.000.000 cọc.
+      amount: 26_774_000n,
       due_date: day(-46),
       status: "paid",
       paid_date: day(-40),

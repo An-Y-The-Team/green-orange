@@ -7,6 +7,7 @@ import { describe, expect, test } from "bun:test";
 
 import { businessDateString } from "./common/business-date";
 import { STAGE_ORDER } from "./common/stage";
+import { payableTotal } from "./receivables/receivables.module";
 import {
   ASSIGNMENTS,
   BILLS,
@@ -138,10 +139,18 @@ describe("money invariants (receivables.module.ts keeps these on sign)", () => {
         )
       ).toBe(s.total_amount as bigint);
   });
-  test("a signed settlement's bill carries its total and its whole schedule", () => {
+  test("a signed settlement's bill carries its payable and its whole schedule", () => {
     for (const s of SETTLEMENTS.filter((x) => x.status === "signed")) {
       const bill = BILLS.find((b) => b.settlement_id === s.id);
-      expect(bill?.total_amount).toBe(s.total_amount as bigint);
+      // The bill asks for the payable (Σ − giảm giá, + VAT), not the pre-tax Σ
+      // — the seed's figures must agree with what sign would compute.
+      expect(bill?.total_amount).toBe(
+        payableTotal({
+          total_amount: s.total_amount as bigint,
+          discount_amount: (s.discount_amount as bigint) ?? 0n,
+          vat_rate: s.vat_rate ?? 0.08,
+        })
+      );
       // Signing sweeps every cọc onto the bill, so nothing stays unallocated.
       expect(
         MILESTONES.filter((m) => m.project_id === s.project_id && !m.bill_id)

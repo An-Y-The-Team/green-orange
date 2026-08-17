@@ -11,6 +11,7 @@ import type {
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
+import { settlementTotals } from "@/utils/quote-totals/quote-totals";
 
 import type { Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
@@ -44,7 +45,9 @@ export function SettlementPanel({
   const collected = milestones
     .filter((m) => m.status === MilestoneStatus.PAID)
     .reduce((sum, m) => sum + m.amount, 0);
-  const target = settlement?.total_amount ?? 0;
+  // The payable, not the pre-tax Σ: the đợt thanh toán being counted against it
+  // were derived from the payable on sign.
+  const target = settlement ? settlementTotals(settlement).total : 0;
 
   return (
     <StageCard project={project} contentClassName="space-y-4">
