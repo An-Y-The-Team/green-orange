@@ -555,18 +555,18 @@ wired in [`docker-compose.prod.yml`](docker-compose.prod.yml).
 provisions a local user row on first valid login. No new app registration, no new
 redirect URI. (There is no admin/admin seed in prod; local seeding is dev-only.)
 
-**5. Switching backends — no longer a rollback path.** `CRM_API_URL` still selects the
-backend at runtime (**no rebuild**), but since the v2 cutover only one value works:
+**5. Switching backends.** `CRM_API_URL` selects the backend at runtime (**no
+rebuild**). Since the 2026-08 sync both implement the v2 contract:
 
-- `http://crm-api-nest:8001` → NestJS, **v2 contract — the only working option**
-- `http://crm-api:8000` → Python, **v1 contract — do NOT point prod here.** The v2 UI
-  calls endpoints v1 does not have, and same-named ones (`/clients`, `/projects`,
-  `/contacts`) return incompatible shapes. Failed list reads degrade to `[]`, so the
-  result is **empty pages rather than errors** — it looks like data loss, not a
-  misconfiguration. `crm-api` keeps running for the teaching exercises only.
+- `http://crm-api-nest:8001` → NestJS + Prisma, database `crm_nest`. **The prod
+  default.**
+- `http://crm-api:8000` → Python + FastAPI, database `crm`. Same contract, but a
+  **separate database with separate data** — repointing prod does not migrate
+  anything, so the UI comes up on whatever that database holds (an unseeded one
+  renders empty pages, not errors: failed list reads degrade to `[]`).
 
-To roll back a bad `crm-api-nest` release, redeploy the previous
-`CRM_API_NEST_IMAGE` tag — do not repoint `CRM_API_URL`.
+So this is still not a rollback path. To roll back a bad `crm-api-nest` release,
+redeploy the previous `CRM_API_NEST_IMAGE` tag — do not repoint `CRM_API_URL`.
 
 **6. Bring up** — the next tagged release deploys it automatically. Confirm the
 dashboard loads live data after sign-in; `crm-api-nest` answers over the internal

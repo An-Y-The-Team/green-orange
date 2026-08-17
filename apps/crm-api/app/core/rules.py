@@ -1,0 +1,94 @@
+"""Cross-resource business rules: the stage machine, the closed-project lock,
+server-assigned document codes and the business calendar date.
+
+The NestJS twin of this file is `crm-api-nest/src/common/{stage,project-lock,
+code,business-date}.ts`. Keep the two in step — these rules decide what a công
+trình's stage means and when it may still be edited.
+"""
+
+from datetime import date, datetime
+from typing import get_args
+from zoneinfo import ZoneInfo
+
+from fastapi import HTTPException, status
+from sqlalchemy import func
+from sqlmodel import Session, select
+
+from app.models.project import Project, ProjectStage
+
+# All business dates are Vietnam calendar dates. A `date` column takes a `date`
+# straight through, so unlike the Nest backend there is no UTC-midnight dance
+# here — just don't reach for the container's local `date.today()`.
+BUSINESS_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+
+# The 8 lifecycle stages, in order — read straight off the type crm-web's
+# payloads are validated against (app/models/project.py). "survey" was merged
+# into "request": the appointment IS the survey visit, and `visit_date` marks
+# where inside the stage we are.
+STAGE_ORDER: tuple[str, ...] = get_args(ProjectStage)
+
+CLOSED_PROJECT_MESSAGE = (
+    "project is closed — reopen it (stage: settlement) before editing"
+)
+
+
+def business_today() -> date:
+    """Today's date on the Vietnam business calendar."""
+    return datetime.now(BUSINESS_TZ).date()
+
+
+def should_advance(current: str, target: str) -> bool:
+    """Forward-only, and never out of a closed project."""
+    if current == "closed":
+        return False
+    return STAGE_ORDER.index(target) > STAGE_ORDER.index(current)
+
+
+def advance_stage(session: Session, project_id: int | None, target: str) -> None:
+    """Auto-advance: doing the work bumps the stage (`stage = max(stage, target)`).
+
+    Safe to call opportunistically after creating an artifact — a no-op when
+    `project_id` is None (standalone quote/contract) or the project is already
+    at or past `target`. Commits, so call it after the artifact is committed.
+    """
+    if project_id is None:
+        return
+    project = session.get(Project, project_id)
+    if project is None or not should_advance(project.stage, target):
+        return
+    project.stage = target
+    session.add(project)
+    session.commit()
+
+
+def assert_project_open(session: Session, project_id: int | None) -> None:
+    """Reject mutations on a closed project (its entities included).
+
+    Exempt: ProjectNote, and the reopen transition (closed → settlement), which
+    the projects route handles itself.
+    """
+    if project_id is None:
+        return  # standalone quote/contract — nothing to lock
+    project = session.get(Project, project_id)
+    if project is not None and project.stage == "closed":
+        raise HTTPException(status.HTTP_409_CONFLICT, CLOSED_PROJECT_MESSAGE)
+
+
+def next_code(session: Session, model: type, prefix: str) -> str:
+    """Server-assigned document code: CT-2026-001, BG-…, HD-…, QT-….
+
+    ponytail: sequence number is max(id) + 1 and the year is hardcoded — not
+    race-safe under concurrent inserts, fine for this app. The NestJS backend
+    carries the identical caveat on purpose so both emit the same codes.
+    """
+    highest = session.exec(select(func.max(model.id))).one()
+    return f"{prefix}-2026-{(highest or 0) + 1:03d}"
+
+
+def assert_step(order: tuple[str, ...], current: str, target: str) -> None:
+    """One step forward along a status chain, nothing else."""
+    if order.index(target) != order.index(current) + 1:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Invalid status transition: {current} → {target}",
+        )

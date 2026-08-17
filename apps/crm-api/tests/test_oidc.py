@@ -4,28 +4,14 @@ Monkeypatches verify_oidc_token (so no live Authentik / network is needed) and
 asserts the provision-on-first-login wiring in app/api/deps.py.
 """
 
-import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine, select
-from sqlmodel.pool import StaticPool
+from sqlmodel import Session, select
 
 from app.api import deps
 from app.api.deps import get_session
 from app.core.config import settings
 from app.main import app
 from app.models.user import User
-
-
-@pytest.fixture(name="session")
-def session_fixture():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
 
 
 def test_oidc_provisions_user_on_first_login(session: Session, monkeypatch):

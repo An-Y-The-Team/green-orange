@@ -1,93 +1,329 @@
-from __future__ import annotations
+"""Công trình — the project a job lives on, plus its notes and attachments.
 
-import decimal
-from datetime import datetime
-from enum import StrEnum
+The lifecycle is the 8 stages in `STAGE_ORDER` (app/core/rules.py). Transitions
+are SOFT: doing the work auto-advances the stage (a quote created → `quote`, a
+cọc paid → `paperwork`, …) and a manual jump just applies. A `closed` project is
+locked — reopen it (stage: settlement) before editing.
+"""
 
-from sqlmodel import Field, SQLModel
+from datetime import date, datetime
+from typing import Literal
+
+from sqlalchemy import DateTime
+from sqlmodel import JSON, Field, Relationship, SQLModel
+
+from app.models.client import (
+    Client,
+    ClientPublic,
+    Contact,
+    ContactPublic,
+    Location,
+    LocationPublic,
+    utcnow,
+)
+from app.models.paperwork import PaperworkItem, PaperworkItemPublic
+from app.models.quote import Quote, QuoteBasic
+from app.models.refs import ContactRef
+
+PROJECT_STATUSES = ("active", "on_hold", "cancelled")
+EXECUTION_SUB_STATUSES = ("kickoff", "hoarding", "works")
+ACCEPTANCE_SUB_STATUSES = ("request_sent", "inspecting", "rework", "passed")
+ATTACHMENT_KINDS = (
+    "survey",
+    "site_log",
+    "finish_image",
+    "signed_contract",
+    "acceptance_report",
+    "settlement",
+    "paperwork",
+    "other",
+)
+
+# The 8 lifecycle stages, in order. app/core/rules.py reads STAGE_ORDER off this
+# Literal, so the list lives in exactly one place.
+ProjectStage = Literal[
+    "request",
+    "quote",
+    "contract",
+    "paperwork",
+    "execution",
+    "acceptance",
+    "settlement",
+    "closed",
+]
+ProjectStatus = Literal["active", "on_hold", "cancelled"]
+ExecutionSubStatus = Literal["kickoff", "hoarding", "works"]
+AcceptanceSubStatus = Literal["request_sent", "inspecting", "rework", "passed"]
+AttachmentKind = Literal[
+    "survey",
+    "site_log",
+    "finish_image",
+    "signed_contract",
+    "acceptance_report",
+    "settlement",
+    "paperwork",
+    "other",
+]
 
 
-class ProjectType(StrEnum):
-    VE_SINH = "ve_sinh"
-    THI_CONG = "thi_cong"
+# ── Tables ──────────────────────────────────────────────────────────────────
+class ProjectTypeLink(SQLModel, table=True):
+    """Join table for the 1..n type tags a công trình carries."""
+
+    project_id: int | None = Field(
+        default=None, foreign_key="project.id", primary_key=True
+    )
+    project_type_id: int | None = Field(
+        default=None, foreign_key="projecttype.id", primary_key=True
+    )
 
 
-class ProjectStage(StrEnum):
-    YEU_CAU = "yeu_cau"  # 1. client inquiry
-    KHAO_SAT = "khao_sat"  # 2. site survey / scouting
-    BAO_GIA = "bao_gia"  # 4. quotation drafted
-    HOP_DONG = "hop_dong"  # 7. contract signed
-    CHUAN_BI = "chuan_bi"  # 8. permits / paperwork
-    THI_CONG = "thi_cong"  # 9. on-site work
-    NGHIEM_THU = "nghiem_thu"  # 12. acceptance / hand-over
-    QUYET_TOAN = "quyet_toan"  # 13. final settlement
-    THANH_TOAN = "thanh_toan"  # 14. awaiting payment
-    DONG = "dong"  # 15. contract closed
-
-
-class ScheduleOutcome(StrEnum):
-    ON_TIME = "on_time"
-    DELAYED = "delayed"
-    EARLY = "early"
-
-
-class CostCategory(StrEnum):
-    VAT_TU = "vat_tu"  # materials
-    NHAN_CONG = "nhan_cong"  # labor
-    THIET_BI = "thiet_bi"  # equipment / tools
-    SU_CO = "su_co"  # incident / breakage
-    KHAC = "khac"  # other / unforeseen
-
-
-class AcceptanceStatus(StrEnum):
-    CHO_NGHIEM_THU = "cho_nghiem_thu"
-    DA_NGHIEM_THU = "da_nghiem_thu"
-    CO_VAN_DE = "co_van_de"
-
-
-class ProjectBase(SQLModel):
-    code: str = Field(index=True)
-    name: str
-    description: str | None = None
-    client: str
-    type: ProjectType
-    address: str
-    stage: ProjectStage
-    schedule_outcome: ScheduleOutcome | None = None
-    start_date: datetime
-    end_date: datetime
-    manager: str
-    contract_value: decimal.Decimal
-    estimated_cost: decimal.Decimal
-    progress: int
-
-
-class Project(ProjectBase, table=True):
+class ProjectType(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    created_at: datetime | None = Field(default_factory=datetime.utcnow)
-    updated_at: datetime | None = None
+    # User-managed; seeded: Vệ sinh, Thi công, Tháo dỡ.
+    name: str = Field(unique=True)
 
 
-class ProjectCreate(ProjectBase):
-    pass
+class Project(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    code: str = Field(unique=True)  # CT-2026-001, server-assigned
+    client_id: int = Field(foreign_key="client.id", index=True)
+    location_id: int = Field(foreign_key="location.id", index=True)
+    # Defaults to the location manager (app logic).
+    working_contact_id: int = Field(foreign_key="contact.id", index=True)
+    # Defaults to the working contact (app logic).
+    decision_maker_contact_id: int = Field(foreign_key="contact.id", index=True)
+    name: str
+    # Stage 1: what they want done, from the first call.
+    request_note: str | None = None
+    # Stage 1: free text (giới thiệu, gọi lại, …) — not a managed list.
+    referral_source: str | None = None
+    stage: str = Field(default="request", index=True)
+    status: str = Field(default="active", index=True)
+    cancel_reason: str | None = None  # required when status = cancelled
+    follow_up_date: date | None = None  # on_hold jobs resurface
+    # Stage 1; a reschedule is an update in place.
+    appointment_at: datetime | None = Field(
+        default=None, sa_type=DateTime(timezone=True)
+    )
+    # "Đã gặp khách" tap — in-stage marker (null = awaiting appointment).
+    visit_date: date | None = None
+    survey_note: str | None = None
+    # Stage 1 scratch rows that prefill quote items: {name, quantity, unit,
+    # note}[]. Never queried across projects, so JSON is enough.
+    survey_items: list[dict] | None = Field(default=None, sa_type=JSON)
+    client_signed_date: date | None = None  # stage-3 gate
+    execution_sub_status: str | None = None  # kickoff | hoarding | works
+    start_date: date | None = None
+    est_duration_days: int | None = None
+    # Manual is the source of truth; the timekeeping-derived figure is computed
+    # at read time (GET /timekeeping/summary).
+    actual_duration_days: int | None = None
+    approaches: str | None = None  # free text until a structure emerges
+    works_done_at: datetime | None = Field(
+        default=None, sa_type=DateTime(timezone=True)
+    )
+    # request_sent | inspecting | rework | passed
+    acceptance_sub_status: str | None = None
+    # Stamped server-side when acceptance_sub_status → passed.
+    acceptance_passed_date: date | None = None
+    created_at: datetime = Field(
+        default_factory=utcnow, sa_type=DateTime(timezone=True)
+    )
+    updated_at: datetime = Field(
+        default_factory=utcnow,
+        sa_type=DateTime(timezone=True),
+        sa_column_kwargs={"onupdate": utcnow},
+    )
+
+    client: Client = Relationship()
+    location: Location = Relationship()
+    working_contact: Contact = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Project.working_contact_id]"}
+    )
+    decision_maker: Contact = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Project.decision_maker_contact_id]"}
+    )
+    types: list[ProjectType] = Relationship(link_model=ProjectTypeLink)
+    quotes: list[Quote] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"order_by": "desc(Quote.version)"},
+    )
+    paperwork_items: list[PaperworkItem] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"order_by": "PaperworkItem.id"},
+    )
+    notes: list["ProjectNote"] = Relationship(
+        sa_relationship_kwargs={
+            "order_by": "(desc(ProjectNote.created_at), desc(ProjectNote.id))"
+        }
+    )
 
 
-class ProjectPublic(ProjectBase):
-    id: int
+class ProjectNote(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    project_id: int = Field(foreign_key="project.id", index=True)
+    tag: str | None = None  # e.g. kickoff, hoarding, rework
+    body: str
+    created_at: datetime = Field(
+        default_factory=utcnow, sa_type=DateTime(timezone=True)
+    )
+
+
+class Attachment(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    project_id: int = Field(foreign_key="project.id", index=True)
+    kind: str
+    paperwork_item_id: int | None = Field(
+        default=None, foreign_key="paperworkitem.id", index=True
+    )
+    s3_key: str  # S3 architecture TBD — the shape is stable regardless
+    note: str | None = None
+    created_at: datetime = Field(
+        default_factory=utcnow, sa_type=DateTime(timezone=True)
+    )
+
+
+# ── Request schemas ─────────────────────────────────────────────────────────
+class ProjectTypeIn(SQLModel):
+    name: str = Field(min_length=1)
+
+
+class SurveyItemIn(SQLModel):
+    name: str = Field(min_length=1)
+    quantity: float | None = Field(default=None, ge=0)
+    unit: str | None = None
+    note: str | None = None
+
+
+class ProjectCreate(SQLModel):
+    name: str = Field(min_length=1)
+    client_id: int
+    location_id: int
+    working_contact_id: int | None = None
+    decision_maker_contact_id: int | None = None
+    type_ids: list[int] = Field(min_length=1)
+    # Creating at a later stage asserts historical state (backfill); no gates
+    # run on create.
+    stage: ProjectStage | None = None
+    request_note: str | None = None
+    referral_source: str | None = None
+    # Accepted on create so the intake form is ONE write — a failed follow-up
+    # PATCH used to report failure on an already-committed project.
+    appointment_at: datetime | None = None
+    survey_items: list[SurveyItemIn] | None = None
 
 
 class ProjectUpdate(SQLModel):
-    code: str | None = None
-    name: str | None = None
-    description: str | None = None
-    client: str | None = None
-    type: ProjectType | None = None
-    address: str | None = None
+    name: str | None = Field(default=None, min_length=1)
+    working_contact_id: int | None = None
+    decision_maker_contact_id: int | None = None
+    type_ids: list[int] | None = Field(default=None, min_length=1)
+    request_note: str | None = None
+    referral_source: str | None = None
+    survey_items: list[SurveyItemIn] | None = None
     stage: ProjectStage | None = None
-    schedule_outcome: ScheduleOutcome | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
-    manager: str | None = None
-    contract_value: decimal.Decimal | None = None
-    estimated_cost: decimal.Decimal | None = None
-    progress: int | None = None
+    status: ProjectStatus | None = None
+    cancel_reason: str | None = None
+    follow_up_date: date | None = None
+    appointment_at: datetime | None = None
+    visit_date: date | None = None
+    survey_note: str | None = None
+    client_signed_date: date | None = None
+    execution_sub_status: ExecutionSubStatus | None = None
+    start_date: date | None = None
+    est_duration_days: int | None = Field(default=None, ge=0)
+    actual_duration_days: int | None = Field(default=None, ge=0)
+    approaches: str | None = None
+    works_done_at: datetime | None = None
+    acceptance_sub_status: AcceptanceSubStatus | None = None
+
+
+class ProjectNoteCreate(SQLModel):
+    project_id: int
+    tag: str | None = None
+    body: str = Field(min_length=1)
+
+
+class AttachmentCreate(SQLModel):
+    project_id: int
+    kind: AttachmentKind
+    paperwork_item_id: int | None = None
+    s3_key: str = Field(min_length=1)
+    note: str | None = None
+
+
+# ── Response schemas ────────────────────────────────────────────────────────
+class ProjectTypePublic(SQLModel):
+    id: int
+    name: str
+
+
+class ProjectPublic(SQLModel):
+    id: int
+    code: str
+    client_id: int
+    location_id: int
+    working_contact_id: int
+    decision_maker_contact_id: int
+    name: str
+    request_note: str | None
+    referral_source: str | None
+    stage: str
+    status: str
+    cancel_reason: str | None
+    follow_up_date: date | None
+    appointment_at: datetime | None
+    visit_date: date | None
+    survey_note: str | None
+    survey_items: list[dict] | None
+    client_signed_date: date | None
+    execution_sub_status: str | None
+    start_date: date | None
+    est_duration_days: int | None
+    actual_duration_days: int | None
+    approaches: str | None
+    works_done_at: datetime | None
+    acceptance_sub_status: str | None
+    acceptance_passed_date: date | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectWithRelations(ProjectPublic):
+    client: ClientPublic
+    location: LocationPublic
+    types: list[ProjectTypePublic]
+
+
+class ProjectListItem(ProjectWithRelations):
+    # The field page needs the site contact per appointment; decision_maker is
+    # the [Gọi] fallback when the working contact has no phone.
+    working_contact: ContactRef
+    decision_maker: ContactRef
+
+
+class ProjectNotePublic(SQLModel):
+    id: int
+    project_id: int
+    tag: str | None
+    body: str
+    created_at: datetime
+
+
+class ProjectDetail(ProjectWithRelations):
+    working_contact: ContactPublic
+    decision_maker: ContactPublic
+    paperwork_items: list[PaperworkItemPublic]
+    quotes: list[QuoteBasic]
+    notes: list[ProjectNotePublic]
+
+
+class AttachmentPublic(SQLModel):
+    id: int
+    project_id: int
+    kind: str
+    paperwork_item_id: int | None
+    s3_key: str
+    note: str | None
+    created_at: datetime
