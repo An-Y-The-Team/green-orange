@@ -173,9 +173,9 @@ def create_settlement(session: SessionDep, payload: SettlementCreate) -> Settlem
         items=rows,
     )
     session.add(settlement)
-    session.commit()
-    session.refresh(settlement)
-    # Doc rule: the draft bill is prepared alongside the settlement.
+    # Doc rule: the draft bill is prepared alongside the settlement — one
+    # transaction, so a settlement can never exist without its bill.
+    session.flush()
     session.add(
         Bill(
             project_id=payload.project_id,

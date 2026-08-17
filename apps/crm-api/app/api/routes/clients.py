@@ -153,11 +153,14 @@ def create_client(session: SessionDep, payload: ClientCreate) -> Client:
         note=payload.note,
     )
     session.add(client)
-    session.commit()
-    session.refresh(client)
     if payload.type != "individual":
+        session.commit()
+        session.refresh(client)
         return client
     # Individual = the client is their own contact, with one default location.
+    # flush(), not commit(): all three rows land in ONE transaction, so a failure
+    # halfway cannot leave a client without the location its công trình needs.
+    session.flush()
     contact = Contact(
         client_id=client.id,
         name=payload.name,
@@ -165,8 +168,7 @@ def create_client(session: SessionDep, payload: ClientCreate) -> Client:
         email=payload.email,
     )
     session.add(contact)
-    session.commit()
-    session.refresh(contact)
+    session.flush()
     session.add(
         Location(
             client_id=client.id,

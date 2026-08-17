@@ -259,9 +259,9 @@ def create_project(session: SessionDep, payload: ProjectCreate) -> Project:
         types=types,
     )
     session.add(project)
-    session.commit()
-    session.refresh(project)
-    # Same request: auto-seed the stage-5 default paperwork checklist.
+    # flush(), not commit(): the auto-seeded stage-5 checklist goes in the SAME
+    # transaction as the project, so no công trình can exist without it.
+    session.flush()
     for name in DEFAULT_PAPERWORK:
         session.add(PaperworkItem(project_id=project.id, name=name))
     session.commit()
