@@ -1194,6 +1194,17 @@ async function main(): Promise<void> {
   await seedById(prisma.settlementItem, SETTLEMENT_ITEMS);
   await seedById(prisma.bill, BILLS);
   await seedById(prisma.paymentMilestone, MILESTONES);
+  // Clear before upserting, unlike every other table: chấm công is the one
+  // fixture whose business key (crew_member_id, project_id, work_date, source)
+  // contains a RELATIVE date. Re-seeding on a later calendar day shifts every
+  // work_date forward, so a row lands on the date its neighbour still holds
+  // from the previous run — id-keyed upsert can't see that row, and Postgres
+  // raises P2002 (ids 2 and 3 are one day apart, so it fired on any re-run the
+  // day after the last one). Deleting the seeded ids first makes the shift
+  // converge. Safe: these ids are the seed's own.
+  await prisma.timekeepingRecord.deleteMany({
+    where: { id: { in: TIMEKEEPING.map((r) => r.id) } },
+  });
   await seedById(prisma.timekeepingRecord, TIMEKEEPING);
   await seedById(prisma.attachment, ATTACHMENTS);
   await seedById(prisma.projectNote, NOTES);
