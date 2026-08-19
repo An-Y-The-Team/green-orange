@@ -150,6 +150,41 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
 export type MergeContext = Record<string, string>;
 
 /**
+ * Tokens whose values come from rows that stay editable after the paper is
+ * signed — the client, its decision maker, the location, the project schedule.
+ * A rename, a moved office or a slipped start date would otherwise retroactively
+ * change what an already-signed contract reprints, which is the same bug
+ * print-snapshot.ts freezes the company block to avoid.
+ *
+ * `company.*` is absent on purpose: the snapshot freezes the whole profile.
+ * Money tokens are absent too — they derive from the chốt quote, which the quote
+ * workflow already freezes once sent.
+ */
+export const SIGNED_TOKENS = [
+  "project_code",
+  "project_name",
+  "client",
+  "client.address",
+  "client.tax_id",
+  "client.rep",
+  "client.rep_title",
+  "client.phone",
+  "site_name",
+  "site_address",
+  "start_date",
+  "duration_days",
+] as const;
+
+/**
+ * The {@link SIGNED_TOKENS} slice of a resolved context — what the signing step
+ * stores in the print snapshot, and what the print page layers back over the
+ * live values.
+ */
+export function signedContext(ctx: MergeContext): MergeContext {
+  return Object.fromEntries(SIGNED_TOKENS.map((t) => [t, ctx[t] ?? ""]));
+}
+
+/**
  * Just the `company.*` tokens — enough to render the document header template
  * (which may only use company fields) anywhere, without a contract in hand.
  */
@@ -188,12 +223,17 @@ export type ContractProject = Pick<
  * ⟨token?⟩ — an unfilled blank on a contract is a typist's job, a marker is a
  * bug).
  */
-export function buildContractContext(
-  contract: Contract,
-  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null,
-  company: CompanyInfo = COMPANY,
-  project?: ContractProject | null
-): MergeContext {
+export function buildContractContext({
+  contract,
+  quote,
+  company = COMPANY,
+  project,
+}: {
+  contract: Contract;
+  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null;
+  company?: CompanyInfo;
+  project?: ContractProject | null;
+}): MergeContext {
   // One VAT rule for screen, printable, .docx and these tokens.
   const money = quote ? storedTotals(quote) : undefined;
   const vatRate = quote?.vat_rate ?? DEFAULT_VAT_RATE;

@@ -46,6 +46,12 @@ import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
+import {
+  assertDiscountWithin,
+  computeItemAmounts,
+  payableTotal,
+  settlementRemainder,
+} from "./settlement-money";
 
 const SETTLEMENT_STATUS = ["draft", "sent", "signed"];
 const BILL_STATUS = ["draft", "official", "sent", "paid"];
@@ -106,63 +112,19 @@ class UpdateSettlementDto {
   @IsOptional() @IsString() note?: string;
 }
 
-// amount = round(quantity × unit_price) per item; total = Σ amounts.
+// The Prisma rows for a settlement's items; amounts and Σ come from
+// settlement-money.ts so the write path and the tests round identically.
 const computeItems = (items: SettlementItemDto[]) => {
+  const { amounts, total } = computeItemAmounts(items);
   const rows = items.map((it, i) => ({
     description: it.description,
     unit: it.unit ?? null,
     quantity: it.quantity,
     unit_price: toBig(it.unit_price)!,
-    amount: toBig(Math.round(it.quantity * it.unit_price))!,
+    amount: amounts[i],
     sort_order: it.sort_order ?? i,
   }));
-  const total = rows.reduce((sum, r) => sum + r.amount, 0n);
   return { rows, total };
-};
-
-/**
- * What the client actually owes on a quyết toán: (Σ items − giảm giá) + VAT.
- *
- * `total_amount` stays the pre-tax Σ (the quyết toán sheet prints it as "Cộng"),
- * so this is the ONLY figure that may reach a bill or an đợt thanh toán —
- * billing the subtotal under-asks by the tax the hợp đồng charged.
- *
- * VAT rounds through Number, exactly as the web app's quoteTotals does, so the
- * printed sheet and the billed figure cannot disagree by a đồng. Safe for VND:
- * a settlement would have to exceed 9×10^15 to lose precision.
- * (exported for the unit test in receivables.test.ts)
- */
-export const payableTotal = (s: {
-  total_amount: bigint;
-  discount_amount: bigint;
-  vat_rate: number;
-}): bigint => {
-  const net = s.total_amount - s.discount_amount;
-  if (net < 0n)
-    throw new BadRequestException(
-      `giảm giá (${s.discount_amount}) exceeds the quyết toán subtotal (${s.total_amount})`
-    );
-  return net + BigInt(Math.round(Number(net) * s.vat_rate));
-};
-
-// Balance đợt on sign = settlement payable − EVERY unallocated cọc.
-// Deliberately status-blind: đợt thanh toán are a payment SCHEDULE, so
-// sum(bill's đợt) must equal bill.total_amount. An unpaid `not_due` cọc is
-// still a scheduled obligation — subtracting only the paid ones would bill the
-// full balance next to it and double-bill the client. Do not "fix" this by
-// filtering `status: "paid"`.
-// (exported for the unit test in receivables.test.ts)
-export const settlementRemainder = (
-  total: bigint,
-  deposits: { amount: bigint }[]
-): bigint => {
-  const allocated = deposits.reduce((sum, d) => sum + d.amount, 0n);
-  const remainder = total - allocated;
-  if (remainder < 0n)
-    throw new ConflictException(
-      `cọc already scheduled (${allocated}) exceeds the quyết toán payable (${total}) — correct the đợt thanh toán before signing`
-    );
-  return remainder;
 };
 
 @Controller("settlements")
@@ -214,6 +176,8 @@ export class SettlementsController {
         `project already has a settlement (QT #${existing.id}) — a project settles once`
       );
     const { rows, total } = computeItems(dto.items ?? []);
+    const discount = toBig(dto.discount_amount ?? 0)!;
+    assertDiscountWithin(total, discount);
     // Doc rule: the draft bill is prepared alongside the settlement.
     const created = await this.prisma.$transaction(async (tx) => {
       const settlement = await tx.settlement.create({
@@ -221,7 +185,7 @@ export class SettlementsController {
           project_id: dto.project_id,
           note: dto.note,
           total_amount: total,
-          discount_amount: toBig(dto.discount_amount ?? 0)!,
+          discount_amount: discount,
           // Omitted → the schema default (8%), not 0: an untaxed quyết toán is
           // the exception, and defaulting to 0 silently under-bills.
           vat_rate: dto.vat_rate,
@@ -279,6 +243,13 @@ export class SettlementsController {
       data.total_amount = total;
       data.items = { deleteMany: {}, create: rows };
     }
+    // Validate the pair as it will STAND after this PATCH, not just what the
+    // body carries: shrinking the items below an existing giảm giá is the same
+    // invalid row as sending too big a giảm giá.
+    assertDiscountWithin(
+      (data.total_amount as bigint | undefined) ?? row.total_amount,
+      (data.discount_amount as bigint | undefined) ?? row.discount_amount
+    );
     if (dto.status !== undefined && dto.status !== row.status) {
       // Correction path (1:1 rule): un-sign back to draft instead of creating
       // a second settlement. Inverse of the sign transaction below.

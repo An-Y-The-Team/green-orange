@@ -44,10 +44,27 @@ export const updateSettlementSchema = z
 
 // Builder form values — totals shown client-side, recomputed server-side. VAT
 // is entered as a percent (like the quote builder) and sent as a rate.
-export const settlementFormSchema = z.object({
-  items: z.array(settlementItemSchema).min(1, "Cần ít nhất một dòng"),
-  discount_amount: discountAmount,
-  vat_percent: z.number().min(0).max(100),
-  note: z.string().optional(),
-});
+export const settlementFormSchema = z
+  .object({
+    items: z.array(settlementItemSchema).min(1, "Cần ít nhất một dòng"),
+    discount_amount: discountAmount,
+    vat_percent: z.number().min(0).max(100),
+    note: z.string().optional(),
+  })
+  .superRefine((val, ctx) => {
+    // Mirrors the server's write-time guard (assertDiscountWithin): without
+    // this the form saves and the API answers 400 with an English message.
+    // Same per-line rounding as the server, so the boundary agrees exactly.
+    const subtotal = val.items.reduce(
+      (sum, it) => sum + Math.round((it.quantity ?? 0) * (it.unit_price ?? 0)),
+      0
+    );
+    if (val.discount_amount > subtotal) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["discount_amount"],
+        message: "Giảm giá không được vượt quá tổng trước thuế.",
+      });
+    }
+  });
 export type SettlementFormValues = z.infer<typeof settlementFormSchema>;

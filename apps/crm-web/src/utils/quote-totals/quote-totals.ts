@@ -34,11 +34,16 @@ export function quoteTotals(items: QuoteTotalsItem[], vatRate: number) {
 
 /**
  * Money split for a quyết toán: Σ items, less giảm giá, then VAT — mirroring
- * `payableTotal` in crm-api-nest receivables.module.ts, which is what the hóa
+ * `payableTotal` in crm-api-nest receivables/settlement-money.ts, which is what the hóa
  * đơn is actually billed for. `total` is the payable; `subtotal` is the pre-tax
  * Σ the sheet prints as "Cộng".
  *
  * Works on a saved Settlement or on live builder rows (pass a computed Σ).
+ *
+ * An over-discount is clamped rather than thrown: the form (settlementFormSchema)
+ * and the API (assertDiscountWithin) both reject it at write time, so this only
+ * guards RENDERING a row that arrived some other way — never a negative total on
+ * a printed sheet.
  */
 export function settlementTotals({
   total_amount,

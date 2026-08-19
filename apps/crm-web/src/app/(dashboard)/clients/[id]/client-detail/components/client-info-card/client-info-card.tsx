@@ -129,7 +129,7 @@ export function ClientInfoCard({
             ) : null}
             <div className="space-y-1.5">
               <Label htmlFor="address">
-                {isCompany ? "Địa chỉ đăng ký kinh doanh" : FIELDS.address}
+                {isCompany ? FIELDS.registeredAddress : FIELDS.address}
               </Label>
               <Input
                 id="address"
@@ -187,7 +187,7 @@ export function ClientInfoCard({
               <Field label="Mã số thuế" value={info.tax_code || "—"} />
             ) : null}
             <Field
-              label={isCompany ? "Địa chỉ đăng ký kinh doanh" : FIELDS.address}
+              label={isCompany ? FIELDS.registeredAddress : FIELDS.address}
               value={info.address || "—"}
             />
             <Field label="Email" value={info.email || "—"} />

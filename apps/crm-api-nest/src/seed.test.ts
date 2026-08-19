@@ -7,7 +7,7 @@ import { describe, expect, test } from "bun:test";
 
 import { businessDateString } from "./common/business-date";
 import { STAGE_ORDER } from "./common/stage";
-import { payableTotal } from "./receivables/receivables.module";
+import { payableTotal } from "./receivables/settlement-money";
 import {
   ASSIGNMENTS,
   BILLS,

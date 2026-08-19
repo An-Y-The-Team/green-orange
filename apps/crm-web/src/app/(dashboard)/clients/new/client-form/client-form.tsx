@@ -107,7 +107,7 @@ export function ClientForm() {
             <Label htmlFor="address">
               {type === ClientType.INDIVIDUAL
                 ? FIELDS.address
-                : "Địa chỉ đăng ký kinh doanh"}
+                : FIELDS.registeredAddress}
             </Label>
             <Input
               id="address"

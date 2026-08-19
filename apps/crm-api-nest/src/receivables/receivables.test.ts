@@ -8,9 +8,8 @@ import { businessToday } from "../common/business-date";
 import {
   PaymentMilestonesController,
   SettlementsController,
-  payableTotal,
-  settlementRemainder,
 } from "./receivables.module";
+import { payableTotal, settlementRemainder } from "./settlement-money";
 
 // The quyết toán settles a VAT-priced hợp đồng, so what reaches the hóa đơn is
 // the payable, never the pre-tax Σ the sheet prints as "Cộng". Billing the
@@ -70,6 +69,65 @@ describe("settlementRemainder (balance đợt on sign)", () => {
     expect(() =>
       settlementRemainder(100_000_000n, [{ amount: 150_000_000n }])
     ).toThrow(/exceeds the quyết toán payable/);
+  });
+});
+
+// An over-discount used to store fine and only 400 at sign time, leaving an
+// unsignable quyết toán whose printed sheet showed a total the server refuses.
+// Both write paths must reject it before anything is written.
+describe("giảm giá is rejected at write time, not at sign time", () => {
+  const draft = {
+    id: 7,
+    project_id: 3,
+    status: "draft",
+    total_amount: 10_000_000n,
+    discount_amount: 0n,
+    vat_rate: 0.08,
+    bill: null,
+  };
+  const fake = (row: Record<string, unknown>): any => ({
+    settlement: {
+      findUnique: async () => row,
+      update: async () => {
+        throw new Error("must not write an unsignable row");
+      },
+      create: async () => {
+        throw new Error("must not write an unsignable row");
+      },
+    },
+    project: { findUnique: async () => ({ stage: "settlement" }) },
+    $transaction: async (fn: any) => fn({}),
+  });
+
+  test("a giảm giá above the Σ never reaches the update", async () => {
+    await expect(
+      new SettlementsController(fake(draft)).update(7, {
+        discount_amount: 11_000_000,
+      } as any)
+    ).rejects.toThrow(/giảm giá/);
+  });
+
+  // The pair must be validated as it will STAND, not just as the body carries it.
+  test("shrinking the items below an existing giảm giá is rejected too", async () => {
+    await expect(
+      new SettlementsController(
+        fake({ ...draft, discount_amount: 8_000_000n })
+      ).update(7, {
+        items: [{ description: "Đục sàn", quantity: 1, unit_price: 5_000_000 }],
+      } as any)
+    ).rejects.toThrow(/giảm giá/);
+  });
+
+  test("POST with a giảm giá above the Σ never reaches the create", async () => {
+    const prisma = fake(draft);
+    prisma.settlement.findUnique = async () => null; // no existing settlement
+    await expect(
+      new SettlementsController(prisma).create({
+        project_id: 3,
+        items: [{ description: "Đục sàn", quantity: 1, unit_price: 5_000_000 }],
+        discount_amount: 6_000_000,
+      } as any)
+    ).rejects.toThrow(/giảm giá/);
   });
 });
 

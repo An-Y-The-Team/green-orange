@@ -248,6 +248,7 @@ export function SettlementBuilderForm({
                   )}
                 />
               </div>
+              {fieldError(formState.errors.discount_amount)}
               <div className="flex items-center gap-2">
                 <Label htmlFor="vat_percent">VAT</Label>
                 <Input

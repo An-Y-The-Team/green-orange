@@ -3,8 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 
-import { MilestoneStatus } from "@/app/(dashboard)/receivables/enums";
+import {
+  BillStatus,
+  MilestoneStatus,
+} from "@/app/(dashboard)/receivables/enums";
 import {
   getProjectBills,
   getProjectMilestones,
@@ -68,6 +72,35 @@ export default async function BillDocumentPage({
       <Badge variant={badge.variant}>{badge.label}</Badge>
     </div>
   );
+
+  // A draft bill carries no figure yet — it gets the quyết toán's payable only
+  // when the quyết toán is signed. Printing it would hand the client a document
+  // asking for 0 ₫ ("Bằng chữ: Không đồng"), which reads as a real request.
+  if (bill.status === BillStatus.DRAFT) {
+    return (
+      <>
+        {backLink}
+
+        <div className="rounded-lg border border-border bg-muted/40 p-6 text-sm">
+          <p className="font-medium">Hóa đơn còn ở trạng thái nháp</p>
+          <p className="mt-1 text-muted-foreground">
+            Giấy đề nghị thanh toán chỉ in được sau khi quyết toán được ký — số
+            tiền đề nghị lấy từ quyết toán đã ký.
+          </p>
+          <Button
+            className="mt-4"
+            size="sm"
+            variant="outline"
+            render={
+              <Link href={`/projects/${project.id}`}>
+                Mở công trình để ký quyết toán
+              </Link>
+            }
+          />
+        </div>
+      </>
+    );
+  }
 
   // This document instructs the client where to wire money. Printing the
   // built-in default account because the profile could not be read would be a

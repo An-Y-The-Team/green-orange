@@ -138,7 +138,18 @@ export default async function ContractDocumentPage({
   const body = ensureLexicalBody(contract.body ?? template?.body);
 
   if (body) {
-    const ctx = buildContractContext(contract, quote, printCompany, project);
+    // Frozen Bên A / địa điểm / tiến độ win for a signed contract, exactly as
+    // the frozen company does — a later client or project edit must not rewrite
+    // signed paper. Drafts have no snapshot and stay live.
+    const ctx = {
+      ...buildContractContext({
+        contract,
+        quote,
+        company: printCompany,
+        project,
+      }),
+      ...(snapshot?.signed_values ?? {}),
+    };
     const docTitle =
       snapshot?.doc_title ??
       template?.doc_title ??
