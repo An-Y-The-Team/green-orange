@@ -1,15 +1,31 @@
-"""FastAPI entrypoint for the teaching CRM backend.
+"""FastAPI entrypoint for the CRM backend.
 
 Run locally:  uv run uvicorn app.main:app --reload --port 8000
 Interactive docs:  http://localhost:8000/docs
+
+This app implements the same v2 contract as `apps/crm-api-nest` (NestJS +
+Prisma, port 8001) — same paths, same payloads, same rules — so crm-web can be
+pointed at either one. When you change behaviour here, change it there too.
 """
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
-from app.api.routes import auth, clients, contacts, deals, leads, projects, tasks
+from app.api.routes import (
+    auth,
+    clients,
+    company,
+    contracts,
+    crew,
+    paperwork,
+    projects,
+    quotes,
+    receivables,
+)
 from app.core.config import settings
 
 
@@ -26,8 +42,6 @@ app = FastAPI(
     lifespan=lifespan,
     # Keep the /docs "Authorize" token in the browser across reloads so you
     # don't have to re-enter admin/admin every time you refresh the page.
-    # Swagger UI defaults persistAuthorization to false (token is in-memory
-    # only and lost on refresh). Pure docs/dev convenience — no API change.
     swagger_ui_parameters={"persistAuthorization": True},
 )
 
@@ -39,15 +53,50 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Worked reference resources.
+
+# Safety net for constraint violations that reach the client. Routes refuse
+# explicitly wherever a delete or a duplicate is expected (see the guards in
+# routes/clients.py and routes/projects.py); this only stops the next one that
+# doesn't from being a bare 500. Mirrors crm-api-nest's PrismaExceptionFilter.
+_INTEGRITY_MESSAGES = {
+    "23503": "record is still referenced by related records",
+    "23505": "a record with these unique values already exists",
+}
+
+
+@app.exception_handler(IntegrityError)
+def integrity_error_handler(_request: Request, exc: IntegrityError) -> JSONResponse:
+    sqlstate = getattr(exc.orig, "sqlstate", None)
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={
+            "detail": _INTEGRITY_MESSAGES.get(
+                sqlstate, "request conflicts with existing data"
+            )
+        },
+    )
+
+
 app.include_router(auth.router)
 app.include_router(clients.router)
-# Student-exercise resources (currently return 501 until implemented).
-app.include_router(contacts.router)
-app.include_router(leads.router)
-app.include_router(deals.router)
-app.include_router(tasks.router)
+app.include_router(clients.contacts_router)
+app.include_router(clients.locations_router)
+app.include_router(projects.types_router)
 app.include_router(projects.router)
+app.include_router(projects.notes_router)
+app.include_router(projects.attachments_router)
+app.include_router(quotes.router)
+app.include_router(contracts.router)
+app.include_router(contracts.templates_router)
+app.include_router(company.router)
+app.include_router(paperwork.router)
+app.include_router(receivables.router)
+app.include_router(receivables.bills_router)
+app.include_router(receivables.milestones_router)
+app.include_router(crew.roles_router)
+app.include_router(crew.router)
+app.include_router(crew.assignments_router)
+app.include_router(crew.timekeeping_router)
 
 
 @app.get("/health", tags=["meta"])

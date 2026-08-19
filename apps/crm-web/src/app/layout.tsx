@@ -6,8 +6,8 @@ import { ThemeScript } from "@yan/ui/components/theme-script";
 import { Providers } from "./providers/providers";
 
 export const metadata: Metadata = {
-  title: "Yan CRM",
-  description: "CRM dashboard — teaching app (Next.js UI + FastAPI backend)",
+  title: "Dịch vụ Ý Ân",
+  description: "Quản lý công việc",
 };
 
 export default function RootLayout({

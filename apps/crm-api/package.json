@@ -12,6 +12,7 @@
     "check-types": "uv run ruff check .",
     "test": "uv run pytest -q",
     "migrate": "uv run alembic upgrade head",
+    "seed": "uv run python -m app.seed",
     "clean": "rm -rf .turbo .ruff_cache .pytest_cache"
   }
 }
