@@ -33,6 +33,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
   MinLength,
   ValidateNested,
@@ -45,6 +46,12 @@ import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
+import {
+  assertDiscountWithin,
+  computeItemAmounts,
+  payableTotal,
+  settlementRemainder,
+} from "./settlement-money";
 
 const SETTLEMENT_STATUS = ["draft", "sent", "signed"];
 const BILL_STATUS = ["draft", "official", "sent", "paid"];
@@ -87,6 +94,8 @@ class CreateSettlementDto {
   @ValidateNested({ each: true })
   @Type(() => SettlementItemDto)
   items?: SettlementItemDto[];
+  @IsOptional() @IsNumber() @Min(0) discount_amount?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
   @IsOptional() @IsString() note?: string;
 }
 
@@ -96,43 +105,26 @@ class UpdateSettlementDto {
   @ValidateNested({ each: true })
   @Type(() => SettlementItemDto)
   items?: SettlementItemDto[];
+  @IsOptional() @IsNumber() @Min(0) discount_amount?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
   @IsOptional() @IsIn(SETTLEMENT_STATUS) status?: string;
   @IsOptional() @IsDateString() signed_date?: string;
   @IsOptional() @IsString() note?: string;
 }
 
-// amount = round(quantity × unit_price) per item; total = Σ amounts.
+// The Prisma rows for a settlement's items; amounts and Σ come from
+// settlement-money.ts so the write path and the tests round identically.
 const computeItems = (items: SettlementItemDto[]) => {
+  const { amounts, total } = computeItemAmounts(items);
   const rows = items.map((it, i) => ({
     description: it.description,
     unit: it.unit ?? null,
     quantity: it.quantity,
     unit_price: toBig(it.unit_price)!,
-    amount: toBig(Math.round(it.quantity * it.unit_price))!,
+    amount: amounts[i],
     sort_order: it.sort_order ?? i,
   }));
-  const total = rows.reduce((sum, r) => sum + r.amount, 0n);
   return { rows, total };
-};
-
-// Balance đợt on sign = settlement total − EVERY unallocated cọc.
-// Deliberately status-blind: đợt thanh toán are a payment SCHEDULE, so
-// sum(bill's đợt) must equal bill.total_amount. An unpaid `not_due` cọc is
-// still a scheduled obligation — subtracting only the paid ones would bill the
-// full balance next to it and double-bill the client. Do not "fix" this by
-// filtering `status: "paid"`.
-// (exported for the unit test in receivables.test.ts)
-export const settlementRemainder = (
-  total: bigint,
-  deposits: { amount: bigint }[]
-): bigint => {
-  const allocated = deposits.reduce((sum, d) => sum + d.amount, 0n);
-  const remainder = total - allocated;
-  if (remainder < 0n)
-    throw new ConflictException(
-      `cọc already scheduled (${allocated}) exceeds the settlement total (${total}) — correct the đợt thanh toán before signing`
-    );
-  return remainder;
 };
 
 @Controller("settlements")
@@ -184,6 +176,8 @@ export class SettlementsController {
         `project already has a settlement (QT #${existing.id}) — a project settles once`
       );
     const { rows, total } = computeItems(dto.items ?? []);
+    const discount = toBig(dto.discount_amount ?? 0)!;
+    assertDiscountWithin(total, discount);
     // Doc rule: the draft bill is prepared alongside the settlement.
     const created = await this.prisma.$transaction(async (tx) => {
       const settlement = await tx.settlement.create({
@@ -191,6 +185,10 @@ export class SettlementsController {
           project_id: dto.project_id,
           note: dto.note,
           total_amount: total,
+          discount_amount: discount,
+          // Omitted → the schema default (8%), not 0: an untaxed quyết toán is
+          // the exception, and defaulting to 0 silently under-bills.
+          vat_rate: dto.vat_rate,
           items: { create: rows },
         },
       });
@@ -222,6 +220,18 @@ export class SettlementsController {
     if (dto.note !== undefined) data.note = dto.note;
     if (dto.signed_date !== undefined)
       data.signed_date = toDate(dto.signed_date);
+    // Frozen on sign for the same reason as items: both feed payableTotal, and
+    // the bill + its đợt were derived from that figure.
+    if (
+      (dto.discount_amount !== undefined || dto.vat_rate !== undefined) &&
+      row.status === "signed"
+    )
+      throw new BadRequestException(
+        "giảm giá / VAT are frozen once signed — un-sign to correct"
+      );
+    if (dto.discount_amount !== undefined)
+      data.discount_amount = toBig(dto.discount_amount)!;
+    if (dto.vat_rate !== undefined) data.vat_rate = dto.vat_rate;
     if (dto.items) {
       // Doc rule: editable while nháp/đã gửi. Signing derives the bill total +
       // milestones, so a signed settlement is corrected by un-signing first.
@@ -233,6 +243,13 @@ export class SettlementsController {
       data.total_amount = total;
       data.items = { deleteMany: {}, create: rows };
     }
+    // Validate the pair as it will STAND after this PATCH, not just what the
+    // body carries: shrinking the items below an existing giảm giá is the same
+    // invalid row as sending too big a giảm giá.
+    assertDiscountWithin(
+      (data.total_amount as bigint | undefined) ?? row.total_amount,
+      (data.discount_amount as bigint | undefined) ?? row.discount_amount
+    );
     if (dto.status !== undefined && dto.status !== row.status) {
       // Correction path (1:1 rule): un-sign back to draft instead of creating
       // a second settlement. Inverse of the sign transaction below.
@@ -249,13 +266,16 @@ export class SettlementsController {
           // Read the total off the UPDATED row: a PATCH carrying both `items`
           // and status:"signed" recomputed it above, so `row` is stale.
           const signed = await tx.settlement.update({ where: { id }, data });
+          // The bill and its đợt carry what the client owes — subtotal + VAT,
+          // less giảm giá — not the pre-tax Σ the sheet prints as "Cộng".
+          const payable = payableTotal(signed);
           const bill = await tx.bill.findFirst({
             where: { settlement_id: id },
           });
           if (!bill) return;
           await tx.bill.update({
             where: { id: bill.id },
-            data: { status: "official", total_amount: signed.total_amount },
+            data: { status: "official", total_amount: payable },
           });
           // All of them: a leftover cọc would stay unallocated and unsubtracted.
           const deposits = await tx.paymentMilestone.findMany({
@@ -265,7 +285,7 @@ export class SettlementsController {
               bill_id: null,
             },
           });
-          const remainder = settlementRemainder(signed.total_amount, deposits);
+          const remainder = settlementRemainder(payable, deposits);
           if (deposits.length)
             await tx.paymentMilestone.updateMany({
               where: { id: { in: deposits.map((d) => d.id) } },

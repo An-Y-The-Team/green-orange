@@ -43,6 +43,7 @@ export function ClientInfoCard({
   const [info, setInfo] = useState({
     name: client.name,
     tax_code: client.tax_code ?? "",
+    address: client.address ?? "",
     email: client.email ?? "",
     note: client.note ?? "",
   });
@@ -56,16 +57,17 @@ export function ClientInfoCard({
   );
   const [pending, start] = useTransition();
 
-  // The action echoes the saved client back as an untyped payload; read the four
+  // The action echoes the saved client back as an untyped payload; read the
   // fields this card shows off it and keep the form open on anything unreadable
   // rather than blanking the header.
   const applySaved = (data?: unknown) => {
     if (!isObject(data)) return;
-    const { name, tax_code, email, note } = data;
+    const { name, tax_code, address, email, note } = data;
     if (typeof name !== "string") return;
     setInfo({
       name,
       tax_code: typeof tax_code === "string" ? tax_code : "",
+      address: typeof address === "string" ? address : "",
       email: typeof email === "string" ? email : "",
       note: typeof note === "string" ? note : "",
     });
@@ -126,6 +128,18 @@ export function ClientInfoCard({
               </div>
             ) : null}
             <div className="space-y-1.5">
+              <Label htmlFor="address">
+                {isCompany ? FIELDS.registeredAddress : FIELDS.address}
+              </Label>
+              <Input
+                id="address"
+                value={draft.address}
+                onChange={(e) =>
+                  setDraft({ ...draft, address: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -172,6 +186,10 @@ export function ClientInfoCard({
             {isCompany ? (
               <Field label="Mã số thuế" value={info.tax_code || "—"} />
             ) : null}
+            <Field
+              label={isCompany ? FIELDS.registeredAddress : FIELDS.address}
+              value={info.address || "—"}
+            />
             <Field label="Email" value={info.email || "—"} />
             {info.note ? <Field label={FIELDS.note} value={info.note} /> : null}
           </dl>

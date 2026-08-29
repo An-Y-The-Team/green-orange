@@ -3,8 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 
-import { MilestoneStatus } from "@/app/(dashboard)/receivables/enums";
+import {
+  BillStatus,
+  MilestoneStatus,
+} from "@/app/(dashboard)/receivables/enums";
 import {
   getProjectBills,
   getProjectMilestones,
@@ -28,6 +32,7 @@ import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 import { labelOf } from "@/utils/label-of/label-of";
+import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
 import { getProject } from "../../../../queries";
 
@@ -68,6 +73,35 @@ export default async function BillDocumentPage({
     </div>
   );
 
+  // A draft bill carries no figure yet — it gets the quyết toán's payable only
+  // when the quyết toán is signed. Printing it would hand the client a document
+  // asking for 0 ₫ ("Bằng chữ: Không đồng"), which reads as a real request.
+  if (bill.status === BillStatus.DRAFT) {
+    return (
+      <>
+        {backLink}
+
+        <div className="rounded-lg border border-border bg-muted/40 p-6 text-sm">
+          <p className="font-medium">Hóa đơn còn ở trạng thái nháp</p>
+          <p className="mt-1 text-muted-foreground">
+            Giấy đề nghị thanh toán chỉ in được sau khi quyết toán được ký — số
+            tiền đề nghị lấy từ quyết toán đã ký.
+          </p>
+          <Button
+            className="mt-4"
+            size="sm"
+            variant="outline"
+            render={
+              <Link href={`/projects/${project.id}`}>
+                Mở công trình để ký quyết toán
+              </Link>
+            }
+          />
+        </div>
+      </>
+    );
+  }
+
   // This document instructs the client where to wire money. Printing the
   // built-in default account because the profile could not be read would be a
   // silent, expensive error — refuse instead.
@@ -85,20 +119,41 @@ export default async function BillDocumentPage({
       {backLink}
 
       <DocumentShell
-        title="ĐỀ NGHỊ THANH TOÁN"
+        title="GIẤY ĐỀ NGHỊ THANH TOÁN"
         subtitle={`HĐ #${bill.id} · ${project.code} · ${project.name}`}
       >
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
+        {/* Kính gửi + căn cứ, as on the paper form (xlsx "đề nghị thanh toán"). */}
+        <div className="space-y-1 text-xs leading-relaxed">
           <p>
-            <span className="text-zinc-500">Công trình: </span>
-            <span className="font-medium">{project.code}</span>
+            <span className="text-zinc-500">Kính gửi: </span>
+            <span className="font-medium uppercase">
+              {project.client?.name ?? "—"}
+            </span>
           </p>
-          {project.client?.name ? (
+          {project.location?.address ? (
             <p>
-              <span className="text-zinc-500">Khách hàng: </span>
-              {project.client.name}
+              <span className="text-zinc-500">Địa chỉ: </span>
+              {project.location.address}
             </p>
           ) : null}
+          <p>
+            <span className="text-zinc-500">Công trình: </span>
+            <span className="font-medium">
+              {project.code} · {project.name}
+            </span>
+          </p>
+          {project.types?.length ? (
+            <p>
+              <span className="text-zinc-500">Hạng mục: </span>
+              {project.types.map((t) => t.name).join(", ")}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-4 space-y-0.5 text-xs leading-relaxed">
+          <p>- Căn cứ vào biên bản nghiệm thu công trình giữa hai bên;</p>
+          <p>- Căn cứ vào bảng giá trị quyết toán khối lượng;</p>
+          <p>- Căn cứ vào biên bản quyết toán.</p>
         </div>
 
         {milestones.length > 0 ? (
@@ -146,6 +201,15 @@ export default async function BillDocumentPage({
           </div>
         </div>
 
+        {/* The request sentence itself — the figure in words is what the payer
+            checks against the numeral. */}
+        <p className="mt-5 text-xs leading-relaxed">
+          {company.name} đề nghị Quý Công ty {project.client?.name ?? ""} thanh
+          toán số tiền{" "}
+          <span className="font-semibold">{formatVND(bill.total_amount)}</span>{" "}
+          (Bằng chữ: {vndInWords(bill.total_amount)}).
+        </p>
+
         {/* Bank details for the transfer */}
         <div className="mt-6 rounded-md bg-zinc-50 p-4 text-xs leading-relaxed">
           <p className="font-medium uppercase">Thông tin chuyển khoản</p>
@@ -166,6 +230,10 @@ export default async function BillDocumentPage({
             Thanh toan {project.code} HD {bill.id}
           </p>
         </div>
+
+        <p className="mt-5 text-xs leading-relaxed">
+          Rất mong sự hợp tác của Quý Công ty. Trân trọng cảm ơn!
+        </p>
 
         <SignatureBlocks leftLabel={DOCUMENT_TEXT.clientSignatory} />
       </DocumentShell>

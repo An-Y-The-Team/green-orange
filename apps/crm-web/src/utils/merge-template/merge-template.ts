@@ -14,6 +14,7 @@
  * chốt (deal) quote, passed alongside the contract.
  */
 import type { Contract } from "@/app/(dashboard)/contracts/types";
+import type { Project } from "@/app/(dashboard)/projects/types";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
 import { COMPANY, type CompanyInfo } from "@/config/company";
 import { FIELDS } from "@/constants/labels";
@@ -53,8 +54,34 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
     label: "Ghi chú hợp đồng",
     example: "Ký tại văn phòng BQL.",
   },
-  // Bên A — Party A (client, from the project)
+  // Bên A — Party A (client + its decision maker, from the project)
   { token: "client", label: "Bên A: Tên", example: "Vincom Retail" },
+  {
+    token: "client.address",
+    label: "Bên A: Địa chỉ",
+    example: "121 (R2-04) đường 10 Tây, Phường Tân Hưng, TP.HCM",
+  },
+  { token: "client.tax_id", label: "Bên A: MST", example: "0309554620" },
+  { token: "client.rep", label: "Bên A: Đại diện", example: "Trần Khánh Vân" },
+  { token: "client.rep_title", label: "Bên A: Chức vụ", example: "Giám đốc" },
+  {
+    token: "client.phone",
+    label: "Bên A: Điện thoại",
+    example: "028 3775 1727",
+  },
+  // Địa điểm + tiến độ — the site and schedule a construction contract states
+  {
+    token: "site_name",
+    label: "Địa điểm thi công",
+    example: "TTTM Vincom Center",
+  },
+  {
+    token: "site_address",
+    label: "Địa chỉ thi công",
+    example: "72 Lê Thánh Tôn, Phường Sài Gòn, TP.HCM",
+  },
+  { token: "start_date", label: "Ngày khởi công", example: "12/03/2026" },
+  { token: "duration_days", label: "Số ngày thi công", example: "12" },
   // Bên B — Party B (our company)
   { token: "company.name", label: "Bên B: Tên", example: COMPANY.name },
   {
@@ -123,6 +150,41 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
 export type MergeContext = Record<string, string>;
 
 /**
+ * Tokens whose values come from rows that stay editable after the paper is
+ * signed — the client, its decision maker, the location, the project schedule.
+ * A rename, a moved office or a slipped start date would otherwise retroactively
+ * change what an already-signed contract reprints, which is the same bug
+ * print-snapshot.ts freezes the company block to avoid.
+ *
+ * `company.*` is absent on purpose: the snapshot freezes the whole profile.
+ * Money tokens are absent too — they derive from the chốt quote, which the quote
+ * workflow already freezes once sent.
+ */
+export const SIGNED_TOKENS = [
+  "project_code",
+  "project_name",
+  "client",
+  "client.address",
+  "client.tax_id",
+  "client.rep",
+  "client.rep_title",
+  "client.phone",
+  "site_name",
+  "site_address",
+  "start_date",
+  "duration_days",
+] as const;
+
+/**
+ * The {@link SIGNED_TOKENS} slice of a resolved context — what the signing step
+ * stores in the print snapshot, and what the print page layers back over the
+ * live values.
+ */
+export function signedContext(ctx: MergeContext): MergeContext {
+  return Object.fromEntries(SIGNED_TOKENS.map((t) => [t, ctx[t] ?? ""]));
+}
+
+/**
  * Just the `company.*` tokens — enough to render the document header template
  * (which may only use company fields) anywhere, without a contract in hand.
  */
@@ -144,15 +206,34 @@ export function companyContext(company: CompanyInfo = COMPANY): MergeContext {
 }
 
 /**
+ * What the Bên A / địa điểm / tiến độ tokens read. The slim `project` embedded
+ * in a Contract carries only the client's id + name, so these come from the
+ * full project (GET /projects/:id) the print page and the editor already hold.
+ */
+export type ContractProject = Pick<
+  Project,
+  "client" | "location" | "decision_maker" | "start_date" | "est_duration_days"
+>;
+
+/**
  * Real merge values for a contract — formatting (VND, dates) applied here.
  * `quote` is the project's chốt quote (drives the money tokens); when absent
- * the money tokens resolve to empty strings.
+ * the money tokens resolve to empty strings. `project` fills the Bên A and
+ * site/schedule tokens; without it they resolve to empty strings (never
+ * ⟨token?⟩ — an unfilled blank on a contract is a typist's job, a marker is a
+ * bug).
  */
-export function buildContractContext(
-  contract: Contract,
-  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null,
-  company: CompanyInfo = COMPANY
-): MergeContext {
+export function buildContractContext({
+  contract,
+  quote,
+  company = COMPANY,
+  project,
+}: {
+  contract: Contract;
+  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null;
+  company?: CompanyInfo;
+  project?: ContractProject | null;
+}): MergeContext {
   // One VAT rule for screen, printable, .docx and these tokens.
   const money = quote ? storedTotals(quote) : undefined;
   const vatRate = quote?.vat_rate ?? DEFAULT_VAT_RATE;
@@ -165,6 +246,19 @@ export function buildContractContext(
     note: contract.note ?? "",
     // Bên A
     client: contract.project?.client.name ?? "",
+    "client.address": project?.client?.address ?? "",
+    "client.tax_id": project?.client?.tax_code ?? "",
+    "client.rep": project?.decision_maker?.name ?? "",
+    "client.rep_title": project?.decision_maker?.title ?? "",
+    "client.phone": project?.decision_maker?.phone ?? "",
+    // Địa điểm + tiến độ
+    site_name: project?.location?.name ?? "",
+    site_address: project?.location?.address ?? "",
+    start_date: project?.start_date ? formatDate(project.start_date) : "",
+    duration_days:
+      project?.est_duration_days != null
+        ? String(project.est_duration_days)
+        : "",
     // Bên B
     ...companyContext(company),
     // Tài chính

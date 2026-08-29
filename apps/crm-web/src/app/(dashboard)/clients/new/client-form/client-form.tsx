@@ -100,17 +100,22 @@ export function ClientForm() {
             {fieldError(form.formState.errors.email)}
           </div>
 
-          {type === ClientType.INDIVIDUAL ? (
-            <div className="space-y-1.5">
-              <Label htmlFor="address">{FIELDS.address}</Label>
-              <Input
-                id="address"
-                placeholder={PLACEHOLDERS.address}
-                {...form.register("address")}
-              />
-              {fieldError(form.formState.errors.address)}
-            </div>
-          ) : null}
+          {/* Shown for both types: a company's registered address is Bên A's
+              address on its contracts. Only individuals must fill it (it also
+              seeds their default location) — see createClientSchema. */}
+          <div className="space-y-1.5">
+            <Label htmlFor="address">
+              {type === ClientType.INDIVIDUAL
+                ? FIELDS.address
+                : FIELDS.registeredAddress}
+            </Label>
+            <Input
+              id="address"
+              placeholder={PLACEHOLDERS.address}
+              {...form.register("address")}
+            />
+            {fieldError(form.formState.errors.address)}
+          </div>
         </CardContent>
       </Card>
 

@@ -36,7 +36,10 @@ import { MoneyInput } from "@/components/money-input/money-input";
 import { ACTIONS, FIELDS, LINE_ITEM_COLUMNS } from "@/constants/labels";
 import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
-import { itemAmount } from "@/utils/quote-totals/quote-totals";
+import {
+  itemAmount,
+  settlementTotals,
+} from "@/utils/quote-totals/quote-totals";
 
 export interface SettlementBuilderInitial {
   projectId: number;
@@ -48,6 +51,10 @@ export interface SettlementBuilderInitial {
     quantity: number;
     unit_price: number;
   }[];
+  /** Giảm giá trước thuế, VND. */
+  discountAmount: number;
+  /** VAT as a percent (8 = 8%); the deal quote's rate when starting fresh. */
+  vatPercent: number;
   note: string;
 }
 
@@ -75,6 +82,8 @@ export function SettlementBuilderForm({
     mode: "onChange",
     defaultValues: {
       items: initial.items.length ? initial.items : [BLANK_ROW],
+      discount_amount: initial.discountAmount,
+      vat_percent: initial.vatPercent,
       note: initial.note,
     },
   });
@@ -86,14 +95,20 @@ export function SettlementBuilderForm({
     onSuccess: () => router.push(`/projects/${initial.projectId}`),
   });
 
-  // Live total — server recomputes on save and is authoritative. No VAT.
+  // Live totals — the server recomputes on save and is authoritative.
   const watchedItems = useWatch({ control, name: "items" });
+  const watchedDiscount = useWatch({ control, name: "discount_amount" });
+  const watchedVat = useWatch({ control, name: "vat_percent" });
   const rows = (watchedItems ?? []).map((it) => ({
     quantity: Number(it?.quantity) || 0,
     unit_price: Number(it?.unit_price) || 0,
   }));
   // Σ of rounded lines, like the server — not a rounded Σ of float products.
-  const total = rows.reduce((s, r) => s + itemAmount(r), 0);
+  const { subtotal, discount, vat, total } = settlementTotals({
+    total_amount: rows.reduce((s, r) => s + itemAmount(r), 0),
+    discount_amount: Number(watchedDiscount) || 0,
+    vat_rate: (Number(watchedVat) || 0) / 100,
+  });
 
   const onValid = (values: SettlementFormValues) => {
     const payload = {
@@ -105,6 +120,8 @@ export function SettlementBuilderForm({
         unit_price: it.unit_price,
         sort_order: i,
       })),
+      discount_amount: values.discount_amount,
+      vat_rate: values.vat_percent / 100,
       note: values.note || undefined,
     };
     startTransition(() => formAction(payload));
@@ -210,8 +227,59 @@ export function SettlementBuilderForm({
 
           <Separator />
 
-          <div className="flex justify-end">
-            <dl className="w-56 space-y-1 text-sm">
+          {/* Giảm giá + VAT, then the payable. The hóa đơn is billed for
+              `total` — the pre-tax Σ never reaches it. */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="discount_amount">Giảm giá trước thuế</Label>
+                <Controller
+                  control={control}
+                  name="discount_amount"
+                  render={({ field }) => (
+                    <MoneyInput
+                      id="discount_amount"
+                      className="w-36"
+                      value={field.value}
+                      // Empty box = no discount, so the live total never NaNs.
+                      onChange={(v) => field.onChange(v ?? 0)}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
+              </div>
+              {fieldError(formState.errors.discount_amount)}
+              <div className="flex items-center gap-2">
+                <Label htmlFor="vat_percent">VAT</Label>
+                <Input
+                  id="vat_percent"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="any"
+                  className="w-20"
+                  {...register("vat_percent", { valueAsNumber: true })}
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+            </div>
+            <dl className="ml-auto w-56 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Cộng</dt>
+                <dd className="tabular-nums">{formatVND(subtotal)}</dd>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Giảm giá</dt>
+                  <dd className="tabular-nums">−{formatVND(discount)}</dd>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">
+                  VAT ({Number(watchedVat) || 0}%)
+                </dt>
+                <dd className="tabular-nums">{formatVND(vat)}</dd>
+              </div>
               <div className="flex justify-between border-t pt-1 font-semibold">
                 <dt>Tổng quyết toán</dt>
                 <dd className="tabular-nums">{formatVND(total)}</dd>

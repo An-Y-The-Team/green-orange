@@ -42,6 +42,11 @@ model Client {
   name       String
   type       String // company | individual
   tax_code   String?
+  // Registered address (địa chỉ đăng ký kinh doanh) — the Bên A line on a
+  // contract, printed beside the MST. NOT a site: a client's job sites are
+  // Locations, and one client can have many. For an individual client it is
+  // also what seeds their default Location on create.
+  address    String?
   email      String? // the client's own billing/contact email (distinct from Contact emails)
   note       String?
   created_at DateTime @default(now())
@@ -289,7 +294,13 @@ model Settlement {
   id           Int       @id @default(autoincrement())
   project_id   Int       @unique // 1:1 — a project settles once (corrections revise this row)
   status       String    @default("draft") // draft | sent | signed
-  total_amount BigInt    @default(0) // VND, server-computed from items; copied to the bill on sign
+  total_amount BigInt    @default(0) // VND, server-computed Σ item amounts — BEFORE giảm giá and VAT, same convention as Quote.total_amount
+  // The quyết toán settles a contract that was priced with VAT (and sometimes a
+  // giảm giá), so it has to carry both or the hóa đơn asks for less than the
+  // hợp đồng says. What the client owes = (total_amount − discount_amount) + VAT
+  // — `payableTotal` in receivables.module.ts, which is what the bill gets on sign.
+  discount_amount BigInt @default(0) // VND, giảm giá trước thuế
+  vat_rate     Float     @default(0.08)
   signed_date  DateTime? @db.Date
   note         String?
 

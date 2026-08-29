@@ -30,6 +30,7 @@ import { hash } from "@node-rs/argon2";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 import { businessToday } from "./common/business-date";
+import { contractBody } from "./seed-contract-templates";
 
 const prisma = new PrismaClient();
 
@@ -42,84 +43,6 @@ export const day = (n: number): Date =>
 /** `hour` Vietnam wall-clock on day `n` — for `*_at` timestamps. */
 export const atHour = (n: number, hour: number): Date =>
   new Date(day(n).getTime() + (hour - 7) * 3_600_000);
-
-// ── Lexical bodies ─────────────────────────────────────────────────────────
-// Contract template bodies are Lexical editorState JSON, opaque here — crm-web
-// renders them (utils/lexical-build). Minimal builders so the templates are
-// readable instead of pasted JSON; `merge-field` chips resolve at render time.
-type Lex = Record<string, unknown>;
-
-const lexBlock = (type: string, children: Lex[], extra: Lex = {}): Lex => ({
-  type,
-  version: 1,
-  direction: "ltr",
-  format: "",
-  indent: 0,
-  children,
-  ...extra,
-});
-const txt = (text: string): Lex => ({
-  type: "text",
-  version: 1,
-  detail: 0,
-  format: 0,
-  mode: "normal",
-  style: "",
-  text,
-});
-const mergeField = (token: string, label: string): Lex => ({
-  type: "merge-field",
-  version: 1,
-  detail: 0,
-  format: 0,
-  mode: "token",
-  style: "",
-  text: label,
-  token,
-});
-const para = (...children: Lex[]) => lexBlock("paragraph", children);
-const heading = (text: string) =>
-  lexBlock("heading", [txt(text)], { tag: "h2" });
-/** The auto báo giá block — expands to the deal quote's pricing at render. */
-const LINE_ITEMS: Lex = { type: "line-items", version: 1 };
-const lexDoc = (...blocks: Lex[]) =>
-  JSON.stringify({ root: lexBlock("root", blocks) });
-
-const contractBody = (scope: string) =>
-  lexDoc(
-    para(
-      txt("Hôm nay, ngày "),
-      mergeField("signed_date", "Ngày ký"),
-      txt(", hai bên gồm có:")
-    ),
-    heading("BÊN A (Khách hàng)"),
-    para(mergeField("client", "Bên A: Tên")),
-    heading("BÊN B (Nhà cung cấp)"),
-    para(
-      mergeField("company.name", "Bên B: Tên"),
-      txt(" — MST: "),
-      mergeField("company.tax_id", "Bên B: MST")
-    ),
-    heading("Điều 1: Nội dung công việc"),
-    para(
-      txt(scope),
-      mergeField("project_code", "Mã công trình"),
-      txt(": “"),
-      mergeField("project_name", "Tên công trình"),
-      txt("”. Khối lượng và đơn giá theo báo giá đã chốt:")
-    ),
-    LINE_ITEMS,
-    heading("Điều 2: Giá trị hợp đồng"),
-    para(
-      txt("Tổng giá trị: "),
-      mergeField("value", "Giá trị (đã gồm VAT)"),
-      txt(" (đã gồm VAT "),
-      mergeField("vat_rate", "Thuế suất VAT"),
-      txt("). Bằng chữ: "),
-      mergeField("value_in_words", "Giá trị bằng chữ"),
-      txt(".")
-    )
-  );
 
 // ── Lookup tables (upserted by their unique `name`) ────────────────────────
 export const PROJECT_TYPES = ["Vệ sinh", "Thi công", "Tháo dỡ"];
@@ -140,12 +63,15 @@ const CLIENTS: Seeded<Prisma.ClientUncheckedCreateInput>[] = [
     name: "Công ty TNHH An Phát",
     type: "company",
     tax_code: "0312345678",
+    // Registered address, not a site — it prints as Bên A on the contract.
+    address: "45 Lê Duẩn, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
     email: "ketoan@anphat.com.vn",
   },
   {
     id: 2,
     name: "Chị Hoa",
     type: "individual",
+    address: "12 Trần Não, Phường An Khánh, TP. Thủ Đức, TP. Hồ Chí Minh",
     note: "Khách lẻ, liên hệ qua Zalo",
   },
 ];
@@ -238,7 +164,7 @@ const CONTRACT_TEMPLATES: Seeded<Prisma.ContractTemplateUncheckedCreateInput>[] 
       doc_title: "HỢP ĐỒNG DỊCH VỤ VỆ SINH",
       show_letterhead: true,
       show_national: true,
-      body: contractBody("Bên B cung cấp dịch vụ vệ sinh cho công trình "),
+      body: contractBody("dịch vụ vệ sinh cho công trình"),
     },
     {
       id: 2,
@@ -246,7 +172,7 @@ const CONTRACT_TEMPLATES: Seeded<Prisma.ContractTemplateUncheckedCreateInput>[] 
       doc_title: "HỢP ĐỒNG THI CÔNG",
       show_letterhead: true,
       show_national: true,
-      body: contractBody("Bên B thi công hạng mục thuộc công trình "),
+      body: contractBody("thi công, tháo dỡ hoàn trả mặt bằng công trình"),
     },
   ];
 
@@ -888,15 +814,16 @@ export const SETTLEMENT_ITEMS: Seeded<Prisma.SettlementItemUncheckedCreateInput>
   ];
 
 // Bills are born with their quyết toán; signing officializes them, so both are
-// past `draft`. total_amount mirrors the settlement total and sum(its đợt)
-// equals it — the invariant receivables.module.ts maintains on sign.
+// past `draft`. total_amount is the settlement's PAYABLE (Σ items − giảm giá,
+// + VAT — payableTotal in receivables.module.ts), not its pre-tax Σ, and
+// sum(its đợt) equals that — the invariant sign maintains.
 export const BILLS: Seeded<Prisma.BillUncheckedCreateInput>[] = [
   {
     id: 1,
     project_id: 8,
     settlement_id: 1,
     status: "sent",
-    total_amount: 60_000_000n,
+    total_amount: 64_800_000n, // 60.000.000 + 8%
     sent_date: day(-6),
   },
   {
@@ -904,7 +831,7 @@ export const BILLS: Seeded<Prisma.BillUncheckedCreateInput>[] = [
     project_id: 3,
     settlement_id: 2,
     status: "paid",
-    total_amount: 34_050_000n,
+    total_amount: 36_774_000n, // 34.050.000 + 8%
     sent_date: day(-44),
     paid_date: day(-40),
   },
@@ -978,7 +905,8 @@ export const MILESTONES: Seeded<Prisma.PaymentMilestoneUncheckedCreateInput>[] =
       project_id: 8,
       bill_id: 1,
       type: "acceptance",
-      amount: 15_000_000n,
+      // Balance đợt: 64.800.000 − 20.000.000 cọc − 25.000.000 progress.
+      amount: 19_800_000n,
       due_date: day(15),
       status: "not_due",
     },
@@ -998,7 +926,8 @@ export const MILESTONES: Seeded<Prisma.PaymentMilestoneUncheckedCreateInput>[] =
       project_id: 3,
       bill_id: 2,
       type: "progress",
-      amount: 24_050_000n,
+      // Balance đợt: 36.774.000 − 10.000.000 cọc.
+      amount: 26_774_000n,
       due_date: day(-46),
       status: "paid",
       paid_date: day(-40),
@@ -1265,6 +1194,17 @@ async function main(): Promise<void> {
   await seedById(prisma.settlementItem, SETTLEMENT_ITEMS);
   await seedById(prisma.bill, BILLS);
   await seedById(prisma.paymentMilestone, MILESTONES);
+  // Clear before upserting, unlike every other table: chấm công is the one
+  // fixture whose business key (crew_member_id, project_id, work_date, source)
+  // contains a RELATIVE date. Re-seeding on a later calendar day shifts every
+  // work_date forward, so a row lands on the date its neighbour still holds
+  // from the previous run — id-keyed upsert can't see that row, and Postgres
+  // raises P2002 (ids 2 and 3 are one day apart, so it fired on any re-run the
+  // day after the last one). Deleting the seeded ids first makes the shift
+  // converge. Safe: these ids are the seed's own.
+  await prisma.timekeepingRecord.deleteMany({
+    where: { id: { in: TIMEKEEPING.map((r) => r.id) } },
+  });
   await seedById(prisma.timekeepingRecord, TIMEKEEPING);
   await seedById(prisma.attachment, ATTACHMENTS);
   await seedById(prisma.projectNote, NOTES);

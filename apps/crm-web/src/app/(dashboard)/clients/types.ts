@@ -7,6 +7,9 @@ export interface Client {
   name: string;
   type: ClientType;
   tax_code: string | null;
+  // Registered address — Bên A's address on a contract. Not a job site; those
+  // are Locations.
+  address: string | null;
   email: string | null; // the client's own email (distinct from Contact emails)
   note: string | null;
   created_at: string;

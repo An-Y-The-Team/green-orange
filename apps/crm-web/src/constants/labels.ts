@@ -208,6 +208,9 @@ export const FIELDS = {
   jobTitle: "Chức vụ",
   phone: "Số điện thoại / Zalo",
   address: "Địa chỉ công ty",
+  /** A company client's registered address — Bên A's address on a contract,
+   * distinct from FIELDS.location (a job site). */
+  registeredAddress: "Địa chỉ đăng ký kinh doanh",
   location: "Địa điểm/Địa chỉ thi công",
   note: "Ghi chú",
   source: "Nguồn",

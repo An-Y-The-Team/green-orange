@@ -5,8 +5,10 @@ import { doc, mf, p, t } from "@/utils/lexical-build/lexical-build";
 
 import {
   CONTRACT_TOKENS,
+  SIGNED_TOKENS,
   buildContractContext,
   previewContext,
+  signedContext,
   unknownTokens,
   unresolvedMarker,
 } from "./merge-template";
@@ -23,8 +25,8 @@ test("every token in CONTRACT_TOKENS resolves in the preview context", () => {
 });
 
 test("every token in CONTRACT_TOKENS resolves against a real contract", () => {
-  const ctx = buildContractContext(
-    {
+  const ctx = buildContractContext({
+    contract: {
       id: 1,
       project_id: 7,
       code: "HD-2026-001",
@@ -38,8 +40,8 @@ test("every token in CONTRACT_TOKENS resolves against a real contract", () => {
         client: { id: 9, name: "Vincom Retail" },
       },
     },
-    { total_amount: 36_000_000, vat_rate: 0.08 }
-  );
+    quote: { total_amount: 36_000_000, vat_rate: 0.08 },
+  });
 
   for (const { token } of CONTRACT_TOKENS) {
     expect(ctx, `contract context is missing ${token}`).toHaveProperty(token);
@@ -98,4 +100,26 @@ test("unparsable or empty body reports nothing (the schema rejects it first)", (
 
 test("the unresolved marker is the ⟨token?⟩ form the renderer shows", () => {
   expect(unresolvedMarker("client_address")).toBe("⟨client_address?⟩");
+});
+
+// A signed contract must reprint as it was signed: these tokens resolve from the
+// client / location / project rows, which stay editable afterwards, so signing
+// freezes them into the print snapshot (print-snapshot.ts) and the print page
+// layers them back over the live values.
+test("signedContext freezes every token that reads a mutable related row", () => {
+  const frozen = signedContext(previewContext());
+
+  expect(Object.keys(frozen).sort()).toEqual([...SIGNED_TOKENS].sort());
+  expect(frozen["client.address"]).toBe(
+    CONTRACT_TOKENS.find((t) => t.token === "client.address")?.example
+  );
+  // company.* is the snapshot's own job; money comes from the frozen chốt quote.
+  expect(frozen).not.toHaveProperty(["company.name"]);
+  expect(frozen).not.toHaveProperty("value");
+});
+
+test("signedContext fills a missing token with an empty string, not undefined", () => {
+  const frozen = signedContext({});
+
+  for (const token of SIGNED_TOKENS) expect(frozen[token]).toBe("");
 });

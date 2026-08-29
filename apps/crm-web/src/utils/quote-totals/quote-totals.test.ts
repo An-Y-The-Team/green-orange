@@ -1,6 +1,11 @@
 import { expect, test } from "vitest";
 
-import { itemAmount, quoteTotals, storedTotals } from "./quote-totals";
+import {
+  itemAmount,
+  quoteTotals,
+  settlementTotals,
+  storedTotals,
+} from "./quote-totals";
 
 // The bug this guards: the server owns QuoteItem.amount (= round(quantity ×
 // unit_price)) and total_amount (= Σ amount). Recomputing quantity × unit_price
@@ -77,4 +82,41 @@ test("storedTotals keeps VAT integral for an odd subtotal", () => {
   expect(vat).toBe(33_333);
   expect(total).toBe(449_996);
   expect(Number.isInteger(vat)).toBe(true);
+});
+
+// settlementTotals mirrors crm-api-nest payableTotal: the hóa đơn is billed for
+// `total`, so a drift here means the printed sheet and the bill disagree.
+test("settlementTotals takes the giảm giá off BEFORE the VAT", () => {
+  expect(
+    settlementTotals({
+      total_amount: 36_000_000,
+      discount_amount: 6_000_000,
+      vat_rate: 0.08,
+    })
+  ).toEqual({
+    subtotal: 36_000_000,
+    discount: 6_000_000,
+    net: 30_000_000,
+    vat: 2_400_000,
+    total: 32_400_000,
+  });
+});
+
+test("settlementTotals rounds VAT the same way the server does", () => {
+  expect(
+    settlementTotals({ total_amount: 34_050_000, vat_rate: 0.08 }).total
+  ).toBe(36_774_000);
+});
+
+// The form and the API both reject an over-discount now; this clamp only guards
+// rendering of a row that got in some other way (a legacy row, another client).
+test("settlementTotals clamps an over-discount instead of rendering a negative", () => {
+  const { net, total } = settlementTotals({
+    total_amount: 10_000_000,
+    discount_amount: 11_000_000,
+    vat_rate: 0.08,
+  });
+
+  expect(net).toBe(0);
+  expect(total).toBe(0);
 });

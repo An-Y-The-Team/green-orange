@@ -38,6 +38,8 @@ export default async function EditSettlementPage({
       quantity: it.quantity,
       unit_price: it.unit_price,
     })),
+    discountAmount: settlement.discount_amount,
+    vatPercent: Math.round(settlement.vat_rate * 100),
     note: settlement.note ?? "",
   };
 

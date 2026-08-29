@@ -6,6 +6,8 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
+import { getProject } from "@/app/(dashboard)/projects/queries";
+import { getDealQuote } from "@/app/(dashboard)/quotes/queries";
 import { loadCompany } from "@/app/(dashboard)/settings/company/queries";
 import { DEFAULT_HEADER_BLOCKS } from "@/constants/header-blocks";
 import { DOCUMENT_TEXT } from "@/constants/labels";
@@ -14,6 +16,10 @@ import {
   UNKNOWN_ERROR_MESSAGE,
 } from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
+import {
+  buildContractContext,
+  signedContext,
+} from "@/utils/merge-template/merge-template";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { serializePrintSnapshot } from "../print-snapshot";
@@ -54,10 +60,13 @@ export async function signContract(
   // Freeze how this contract prints BEFORE flipping it to signed: the company
   // profile and its template stay editable afterwards, and without a snapshot
   // a later edit would retroactively change an already-signed document.
-  const [{ company, degraded }, existing] = await Promise.all([
-    loadCompany(),
-    getContract(id),
-  ]);
+  const [{ company, degraded }, existing, project, dealQuote] =
+    await Promise.all([
+      loadCompany(),
+      getContract(id),
+      getProject(projectId),
+      getDealQuote(projectId),
+    ]);
 
   // Signing with the built-in defaults would freeze the WRONG party onto the
   // contract permanently — refuse rather than immortalise a guess.
@@ -82,6 +91,18 @@ export async function signContract(
         }
       : DEFAULT_HEADER_BLOCKS,
     doc_title: template?.doc_title ?? DOCUMENT_TEXT.contractHeading,
+    // Bên A, địa điểm and tiến độ as they stand right now. Without this a later
+    // client rename or a moved site would change this signed contract's text.
+    signed_values: existing
+      ? signedContext(
+          buildContractContext({
+            contract: existing,
+            quote: dealQuote,
+            company,
+            project,
+          })
+        )
+      : undefined,
   });
 
   try {
