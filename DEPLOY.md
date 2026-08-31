@@ -572,6 +572,33 @@ redeploy the previous `CRM_API_NEST_IMAGE` tag — do not repoint `CRM_API_URL`.
 dashboard loads live data after sign-in; `crm-api-nest` answers over the internal
 network. Its migrations apply on container start.
 
+**7. Install the document templates (once, and after a release that changes them).**
+Migrations create columns; they do not create CONTENT. The contract templates —
+the real HỢP ĐỒNG THI CÔNG, twelve articles with every merge chip already placed —
+ship as code and have to be written into the database, or the template picker is
+empty and whoever drafts a contract retypes the document by hand.
+
+`bun run seed` is **dev-only** — it writes the whole demo dataset (công trình, báo
+giá, hóa đơn…) and must never touch prod. `seed-templates.ts` writes only
+`ContractTemplate`, so it is safe against a live database. The runtime image has no
+bun, so run the compiled file:
+
+```bash
+NEST=$(docker ps -qf label=com.docker.compose.service=crm-api-nest)
+docker exec "$NEST" node dist/seed-templates.js
+```
+
+It matches on template **name**, never id: an existing name is left alone, so a
+re-run can't discard edits made in the editor. To pull in a newer body after a
+release that changed it — overwriting whatever is there:
+
+```bash
+docker exec "$NEST" node dist/seed-templates.js --force
+```
+
+Then check the list at `https://$CRM_DOMAIN/contracts/templates`, and tick
+**Đang sử dụng** on anything you want offered in the contract editor.
+
 ---
 
 ## 7. Ongoing deploys
@@ -635,11 +662,15 @@ whatever the project is named (`green-orange` vs a folder-derived `yan-portf`).
 
 ```bash
 # Postgres — nightly dump per database (add to the deploy user's crontab).
-# Directus content lives in the `directus` DB; the CRM in `crm`.
+# Directus content lives in the `directus` DB. The CRM has TWO: `crm_nest` is
+# what the UI actually reads (crm-api-nest is the prod default — §6c), `crm`
+# belongs to the Python crm-api. Dump both; missing `crm_nest` means backing up
+# everything except the live CRM data.
 # `pg_dumpall` is simplest if you'd rather grab everything in one shot.
 0 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres directus  | gzip > /root/backups/directus-$(date +\%F).sql.gz
 5 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres authentik | gzip > /root/backups/authentik-$(date +\%F).sql.gz
 8 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres crm       | gzip > /root/backups/crm-$(date +\%F).sql.gz
+9 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres crm_nest  | gzip > /root/backups/crm_nest-$(date +\%F).sql.gz
 
 # Uploaded files live in the `media` named volume (mounted at /directus/uploads) —
 # back it up too. Resolve the volume by label (name is <project>_media):

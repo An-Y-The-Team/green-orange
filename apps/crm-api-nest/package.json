@@ -15,6 +15,7 @@
     "db:migrate:dev": "prisma migrate dev",
     "migrate": "prisma migrate deploy",
     "seed": "bun run src/seed.ts",
+    "seed:templates": "bun run src/seed-templates.ts",
     "postinstall": "prisma generate || true",
     "clean": "rm -rf dist .turbo"
   },

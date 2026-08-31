@@ -156,7 +156,9 @@ const CREW: SeededCrew[] = [
   },
 ];
 
-const CONTRACT_TEMPLATES: Seeded<Prisma.ContractTemplateUncheckedCreateInput>[] =
+// Exported: seed-templates.ts installs JUST these against a live database
+// (this whole module is dev-only demo data — that one is not).
+export const CONTRACT_TEMPLATES: Seeded<Prisma.ContractTemplateUncheckedCreateInput>[] =
   [
     {
       id: 1,
