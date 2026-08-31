@@ -414,12 +414,31 @@ describe("localStorage utility", () => {
         );
       });
 
-      it("should throw when decrypting with wrong key", () => {
+      // Asserting `.toThrow()` here failed ~1 CI run in 300 (measured: 6 of
+      // 2000). AES-CBC carries no integrity check and `_encrypt` salts randomly,
+      // so a wrong key yields random bytes: USUALLY invalid UTF-8, which
+      // `_decrypt` turns into the error below — but ~0.3% of the time they
+      // decode to a short valid string ("X", "\u0006H") that it returns instead.
+      // A throw is therefore not something the implementation can promise. What
+      // it does promise, and what matters, is that a wrong key never hands back
+      // the plaintext.
+      // ponytail: the real fix is authenticated encryption (AES-GCM, or an HMAC
+      // over the ciphertext) so a wrong key is *detected* rather than inferred —
+      // it changes the stored format, so do it when that format next changes.
+      it("never yields the original data when decrypting with wrong key", () => {
         const encrypted = localStorage._encrypt("secret data");
         localStorage._encryptionKey = "wrong-key";
-        expect(() => localStorage._decrypt(encrypted)).toThrow(
-          "Decryption failed: invalid data or wrong key"
-        );
+
+        let decrypted: string | undefined;
+        try {
+          decrypted = localStorage._decrypt(encrypted);
+        } catch (error) {
+          expect((error as Error).message).toBe(
+            "Decryption failed: invalid data or wrong key"
+          );
+        }
+
+        expect(decrypted).not.toBe("secret data");
       });
     });
 

@@ -15,6 +15,7 @@
     "db:migrate:dev": "prisma migrate dev",
     "migrate": "prisma migrate deploy",
     "seed": "bun run src/seed.ts",
+    "seed:templates": "bun run src/seed-templates.ts",
     "postinstall": "prisma generate || true",
     "clean": "rm -rf dist .turbo"
   },
@@ -34,7 +35,7 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
-    "@types/bun": "latest",
+    "@types/bun": "^1.4.0",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.0",
     "eslint": "^9.17.0",
