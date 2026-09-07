@@ -6,9 +6,13 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@yan/ui/lib/utils";
 
+// `/projects/new` lives in the (dashboard) group, so tapping Tiếp nhận swaps the
+// whole chrome and this bar disappears. `shell=field` is what the intake page
+// reads to offer a way back — NOT `from`, which that page already uses for the
+// repeat-business project id (`Number("field")` would be NaN).
 const FIELD_NAV_ITEMS = [
   { label: "Hôm nay", href: "/field", icon: Home },
-  { label: "Tiếp nhận", href: "/projects/new", icon: Plus },
+  { label: "Tiếp nhận", href: "/projects/new?shell=field", icon: Plus },
   { label: "Máy tính", href: "/dashboard", icon: Monitor },
 ];
 
@@ -18,8 +22,8 @@ export function FieldBottomBar() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md border-t border-border bg-background">
       {FIELD_NAV_ITEMS.map((item) => {
-        const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const path = item.href.split("?")[0]!;
+        const active = pathname === path || pathname.startsWith(`${path}/`);
         const Icon = item.icon;
         return (
           <Link

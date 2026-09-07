@@ -11,9 +11,12 @@ import { IntakeForm } from "./intake-form/intake-form";
 export default async function NewProjectPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; shell?: string }>;
 }) {
-  const { from } = await searchParams;
+  const { from, shell } = await searchParams;
+  // Reached from field mode, whose bottom bar does not survive the group swap —
+  // so point the way back at Hôm nay instead of the desktop list.
+  const fromField = shell === "field";
   const [clients, projectTypes] = await Promise.all([
     listClients(),
     listProjectTypes(),
@@ -37,11 +40,11 @@ export default async function NewProjectPage({
   return (
     <>
       <Link
-        href="/projects"
+        href={fromField ? "/field" : "/projects"}
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Quay lại danh sách công trình
+        {fromField ? "Quay lại Hôm nay" : "Quay lại danh sách công trình"}
       </Link>
       <PageHeader
         title="Tiếp nhận yêu cầu"

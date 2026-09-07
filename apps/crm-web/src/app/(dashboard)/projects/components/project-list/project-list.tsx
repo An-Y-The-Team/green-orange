@@ -111,7 +111,10 @@ export function ProjectList() {
               isFetching && !isLoading && "opacity-60 transition-opacity"
             )}
           >
-            <Table>
+            {/* Tighter gutters than the shared default: eight columns at
+                px-3 spent 216px on padding alone and pushed Trạng thái — the
+                column this page exists to show — off the right edge at 1440px. */}
+            <Table className="[&_td]:px-2 [&_th]:px-2">
               <TableHeader>
                 <TableRow>
                   <SortableTableHeader
@@ -129,7 +132,7 @@ export function ProjectList() {
                     onSort={onSort}
                   />
                   <TableHead>{FIELDS.client}</TableHead>
-                  <TableHead>{FIELDS.location}</TableHead>
+                  <TableHead>Địa điểm</TableHead>
                   <TableHead>Loại</TableHead>
                   <TableHead>{FIELDS.stage}</TableHead>
                   <TableHead>{FIELDS.status}</TableHead>
@@ -169,12 +172,30 @@ export function ProjectList() {
                             {project.code}
                           </Link>
                         </TableCell>
-                        <TableCell>{project.name}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {project.client?.name ?? `#${project.client_id}`}
+                        <TableCell>
+                          <span
+                            className="block max-w-36 truncate"
+                            title={project.name}
+                          >
+                            {project.name}
+                          </span>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {project.location?.name ?? `#${project.location_id}`}
+                          <span
+                            className="block max-w-28 truncate"
+                            title={project.client?.name ?? undefined}
+                          >
+                            {project.client?.name ?? `#${project.client_id}`}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          <span
+                            className="block max-w-28 truncate"
+                            title={project.location?.name ?? undefined}
+                          >
+                            {project.location?.name ??
+                              `#${project.location_id}`}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">

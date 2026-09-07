@@ -1,12 +1,12 @@
 import { LogOut } from "lucide-react";
 
 import { Button } from "@yan/ui/components/button";
-import { ThemeSwitcher } from "@yan/ui/components/theme-switcher";
 
 import { getCompany } from "@/app/(dashboard)/settings/company/queries";
 import { auth, signOut } from "@/auth";
 import { AUTH_ENABLED } from "@/auth.config";
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar";
+import { AppTopbar } from "@/components/app-topbar/app-topbar";
 import { CompanyProvider } from "@/components/company-provider/company-provider";
 import { LoginOverlay } from "@/components/login-overlay/login-overlay";
 import { SessionWatch } from "@/components/session-watch/session-watch";
@@ -39,40 +39,36 @@ export default async function DashboardLayout({
   // Never fetched while the login gate is up: no token → pointless 401.
   const company = needsLogin ? null : await getCompany();
 
+  // One node, rendered in the desktop sidebar footer AND the mobile drawer's —
+  // the sign-out is a server action, so it has to be built here rather than in
+  // either client component.
+  const footer = userLabel ? (
+    <div className="flex items-center justify-between gap-2 px-1">
+      <span className="truncate" title={userLabel}>
+        {userLabel}
+      </span>
+      <form
+        action={async () => {
+          "use server";
+          await signOut({ redirectTo: "/login" });
+        }}
+      >
+        <Button type="submit" variant="ghost" size="icon-sm">
+          <LogOut />
+          <span className="sr-only">Đăng xuất</span>
+        </Button>
+      </form>
+    </div>
+  ) : undefined;
+
   return (
     <div className="flex h-dvh overflow-hidden print:block print:h-auto print:overflow-visible">
       <div className="print:hidden">
-        <AppSidebar
-          footer={
-            userLabel ? (
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate" title={userLabel}>
-                  {userLabel}
-                </span>
-                <form
-                  action={async () => {
-                    "use server";
-                    await signOut({ redirectTo: "/login" });
-                  }}
-                >
-                  <Button type="submit" variant="ghost" size="icon-sm">
-                    <LogOut />
-                    <span className="sr-only">Đăng xuất</span>
-                  </Button>
-                </form>
-              </div>
-            ) : undefined
-          }
-        />
+        <AppSidebar footer={footer} />
       </div>
       <div className="flex flex-1 flex-col overflow-hidden print:overflow-visible">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border px-6 print:hidden">
-          <span className="text-sm text-muted-foreground">
-            Quản lý quan hệ khách hàng
-          </span>
-          <ThemeSwitcher />
-        </header>
-        <main className="flex-1 overflow-y-auto p-6 print:overflow-visible print:p-0">
+        <AppTopbar footer={footer} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 print:overflow-visible print:p-0">
           {needsLogin || !company ? (
             <LoginOverlay expired={Boolean(session?.error)} />
           ) : (

@@ -34,3 +34,17 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Thông tin công ty", href: "/settings/company", icon: Building2 },
   { label: "Danh mục", href: "/settings", icon: Tags },
 ];
+
+/**
+ * The nav item a path belongs to — longest match wins, so `/settings/company`
+ * resolves to its own item and not the `/settings` one above it, and
+ * `/projects/12/quotes/new` still resolves to Công trình.
+ *
+ * One source for two consumers: the sidebar highlight and the topbar's page
+ * title. A per-page title prop would drift from the highlight the first time
+ * someone added a route.
+ */
+export const activeNavItem = (pathname: string): NavItem | undefined =>
+  NAV_ITEMS.filter(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
+  ).sort((a, b) => b.href.length - a.href.length)[0];

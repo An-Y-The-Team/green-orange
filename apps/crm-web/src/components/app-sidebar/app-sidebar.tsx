@@ -1,54 +1,44 @@
-"use client";
-
+import { Monitor } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
-import { cn } from "@yan/ui/lib/utils";
+import { NavBrand, NavList } from "./nav-list";
 
-import { NAV_ITEMS } from "@/config/nav";
-
+/**
+ * Fixed desktop sidebar. Hidden below `md`, where the same nav is reachable from
+ * the topbar's drawer instead — it used to be `w-60 shrink-0` at every width,
+ * which at the app's 112.5% root font-size is 270 physical px, leaving ~105px of
+ * a 390px phone for `<main>` (whose padding alone is ~54px).
+ *
+ * `w-48` rather than the old `w-60`: 216px still fits the longest label
+ * ("Thông tin công ty") and hands 54px back to the tables, which were losing
+ * columns off the right edge at 1440px, not just on phones.
+ */
 export function AppSidebar({ footer }: { footer?: React.ReactNode }) {
-  const pathname = usePathname();
-  // Longest match wins, so /settings/company highlights only its own item and
-  // not the /settings one above it.
-  const activeHref = NAV_ITEMS.map((i) => i.href)
-    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
-    .sort((a, b) => b.length - a.length)[0];
-
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 items-center gap-2 px-4">
-        <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
-          G
-        </div>
-        <span className="text-sm font-semibold">GreenOrange CRM</span>
-      </div>
-      <nav className="flex flex-1 flex-col gap-0.5 px-2 py-2">
-        {NAV_ITEMS.map((item) => {
-          const active = activeHref === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
-                active
-                  ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-              )}
-            >
-              <Icon className="size-4" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-      {/* The signed-in user + sign-out live here; the layout passes them in as
-          server-rendered nodes (the sign-out is a server action). */}
-      <div className="border-t border-sidebar-border p-3 text-xs text-muted-foreground">
-        {footer ?? <p>Guest</p>}
-      </div>
+    <aside className="hidden h-full w-48 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
+      <NavBrand />
+      <NavList />
+      <SidebarFooter footer={footer} />
     </aside>
+  );
+}
+
+/**
+ * Signed-in user + sign-out (server-rendered nodes passed down by the layout,
+ * since the sign-out is a server action), plus the way into field mode — which
+ * was previously reachable only by typing `/field`.
+ */
+export function SidebarFooter({ footer }: { footer?: React.ReactNode }) {
+  return (
+    <div className="space-y-2 border-t border-sidebar-border p-3 text-xs text-muted-foreground">
+      <Link
+        href="/field"
+        className="flex items-center gap-2 rounded-md px-1 py-1 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+      >
+        <Monitor className="size-3.5 shrink-0" />
+        Chế độ hiện trường
+      </Link>
+      {footer ?? <p className="px-1">Guest</p>}
+    </div>
   );
 }
