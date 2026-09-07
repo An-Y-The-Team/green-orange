@@ -4,6 +4,7 @@ export type ClientOption = { id: number; name: string };
 
 /** The contacts/locations of the selected client, driving the cascading selects. */
 export type ClientDetail = {
+  name: string;
   type: string;
   contacts: Contact[];
   locations: Location[];

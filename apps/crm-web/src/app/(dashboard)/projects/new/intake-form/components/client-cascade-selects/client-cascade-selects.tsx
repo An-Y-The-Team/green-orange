@@ -65,6 +65,41 @@ export function ClientCascadeSelects({
         )}
       />
 
+      {/* Người quyết định — who approves the báo giá / signs the hợp đồng, which
+          crm-business-flow.md says is often someone at HQ rather than the
+          day-to-day contact. The form used to overwrite it with the working
+          contact on submit, with no way to say otherwise; "giống người liên hệ"
+          is now the visible default instead of a silent one. */}
+      <FormField
+        control={form.control}
+        name="decision_maker_contact_id"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Người quyết định</FormLabel>
+            <FormControl>
+              <select
+                className={SELECT_CLASS}
+                value={field.value ?? ""}
+                onChange={(e) =>
+                  field.onChange(
+                    e.target.value ? Number(e.target.value) : undefined
+                  )
+                }
+              >
+                <option value="">— Giống người liên hệ —</option>
+                {detail.contacts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                    {c.title ? ` — ${c.title}` : ""}
+                  </option>
+                ))}
+              </select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
       <FormField
         control={form.control}
         name="location_id"

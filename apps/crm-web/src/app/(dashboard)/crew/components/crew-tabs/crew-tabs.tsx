@@ -4,7 +4,6 @@ import { useState } from "react";
 
 import { FIELDS } from "@/constants/labels";
 
-import type { Project } from "../../../projects/types";
 import type { CrewMember, CrewRole } from "../../types";
 import { RolesTab } from "../roles-tab/roles-tab";
 import { RosterTab } from "../roster-tab/roster-tab";
@@ -22,11 +21,9 @@ const TAB_LABELS: Record<Tab, string> = {
 export function CrewTabs({
   crew,
   roles,
-  projects,
 }: {
   crew: CrewMember[];
   roles: CrewRole[];
-  projects: Project[];
 }) {
   const [tab, setTab] = useState<Tab>("roster");
 
@@ -52,9 +49,7 @@ export function CrewTabs({
 
       {tab === "roster" ? <RosterTab roles={roles} /> : null}
       {tab === "roles" ? <RolesTab roles={roles} /> : null}
-      {tab === "timekeeping" ? (
-        <TimekeepingTab crew={crew} projects={projects} />
-      ) : null}
+      {tab === "timekeeping" ? <TimekeepingTab crew={crew} /> : null}
     </div>
   );
 }

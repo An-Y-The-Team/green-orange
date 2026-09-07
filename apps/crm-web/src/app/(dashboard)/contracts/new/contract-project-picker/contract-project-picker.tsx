@@ -7,41 +7,29 @@ import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Label } from "@yan/ui/components/label";
 
-import { SELECT_CLASS } from "@/components/form-bits/form-bits";
+import { EntityCombobox } from "@/components/entity-combobox/entity-combobox";
 import { ACTIONS, FIELDS } from "@/constants/labels";
 
 // The contract editor's live preview merges project + client + chốt-quote data,
 // so authoring starts from a project. This picker routes to that project's
 // editor. ponytail: project-less standalone authoring is deferred until there's
 // a real need — the backend already accepts a null project_id.
-export function ContractProjectPicker({
-  projects,
-}: {
-  projects: { id: number; label: string }[];
-}) {
+export function ContractProjectPicker() {
   const router = useRouter();
-  const [id, setId] = useState<number | undefined>();
+  const [id, setId] = useState<number | null>(null);
 
   return (
     <Card className="max-w-xl">
       <CardContent className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="project">{FIELDS.project}</Label>
-          <select
+          <EntityCombobox
+            resource="projects"
             id="project"
-            className={SELECT_CLASS}
-            value={id ?? ""}
-            onChange={(e) =>
-              setId(e.target.value ? Number(e.target.value) : undefined)
-            }
-          >
-            <option value="">— Chọn công trình —</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </select>
+            value={id}
+            onChange={setId}
+            placeholder="Tìm công trình theo mã, tên…"
+          />
         </div>
         <div className="flex justify-end">
           <Button

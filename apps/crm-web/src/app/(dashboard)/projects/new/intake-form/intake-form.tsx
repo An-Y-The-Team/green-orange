@@ -26,6 +26,7 @@ import {
 import { Input } from "@yan/ui/components/input";
 import { Separator } from "@yan/ui/components/separator";
 
+import { EntityCombobox } from "@/components/entity-combobox/entity-combobox";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import {
   ACTIONS,
@@ -42,7 +43,7 @@ import { localISO, nowHHmm, todayISO } from "@/utils/today-iso/today-iso";
 
 import { loadClient } from "../../../clients/actions/load-client";
 import { ClientType } from "../../../clients/enums";
-import type { ClientListItem, Contact, Location } from "../../../clients/types";
+import type { Contact, Location } from "../../../clients/types";
 import { createProject } from "../../actions/create-project";
 import { TypeChips } from "../../components/type-chips/type-chips";
 import { ProjectStage } from "../../enums";
@@ -58,28 +59,37 @@ import { QuickCreateLocation } from "./components/quick-create-location/quick-cr
 import { RequestFields } from "./components/request-fields/request-fields";
 import type {
   ClientDetail,
-  ClientOption,
   Prefill,
   QuickCreateHandle,
   QuickCreateResult,
 } from "./types";
 
 export function IntakeForm({
-  clients,
   projectTypes,
   prefill,
   initialClientDetail,
+  showStagePicker = false,
 }: {
-  clients: ClientListItem[];
   projectTypes: ProjectType[];
   prefill?: Prefill;
   initialClientDetail?: ClientDetail;
+  /**
+   * Whether the starting-stage selector is open on arrival. The projects list
+   * links here with `?stage=choose` for a direct create / pre-CRM backfill; the
+   * dashboard's "+ Tiếp nhận yêu cầu" does not, so the zero-friction path opens
+   * on Yêu cầu with nothing to read.
+   */
+  showStagePicker?: boolean;
 }) {
   const router = useRouter();
 
-  const [clientOptions, setClientOptions] = useState<ClientOption[]>(
-    clients.map((c) => ({ id: c.id, name: c.name }))
-  );
+  // Label for a client the FORM chose rather than the picker — a prefill, or a
+  // quick-create. The picker owns its own label once the user searches, so this
+  // only has to survive until it remounts on the key below.
+  const [forcedClientLabel, setForcedClientLabel] = useState<
+    string | undefined
+  >(initialClientDetail?.name);
+  const [stageOpen, setStageOpen] = useState(showStagePicker);
   // Lazy init from prefill (repeat business): the client/contact/location
   // selects render already populated + selected, no useEffect.
   const [detail, setDetail] = useState<ClientDetail | null>(
@@ -180,7 +190,7 @@ export function IntakeForm({
     contact,
     location,
   }: QuickCreateResult) {
-    setClientOptions((prev) => [...prev, client]);
+    setForcedClientLabel(client.name);
     setShowQuickCreate(false);
 
     if (!contact || !location) {
@@ -189,6 +199,7 @@ export function IntakeForm({
     }
 
     const nextDetail: ClientDetail = {
+      name: client.name,
       type,
       contacts: [contact],
       locations: [location],
@@ -226,11 +237,14 @@ export function IntakeForm({
       values.stage !== ProjectStage.REQUEST || !apptDate
         ? undefined
         : localISO(apptDate, apptTime);
-    // Decision maker defaults to the working contact.
     startTransition(() =>
       formAction({
         ...values,
-        decision_maker_contact_id: values.working_contact_id,
+        // "— Giống người liên hệ —" is the default, not a silent overwrite: the
+        // decision maker is often someone at HQ (crm-business-flow.md), and this
+        // used to force it to the working contact with no way to say otherwise.
+        decision_maker_contact_id:
+          values.decision_maker_contact_id ?? values.working_contact_id,
         appointment_at,
       })
     );
@@ -257,31 +271,35 @@ export function IntakeForm({
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
         <Card>
           <CardContent className="space-y-4">
-            {/* Giai đoạn bắt đầu — default Yêu cầu; later stages = direct
-                create / backfill and hide the stage-1 fields below. */}
-            <FormField
-              control={form.control}
-              name="stage"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{FIELDS.stage}</FormLabel>
-                  <FormControl>
-                    <select
-                      className={SELECT_CLASS}
-                      value={field.value}
-                      onChange={(e) => field.onChange(e.target.value)}
-                    >
-                      {PROJECT_STAGE_ORDER.map((s) => (
-                        <option key={s} value={s}>
-                          {labelOf(PROJECT_STAGES, s).label}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Giai đoạn bắt đầu — collapsed unless asked for. It was the FIRST
+                thing on the page: a dropdown of eight internal pipeline stages,
+                read by a receptionist with a client on the phone whose answer is
+                always "Yêu cầu". Open it for a direct create / pre-CRM backfill. */}
+            {stageOpen ? (
+              <FormField
+                control={form.control}
+                name="stage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{FIELDS.stage}</FormLabel>
+                    <FormControl>
+                      <select
+                        className={SELECT_CLASS}
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      >
+                        {PROJECT_STAGE_ORDER.map((s) => (
+                          <option key={s} value={s}>
+                            {labelOf(PROJECT_STAGES, s).label}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : null}
 
             <FormField
               control={form.control}
@@ -290,18 +308,18 @@ export function IntakeForm({
                 <FormItem>
                   <FormLabel>{FIELDS.client}</FormLabel>
                   <FormControl>
-                    <select
-                      className={SELECT_CLASS}
-                      value={field.value || ""}
-                      onChange={(e) => selectClient(Number(e.target.value))}
-                    >
-                      <option value="">— Chọn khách hàng —</option>
-                      {clientOptions.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+                    <EntityCombobox
+                      // Remount only when the FORM forces a client (prefill,
+                      // quick-create) so the picker adopts that label. Keying on
+                      // the value instead would remount mid-search, every time
+                      // the user picked something.
+                      key={forcedClientLabel ?? "search"}
+                      resource="clients"
+                      value={field.value || null}
+                      initialLabel={forcedClientLabel}
+                      onChange={(id) => selectClient(id ?? 0)}
+                      placeholder="Tìm khách hàng theo tên, MST…"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -317,6 +335,7 @@ export function IntakeForm({
                 onClick={() => {
                   const opening = !showQuickCreate;
                   setShowQuickCreate(opening);
+                  if (opening) setForcedClientLabel(undefined);
                   // A new client supersedes any selection — drop it so the
                   // contact/location selects of the old client disappear.
                   if (opening) void selectClient(0);
@@ -438,6 +457,18 @@ export function IntakeForm({
                 );
               }}
             />
+
+            {!stageOpen ? (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0"
+                onClick={() => setStageOpen(true)}
+              >
+                Bắt đầu ở giai đoạn khác
+              </Button>
+            ) : null}
 
             {isRequest ? (
               <RequestFields

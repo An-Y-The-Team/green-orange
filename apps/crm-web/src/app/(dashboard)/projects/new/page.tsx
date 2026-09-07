@@ -4,23 +4,21 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header/page-header";
 
 import { loadClient } from "../../clients/actions/load-client";
-import { listClients } from "../../clients/queries";
 import { getProject, listProjectTypes } from "../queries";
 import { IntakeForm } from "./intake-form/intake-form";
 
 export default async function NewProjectPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; shell?: string }>;
+  searchParams: Promise<{ from?: string; shell?: string; stage?: string }>;
 }) {
-  const { from, shell } = await searchParams;
+  const { from, shell, stage } = await searchParams;
   // Reached from field mode, whose bottom bar does not survive the group swap —
   // so point the way back at Hôm nay instead of the desktop list.
   const fromField = shell === "field";
-  const [clients, projectTypes] = await Promise.all([
-    listClients(),
-    listProjectTypes(),
-  ]);
+  // No client list fetched any more: the picker asks the server as you type, so
+  // this page no longer decides which 100 clients are selectable.
+  const projectTypes = await listProjectTypes();
 
   // Repeat-business: prefill client/location/contacts from a source project,
   // leaving the actual job fields (type, name, request, appointment) blank.
@@ -51,10 +49,10 @@ export default async function NewProjectPage({
         description="Ghi nhận yêu cầu mới từ khách hàng để mở công trình."
       />
       <IntakeForm
-        clients={clients}
         projectTypes={projectTypes}
         prefill={prefill}
         initialClientDetail={initialClientDetail}
+        showStagePicker={stage === "choose"}
       />
     </>
   );

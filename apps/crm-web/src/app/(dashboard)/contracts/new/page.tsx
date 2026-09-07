@@ -1,7 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-import { listProjects } from "@/app/(dashboard)/projects/queries";
 import { PageHeader } from "@/components/page-header/page-header";
 import { BACK_TO } from "@/constants/labels";
 
@@ -9,13 +8,7 @@ import { ContractProjectPicker } from "./contract-project-picker/contract-projec
 
 // "+ Hợp đồng mới" entry (crm-ui-redesign.md, 2026-07-24): pick the project,
 // then author in the existing project-scoped editor.
-export default async function NewContractPage() {
-  const projects = await listProjects();
-  const options = projects.map((p) => ({
-    id: p.id,
-    label: `${p.code} · ${p.name}`,
-  }));
-
+export default function NewContractPage() {
   return (
     <>
       <Link
@@ -28,7 +21,7 @@ export default async function NewContractPage() {
 
       <PageHeader title="Tạo hợp đồng" description="Chọn công trình để soạn" />
 
-      <ContractProjectPicker projects={options} />
+      <ContractProjectPicker />
     </>
   );
 }

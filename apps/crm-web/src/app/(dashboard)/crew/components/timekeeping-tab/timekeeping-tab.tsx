@@ -21,8 +21,7 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
-import type { Project } from "@/app/(dashboard)/projects/types";
-import { SELECT_CLASS } from "@/components/form-bits/form-bits";
+import { EntityCombobox } from "@/components/entity-combobox/entity-combobox";
 import { FIELDS } from "@/constants/labels";
 import { addDays } from "@/utils/add-days/add-days";
 import { mondayOfThisWeek, weekRange } from "@/utils/date-range/date-range";
@@ -38,13 +37,7 @@ import { TimekeepingCell } from "./components/timekeeping-cell/timekeeping-cell"
 
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
-export function TimekeepingTab({
-  crew,
-  projects,
-}: {
-  crew: CrewMember[];
-  projects: Project[];
-}) {
+export function TimekeepingTab({ crew }: { crew: CrewMember[] }) {
   const [projectId, setProjectId] = useState<number | null>(null);
   const [records, setRecords] = useState<TimekeepingRecord[]>([]);
   const [assignedIds, setAssignedIds] = useState<number[]>([]);
@@ -156,19 +149,16 @@ export function TimekeepingTab({
     <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle>Chấm công theo tuần</CardTitle>
-        <select
-          className={`${SELECT_CLASS} sm:w-72`}
-          aria-label={FIELDS.project}
-          value={projectId ?? ""}
-          onChange={(e) => pickProject(Number(e.target.value))}
-        >
-          <option value="">— Chọn công trình —</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.code} · {p.name}
-            </option>
-          ))}
-        </select>
+        {/* Searchable, not a one-page <select>: a công trình past the server's
+            first page could not be chosen at all. */}
+        <EntityCombobox
+          resource="projects"
+          id="timekeeping-project"
+          className="sm:w-72"
+          value={projectId}
+          onChange={(id) => pickProject(id ?? 0)}
+          placeholder="Tìm công trình theo mã, tên…"
+        />
       </CardHeader>
 
       <CardContent className="space-y-4">

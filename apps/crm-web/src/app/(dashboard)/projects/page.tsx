@@ -15,7 +15,7 @@ export default function ProjectsPage() {
       <PageHeader
         title={FIELDS.project}
         action={
-          <Button render={<Link href="/projects/new" />}>
+          <Button render={<Link href="/projects/new?stage=choose" />}>
             + Thêm công trình
           </Button>
         }

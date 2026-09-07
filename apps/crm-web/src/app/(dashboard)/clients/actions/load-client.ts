@@ -9,6 +9,8 @@ import type { Contact, Location } from "../types";
  * Returns null when the client doesn't exist.
  */
 export async function loadClient(clientId: number): Promise<{
+  /** For the picker's own label when the client was preselected server-side. */
+  name: string;
   type: string;
   contacts: Contact[];
   locations: Location[];
@@ -16,6 +18,7 @@ export async function loadClient(clientId: number): Promise<{
   const client = await getClient(clientId);
   if (!client) return null;
   return {
+    name: client.name,
     type: client.type,
     contacts: client.contacts,
     locations: client.locations,
