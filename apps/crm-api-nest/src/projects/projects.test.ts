@@ -3,6 +3,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Response } from "express";
 
+import { STAGE_ORDER } from "../common/stage";
 import type { PrismaService } from "../prisma/prisma.service";
 import { AttachmentsController, ProjectsController } from "./projects.module";
 
@@ -164,5 +165,92 @@ describe("attachment create — paperwork item must belong to the project", () =
   test("own paperwork item is accepted", async () => {
     const row = await new AttachmentsController(fake(3)).create(dto);
     expect(row.paperwork_item_id).toBe(8);
+  });
+});
+
+// The dashboard's Pipeline block renders these eight columns directly, so what
+// must not regress: every stage is present and in pipeline order (an absent
+// stage would silently drop a column), and `deal_total` is the CHỐT quote sum
+// per stage — not whatever was quoted last.
+describe("GET /projects/summary (pipeline rollup)", () => {
+  const fake = ({
+    counts = [] as { stage: string; count: number }[],
+    dealQuotes = [] as { stage: string | null; total: bigint }[],
+  }) => {
+    const wheres: any[] = [];
+    return {
+      wheres,
+      prisma: {
+        project: {
+          groupBy: async ({ where }: any) => {
+            wheres.push(["project.groupBy", where]);
+            return counts.map((c) => ({
+              stage: c.stage,
+              _count: { _all: c.count },
+            }));
+          },
+        },
+        quote: {
+          findMany: async ({ where }: any) => {
+            wheres.push(["quote.findMany", where]);
+            return dealQuotes.map((q) => ({
+              total_amount: q.total,
+              project: q.stage === null ? null : { stage: q.stage },
+            }));
+          },
+        },
+      } as any,
+    };
+  };
+
+  test("returns all eight stages, in pipeline order", async () => {
+    const { prisma } = fake({});
+    const out = await new ProjectsController(prisma).summary();
+    expect(out.map((r) => r.stage)).toEqual([...STAGE_ORDER]);
+    expect(out.every((r) => r.count === 0 && r.deal_total === 0)).toBe(true);
+  });
+
+  test("sums the chốt quotes of each stage", async () => {
+    const { prisma } = fake({
+      counts: [
+        { stage: "quote", count: 3 },
+        { stage: "contract", count: 1 },
+      ],
+      dealQuotes: [
+        { stage: "quote", total: 10_000_000n },
+        { stage: "quote", total: 26_000_000n },
+        { stage: "contract", total: 5_000_000n },
+      ],
+    });
+    const out = await new ProjectsController(prisma).summary();
+    const byStage = Object.fromEntries(out.map((r) => [r.stage, r]));
+    expect(byStage.quote).toEqual({
+      stage: "quote",
+      count: 3,
+      deal_total: 36_000_000,
+    });
+    expect(byStage.contract!.deal_total).toBe(5_000_000);
+    // A stage with projects but no chốt quote is 0, not undefined.
+    expect(byStage.closed).toEqual({
+      stage: "closed",
+      count: 0,
+      deal_total: 0,
+    });
+  });
+
+  test("counts only active projects, and only their deal quotes", async () => {
+    const { prisma, wheres } = fake({});
+    await new ProjectsController(prisma).summary();
+    const [, countWhere] = wheres.find(([k]) => k === "project.groupBy")!;
+    const [, quoteWhere] = wheres.find(([k]) => k === "quote.findMany")!;
+    expect(countWhere).toEqual({ status: "active" });
+    expect(quoteWhere.status).toBe("deal");
+    expect(quoteWhere.project).toEqual({ status: "active" });
+  });
+
+  test("a quote whose project vanished is skipped, not counted as a stage", async () => {
+    const { prisma } = fake({ dealQuotes: [{ stage: null, total: 999n }] });
+    const out = await new ProjectsController(prisma).summary();
+    expect(out.reduce((sum, r) => sum + r.deal_total, 0)).toBe(0);
   });
 });

@@ -7,6 +7,13 @@
 //     unsigning (signed → draft) is its exact inverse — the correction path.
 //   • Bills have no POST/DELETE — they live and die with their settlement.
 //   • "overdue" is DERIVED (due_date < today && status != paid), never stored.
+//
+// Python counterpart: `crm-api/app/api/routes/receivables.py`.
+// DIVERGENT as of 2026-09-07 — the summary endpoint and the sort/csv-status
+// params below exist HERE ONLY (crm-ui plan 06 shipped Nest-first by decision).
+// Pointing CRM_API_URL at :8000 gives crm-web an unfiltered, unsorted money
+// screen with no totals. Mirroring is tracked in
+// ~/.claude/plans/crm-ui-06-money-screens.md § "Deferred: the Python twin".
 import {
   BadRequestException,
   Body,
@@ -42,6 +49,12 @@ import type { Response } from "express";
 
 import { businessToday } from "../common/business-date";
 import { toBig, toDate } from "../common/coerce";
+import {
+  CsvIn,
+  ListQueryDto,
+  insensitive,
+  orderByArgs,
+} from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
@@ -381,6 +394,27 @@ class UpdateBillDto {
   @IsOptional() @IsDateString() paid_date?: string;
 }
 
+const BILL_SORT = ["sent_date", "paid_date", "total_amount", "id"] as const;
+
+// A map, not a bare column name: `orderByArgs` needs a builder per sortable
+// column so a nullable date can carry its own nulls placement.
+const BILL_ORDER_BY = {
+  sent_date: (dir: "asc" | "desc") => ({
+    sent_date: { sort: dir, nulls: "last" as const },
+  }),
+  paid_date: (dir: "asc" | "desc") => ({
+    paid_date: { sort: dir, nulls: "last" as const },
+  }),
+  total_amount: (dir: "asc" | "desc") => ({ total_amount: dir }),
+  id: (dir: "asc" | "desc") => ({ id: dir }),
+};
+
+class ListBillsQuery extends ListQueryDto {
+  @IsOptional() @IsString() project_id?: string;
+  @IsOptional() @CsvIn() @IsIn(BILL_STATUS, { each: true }) status?: string[];
+  @IsOptional() @IsIn(BILL_SORT) sort_by?: (typeof BILL_SORT)[number];
+}
+
 @Controller("bills")
 class BillsController {
   constructor(private readonly prisma: PrismaService) {}
@@ -388,20 +422,28 @@ class BillsController {
   @Get()
   list(
     @Res({ passthrough: true }) res: Response,
-    @Query() page: PageQuery,
-    @Query("project_id", new ParseIntPipe({ optional: true }))
-    projectId?: number,
-    @Query("status") status?: string
+    @Query() query: ListBillsQuery
   ) {
-    const where = { project_id: projectId, status };
+    const where = {
+      project_id: query.project_id ? Number(query.project_id) : undefined,
+      ...(query.status?.length ? { status: { in: query.status } } : {}),
+      ...(query.search
+        ? { project: { code: insensitive(query.search) } }
+        : {}),
+    };
     return withTotalCount(
       res,
       this.prisma.bill.findMany({
         where,
         include: { milestones: true, ...PROJECT_INCLUDE },
-        // Was unordered: paging an unordered query overlaps and drops rows.
-        orderBy: { id: "asc" },
-        ...pageArgs(page),
+        orderBy: orderByArgs({
+          map: BILL_ORDER_BY,
+          sortBy: query.sort_by,
+          sortOrder: query.sort_order,
+          // Was unordered: paging an unordered query overlaps and drops rows.
+          fallback: [{ id: "asc" }],
+        }),
+        ...pageArgs(query),
       }),
       this.prisma.bill.count({ where })
     );
@@ -485,6 +527,32 @@ class UpdateMilestoneDto {
   @IsOptional() @IsDateString() paid_date?: string;
 }
 
+const MILESTONE_SORT = ["due_date", "paid_date", "amount", "id"] as const;
+
+const MILESTONE_ORDER_BY = {
+  due_date: (dir: "asc" | "desc") => ({
+    due_date: { sort: dir, nulls: "last" as const },
+  }),
+  paid_date: (dir: "asc" | "desc") => ({
+    paid_date: { sort: dir, nulls: "last" as const },
+  }),
+  amount: (dir: "asc" | "desc") => ({ amount: dir }),
+  id: (dir: "asc" | "desc") => ({ id: dir }),
+};
+
+class ListMilestonesQuery extends ListQueryDto {
+  @IsOptional() @IsString() project_id?: string;
+  @IsOptional() @IsString() bill_id?: string;
+  @IsOptional()
+  @CsvIn()
+  @IsIn(MILESTONE_STATUS, { each: true })
+  status?: string[];
+  // `overdue=true` REPLACES `status` — overdue already implies one, so the two
+  // would fight for the same Prisma key. Documented on the handler below.
+  @IsOptional() @IsString() overdue?: string;
+  @IsOptional() @IsIn(MILESTONE_SORT) sort_by?: (typeof MILESTONE_SORT)[number];
+}
+
 @Controller("payment-milestones")
 // (exported for the paid_date unit test in receivables.test.ts)
 export class PaymentMilestonesController {
@@ -498,30 +566,43 @@ export class PaymentMilestonesController {
   @Get()
   list(
     @Res({ passthrough: true }) res: Response,
-    @Query() page: PageQuery,
-    @Query("project_id", new ParseIntPipe({ optional: true }))
-    projectId?: number,
-    @Query("bill_id", new ParseIntPipe({ optional: true })) billId?: number,
-    @Query("status") status?: string,
-    @Query("overdue") overdue?: string
+    @Query() query: ListMilestonesQuery
   ) {
     // One `where`, both queries — so the count applies the same derived overdue
     // rule as the rows instead of counting every đợt in the table.
     const where = {
-      project_id: projectId,
-      bill_id: billId,
-      ...(overdue === "true"
+      project_id: query.project_id ? Number(query.project_id) : undefined,
+      bill_id: query.bill_id ? Number(query.bill_id) : undefined,
+      ...(query.overdue === "true"
         ? { due_date: { lt: businessToday() }, status: { not: "paid" } }
-        : { status }),
+        : query.status?.length
+          ? { status: { in: query.status } }
+          : {}),
+      ...(query.search
+        ? { project: { code: insensitive(query.search) } }
+        : {}),
     };
     return withTotalCount(
       res,
       this.prisma.paymentMilestone.findMany({
         where,
         include: PROJECT_INCLUDE,
-        // Was unordered: paging an unordered query overlaps and drops rows.
-        orderBy: { id: "asc" },
-        ...pageArgs(page),
+        orderBy: orderByArgs({
+          map: MILESTONE_ORDER_BY,
+          sortBy: query.sort_by,
+          sortOrder: query.sort_order,
+          // Soonest due first, undated last. With `paid` filtered out — which is
+          // what /receivables now defaults to — the oldest due dates ARE the
+          // overdue ones, so "quá hạn on top" falls out of this ordering and
+          // survives pagination. It used to be a JS sort over one page, so an
+          // overdue đợt on page 2 never surfaced on the screen whose whole job
+          // is surfacing overdue đợt.
+          fallback: [
+            { due_date: { sort: "asc", nulls: "last" } },
+            { id: "asc" },
+          ],
+        }),
+        ...pageArgs(query),
       }),
       this.prisma.paymentMilestone.count({ where })
     );
@@ -626,11 +707,99 @@ export class PaymentMilestonesController {
   }
 }
 
+/** `{ count, total }` for one bucket. Prisma's `_sum` is null for an empty
+ *  group, which would print "null ₫" — coerce here, once. */
+const bucket = (count: number, sum: bigint | null) => ({
+  count,
+  total: Number(sum ?? 0),
+});
+
+/**
+ * Money totals across the WHOLE filtered collection, not one page.
+ *
+ * The dashboard used to print no "Tổng công nợ" at all, with the reason written
+ * down: a sum over one 100-row page understates the debt and looks authoritative
+ * doing it. This is the aggregate that comment was waiting for — and the card's
+ * own copy ("xem tổng ở trang Thu & công nợ") was pointing at a total that did
+ * not exist on that page either.
+ *
+ * One endpoint rather than one per table: the money screen and the dashboard
+ * each want both halves, so this is one round trip instead of two.
+ */
+@Controller("receivables")
+// (exported for the aggregate unit tests in receivables.test.ts)
+export class ReceivablesSummaryController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Get("summary")
+  async summary(
+    @Query("project_id", new ParseIntPipe({ optional: true }))
+    projectId?: number
+  ) {
+    const scope = projectId ? { project_id: projectId } : {};
+    // The overdue predicate is the list endpoint's, not a second spelling of
+    // it: two copies of a derived rule drift, and this one decides a number the
+    // owner reads as fact.
+    const overdueWhere = {
+      ...scope,
+      due_date: { lt: businessToday() },
+      status: { not: "paid" },
+    };
+
+    const [milestoneGroups, billGroups, overdue] = await Promise.all([
+      this.prisma.paymentMilestone.groupBy({
+        by: ["status"],
+        where: scope,
+        _count: { _all: true },
+        _sum: { amount: true },
+      }),
+      this.prisma.bill.groupBy({
+        by: ["status"],
+        where: scope,
+        _count: { _all: true },
+        _sum: { total_amount: true },
+      }),
+      this.prisma.paymentMilestone.aggregate({
+        where: overdueWhere,
+        _count: { _all: true },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    // Every status present, so a consumer never has to handle a missing key —
+    // an absent bucket is a real zero, not unknown.
+    const milestones = Object.fromEntries(
+      MILESTONE_STATUS.map((status) => {
+        const row = milestoneGroups.find((g) => g.status === status);
+        return [status, bucket(row?._count._all ?? 0, row?._sum.amount ?? null)];
+      })
+    );
+    const bills = Object.fromEntries(
+      BILL_STATUS.map((status) => {
+        const row = billGroups.find((g) => g.status === status);
+        return [
+          status,
+          bucket(row?._count._all ?? 0, row?._sum.total_amount ?? null),
+        ];
+      })
+    );
+
+    return {
+      milestones: {
+        by_status: milestones,
+        overdue: bucket(overdue._count._all, overdue._sum.amount),
+      },
+      bills: { by_status: bills },
+    };
+  }
+}
+
 @Module({
   controllers: [
     SettlementsController,
     BillsController,
     PaymentMilestonesController,
+    ReceivablesSummaryController,
   ],
 })
 export class ReceivablesModule {}

@@ -31,7 +31,10 @@ import {
 } from "class-validator";
 import type { Response } from "express";
 
-import { businessToday } from "../common/business-date";
+import {
+  businessDayRange,
+  businessToday,
+} from "../common/business-date";
 import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
 import {
@@ -193,6 +196,17 @@ class ListProjectsQuery extends ListQueryDto {
   @IsOptional()
   @IsIn(PROJECT_SORT)
   sort_by?: "code" | "name" | "appointment_at" | "created_at";
+  // Derived filters for the dashboard / field "today" panels — same idea as
+  // `overdue=true` on the đợt list: the rule belongs where the rows are, or
+  // every consumer rebuilds it over whichever page it happened to fetch. Both
+  // panels used to filter a MAX_PAGE_SIZE window in JS, so a project past that
+  // window silently vanished from them.
+  /** Appointments whose LOCAL calendar date is this one (`appointment_at`). */
+  @IsOptional() @IsDateString() appointment_date?: string;
+  /** `false` → not yet visited (`visit_date` is null). */
+  @IsOptional() @IsIn(["true", "false"]) visited?: string;
+  /** `true` → parked jobs whose follow-up date has arrived. */
+  @IsOptional() @IsIn(["true", "false"]) follow_up_due?: string;
 }
 
 @Controller("projects")
@@ -225,6 +239,17 @@ export class ProjectsController {
       client_id: query.client_id ? Number(query.client_id) : undefined,
       stage: query.stage?.length ? { in: query.stage } : undefined,
       status: query.status?.length ? { in: query.status } : undefined,
+      ...(query.appointment_date
+        ? { appointment_at: businessDayRange(query.appointment_date) }
+        : {}),
+      ...(query.visited === "false"
+        ? { visit_date: null }
+        : query.visited === "true"
+          ? { visit_date: { not: null } }
+          : {}),
+      ...(query.follow_up_due === "true"
+        ? { follow_up_date: { not: null, lte: businessToday() } }
+        : {}),
       ...(query.search
         ? {
             OR: [
@@ -266,6 +291,50 @@ export class ProjectsController {
       }),
       this.prisma.project.count({ where })
     );
+  }
+
+  /**
+   * Pipeline rollup for the dashboard: one row per stage, active projects only.
+   *
+   * MUST stay above `@Get(":id")` — Nest matches in declaration order, so a
+   * `:id` route declared first would take "summary" as an id and 400 on the
+   * ParseIntPipe. Same trap as `crew.module.ts`'s timekeeping summary.
+   *
+   * `deal_total` is the Σ of each project's CHỐT quote — the committed value,
+   * not "whatever was last quoted" — so the number on the dashboard means one
+   * specific thing. Prisma cannot `groupBy` a relation field, hence the reduce.
+   *
+   * ponytail: one row per deal quote into this process (a few hundred for years
+   * of work). Becomes a `$queryRaw` GROUP BY if that ever stops being true.
+   */
+  @Get("summary")
+  async summary() {
+    const [counts, dealQuotes] = await Promise.all([
+      this.prisma.project.groupBy({
+        by: ["stage"],
+        where: { status: "active" },
+        _count: { _all: true },
+      }),
+      this.prisma.quote.findMany({
+        where: { status: "deal", project: { status: "active" } },
+        select: { total_amount: true, project: { select: { stage: true } } },
+      }),
+    ]);
+
+    const dealTotals = new Map<string, bigint>();
+    for (const quote of dealQuotes) {
+      const stage = quote.project?.stage;
+      if (!stage) continue;
+      dealTotals.set(stage, (dealTotals.get(stage) ?? 0n) + quote.total_amount);
+    }
+
+    // Every stage present and in pipeline order, so the dashboard renders eight
+    // columns without inventing the empty ones itself.
+    return STAGE_ORDER.map((stage) => ({
+      stage,
+      count: counts.find((c) => c.stage === stage)?._count._all ?? 0,
+      deal_total: Number(dealTotals.get(stage) ?? 0n),
+    }));
   }
 
   @Get(":id")

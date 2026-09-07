@@ -1,58 +1,30 @@
+import { Suspense } from "react";
+
 import { Card, CardHeader, CardTitle } from "@yan/ui/components/card";
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@yan/ui/components/table";
+import { Skeleton } from "@yan/ui/components/skeleton";
 
 import { PageHeader } from "@/components/page-header/page-header";
 import { FIELDS } from "@/constants/labels";
-import { isOverdue } from "@/utils/is-overdue/is-overdue";
 
-import { MilestoneStatus } from "./enums";
-import { listBills, listPaymentMilestones } from "./queries";
-import { BillRow, MilestoneRow } from "./receivable-rows/receivable-rows";
-import type { ProjectRef } from "./types";
+import { BillTable } from "./components/bill-table/bill-table";
+import { MilestoneTable } from "./components/milestone-table/milestone-table";
+import { SummaryStrip } from "./components/summary-strip/summary-strip";
+import { getReceivablesSummary } from "./queries";
 
-// Rows per table. Explicit rather than leaning on the server's default page size,
-// so the notice below is accurate instead of a guess.
-const PAGE_ROWS = 100;
-
-// Both tables show one page, and the overdue-first sort below runs in JS over
-// that page — so an overdue row on page 2 never surfaces. Say so rather than
-// implying the table is complete. Goes away with URL-driven paging (F17/F30) or
-// a server-side overdue-first order.
-function PageLimitNotice({ shown }: { shown: number }) {
-  if (shown < PAGE_ROWS) return null;
-  return (
-    <p className="px-6 text-xs text-muted-foreground">
-      Đang xem {PAGE_ROWS} dòng đầu — còn dòng chưa hiển thị.
-    </p>
-  );
-}
-
-// Công trình column. Both lists carry the code as a narrow `project` include
-// (F40), so no projects fetch and no id → code map: the old map came from one
-// paginated /projects window, and any row outside it printed `#id`.
-const projectCode = (row: { project_id: number; project?: ProjectRef }) =>
-  row?.project?.code ?? `#${row?.project_id}`;
-
-// Thu & công nợ — the secretary's daily money screen. Read-only columns plus
-// row actions (record payment, mark bill sent/paid) driven by the write phase.
+// Thu & công nợ — the secretary's daily money screen.
+//
+// Was a server-rendered dump of the first 100 đợt and the first 100 hóa đơn,
+// with the overdue-first sort running in JS over that page: no search, no
+// filter, no sort, no pager, and an overdue row at position 101 that never
+// surfaced. The two tables now filter/sort/page against the server like every
+// other list in the app, and default to hiding what has already been collected
+// — 8 of the 11 seeded rows were `Đã thu`, so the screen was mostly history.
+//
+// The totals come from GET /receivables/summary, which aggregates in Postgres:
+// the number is the same whatever page the table is on. That is what the
+// dashboard's missing "Tổng công nợ" was waiting for.
 export default async function ReceivablesPage() {
-  const [milestones, bills] = await Promise.all([
-    listPaymentMilestones({ limit: PAGE_ROWS }),
-    listBills({ limit: PAGE_ROWS }),
-  ]);
-
-  const milestoneOverdue = (m: (typeof milestones)[number]) =>
-    isOverdue(m?.due_date, m?.status === MilestoneStatus.PAID);
-  // Derived overdue on top (design doc), everything else in API order.
-  const sorted = [...milestones].sort(
-    (a, b) => Number(milestoneOverdue(b)) - Number(milestoneOverdue(a))
-  );
+  const summary = await getReceivablesSummary();
 
   return (
     <>
@@ -61,60 +33,33 @@ export default async function ReceivablesPage() {
         description="Đợt thanh toán và hóa đơn của các công trình."
       />
 
-      <div className="grid gap-6">
+      <div className="space-y-6">
+        <SummaryStrip summary={summary} />
+
         <Card className="gap-3 py-4">
           <CardHeader>
             <CardTitle className="text-base">
               {FIELDS.paymentMilestone}
             </CardTitle>
           </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{FIELDS.project}</TableHead>
-                <TableHead>Đợt</TableHead>
-                <TableHead className="text-right">{FIELDS.amount}</TableHead>
-                <TableHead>{FIELDS.dueDate}</TableHead>
-                <TableHead>{FIELDS.status}</TableHead>
-                <TableHead>{FIELDS.collectDate}</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sorted.map((m) => (
-                <MilestoneRow
-                  key={m?.id}
-                  milestone={m}
-                  projectCode={projectCode(m)}
-                />
-              ))}
-            </TableBody>
-          </Table>
-          <PageLimitNotice shown={sorted.length} />
+          <div className="px-4">
+            {/* Both tables read their filters from the URL, so they need a
+                Suspense boundary for useSearchParams — same as /projects. */}
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <MilestoneTable />
+            </Suspense>
+          </div>
         </Card>
 
         <Card className="gap-3 py-4">
           <CardHeader>
             <CardTitle className="text-base">Hóa đơn</CardTitle>
           </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{FIELDS.project}</TableHead>
-                <TableHead className="text-right">Tổng tiền</TableHead>
-                <TableHead>{FIELDS.status}</TableHead>
-                <TableHead>Ngày gửi</TableHead>
-                <TableHead>Ngày thanh toán</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {bills.map((b) => (
-                <BillRow key={b?.id} bill={b} projectCode={projectCode(b)} />
-              ))}
-            </TableBody>
-          </Table>
-          <PageLimitNotice shown={bills.length} />
+          <div className="px-4">
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <BillTable />
+            </Suspense>
+          </div>
         </Card>
       </div>
     </>

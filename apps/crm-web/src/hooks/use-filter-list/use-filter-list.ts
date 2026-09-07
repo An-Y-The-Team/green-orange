@@ -33,7 +33,13 @@ export function useFilterList<T>({
   resource,
   params,
 }: {
-  resource: "projects" | "clients" | "crew" | "quotes";
+  resource:
+    | "projects"
+    | "clients"
+    | "crew"
+    | "quotes"
+    | "payment-milestones"
+    | "bills";
   params: FilterListParams;
 }) {
   const { data, isLoading, isFetching, isError } = useQuery<ListResponse<T>>({

@@ -7,6 +7,7 @@ import { describe, expect, test } from "bun:test";
 import { businessToday } from "../common/business-date";
 import {
   PaymentMilestonesController,
+  ReceivablesSummaryController,
   SettlementsController,
 } from "./receivables.module";
 import { payableTotal, settlementRemainder } from "./settlement-money";
@@ -322,13 +323,11 @@ describe("payment milestone ?overdue=true", () => {
         },
       },
     };
+    // One query object since plan 06 gave the endpoint csv `status` + `sort_by`
+    // (the positional params it used to take could not express either).
     const found = await new PaymentMilestonesController(prisma).list(
       { setHeader: (k: string, v: unknown) => (headers[k] = v) } as any,
-      {},
-      undefined,
-      undefined,
-      undefined,
-      "true"
+      { overdue: "true" } as any
     );
     return { ids: found.map((r) => r.id), wheres, headers };
   };
@@ -364,5 +363,109 @@ describe("payment milestone ?overdue=true", () => {
     // 1 of the 4 rows is overdue; the header must say 1, never 4.
     expect(headers["X-Total-Count"]).toBe(ids.length);
     expect(headers["X-Total-Count"]).toBe(1);
+  });
+});
+
+// The dashboard prints these as fact ("Tổng công nợ"), so the two ways they can
+// silently lie are what this pins: a bucket with no rows must read 0 rather
+// than null, and every status must be present so a consumer never has to guess
+// whether a missing key means zero or unknown.
+describe("GET /receivables/summary", () => {
+  const fakePrisma = ({
+    milestones = [] as { status: string; count: number; sum: bigint | null }[],
+    bills = [] as { status: string; count: number; sum: bigint | null }[],
+    overdue = { count: 0, sum: null as bigint | null },
+  }) => {
+    const wheres: any[] = [];
+    return {
+      wheres,
+      prisma: {
+        paymentMilestone: {
+          groupBy: async ({ where }: any) => {
+            wheres.push(["milestone.groupBy", where]);
+            return milestones.map((m) => ({
+              status: m.status,
+              _count: { _all: m.count },
+              _sum: { amount: m.sum },
+            }));
+          },
+          aggregate: async ({ where }: any) => {
+            wheres.push(["milestone.aggregate", where]);
+            return {
+              _count: { _all: overdue.count },
+              _sum: { amount: overdue.sum },
+            };
+          },
+        },
+        bill: {
+          groupBy: async ({ where }: any) => {
+            wheres.push(["bill.groupBy", where]);
+            return bills.map((b) => ({
+              status: b.status,
+              _count: { _all: b.count },
+              _sum: { total_amount: b.sum },
+            }));
+          },
+        },
+      } as any,
+    };
+  };
+
+  test("an empty bucket is 0, never null", async () => {
+    const { prisma } = fakePrisma({
+      milestones: [{ status: "awaiting_payment", count: 2, sum: 30_000_000n }],
+    });
+    const out = await new ReceivablesSummaryController(prisma).summary();
+    expect(out.milestones.by_status.awaiting_payment).toEqual({
+      count: 2,
+      total: 30_000_000,
+    });
+    // Prisma returns `_sum: null` for a group with no rows; unguarded that
+    // reaches the UI as "null ₫".
+    expect(out.milestones.by_status.paid).toEqual({ count: 0, total: 0 });
+    expect(out.milestones.by_status.not_due).toEqual({ count: 0, total: 0 });
+  });
+
+  test("every status is present for both tables", async () => {
+    const { prisma } = fakePrisma({});
+    const out = await new ReceivablesSummaryController(prisma).summary();
+    expect(Object.keys(out.milestones.by_status).sort()).toEqual([
+      "awaiting_payment",
+      "not_due",
+      "paid",
+    ]);
+    expect(Object.keys(out.bills.by_status).sort()).toEqual([
+      "draft",
+      "official",
+      "paid",
+      "sent",
+    ]);
+  });
+
+  test("money arrives as a number, not a BigInt", async () => {
+    const { prisma } = fakePrisma({
+      bills: [{ status: "sent", count: 1, sum: 64_800_000n }],
+      overdue: { count: 1, sum: 20_000_000n },
+    });
+    const out = await new ReceivablesSummaryController(prisma).summary();
+    expect(out.bills.by_status.sent.total).toBe(64_800_000);
+    expect(typeof out.bills.by_status.sent.total).toBe("number");
+    expect(out.milestones.overdue).toEqual({ count: 1, total: 20_000_000 });
+  });
+
+  // The same derived rule as the list endpoint, not a second spelling of it:
+  // this one decides a number the owner reads as fact.
+  test("the overdue bucket uses lt(today) + not paid", async () => {
+    const { prisma, wheres } = fakePrisma({});
+    await new ReceivablesSummaryController(prisma).summary();
+    const [, where] = wheres.find(([k]) => k === "milestone.aggregate")!;
+    expect(where.due_date.lt).toEqual(businessToday());
+    expect(where.status).toEqual({ not: "paid" });
+  });
+
+  test("project_id scopes every query, including overdue", async () => {
+    const { prisma, wheres } = fakePrisma({});
+    await new ReceivablesSummaryController(prisma).summary(7);
+    for (const [, where] of wheres) expect(where.project_id).toBe(7);
   });
 });

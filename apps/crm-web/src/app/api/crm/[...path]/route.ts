@@ -19,7 +19,15 @@ import {
   toActionError,
 } from "@/utils/http/http";
 
-const ALLOWED = new Set(["projects", "clients", "crew", "quotes"]);
+const ALLOWED = new Set([
+  "projects",
+  "clients",
+  "crew",
+  "quotes",
+  // The money screen filters/sorts/pages client-side like the other lists.
+  "payment-milestones",
+  "bills",
+]);
 
 export async function GET(
   req: NextRequest,

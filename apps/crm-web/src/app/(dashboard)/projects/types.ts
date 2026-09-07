@@ -134,3 +134,17 @@ export interface Attachment {
   note?: string | null;
   created_at: string;
 }
+
+/**
+ * One column of the dashboard's Pipeline block — `GET /projects/summary`.
+ * All eight stages are always present, in pipeline order, so the block renders
+ * its empty columns instead of inventing them.
+ *
+ * `deal_total` is the Σ of each project's CHỐT quote (the committed value), not
+ * "whatever was quoted last" — hence the "đã chốt" label in the UI.
+ */
+export interface StageSummary {
+  stage: ProjectStage;
+  count: number;
+  deal_total: number;
+}

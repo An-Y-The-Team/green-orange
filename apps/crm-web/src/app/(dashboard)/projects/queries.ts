@@ -1,7 +1,23 @@
 import { apiFetchDetail, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
 
-import type { Attachment, PaperworkItem, Project, ProjectType } from "./types";
+import type {
+  Attachment,
+  PaperworkItem,
+  Project,
+  ProjectType,
+  StageSummary,
+} from "./types";
+
+/**
+ * Pipeline rollup for the dashboard — counts + chốt value per stage, over every
+ * active project rather than one page. `apiFetchSafe` with an empty fallback:
+ * the block is one panel of four, and an empty pipeline renders as zeros rather
+ * than taking the whole dashboard down with it.
+ */
+export async function getProjectsSummary(): Promise<StageSummary[]> {
+  return apiFetchSafe<StageSummary[]>("/projects/summary", []);
+}
 
 /**
  * Cross-project project list, newest first. Every list endpoint pages at
@@ -12,11 +28,30 @@ import type { Attachment, PaperworkItem, Project, ProjectType } from "./types";
 export async function listProjects({
   limit,
   offset,
-}: { limit?: number; offset?: number } = {}): Promise<Project[]> {
-  return apiFetchSafe<Project[]>(
-    `/projects${pageQuery({ limit, offset })}`,
-    []
-  );
+  stage,
+  status,
+  appointmentDate,
+  visited,
+  followUpDue,
+}: {
+  limit?: number;
+  offset?: number;
+  stage?: string;
+  status?: string;
+  /** Local calendar date of `appointment_at` — the server resolves the range. */
+  appointmentDate?: string;
+  visited?: boolean;
+  /** Parked jobs whose follow-up date has arrived. */
+  followUpDue?: boolean;
+} = {}): Promise<Project[]> {
+  const params = new URLSearchParams(pageQuery({ limit, offset }).slice(1));
+  if (stage) params.set("stage", stage);
+  if (status) params.set("status", status);
+  if (appointmentDate) params.set("appointment_date", appointmentDate);
+  if (visited !== undefined) params.set("visited", String(visited));
+  if (followUpDue) params.set("follow_up_due", "true");
+  const query = params.toString();
+  return apiFetchSafe<Project[]>(`/projects${query ? `?${query}` : ""}`, []);
 }
 
 export async function getProject(id: number): Promise<Project | undefined> {

@@ -19,12 +19,16 @@ function MultiSelect({
   onChange,
   placeholder,
   className,
+  disabled,
 }: {
   options: MultiSelectOption[];
   value: string[];
   onChange: (value: string[]) => void;
   placeholder: string;
   className?: string;
+  /** For a filter the server would ignore — e.g. the money screen's status
+   *  filter while "chỉ quá hạn" is on, since `overdue` replaces `status`. */
+  disabled?: boolean;
 }) {
   const summary =
     value.length === 0
@@ -38,6 +42,7 @@ function MultiSelect({
       multiple
       value={value}
       onValueChange={(next: string[]) => onChange(next)}
+      disabled={disabled}
     >
       <SelectPrimitive.Trigger
         data-slot="multi-select-trigger"
@@ -47,6 +52,7 @@ function MultiSelect({
           // controls line up with the rest of the toolbar.
           "flex h-8 items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
           value.length === 0 && "text-muted-foreground",
+          disabled && "opacity-50",
           className
         )}
       >

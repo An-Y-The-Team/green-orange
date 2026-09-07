@@ -11,23 +11,40 @@ import {
 
 import { PageHeader } from "@/components/page-header/page-header";
 import { OVERDUE_LABEL } from "@/constants/labels";
-import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import { formatDate } from "@/utils/format-date/format-date";
+import { formatTime } from "@/utils/format-time/format-time";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
-import { localDateOf, todayISO } from "@/utils/today-iso/today-iso";
+import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { ProjectStage, ProjectStatus } from "../projects/enums";
-import { listAllPaperworkItems, listProjects } from "../projects/queries";
+import {
+  getProjectsSummary,
+  listAllPaperworkItems,
+  listProjects,
+} from "../projects/queries";
 import type { Project } from "../projects/types";
 import { BillStatus, MilestoneStatus } from "../receivables/enums";
-import { listBills, listPaymentMilestones } from "../receivables/queries";
+import {
+  getReceivablesSummary,
+  listBills,
+  listPaymentMilestones,
+} from "../receivables/queries";
+import { PipelineBlock } from "./components/pipeline-block/pipeline-block";
 
-// Panels, not tables — ask the server for roughly what renders (F20).
+// Rows per panel. The TOTALS no longer come from these — see the summary read.
 const PANEL_ROWS = 5;
 const DEBT_FETCH_ROWS = 50;
 
-function ProjectLinkList({ items }: { items: Project[] }) {
+/** Hôm nay / Cần theo dõi rows — a code, a name, and the time that matters. */
+function ProjectLinkList({
+  items,
+  detail,
+}: {
+  items: Project[];
+  /** What the right-hand column means for this panel. */
+  detail: (project: Project) => string | null;
+}) {
   if (items.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">Không có công trình nào.</p>
@@ -40,12 +57,8 @@ function ProjectLinkList({ items }: { items: Project[] }) {
           <Link href={`/projects/${p?.id}`} className="hover:underline">
             <span className="font-medium">{p?.code}</span> · {p?.name}
           </Link>
-          <span className="whitespace-nowrap text-muted-foreground">
-            {p?.appointment_at
-              ? formatDate(p.appointment_at)
-              : p?.follow_up_date
-                ? formatDate(p.follow_up_date)
-                : null}
+          <span className="whitespace-nowrap text-muted-foreground tabular-nums">
+            {detail(p)}
           </span>
         </li>
       ))}
@@ -58,34 +71,55 @@ type DebtRow = {
   key: string;
   project_id: number;
   code: string;
+  kind: "milestone" | "bill";
   amount: number;
   due_date?: string | null;
   overdue: boolean;
 };
 
 export default async function DashboardPage() {
-  // Every filter the panels need is a server-side `where`: both overdue rules
-  // (hồ sơ, đợt thanh toán) and the statuses the debt panel renders. Nothing here
-  // fetches a whole table to throw most of it away in JS (F20).
-  const [projects, awaiting, overdueMilestones, bills, overduePaperwork] =
-    await Promise.all([
-      // The today/follow-up panels render projects themselves, so this list is a
-      // real data source, not a code lookup — every panel that only needed a code
-      // now gets one from its own `project` include (F40/F41).
-      listProjects({ limit: MAX_PAGE_SIZE }),
-      // Two reads, because `overdue` REPLACES `status` server-side: money owed is
-      // "đợt chờ thanh toán" ∪ "đợt quá hạn". The second is what F20 recorded as
-      // missing — a not_due đợt whose due date quietly passed.
-      listPaymentMilestones({
-        status: MilestoneStatus.AWAITING_PAYMENT,
-        limit: DEBT_FETCH_ROWS,
-      }),
-      listPaymentMilestones({ overdue: true, limit: DEBT_FETCH_ROWS }),
-      listBills({ status: BillStatus.SENT, limit: DEBT_FETCH_ROWS }),
-      listAllPaperworkItems({ overdue: true, limit: PANEL_ROWS }),
-    ]);
-
   const today = todayISO();
+
+  // Every panel is a server-side `where` now, including the two "today" ones:
+  // Hôm nay and Cần theo dõi used to filter a MAX_PAGE_SIZE window in JS, so a
+  // project past that window silently disappeared from both.
+  const [
+    todayAppointments,
+    followUps,
+    awaiting,
+    overdueMilestones,
+    bills,
+    overduePaperwork,
+    summary,
+    pipeline,
+  ] = await Promise.all([
+    listProjects({
+      stage: ProjectStage.REQUEST,
+      appointmentDate: today,
+      visited: false,
+      limit: PANEL_ROWS,
+    }),
+    listProjects({
+      status: ProjectStatus.ON_HOLD,
+      followUpDue: true,
+      limit: PANEL_ROWS,
+    }),
+    // Two reads, because `overdue` REPLACES `status` server-side: money owed is
+    // "đợt chờ thanh toán" ∪ "đợt quá hạn".
+    listPaymentMilestones({
+      status: MilestoneStatus.AWAITING_PAYMENT,
+      limit: DEBT_FETCH_ROWS,
+    }),
+    listPaymentMilestones({ overdue: true, limit: DEBT_FETCH_ROWS }),
+    listBills({ status: BillStatus.SENT, limit: DEBT_FETCH_ROWS }),
+    listAllPaperworkItems({ overdue: true, limit: PANEL_ROWS }),
+    // The totals: aggregated in Postgres over every row, so the figure is the
+    // same whatever page a table is on. This is what the old
+    // "no Tổng công nợ" comment was waiting for.
+    getReceivablesSummary(),
+    getProjectsSummary(),
+  ]);
+
   // The two đợt reads overlap on an overdue awaiting_payment row — dedupe by id.
   const milestones = [
     ...new Map(
@@ -93,31 +127,11 @@ export default async function DashboardPage() {
     ).values(),
   ];
 
-  // Hôm nay — appointments today not yet visited. Stage 1 spans request AND
-  // survey, so `!visit_date` (not the stage) is what marks "still to meet".
-  const todayAppointments = projects.filter(
-    (p) =>
-      p?.stage === ProjectStage.REQUEST &&
-      !p?.visit_date &&
-      p?.appointment_at != null &&
-      localDateOf(p.appointment_at) === today
-  );
-
-  // Cần theo dõi — parked jobs whose follow-up date has arrived; overdue
-  // paperwork comes back already filtered from ?overdue=true.
-  const followUps = projects.filter(
-    (p) =>
-      p?.status === ProjectStatus.ON_HOLD &&
-      p?.follow_up_date &&
-      p.follow_up_date <= today
-  );
-
-  // Công nợ — money owed: đợt chờ thanh toán or quá hạn, plus sent-but-unpaid
-  // hóa đơn, all server-filtered. `overdue` stays a derived read for the badge.
   const debtMilestones: DebtRow[] = milestones.map((m) => ({
     key: `m-${m?.id}`,
     project_id: m?.project_id,
     code: m?.project?.code ?? `#${m?.project_id}`,
+    kind: "milestone",
     amount: m?.amount,
     due_date: m?.due_date,
     overdue: isOverdue(m?.due_date, false),
@@ -126,6 +140,7 @@ export default async function DashboardPage() {
     key: `b-${b?.id}`,
     project_id: b?.project_id,
     code: b?.project?.code ?? `#${b?.project_id}`,
+    kind: "bill",
     amount: b?.total_amount,
     due_date: null,
     overdue: false,
@@ -133,6 +148,12 @@ export default async function DashboardPage() {
   const debts = [...debtMilestones, ...debtBills].sort(
     (a, b) => Number(b?.overdue) - Number(a?.overdue)
   );
+
+  const { by_status: byStatus, overdue } = summary.milestones;
+  const owed =
+    byStatus.not_due.total +
+    byStatus.awaiting_payment.total +
+    summary.bills.by_status.sent.total;
 
   return (
     <>
@@ -146,13 +167,23 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <PipelineBlock stages={pipeline} />
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Hôm nay</CardTitle>
           </CardHeader>
           <CardContent>
-            <ProjectLinkList items={todayAppointments} />
+            {/* The TIME, not the date: every row is today by definition, so
+                printing formatDate here told the reader what the card title
+                already said and hid the one thing they needed. */}
+            <ProjectLinkList
+              items={[...todayAppointments].sort((a, b) =>
+                (a?.appointment_at ?? "").localeCompare(b?.appointment_at ?? "")
+              )}
+              detail={(p) => formatTime(p?.appointment_at) || null}
+            />
           </CardContent>
         </Card>
 
@@ -161,7 +192,10 @@ export default async function DashboardPage() {
             <CardTitle>Cần theo dõi</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ProjectLinkList items={followUps} />
+            <ProjectLinkList
+              items={followUps}
+              detail={(p) => formatDate(p?.follow_up_date) || null}
+            />
             {overduePaperwork.length > 0 ? (
               <div className="space-y-2 border-t pt-3">
                 <p className="text-xs font-medium text-muted-foreground">
@@ -208,48 +242,65 @@ export default async function DashboardPage() {
             Xem tất cả
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {/* A real total at last: GET /receivables/summary aggregates in
+              Postgres, so this is not a sum over one page pretending to be the
+              whole debt — which is why the figure used to be omitted entirely. */}
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+            <span className="text-sm text-muted-foreground">Tổng công nợ</span>
+            <span className="text-xl font-semibold tabular-nums">
+              {formatVND(owed)}
+            </span>
+            {overdue.count > 0 ? (
+              <span className="text-sm text-destructive tabular-nums">
+                trong đó quá hạn {formatVND(overdue.total)} ({overdue.count}{" "}
+                đợt)
+              </span>
+            ) : null}
+          </div>
+
           {debts.length === 0 ? (
             <p className="text-sm text-muted-foreground">Không có công nợ.</p>
           ) : (
-            <div className="space-y-3">
-              {/* No "Tổng công nợ" figure: a sum over one page understates the
-                  real debt and looks authoritative doing it. Needs a server-side
-                  aggregate (Σ amount by status) before it can come back. */}
-              <p className="text-sm text-muted-foreground">
-                Các khoản cần thu sớm nhất — xem tổng ở trang Thu & công nợ.
-              </p>
-              <ul className="space-y-2 text-sm">
-                {debts.slice(0, PANEL_ROWS).map((d) => (
-                  <li
-                    key={d?.key}
-                    className="flex items-center justify-between gap-4"
+            <ul className="space-y-2 text-sm">
+              {debts.slice(0, PANEL_ROWS).map((d) => (
+                <li
+                  key={d?.key}
+                  className="flex items-center justify-between gap-4"
+                >
+                  <Link
+                    href={
+                      d?.kind === "bill"
+                        ? "/receivables?status=sent"
+                        : "/receivables"
+                    }
+                    className="flex items-center gap-2 hover:underline"
                   >
-                    <Link
-                      href={`/projects/${d?.project_id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {d?.code}
-                    </Link>
-                    <span className="flex items-center gap-2 whitespace-nowrap">
-                      <span className="font-medium">
-                        {formatVND(d?.amount)}
-                      </span>
-                      {d?.due_date ? (
-                        <span className="text-muted-foreground">
-                          {formatDate(d.due_date)}
-                        </span>
-                      ) : null}
-                      {d?.overdue ? (
-                        <Badge variant={OVERDUE_LABEL.variant}>
-                          {OVERDUE_LABEL.label}
-                        </Badge>
-                      ) : null}
+                    <span className="font-medium">{d?.code}</span>
+                    {/* Which table the row came from — the two used to be
+                        indistinguishable in this list. */}
+                    <Badge variant="outline">
+                      {d?.kind === "bill" ? "Hóa đơn" : "Đợt"}
+                    </Badge>
+                  </Link>
+                  <span className="flex items-center gap-2 whitespace-nowrap">
+                    <span className="font-medium tabular-nums">
+                      {formatVND(d?.amount)}
                     </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                    {d?.due_date ? (
+                      <span className="text-muted-foreground tabular-nums">
+                        {formatDate(d.due_date)}
+                      </span>
+                    ) : null}
+                    {d?.overdue ? (
+                      <Badge variant={OVERDUE_LABEL.variant}>
+                        {OVERDUE_LABEL.label}
+                      </Badge>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>

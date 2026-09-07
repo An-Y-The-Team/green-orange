@@ -22,3 +22,22 @@ export const businessDateString = (at: Date = new Date()): string =>
 /** Today's business date as a Date pinned to UTC midnight — for @db.Date writes. */
 export const businessToday = (at: Date = new Date()): Date =>
   new Date(`${businessDateString(at)}T00:00:00.000Z`);
+
+// Vietnam has no DST, so the business day is exactly [+07:00 midnight, +1 day).
+const BUSINESS_UTC_OFFSET = "+07:00";
+
+/**
+ * Half-open range covering one business calendar day, for filtering a TIMESTAMP
+ * column (`appointment_at`) by a local date.
+ *
+ * A `startsWith`/UTC-slice comparison is the bug this exists to prevent: an
+ * appointment at 06:30 ICT is stored `…T23:30:00Z` on the PREVIOUS UTC day, so
+ * comparing UTC prefixes drops it from "today" all day. The web app already has
+ * `localDateOf` for the read side; this is the query side.
+ */
+export const businessDayRange = (
+  dateString: string
+): { gte: Date; lt: Date } => {
+  const gte = new Date(`${dateString}T00:00:00.000${BUSINESS_UTC_OFFSET}`);
+  return { gte, lt: new Date(gte.getTime() + 24 * 60 * 60 * 1000) };
+};

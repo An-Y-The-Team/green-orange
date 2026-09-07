@@ -1,7 +1,12 @@
 import { apiFetch } from "@/utils/http/http";
 
 import type { BillStatus, MilestoneStatus } from "./enums";
-import type { Bill, PaymentMilestone, Settlement } from "./types";
+import type {
+  Bill,
+  PaymentMilestone,
+  ReceivablesSummary,
+  Settlement,
+} from "./types";
 
 // Money reads use apiFetch, not apiFetchSafe: a timed-out GET /settlements
 // degraded to `[]` reads as "chưa có quyết toán" on the very screens that decide
@@ -44,6 +49,19 @@ export async function listPaymentMilestones({
 } = {}): Promise<PaymentMilestone[]> {
   return apiFetch<PaymentMilestone[]>(
     `/payment-milestones${listQuery({ status, limit, overdue })}`
+  );
+}
+
+/**
+ * Money totals across every page — the aggregate the dashboard's missing
+ * "Tổng công nợ" was waiting for. `apiFetch`, not `apiFetchSafe`: a degraded
+ * total is a wrong number presented as fact, which is worse than an error page.
+ */
+export async function getReceivablesSummary(
+  projectId?: number
+): Promise<ReceivablesSummary> {
+  return apiFetch<ReceivablesSummary>(
+    `/receivables/summary${projectId ? `?project_id=${projectId}` : ""}`
   );
 }
 

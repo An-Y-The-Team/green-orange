@@ -67,3 +67,25 @@ export interface PaymentMilestone {
   paid_date?: string | null;
   project?: ProjectRef; // include on the LIST path only — see ProjectRef
 }
+
+/** One bucket of `GET /receivables/summary`. `total` is VND, already a number. */
+export interface MoneyBucket {
+  count: number;
+  total: number;
+}
+
+/**
+ * Totals over the WHOLE collection, not one page — `GET /receivables/summary`.
+ *
+ * The dashboard deliberately printed no "Tổng công nợ" before this existed: a
+ * sum over one 100-row page understates the debt and looks authoritative doing
+ * it. Every status is present, so an empty bucket is a real zero.
+ */
+export interface ReceivablesSummary {
+  milestones: {
+    by_status: Record<MilestoneStatus, MoneyBucket>;
+    /** Derived server-side: due_date < today AND status != paid. */
+    overdue: MoneyBucket;
+  };
+  bills: { by_status: Record<BillStatus, MoneyBucket> };
+}
