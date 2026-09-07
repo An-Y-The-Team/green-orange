@@ -16,6 +16,7 @@ import {
   FieldLabel,
   SELECT_CLASS,
   fieldError,
+  fieldProps,
 } from "@/components/form-bits/form-bits";
 import {
   ACTIONS,
@@ -80,12 +81,12 @@ export function ClientForm() {
               {FIELDS.clientName}
             </FieldLabel>
             <Input
-              id="name"
+              {...fieldProps("name", form.formState.errors.name)}
               placeholder={PLACEHOLDERS.companyName}
               aria-required
               {...form.register("name")}
             />
-            {fieldError(form.formState.errors.name)}
+            {fieldError(form.formState.errors.name, "name")}
           </div>
 
           <div className="space-y-1.5">
@@ -107,29 +108,33 @@ export function ClientForm() {
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
             <Input
-              id="email"
+              {...fieldProps("email", form.formState.errors.email)}
               type="email"
               placeholder="ketoan@congty.com"
               {...form.register("email")}
             />
-            {fieldError(form.formState.errors.email)}
+            {fieldError(form.formState.errors.email, "email")}
           </div>
 
           {/* Shown for both types: a company's registered address is Bên A's
               address on its contracts. Only individuals must fill it (it also
               seeds their default location) — see createClientSchema. */}
           <div className="space-y-1.5">
-            <Label htmlFor="address">
+            <FieldLabel
+              htmlFor="address"
+              required={type === ClientType.INDIVIDUAL}
+            >
               {type === ClientType.INDIVIDUAL
                 ? FIELDS.address
                 : FIELDS.registeredAddress}
-            </Label>
+            </FieldLabel>
             <Input
-              id="address"
+              {...fieldProps("address", form.formState.errors.address)}
               placeholder={PLACEHOLDERS.address}
+              aria-required={type === ClientType.INDIVIDUAL || undefined}
               {...form.register("address")}
             />
-            {fieldError(form.formState.errors.address)}
+            {fieldError(form.formState.errors.address, "address")}
           </div>
         </CardContent>
       </Card>

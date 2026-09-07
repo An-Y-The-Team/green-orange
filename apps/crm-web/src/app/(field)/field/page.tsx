@@ -53,9 +53,13 @@ export default async function FieldPage() {
 
   return (
     <div className="space-y-4">
+      {/* The screen's name, for a screen reader and for the document outline —
+          on a 390px phone UI there is no room to print it, and the four cards
+          below are its sections. */}
+      <h1 className="sr-only">Chế độ hiện trường</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Hôm nay</CardTitle>
+          <CardTitle as="h2">Hôm nay</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {todayAppointments.length === 0 ? (
@@ -70,7 +74,7 @@ export default async function FieldPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tiếp nhận yêu cầu</CardTitle>
+          <CardTitle as="h2">Tiếp nhận yêu cầu</CardTitle>
         </CardHeader>
         <CardContent>
           <Button
@@ -83,7 +87,7 @@ export default async function FieldPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Chờ quyết định</CardTitle>
+          <CardTitle as="h2">Chờ quyết định</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {waitingQuotes.length === 0 ? (
@@ -105,7 +109,7 @@ export default async function FieldPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Đang thi công / nghiệm thu</CardTitle>
+          <CardTitle as="h2">Đang thi công / nghiệm thu</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {onSite.length === 0 ? (

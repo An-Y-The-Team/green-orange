@@ -46,7 +46,33 @@ export function FieldLabel({
   );
 }
 
-export function fieldError(error?: FieldError) {
+/**
+ * The `id` / `aria-invalid` / `aria-describedby` trio a control needs so its
+ * label and its error message are actually attached to it.
+ *
+ * Errors used to render as a bare `<p className="text-xs text-destructive">`:
+ * visible, and announced to nobody. A screen-reader user tabbing into an
+ * invalid field heard the label and nothing else — no "invalid", no reason —
+ * while the sighted user two inches away read "Nhập tên khách hàng".
+ *
+ * Mirrors what `FormControl` does automatically in a form built on
+ * `FormField`/`FormItem` (`@yan/ui/components/form`); this is the manual half
+ * for the forms that are not.
+ */
+export function fieldProps(id: string, error?: FieldError) {
+  return {
+    id,
+    "aria-invalid": error ? true : undefined,
+    "aria-describedby": error ? `${id}-error` : undefined,
+  };
+}
+
+/** The message half of {@link fieldProps} — same `id`, so the two connect. */
+export function fieldError(error?: FieldError, id?: string) {
   if (!error?.message) return null;
-  return <p className="text-xs text-destructive">{error.message}</p>;
+  return (
+    <p id={id ? `${id}-error` : undefined} className="text-xs text-destructive">
+      {error.message}
+    </p>
+  );
 }

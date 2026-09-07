@@ -58,7 +58,7 @@ export function TemplateBlock({
     <LexicalComposer initialConfig={initialConfig}>
       <section className="space-y-1.5">
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {label}
           </p>
           {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
@@ -87,11 +87,11 @@ export function TemplateBlock({
             contentEditable={
               <ContentEditable
                 aria-label={label}
-                className="min-h-[4.5rem] text-xs leading-relaxed text-zinc-900 outline-none"
+                className="min-h-[4.5rem] rounded-sm text-xs leading-relaxed text-zinc-900 outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
               />
             }
             placeholder={
-              <div className="pointer-events-none absolute left-3 top-3 text-xs text-zinc-400">
+              <div className="pointer-events-none absolute left-3 top-3 text-xs text-zinc-500">
                 Soạn nội dung…
               </div>
             }

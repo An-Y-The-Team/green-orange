@@ -85,11 +85,12 @@ export function FinishConfirm({ project }: { project: Project }) {
   return (
     <section className="space-y-3">
       <div className="space-y-1.5">
-        <Label className="text-muted-foreground">
+        <Label htmlFor="works-done-photo" className="text-muted-foreground">
           Ảnh hoàn công (tùy chọn)
         </Label>
         <div className="flex flex-wrap items-center gap-2">
           <Input
+            id="works-done-photo"
             value={filename}
             placeholder="Tên tệp ảnh…"
             className="h-8 w-48"

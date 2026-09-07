@@ -81,8 +81,16 @@ export function SendQuoteDialog({
 
         <div className="space-y-3">
           <div className="space-y-2">
-            <Label>Kênh gửi</Label>
-            <div className="flex flex-wrap gap-3">
+            {/* A checkbox set, so the heading labels a *group*, not a control
+                — each checkbox is already wrapped by its own <label>. */}
+            <span className="flex items-center gap-2 text-sm font-medium leading-none">
+              Kênh gửi
+            </span>
+            <div
+              role="group"
+              aria-label="Kênh gửi"
+              className="flex flex-wrap gap-3"
+            >
               {CHANNELS.map((c) => (
                 <label key={c} className="flex items-center gap-1.5 text-sm">
                   <input

@@ -63,7 +63,7 @@ function EditableSignatureBlocks({
 }) {
   const company = useCompany();
   const line =
-    "w-full bg-transparent text-center outline-none placeholder:italic placeholder:text-zinc-300";
+    "w-full rounded-sm bg-transparent text-center outline-none placeholder:italic placeholder:text-zinc-500 focus-visible:ring-2 focus-visible:ring-zinc-500";
   const columns = [
     {
       key: "a",

@@ -106,14 +106,15 @@ function inline(children: LexNode[] | undefined, ctx: MergeContext): ReactNode {
   return children.map((child, i) => {
     if (child.type === "linebreak") return <br key={i} />;
     if (child.type === "link") {
-      return (
-        <a
-          key={i}
-          href={typeof child.url === "string" ? child.url : undefined}
-          className="text-emerald-700 underline"
-        >
+      // A link node with no url rendered as a bare <a>: styled like a link,
+      // reachable by nobody. Keep the text, drop the false affordance.
+      const url = typeof child.url === "string" ? child.url : null;
+      return url ? (
+        <a key={i} href={url} className="text-emerald-700 underline">
           {inline(child.children, ctx)}
         </a>
+      ) : (
+        <Fragment key={i}>{inline(child.children, ctx)}</Fragment>
       );
     }
     return inlineText(child, ctx, i);
@@ -124,7 +125,7 @@ function inline(children: LexNode[] | undefined, ctx: MergeContext): ReactNode {
 function LineItemsTable({ data }: { data: LineItemsData | null | undefined }) {
   if (!data || data.items.length === 0) {
     return (
-      <p className="my-2 rounded border border-dashed border-zinc-300 px-3 py-2 text-xs italic text-zinc-400">
+      <p className="my-2 rounded border border-dashed border-zinc-400 px-3 py-2 text-xs italic text-zinc-500">
         (Bảng báo giá — chưa có báo giá liên kết)
       </p>
     );
@@ -335,7 +336,7 @@ export function LexicalDocument({
 
   if (!root?.children?.length) {
     return (
-      <p className="mt-3 text-xs italic text-zinc-400">(Chưa có nội dung)</p>
+      <p className="mt-3 text-xs italic text-zinc-500">(Chưa có nội dung)</p>
     );
   }
 

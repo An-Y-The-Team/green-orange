@@ -30,7 +30,9 @@ export default async function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-lg">Yan CRM</CardTitle>
+          <CardTitle as="h1" className="text-lg">
+            Yan CRM
+          </CardTitle>
           <CardDescription>
             Đăng nhập bằng tài khoản Authentik để tiếp tục.
           </CardDescription>

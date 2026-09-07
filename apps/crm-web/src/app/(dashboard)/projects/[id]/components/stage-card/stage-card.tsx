@@ -36,7 +36,10 @@ export function StageCard({
   return (
     <Card id={`stage-${project.stage}`} className="mb-6 scroll-mt-4">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between text-sm uppercase tracking-wide text-muted-foreground">
+        <CardTitle
+          as="h2"
+          className="flex items-center justify-between text-sm uppercase tracking-wide text-muted-foreground"
+        >
           <span>
             Giai đoạn {PROJECT_STAGE_ORDER.indexOf(project.stage) + 1} ·{" "}
             {labelOf(PROJECT_STAGES, project.stage).label}

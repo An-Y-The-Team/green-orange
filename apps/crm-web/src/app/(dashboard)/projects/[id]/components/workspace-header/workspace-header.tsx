@@ -23,6 +23,7 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
+import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import {
   ACTIONS,
   FIELDS,
@@ -158,7 +159,7 @@ export function WorkspaceHeader({
           <Label htmlFor="working-contact">{FIELDS.contactPerson}</Label>
           <select
             id="working-contact"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            className={SELECT_CLASS}
             value={draft.working_contact_id}
             onChange={(e) =>
               setDraft({ ...draft, working_contact_id: Number(e.target.value) })
@@ -175,7 +176,7 @@ export function WorkspaceHeader({
           <Label htmlFor="decision-maker">Người quyết định</Label>
           <select
             id="decision-maker"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            className={SELECT_CLASS}
             value={draft.decision_maker_contact_id}
             onChange={(e) =>
               setDraft({

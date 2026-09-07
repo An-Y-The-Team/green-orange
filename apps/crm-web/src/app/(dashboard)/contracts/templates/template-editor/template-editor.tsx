@@ -165,7 +165,7 @@ export function TemplateEditor({ template }: { template?: ContractTemplate }) {
             setDocTitle(e.target.value);
             scheduleSave({ doc_title: e.target.value });
           }}
-          className="w-full bg-transparent text-center font-heading text-xl font-bold uppercase tracking-wide outline-none placeholder:text-zinc-300"
+          className="w-full rounded-sm bg-transparent text-center font-heading text-xl font-bold uppercase tracking-wide outline-none placeholder:text-zinc-500 focus-visible:ring-2 focus-visible:ring-zinc-500"
         />
       }
       headerBlocks={{ letterhead: showLetterhead, national: showNational }}

@@ -28,7 +28,7 @@ import { readLogoFile } from "./read-logo-file";
 
 /** Bordered input for the labelled data fields. */
 const FIELD =
-  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 /**
  * The company fields, grouped as they are presented. Each one is a merge token
@@ -227,7 +227,7 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
 
           {/* Logo — not part of the rich text; it prints beside the letterhead. */}
           <section className="space-y-1.5">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Logo
             </p>
             <div className="flex items-center gap-3">
@@ -241,9 +241,7 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
                     className="h-full w-full object-contain"
                   />
                 ) : (
-                  <span className="text-[10px] text-muted-foreground">
-                    Chưa có logo
-                  </span>
+                  <span className="text-xs text-zinc-500">Chưa có logo</span>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2">

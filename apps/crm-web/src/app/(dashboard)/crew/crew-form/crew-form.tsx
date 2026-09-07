@@ -10,7 +10,6 @@ import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
-import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
 import { CancelButton } from "@/components/cancel-button/cancel-button";
@@ -18,6 +17,7 @@ import {
   FieldLabel,
   SELECT_CLASS,
   fieldError,
+  fieldProps,
 } from "@/components/form-bits/form-bits";
 import {
   ACTIONS,
@@ -104,27 +104,30 @@ export function CrewForm({
               {FIELDS.fullName}
             </FieldLabel>
             <Input
-              id="crew-name"
+              {...fieldProps("crew-name", errors.name)}
               aria-required
               placeholder={PLACEHOLDERS.personName}
               {...form.register("name")}
             />
-            {fieldError(errors.name)}
+            {fieldError(errors.name, "crew-name")}
           </div>
 
           <div className="space-y-1">
             <FieldLabel htmlFor="crew-phone">{FIELDS.phone}</FieldLabel>
             <Input
-              id="crew-phone"
+              {...fieldProps("crew-phone", errors.phone)}
               placeholder="0901 234 567"
               {...form.register("phone")}
             />
-            {fieldError(errors.phone)}
+            {fieldError(errors.phone, "crew-phone")}
           </div>
 
           <div className="space-y-1">
-            <Label>{FIELDS.employmentType}</Label>
+            <FieldLabel htmlFor="crew-employment-type">
+              {FIELDS.employmentType}
+            </FieldLabel>
             <select
+              id="crew-employment-type"
               className={SELECT_CLASS}
               {...form.register("employment_type")}
             >
@@ -137,8 +140,11 @@ export function CrewForm({
           </div>
 
           <div className="space-y-1">
-            <Label>{FIELDS.defaultRole}</Label>
+            <FieldLabel htmlFor="crew-default-role">
+              {FIELDS.defaultRole}
+            </FieldLabel>
             <select
+              id="crew-default-role"
               className={SELECT_CLASS}
               {...form.register("default_role_id", {
                 setValueAs: (v) =>
@@ -155,8 +161,12 @@ export function CrewForm({
           </div>
 
           <div className="space-y-1">
-            <Label>{FIELDS.status}</Label>
-            <select className={SELECT_CLASS} {...form.register("status")}>
+            <FieldLabel htmlFor="crew-status">{FIELDS.status}</FieldLabel>
+            <select
+              id="crew-status"
+              className={SELECT_CLASS}
+              {...form.register("status")}
+            >
               {Object.values(CrewMemberStatus).map((s) => (
                 <option key={s} value={s}>
                   {labelOf(CREW_MEMBER_STATUSES, s).label}
@@ -166,8 +176,9 @@ export function CrewForm({
           </div>
 
           <div className="space-y-1">
-            <Label>{FIELDS.note}</Label>
+            <FieldLabel htmlFor="crew-note">{FIELDS.note}</FieldLabel>
             <Textarea
+              id="crew-note"
               rows={3}
               placeholder="Ghi chú nội bộ…"
               {...form.register("note")}

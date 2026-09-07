@@ -91,6 +91,8 @@ export function PageEditor({
 
       <div className="mt-4 rounded-lg bg-muted px-2 py-8 sm:px-8">
         <DocumentShell
+          // The editor page owns the h1; the sheet's title is a section of it.
+          titleAs="h2"
           title={title}
           subtitle={subtitle}
           headerBlocks={headerBlocks}
@@ -100,11 +102,11 @@ export function PageEditor({
               contentEditable={
                 <ContentEditable
                   aria-label="Nội dung tài liệu"
-                  className="min-h-[8rem] text-xs leading-relaxed text-zinc-700 outline-none"
+                  className="min-h-[8rem] rounded-sm text-xs leading-relaxed text-zinc-700 outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
                 />
               }
               placeholder={
-                <div className="pointer-events-none absolute left-0 top-0 text-xs text-zinc-400">
+                <div className="pointer-events-none absolute left-0 top-0 text-xs text-zinc-500">
                   Soạn nội dung tài liệu…
                 </div>
               }

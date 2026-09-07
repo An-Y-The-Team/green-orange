@@ -160,6 +160,9 @@ export function ProjectTypesManager({
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   className="max-w-xs"
+                  // Focus follows the reveal — this replaces the row the user just
+                  // clicked "sửa" on.
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
                   autoFocus
                 />
                 <Button

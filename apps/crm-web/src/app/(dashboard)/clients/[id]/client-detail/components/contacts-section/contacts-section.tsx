@@ -99,7 +99,7 @@ export function ContactsSection({
     <Card className="gap-3">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">
+          <CardTitle as="h2" className="text-base">
             Liên hệ ({contacts.length})
           </CardTitle>
           {list.mode !== ADD_MODE ? (

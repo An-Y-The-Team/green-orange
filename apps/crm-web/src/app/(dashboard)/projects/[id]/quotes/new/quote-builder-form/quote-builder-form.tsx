@@ -273,7 +273,7 @@ export function QuoteBuilderForm({
                             <Input
                               value={group.category}
                               placeholder="Tên hạng mục (để trống nếu không chia nhóm)"
-                              className="font-medium"
+                              className="font-medium placeholder:text-foreground/60"
                               aria-label="Tên hạng mục"
                               onChange={(e) =>
                                 renameGroup(group, e.target.value)
@@ -303,6 +303,12 @@ export function QuoteBuilderForm({
                           <TableRow key={field?.id ?? i}>
                             <TableCell>
                               <Input
+                                aria-label={`${LINE_ITEM_COLUMNS.description} — dòng ${i + 1}`}
+                                aria-invalid={
+                                  formState.errors.items?.[i]?.description
+                                    ? true
+                                    : undefined
+                                }
                                 placeholder="Kính mặt ngoài"
                                 {...register(`items.${i}.description`)}
                               />
@@ -312,12 +318,14 @@ export function QuoteBuilderForm({
                             </TableCell>
                             <TableCell>
                               <Input
+                                aria-label={`${LINE_ITEM_COLUMNS.unitShort} — dòng ${i + 1}`}
                                 placeholder="m²"
                                 {...register(`items.${i}.unit`)}
                               />
                             </TableCell>
                             <TableCell>
                               <Input
+                                aria-label={`${LINE_ITEM_COLUMNS.quantityShort} — dòng ${i + 1}`}
                                 type="number"
                                 min={0}
                                 step="any"
@@ -332,6 +340,7 @@ export function QuoteBuilderForm({
                                 name={`items.${i}.unit_price`}
                                 render={({ field }) => (
                                   <MoneyInput
+                                    aria-label={`${LINE_ITEM_COLUMNS.unitPrice} — dòng ${i + 1}`}
                                     value={field.value}
                                     // Empty box = 0 đồng, matching BLANK_ROW, so the
                                     // live total never reads NaN.
@@ -351,7 +360,7 @@ export function QuoteBuilderForm({
                                 size="icon"
                                 disabled={fields.length === 1}
                                 onClick={() => remove(i)}
-                                aria-label={ACTIONS.deleteRow}
+                                aria-label={`${ACTIONS.deleteRow} ${i + 1}`}
                               >
                                 <Trash2 className="size-4" />
                               </Button>

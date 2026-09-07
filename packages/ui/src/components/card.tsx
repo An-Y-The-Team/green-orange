@@ -25,9 +25,20 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+/**
+ * A card's title. Renders a `div` by default and *should* stay one for a card
+ * that is a widget rather than a document section — but a card whose title is
+ * the page's or the section's real heading needs to say so: it looked like a
+ * heading and wasn't, so `/crew/[id]` and `/clients/[id]` shipped with no `h1`
+ * at all and the project workspace's outline skipped a level.
+ */
+function CardTitle({
+  className,
+  as: Tag = "div",
+  ...props
+}: React.ComponentProps<"div"> & { as?: "div" | "h1" | "h2" | "h3" }) {
   return (
-    <div
+    <Tag
       data-slot="card-title"
       className={cn("text-sm font-medium leading-none", className)}
       {...props}

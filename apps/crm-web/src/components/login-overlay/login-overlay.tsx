@@ -88,6 +88,8 @@ export function LoginOverlay({ expired }: { expired?: boolean }) {
                 <FormItem>
                   <FormLabel>Tên đăng nhập</FormLabel>
                   <FormControl>
+                    {/* The first field of the only thing on the screen. */}
+                    {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
                     <Input autoComplete="username" autoFocus {...field} />
                   </FormControl>
                   <FormMessage />

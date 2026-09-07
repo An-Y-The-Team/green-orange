@@ -94,40 +94,60 @@ export function StageStepper({ project }: { project: Project }) {
         {forwardButton}
       </div>
 
-      {/* Full pipeline line at md+. */}
-      <div className="hidden flex-wrap items-center gap-x-2 gap-y-3 md:flex">
-        {PROJECT_STAGE_ORDER?.map((stage, i) => {
-          const done = i < currentIndex;
-          const current = i === currentIndex;
-          return (
-            <div key={stage} className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
-                  done && "bg-primary text-primary-foreground",
-                  current &&
-                    "bg-primary text-primary-foreground ring-2 ring-primary/30",
-                  !done && !current && "bg-muted text-muted-foreground"
-                )}
+      {/* Full pipeline line at md+. An ordered list, because that is what it
+          is: the app's primary orientation widget used to be div/span with no
+          list semantics and no aria-current, so a screen reader heard eight
+          unrelated labels and no indication of where the job stood. */}
+      <div className="hidden items-start gap-3 md:flex">
+        <ol className="flex flex-wrap items-center gap-x-2 gap-y-3">
+          {PROJECT_STAGE_ORDER?.map((stage, i) => {
+            const done = i < currentIndex;
+            const current = i === currentIndex;
+            return (
+              <li
+                key={stage}
+                aria-current={current ? "step" : undefined}
+                className="flex items-center gap-2"
               >
-                {done ? <Check className="size-3.5" /> : i + 1}
-              </span>
-              <span
-                className={cn(
-                  "text-xs whitespace-nowrap",
-                  current
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground"
+                <span
+                  className={cn(
+                    "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                    done && "bg-primary text-primary-foreground",
+                    current &&
+                      "bg-primary text-primary-foreground ring-2 ring-primary/30",
+                    !done && !current && "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {done ? <Check className="size-3.5" /> : i + 1}
+                </span>
+                <span
+                  className={cn(
+                    "text-xs whitespace-nowrap",
+                    // Underline as well as weight: done and current were both
+                    // solid black dots, so at a glance you could not tell which
+                    // stage the job was actually in (WCAG 1.4.1).
+                    current
+                      ? "font-semibold text-foreground underline decoration-2 underline-offset-4"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {labelOf(PROJECT_STAGES, stage).label}
+                </span>
+                {/* The state the colour carries, said out loud. */}
+                <span className="sr-only">
+                  {done
+                    ? "đã xong"
+                    : current
+                      ? "giai đoạn hiện tại"
+                      : "chưa tới"}
+                </span>
+                {i < PROJECT_STAGE_ORDER.length - 1 && (
+                  <span className="mx-0.5 h-px w-4 bg-border" aria-hidden />
                 )}
-              >
-                {labelOf(PROJECT_STAGES, stage).label}
-              </span>
-              {i < PROJECT_STAGE_ORDER.length - 1 && (
-                <span className="mx-0.5 h-px w-4 bg-border" aria-hidden />
-              )}
-            </div>
-          );
-        })}
+              </li>
+            );
+          })}
+        </ol>
         {/* The two actions share a wrapper so a wrapping rail can't leave them
             sitting beside step 8, reading as that step's own buttons. */}
         {backButton || forwardButton ? (

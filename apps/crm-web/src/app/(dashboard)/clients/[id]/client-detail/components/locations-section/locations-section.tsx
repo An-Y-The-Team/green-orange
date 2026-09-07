@@ -109,7 +109,9 @@ export function LocationsSection({
     <Card className="gap-3">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Địa điểm ({items.length})</CardTitle>
+          <CardTitle as="h2" className="text-base">
+            Địa điểm ({items.length})
+          </CardTitle>
           {list.mode !== ADD_MODE ? (
             <Button size="sm" variant="ghost" onClick={list.startAdd}>
               <Plus className="size-4" />

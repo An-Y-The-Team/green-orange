@@ -173,6 +173,12 @@ export function SettlementBuilderForm({
                   <TableRow key={field.id}>
                     <TableCell>
                       <Input
+                        aria-label={`${LINE_ITEM_COLUMNS.item} — dòng ${i + 1}`}
+                        aria-invalid={
+                          formState.errors.items?.[i]?.description
+                            ? true
+                            : undefined
+                        }
                         placeholder="Vệ sinh sau xây dựng"
                         {...register(`items.${i}.description`)}
                       />
@@ -180,12 +186,14 @@ export function SettlementBuilderForm({
                     </TableCell>
                     <TableCell>
                       <Input
+                        aria-label={`${LINE_ITEM_COLUMNS.unitShort} — dòng ${i + 1}`}
                         placeholder="m²"
                         {...register(`items.${i}.unit`)}
                       />
                     </TableCell>
                     <TableCell>
                       <Input
+                        aria-label={`${LINE_ITEM_COLUMNS.quantity} — dòng ${i + 1}`}
                         type="number"
                         min={0}
                         step="any"
@@ -200,6 +208,7 @@ export function SettlementBuilderForm({
                         name={`items.${i}.unit_price`}
                         render={({ field }) => (
                           <MoneyInput
+                            aria-label={`${LINE_ITEM_COLUMNS.unitPrice} — dòng ${i + 1}`}
                             value={field.value}
                             // Empty box = 0 đồng, matching BLANK_ROW, so the
                             // live total never reads NaN.
@@ -219,7 +228,7 @@ export function SettlementBuilderForm({
                         size="icon"
                         disabled={fields.length === 1}
                         onClick={() => remove(i)}
-                        aria-label={ACTIONS.deleteRow}
+                        aria-label={`${ACTIONS.deleteRow} ${i + 1}`}
                       >
                         <Trash2 className="size-4" />
                       </Button>

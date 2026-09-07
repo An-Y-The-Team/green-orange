@@ -23,6 +23,7 @@ import { companyContext } from "@/utils/merge-template/merge-template";
  */
 export function DocumentShell({
   title,
+  titleAs: TitleTag = "h1",
   subtitle,
   actions,
   headerBlocks = DEFAULT_HEADER_BLOCKS,
@@ -30,6 +31,12 @@ export function DocumentShell({
 }: {
   /** Usually a string; the template editor passes an inline title input. */
   title: React.ReactNode;
+  /**
+   * `h1` on a page that *is* the document (the print routes, the contract and
+   * báo giá views). `h2` when the sheet is a preview inside an editor page that
+   * already has its own `h1` — two `h1`s is no outline at all.
+   */
+  titleAs?: "h1" | "h2";
   subtitle?: string;
   /** Optional extra controls (e.g. "Xuất .docx") shown beside the print button. */
   actions?: React.ReactNode;
@@ -86,9 +93,9 @@ export function DocumentShell({
 
         {/* Document title */}
         <div className="py-6 text-center">
-          <h1 className="font-heading text-xl font-bold uppercase tracking-wide">
+          <TitleTag className="font-heading text-xl font-bold uppercase tracking-wide">
             {title}
-          </h1>
+          </TitleTag>
           {subtitle && <p className="mt-1 text-xs text-zinc-600">{subtitle}</p>}
         </div>
 

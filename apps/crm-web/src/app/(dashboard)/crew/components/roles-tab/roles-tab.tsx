@@ -177,6 +177,7 @@ function RoleRow({
       {editing ? (
         <>
           <Input
+            aria-label={`Tên vai trò ${role.name}`}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={handleNameKeyDown}
@@ -185,24 +186,36 @@ function RoleRow({
           <Button
             size="icon"
             variant="ghost"
+            aria-label={`Lưu tên vai trò ${role.name}`}
             disabled={renamePending || !name.trim()}
             onClick={save}
           >
             <Check className="size-4" />
           </Button>
-          <Button size="icon" variant="ghost" onClick={cancelEdit}>
+          <Button
+            size="icon"
+            variant="ghost"
+            aria-label={`Hủy sửa vai trò ${role.name}`}
+            onClick={cancelEdit}
+          >
             <X className="size-4" />
           </Button>
         </>
       ) : (
         <>
           <span className="flex-1 text-sm">{role.name}</span>
-          <Button size="icon" variant="ghost" onClick={() => setEditing(true)}>
+          <Button
+            size="icon"
+            variant="ghost"
+            aria-label={`Sửa vai trò ${role.name}`}
+            onClick={() => setEditing(true)}
+          >
             <Pencil className="size-4" />
           </Button>
           <Button
             size="icon"
             variant="ghost"
+            aria-label={`Xóa vai trò ${role.name}`}
             disabled={deletePending}
             onClick={() => startDelete(() => deleteAction())}
           >

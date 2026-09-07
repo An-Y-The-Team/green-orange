@@ -13,6 +13,7 @@ import {
   FieldLabel,
   SELECT_CLASS,
   fieldError,
+  fieldProps,
 } from "@/components/form-bits/form-bits";
 import {
   ACTIONS,
@@ -187,12 +188,12 @@ export function QuickCreateClient({
           {FIELDS.clientName}
         </FieldLabel>
         <Input
-          id="qc-name"
+          {...fieldProps("qc-name", form.formState.errors.name)}
           aria-required
           placeholder={PLACEHOLDERS.companyName}
           {...form.register("name")}
         />
-        {fieldError(form.formState.errors.name)}
+        {fieldError(form.formState.errors.name, "qc-name")}
       </div>
       <div className="space-y-1">
         <FieldLabel htmlFor="qc-type">{FIELDS.clientType}</FieldLabel>
@@ -215,12 +216,12 @@ export function QuickCreateClient({
             {FIELDS.address}
           </FieldLabel>
           <Input
-            id="qc-address"
+            {...fieldProps("qc-address", form.formState.errors.address)}
             aria-required
             placeholder={PLACEHOLDERS.address}
             {...form.register("address")}
           />
-          {fieldError(form.formState.errors.address)}
+          {fieldError(form.formState.errors.address, "qc-address")}
         </div>
       ) : (
         <>
@@ -229,47 +230,68 @@ export function QuickCreateClient({
               {FIELDS.contactPerson}
             </FieldLabel>
             <Input
-              id="qc-contact-name"
+              {...fieldProps(
+                "qc-contact-name",
+                form.formState.errors.contact_name
+              )}
               aria-required
               placeholder={PLACEHOLDERS.personName}
               {...form.register("contact_name")}
             />
-            {fieldError(form.formState.errors.contact_name)}
+            {fieldError(form.formState.errors.contact_name, "qc-contact-name")}
           </div>
           <div className="space-y-1">
             <FieldLabel htmlFor="qc-contact-phone">
               Số điện thoại liên hệ
             </FieldLabel>
             <Input
-              id="qc-contact-phone"
+              {...fieldProps(
+                "qc-contact-phone",
+                form.formState.errors.contact_phone
+              )}
               placeholder="0901234567"
               {...form.register("contact_phone")}
             />
-            {fieldError(form.formState.errors.contact_phone)}
+            {fieldError(
+              form.formState.errors.contact_phone,
+              "qc-contact-phone"
+            )}
           </div>
           <div className="space-y-1">
             <FieldLabel htmlFor="qc-location-name" required>
               Tên địa điểm/Toà nhà
             </FieldLabel>
             <Input
-              id="qc-location-name"
+              {...fieldProps(
+                "qc-location-name",
+                form.formState.errors.location_name
+              )}
               aria-required
               placeholder="Trụ sở chính"
               {...form.register("location_name")}
             />
-            {fieldError(form.formState.errors.location_name)}
+            {fieldError(
+              form.formState.errors.location_name,
+              "qc-location-name"
+            )}
           </div>
           <div className="space-y-1">
             <FieldLabel htmlFor="qc-location-address" required>
               {FIELDS.location}
             </FieldLabel>
             <Input
-              id="qc-location-address"
+              {...fieldProps(
+                "qc-location-address",
+                form.formState.errors.location_address
+              )}
               aria-required
               placeholder={PLACEHOLDERS.address}
               {...form.register("location_address")}
             />
-            {fieldError(form.formState.errors.location_address)}
+            {fieldError(
+              form.formState.errors.location_address,
+              "qc-location-address"
+            )}
           </div>
         </>
       )}

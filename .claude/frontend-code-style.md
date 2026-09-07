@@ -636,6 +636,67 @@ Note also that this project's shared UI is `@yan/ui/components/*`; there is no
 needed, build it on the already-installed `@base-ui/react/scroll-area` (the primitive the
 rest of `@yan/ui` uses) — do **not** add `@radix-ui/react-scroll-area`.
 
+### Accessibility, colour and type
+
+Every one of these rules exists because the codebase broke it, and nothing was
+watching. `eslint-plugin-jsx-a11y`'s recommended set is now enabled in
+`apps/crm-web/eslint.config.mjs` and `lint` runs at `--max-warnings 0`, so most
+of them now fail the build rather than the user — but the linter cannot see the
+last three.
+
+**Focus must always be visible.** Never write a bare `outline-none`; pair it with
+a `focus-visible` ring in the same class string. Four inputs had it bare,
+including both Lexical contract-body surfaces, so a keyboard user editing a
+contract could not tell which block they were in (WCAG 2.4.7). A popup container
+(`Combobox.Popup`, `Drawer.Popup`) is the exception — focus lives on the items
+inside it.
+
+**Every control needs an accessible name.** An icon-only button takes an
+`aria-label` that names the action *and its target* (`aria-label={`Xóa ${item.name}`}`),
+not just the verb — four buttons in a list of roles all reading "Xóa" is the same
+as none. An editable table cell takes one too (`` `${column} — dòng ${i + 1}` ``):
+a grid of unnamed inputs announces as a row of anonymous spinbuttons.
+
+**Labels must be associated, not merely adjacent.** `Label` renders a plain
+`<label>`, and a `<label>` that is a *sibling* of its input associates with
+nothing. Use `FormLabel` inside `FormItem`/`FormControl` (which wires
+`htmlFor`, `aria-describedby`, `aria-invalid` and `aria-required` for you), or
+`FieldLabel htmlFor` + `fieldProps(id, error)` from
+`components/form-bits/form-bits.tsx` in a form that isn't built on `Form*`.
+For a group of controls — toggle chips, a checkbox set — no `<label>` can
+associate: give the wrapper `role="group"` and an `aria-label`.
+
+**Mark required fields.** `<FormItem required>` or `<FieldLabel required>`. The
+asterisk is `aria-hidden`; the control carries `aria-required`.
+
+**Errors go through `FormMessage` (or `fieldError(error, id)`)**, never a bare
+`<p className="text-destructive">` — that is visible to sighted users and
+announced to nobody.
+
+**State is never carried by colour alone** (WCAG 1.4.1). A selected chip gets
+`aria-pressed`; a selected tab gets weight as well as hue; the stage stepper's
+current step gets an underline and an `sr-only` word, because "done" and
+"current" were both solid black dots.
+
+**Colour comes from the token layer.** No hex in TSX, and no raw Tailwind palette
+colours (`text-zinc-400`, `bg-emerald-50`) outside the one place the app leaves
+the theme: the always-paper-white `DocumentShell` / `.print-sheet` surface. Even
+there the value has to pass contrast — `text-zinc-400` on white is 2.6:1 and
+`placeholder:text-zinc-300` is 1.5:1; `zinc-500` (4.6:1) is the floor, `zinc-600`
+for anything small.
+
+**Type floor: `text-xs`.** `text-[10px]` is not a size this app has; it appeared
+five times and every one was a label or an error message.
+
+**One `<h1>` per page, and no skipped levels.** Use `PageHeader` for a list or
+form page; on a detail page whose title is an entity name, `<CardTitle as="h1">`.
+Sibling section cards under it are `as="h2"`. A page with no visible title still
+needs the heading — `<h1 className="sr-only">` (see `(field)/field/page.tsx`).
+
+**`autoFocus` is allowed only when focus follows a reveal** — an inline editor
+the user just clicked open, or the single field on a login screen. Disable the
+rule on the line with the reason, never in the config.
+
 ## Data Handling
 
 ### Date/Time

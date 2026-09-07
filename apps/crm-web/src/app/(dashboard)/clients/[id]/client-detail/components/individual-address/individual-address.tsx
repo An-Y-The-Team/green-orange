@@ -78,7 +78,9 @@ export function IndividualAddress({
     <Card className="gap-3">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{FIELDS.address}</CardTitle>
+          <CardTitle as="h2" className="text-base">
+            {FIELDS.address}
+          </CardTitle>
           {!editing ? (
             <Button size="sm" variant="ghost" onClick={startEdit}>
               <Pencil className="size-4" />

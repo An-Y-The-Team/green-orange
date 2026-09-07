@@ -96,7 +96,9 @@ export function ClientInfoCard({
               className="max-w-sm"
             />
           ) : (
-            <CardTitle className="text-lg">{info.name}</CardTitle>
+            <CardTitle as="h1" className="text-lg">
+              {info.name}
+            </CardTitle>
           )}
           <div className="flex items-center gap-2">
             <Badge variant={isCompany ? "secondary" : "outline"}>

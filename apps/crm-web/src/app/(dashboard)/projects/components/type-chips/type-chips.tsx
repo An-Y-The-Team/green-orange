@@ -13,7 +13,7 @@ import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { Input } from "@yan/ui/components/input";
 
-import { ACTIONS } from "@/constants/labels";
+import { ACTIONS, FIELDS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -94,12 +94,21 @@ export function TypeChips({
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    // The visible <Label> beside this is a sibling of a *group of buttons*, so
+    // it associates with nothing — the group names itself instead. And each
+    // chip is a toggle: without aria-pressed its selected state was carried by
+    // the button variant, i.e. by colour alone.
+    <div
+      role="group"
+      aria-label={FIELDS.projectType}
+      className="flex flex-wrap items-center gap-2"
+    >
       {all.map((t) => (
         <Button
           key={t.id}
           type="button"
           size="sm"
+          aria-pressed={selected.includes(t.id)}
           variant={selected.includes(t.id) ? "default" : "outline"}
           onClick={() => onToggle(t.id)}
         >
@@ -110,7 +119,11 @@ export function TypeChips({
       {adding ? (
         <>
           <Input
+            // Focus follows the reveal: this input only exists because the user
+            // clicked "Loại khác", and the next thing they do is type in it.
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
+            aria-label="Tên loại công trình mới"
             className="h-8 w-40"
             placeholder="Tên loại mới"
             value={name}

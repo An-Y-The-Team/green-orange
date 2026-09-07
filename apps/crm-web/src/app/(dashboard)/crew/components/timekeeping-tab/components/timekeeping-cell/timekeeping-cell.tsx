@@ -147,14 +147,14 @@ export function TimekeepingCell({
         </div>
 
         {error ? (
-          <span className="text-[10px] text-destructive">{error}</span>
+          <span className="text-xs text-destructive">{error}</span>
         ) : fromZalo ? (
           // Shown, not locked: the backend prefers a manual row for the same
           // member+day, so typing here is the documented way to correct a wrong
           // punch from the app — which the read-only cell made impossible.
           <Badge
             variant="secondary"
-            className="text-[10px]"
+            className="text-xs"
             title="Giờ từ ứng dụng Zalo — nhập tay để ghi đè"
           >
             {TIMEKEEPING_SOURCES[zalo.source] ?? zalo.source}

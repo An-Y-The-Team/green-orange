@@ -82,7 +82,9 @@ export default async function CrewDetailPage({
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <CardTitle className="text-lg">{member.name}</CardTitle>
+                <CardTitle as="h1" className="text-lg">
+                  {member.name}
+                </CardTitle>
                 <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
               </div>
               <MemberActions id={member.id} status={member.status} />
@@ -116,7 +118,9 @@ export default async function CrewDetailPage({
           ) : (
             <>
               <CardHeader>
-                <CardTitle className="text-base">Phân công</CardTitle>
+                <CardTitle as="h2" className="text-base">
+                  Phân công
+                </CardTitle>
               </CardHeader>
               <Table>
                 <TableHeader>
@@ -180,7 +184,7 @@ export default async function CrewDetailPage({
           ) : (
             <>
               <CardHeader>
-                <CardTitle className="text-base">
+                <CardTitle as="h2" className="text-base">
                   Chấm công · {TIMEKEEPING_WINDOW_DAYS} ngày gần nhất
                 </CardTitle>
               </CardHeader>

@@ -63,12 +63,26 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-dvh overflow-hidden print:block print:h-auto print:overflow-visible">
+      {/* Skip link — a keyboard user used to tab through nine sidebar links on
+          every single page load before reaching any content. Hidden until
+          focused, which is the whole point: it is the first tab stop. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-100 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:ring-3 focus:ring-ring/50 print:hidden"
+      >
+        Bỏ qua thanh điều hướng
+      </a>
       <div className="print:hidden">
         <AppSidebar footer={footer} />
       </div>
       <div className="flex flex-1 flex-col overflow-hidden print:overflow-visible">
         <AppTopbar footer={footer} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 print:overflow-visible print:p-0">
+        <main
+          id="main"
+          // Focusable only as a skip-link target, never a tab stop of its own.
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto p-4 md:p-6 outline-none print:overflow-visible print:p-0"
+        >
           {needsLogin || !company ? (
             <LoginOverlay expired={Boolean(session?.error)} />
           ) : (
