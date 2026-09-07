@@ -67,17 +67,27 @@ const useFormField = () => {
 
 type FormItemContextValue = {
   id: string;
+  /**
+   * Whether the field is required. Lives on the ITEM, not the label: the label
+   * renders the marker and the control needs `aria-required`, and the two are
+   * siblings — the item's context is the only thing they share.
+   */
+  required?: boolean;
 };
 
 const FormItemContext = React.createContext<FormItemContextValue>(
   {} as FormItemContextValue
 );
 
-function FormItem({ className, ...props }: React.ComponentProps<"div">) {
+function FormItem({
+  className,
+  required,
+  ...props
+}: React.ComponentProps<"div"> & { required?: boolean }) {
   const id = React.useId();
 
   return (
-    <FormItemContext.Provider value={{ id }}>
+    <FormItemContext.Provider value={{ id, required }}>
       <div
         data-slot="form-item"
         className={cn("grid gap-2", className)}
@@ -89,9 +99,10 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 
 function FormLabel({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof LabelPrimitive.Root>) {
-  const { error, formItemId } = useFormField();
+  const { error, formItemId, required } = useFormField();
 
   return (
     <Label
@@ -100,18 +111,31 @@ function FormLabel({
       className={cn("data-[error=true]:text-destructive", className)}
       htmlFor={formItemId}
       {...props}
-    />
+    >
+      {children}
+      {/* Nothing in the app marked a required field — the only marking was the
+          inverse, "(không bắt buộc)", in three places, so users discovered what
+          was required by submitting. The asterisk is aria-hidden because
+          `aria-required` on the control already says it to a screen reader;
+          announcing "sao" as well is noise. */}
+      {required ? (
+        <span aria-hidden className="text-destructive">
+          *
+        </span>
+      ) : null}
+    </Label>
   );
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
-  const { error, formItemId, formDescriptionId, formMessageId } =
+  const { error, formItemId, formDescriptionId, formMessageId, required } =
     useFormField();
 
   return (
     <Slot
       data-slot="form-control"
       id={formItemId}
+      aria-required={required || undefined}
       aria-describedby={
         !error
           ? `${formDescriptionId}`
