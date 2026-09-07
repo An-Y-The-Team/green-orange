@@ -11,7 +11,12 @@ import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
-import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
+import { CancelButton } from "@/components/cancel-button/cancel-button";
+import {
+  FieldLabel,
+  SELECT_CLASS,
+  fieldError,
+} from "@/components/form-bits/form-bits";
 import {
   ACTIONS,
   CLIENT_TYPES,
@@ -22,6 +27,8 @@ import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
+import { useUnsavedGuard } from "@/hooks/use-unsaved-guard/use-unsaved-guard";
+import { applyFieldErrors } from "@/utils/apply-field-errors/apply-field-errors";
 
 import { createClient } from "../../actions/create-client";
 import { ClientType } from "../../enums";
@@ -41,7 +48,7 @@ export function ClientForm() {
 
   const form = useForm<CreateClientFormValues>({
     resolver: zodResolver(createClientSchema),
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: {
       name: "",
       type: ClientType.COMPANY,
@@ -53,8 +60,13 @@ export function ClientForm() {
 
   useServerAction(state, isPending, {
     ...ACTION_TOAST_TITLES,
+    // A rejection used to highlight nothing: the server's fieldErrors were
+    // flattened into the toast description and the fields stayed clean.
+    onFieldErrors: (errors) => applyFieldErrors(form, errors),
     onSuccess: () => router.push("/clients"),
   });
+
+  useUnsavedGuard(form.formState.isDirty);
 
   const onValid = (values: CreateClientFormValues) =>
     startTransition(() => formAction(values));
@@ -64,10 +76,13 @@ export function ClientForm() {
       <Card>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="name">{FIELDS.clientName}</Label>
+            <FieldLabel htmlFor="name" required>
+              {FIELDS.clientName}
+            </FieldLabel>
             <Input
               id="name"
               placeholder={PLACEHOLDERS.companyName}
+              aria-required
               {...form.register("name")}
             />
             {fieldError(form.formState.errors.name)}
@@ -120,13 +135,10 @@ export function ClientForm() {
       </Card>
 
       <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push("/clients")}
-        >
-          {ACTIONS.cancel}
-        </Button>
+        <CancelButton
+          dirty={form.formState.isDirty}
+          onCancel={() => router.push("/clients")}
+        />
         <Button type="submit" disabled={isPending}>
           {isPending ? ACTIONS.creating : "Tạo khách hàng"}
         </Button>

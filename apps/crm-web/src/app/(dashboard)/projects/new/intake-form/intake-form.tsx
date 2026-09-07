@@ -26,8 +26,10 @@ import {
 import { Input } from "@yan/ui/components/input";
 import { Separator } from "@yan/ui/components/separator";
 
+import { CancelButton } from "@/components/cancel-button/cancel-button";
 import { EntityCombobox } from "@/components/entity-combobox/entity-combobox";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
+import { FormErrorSummary } from "@/components/form-error-summary/form-error-summary";
 import {
   ACTIONS,
   FIELDS,
@@ -38,6 +40,8 @@ import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
+import { useUnsavedGuard } from "@/hooks/use-unsaved-guard/use-unsaved-guard";
+import { applyFieldErrors } from "@/utils/apply-field-errors/apply-field-errors";
 import { labelOf } from "@/utils/label-of/label-of";
 import { localISO, nowHHmm, todayISO } from "@/utils/today-iso/today-iso";
 
@@ -113,7 +117,10 @@ export function IntakeForm({
 
   const form = useForm<CreateProjectFormValues>({
     resolver: zodResolver(createProjectSchema),
-    mode: "onChange",
+    // onTouched, not onChange: "Nhập tên công trình" used to appear while the
+    // user was typing the first letter of the name. Validation now waits until
+    // they leave the field, which is the moment they meant it.
+    mode: "onTouched",
     defaultValues: {
       client_id: prefill?.client_id ?? 0,
       location_id: prefill?.location_id ?? 0,
@@ -135,6 +142,9 @@ export function IntakeForm({
 
   useServerAction(state, isPending, {
     ...ACTION_TOAST_TITLES,
+    // A rejection used to highlight nothing: the server's fieldErrors were
+    // flattened into the toast description and the fields stayed clean.
+    onFieldErrors: (errors) => applyFieldErrors(form, errors),
     onSuccess: (data: Project) => router.push(`/projects/${data?.id}`),
   });
 
@@ -232,6 +242,8 @@ export function IntakeForm({
     maybeSuggestName(form.getValues("type_ids"), location.id, nextDetail);
   }
 
+  useUnsavedGuard(form.formState.isDirty);
+
   const onValid = (values: CreateProjectFormValues) => {
     const appointment_at =
       values.stage !== ProjectStage.REQUEST || !apptDate
@@ -269,6 +281,7 @@ export function IntakeForm({
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+        <FormErrorSummary form={form} />
         <Card>
           <CardContent className="space-y-4">
             {/* Giai đoạn bắt đầu — collapsed unless asked for. It was the FIRST
@@ -305,7 +318,7 @@ export function IntakeForm({
               control={form.control}
               name="client_id"
               render={({ field }) => (
-                <FormItem>
+                <FormItem required>
                   <FormLabel>{FIELDS.client}</FormLabel>
                   <FormControl>
                     <EntityCombobox
@@ -419,7 +432,7 @@ export function IntakeForm({
                 };
 
                 return (
-                  <FormItem>
+                  <FormItem required>
                     <FormLabel>{FIELDS.projectType}</FormLabel>
                     <TypeChips
                       types={projectTypes}
@@ -443,7 +456,7 @@ export function IntakeForm({
                 };
 
                 return (
-                  <FormItem>
+                  <FormItem required>
                     <FormLabel>{FIELDS.projectName}</FormLabel>
                     <FormControl>
                       <Input
@@ -483,13 +496,10 @@ export function IntakeForm({
         </Card>
 
         <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/projects")}
-          >
-            {ACTIONS.cancel}
-          </Button>
+          <CancelButton
+            dirty={form.formState.isDirty}
+            onCancel={() => router.push("/projects")}
+          />
           <Button type="submit" disabled={isBusy}>
             {isBusy ? ACTIONS.creating : "Tạo công trình"}
           </Button>

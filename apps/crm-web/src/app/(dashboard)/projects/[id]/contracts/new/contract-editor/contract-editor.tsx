@@ -17,6 +17,7 @@ import type {
 import type { Project } from "@/app/(dashboard)/projects/types";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
 import { useCompany } from "@/components/company-provider/company-provider";
+import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { PageEditor } from "@/components/editor/page-editor/page-editor";
 import {
   type SaveResult,
@@ -263,14 +264,24 @@ export function ContractEditor({
     schedule(persist);
   };
 
+  // The picker overwrites whatever the user has typed, so it asks first — via
+  // the app's own dialog, not `window.confirm`, whose buttons are the
+  // browser's language and not ours. `undefined` is a real choice here ("no
+  // template"), so the pending value is boxed rather than compared to null.
+  const [pendingTemplate, setPendingTemplate] = useState<{
+    id: number | undefined;
+  } | null>(null);
+
   const onPickTemplate = (value: string) => {
     const id = value ? Number(value) : undefined;
-    if (
-      lexicalPlainText(bodyRef.current) !== "" &&
-      !window.confirm("Thay nội dung hiện tại bằng nội dung mẫu?")
-    ) {
+    if (lexicalPlainText(bodyRef.current) !== "") {
+      setPendingTemplate({ id });
       return;
     }
+    applyTemplate(id);
+  };
+
+  const applyTemplate = (id: number | undefined) => {
     setTemplateId(id);
     templateIdRef.current = id;
     // Pre-fill the body from the chosen template — the server does NOT copy it.
@@ -305,51 +316,67 @@ export function ContractEditor({
   const selected = templates.find((t) => t.id === templateId);
 
   return (
-    <PageEditor
-      key={seed}
-      value={seedBody}
-      onChange={onBodyChange}
-      title={selected?.doc_title ?? DOCUMENT_TEXT.contractHeading}
-      subtitle={contract ? `Số: ${contract.code}` : undefined}
-      // A template may switch either block off; with no template, both print.
-      headerBlocks={
-        selected
-          ? {
-              letterhead: selected.show_letterhead ?? true,
-              national: selected.show_national ?? true,
-            }
-          : DEFAULT_HEADER_BLOCKS
-      }
-      resolve={(token) => ctx[token]}
-      footer={<EditableSignatureBlocks reps={reps} onChange={onRepsChange} />}
-      toolbarExtra={
-        <select
-          aria-label={FIELDS.contractTemplate}
-          className={`${SELECT_CLASS} !h-7 max-w-56 text-xs`}
-          value={templateId ?? ""}
-          onChange={(e) => onPickTemplate(e.target.value)}
-        >
-          <option value="">— Không dùng mẫu —</option>
-          {templates.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-      }
-      status={
-        <div className="flex items-center gap-2">
-          <SaveStatusBadge status={status} message={message} />
-          <Button
-            type="button"
-            size="sm"
-            disabled={status === "saving"}
-            onClick={onDone}
+    <>
+      <PageEditor
+        key={seed}
+        value={seedBody}
+        onChange={onBodyChange}
+        title={selected?.doc_title ?? DOCUMENT_TEXT.contractHeading}
+        subtitle={contract ? `Số: ${contract.code}` : undefined}
+        // A template may switch either block off; with no template, both print.
+        headerBlocks={
+          selected
+            ? {
+                letterhead: selected.show_letterhead ?? true,
+                national: selected.show_national ?? true,
+              }
+            : DEFAULT_HEADER_BLOCKS
+        }
+        resolve={(token) => ctx[token]}
+        footer={<EditableSignatureBlocks reps={reps} onChange={onRepsChange} />}
+        toolbarExtra={
+          <select
+            aria-label={FIELDS.contractTemplate}
+            className={`${SELECT_CLASS} !h-7 max-w-56 text-xs`}
+            value={templateId ?? ""}
+            onChange={(e) => onPickTemplate(e.target.value)}
           >
-            Xong
-          </Button>
-        </div>
-      }
-    />
+            <option value="">— Không dùng mẫu —</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        }
+        status={
+          <div className="flex items-center gap-2">
+            <SaveStatusBadge status={status} message={message} />
+            <Button
+              type="button"
+              size="sm"
+              disabled={status === "saving"}
+              onClick={onDone}
+            >
+              Xong
+            </Button>
+          </div>
+        }
+      />
+
+      <ConfirmAction
+        open={pendingTemplate !== null}
+        onOpenChange={(next) => {
+          if (!next) setPendingTemplate(null);
+        }}
+        title="Thay nội dung bằng mẫu?"
+        consequence="Nội dung hợp đồng bạn đang soạn sẽ bị ghi đè bằng nội dung của mẫu."
+        confirmLabel="Thay nội dung"
+        onConfirm={() => {
+          if (pendingTemplate) applyTemplate(pendingTemplate.id);
+          setPendingTemplate(null);
+        }}
+      />
+    </>
   );
 }

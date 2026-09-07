@@ -13,7 +13,12 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
+import { CancelButton } from "@/components/cancel-button/cancel-button";
+import {
+  FieldLabel,
+  SELECT_CLASS,
+  fieldError,
+} from "@/components/form-bits/form-bits";
 import {
   ACTIONS,
   CREW_MEMBER_STATUSES,
@@ -25,6 +30,8 @@ import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
+import { useUnsavedGuard } from "@/hooks/use-unsaved-guard/use-unsaved-guard";
+import { applyFieldErrors } from "@/utils/apply-field-errors/apply-field-errors";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { createCrewMember, updateCrewMember } from "../actions/members";
@@ -54,7 +61,7 @@ export function CrewForm({
 
   const form = useForm<CreateCrewMemberFormValues>({
     resolver: zodResolver(createCrewMemberSchema),
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: {
       name: member?.name ?? "",
       phone: member?.phone ?? "",
@@ -77,8 +84,13 @@ export function CrewForm({
 
   useServerAction(state, isPending, {
     ...ACTION_TOAST_TITLES,
+    // A rejection used to highlight nothing: the server's fieldErrors were
+    // flattened into the toast description and the fields stayed clean.
+    onFieldErrors: (errors) => applyFieldErrors(form, errors),
     onSuccess: goToMember,
   });
+
+  useUnsavedGuard(form.formState.isDirty);
 
   const onValid = (values: CreateCrewMemberFormValues) =>
     startTransition(() => formAction(values));
@@ -88,8 +100,12 @@ export function CrewForm({
       <Card>
         <CardContent className="space-y-4">
           <div className="space-y-1">
-            <Label>{FIELDS.fullName}</Label>
+            <FieldLabel htmlFor="crew-name" required>
+              {FIELDS.fullName}
+            </FieldLabel>
             <Input
+              id="crew-name"
+              aria-required
               placeholder={PLACEHOLDERS.personName}
               {...form.register("name")}
             />
@@ -97,8 +113,12 @@ export function CrewForm({
           </div>
 
           <div className="space-y-1">
-            <Label>{FIELDS.phone}</Label>
-            <Input placeholder="0901 234 567" {...form.register("phone")} />
+            <FieldLabel htmlFor="crew-phone">{FIELDS.phone}</FieldLabel>
+            <Input
+              id="crew-phone"
+              placeholder="0901 234 567"
+              {...form.register("phone")}
+            />
             {fieldError(errors.phone)}
           </div>
 
@@ -157,13 +177,10 @@ export function CrewForm({
       </Card>
 
       <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push(member ? `/crew/${member.id}` : "/crew")}
-        >
-          {ACTIONS.cancel}
-        </Button>
+        <CancelButton
+          dirty={form.formState.isDirty}
+          onCancel={() => router.push(member ? `/crew/${member.id}` : "/crew")}
+        />
         <Button type="submit" disabled={isPending}>
           {isPending
             ? ACTIONS.saving

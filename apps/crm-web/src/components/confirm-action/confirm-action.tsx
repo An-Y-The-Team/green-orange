@@ -30,6 +30,8 @@ import { ACTIONS } from "@/constants/labels";
  */
 export function ConfirmAction({
   trigger,
+  open: openProp,
+  onOpenChange,
   title,
   consequence,
   confirmLabel = ACTIONS.confirm,
@@ -38,8 +40,16 @@ export function ConfirmAction({
   confirmDisabled,
   children,
 }: {
-  /** The button that opens the dialog — Base UI merges the trigger props in. */
-  trigger: ReactElement;
+  /**
+   * The button that opens the dialog — Base UI merges the trigger props in.
+   * Omit it only when the dialog is opened by something that isn't a button:
+   * a `<select>` whose change needs confirming has no trigger to render, so it
+   * drives `open` instead (see `contract-editor`'s template picker).
+   */
+  trigger?: ReactElement;
+  /** Controlled open state. With it, `onOpenChange` is required. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title: string;
   consequence?: ReactNode;
   confirmLabel?: string;
@@ -48,11 +58,13 @@ export function ConfirmAction({
   confirmDisabled?: boolean;
   children?: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolled, setUncontrolled] = useState(false);
+  const open = openProp ?? uncontrolled;
+  const setOpen = onOpenChange ?? setUncontrolled;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger} />
+      {trigger ? <DialogTrigger render={trigger} /> : null}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

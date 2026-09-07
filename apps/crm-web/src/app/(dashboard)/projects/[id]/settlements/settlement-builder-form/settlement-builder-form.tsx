@@ -32,9 +32,12 @@ import {
   settlementFormSchema,
 } from "@/app/(dashboard)/receivables/schema";
 import { fieldError } from "@/components/form-bits/form-bits";
+import { FormErrorSummary } from "@/components/form-error-summary/form-error-summary";
 import { MoneyInput } from "@/components/money-input/money-input";
 import { ACTIONS, FIELDS, LINE_ITEM_COLUMNS } from "@/constants/labels";
 import { ACTION_TOAST_TITLES } from "@/constants/server-action";
+import { useUnsavedGuard } from "@/hooks/use-unsaved-guard/use-unsaved-guard";
+import { applyFieldErrors } from "@/utils/apply-field-errors/apply-field-errors";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import {
   itemAmount,
@@ -79,7 +82,7 @@ export function SettlementBuilderForm({
 
   const form = useForm<SettlementFormValues>({
     resolver: zodResolver(settlementFormSchema),
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: {
       items: initial.items.length ? initial.items : [BLANK_ROW],
       discount_amount: initial.discountAmount,
@@ -90,8 +93,13 @@ export function SettlementBuilderForm({
   const { register, control, handleSubmit, formState } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
+  useUnsavedGuard(form.formState.isDirty);
+
   useServerAction(state, isPending, {
     ...ACTION_TOAST_TITLES,
+    // A rejection used to highlight nothing: the server's fieldErrors were
+    // flattened into the toast description and the fields stayed clean.
+    onFieldErrors: (errors) => applyFieldErrors(form, errors),
     onSuccess: () => router.push(`/projects/${initial.projectId}`),
   });
 
@@ -131,11 +139,17 @@ export function SettlementBuilderForm({
     <Card>
       <CardContent className="space-y-5">
         <form onSubmit={handleSubmit(onValid)} className="space-y-5">
+          <FormErrorSummary form={form} />
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-48">
                   {LINE_ITEM_COLUMNS.item}
+                  {/* Marked on the column, not on each of N rows: the
+                          asterisk belongs where the rule is stated once. */}
+                  <span aria-hidden className="text-destructive">
+                    *
+                  </span>
                 </TableHead>
                 <TableHead className="w-20">
                   {LINE_ITEM_COLUMNS.unitShort}

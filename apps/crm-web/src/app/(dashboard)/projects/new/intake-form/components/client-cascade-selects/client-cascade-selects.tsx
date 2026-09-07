@@ -104,7 +104,7 @@ export function ClientCascadeSelects({
         control={form.control}
         name="location_id"
         render={({ field }) => (
-          <FormItem>
+          <FormItem required>
             <FormLabel>{FIELDS.location}</FormLabel>
             <FormControl>
               <select

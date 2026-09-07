@@ -24,6 +24,15 @@ interface UseServerActionOptions<TData = unknown> {
    */
   onSuccess?(data?: TData): void;
   onError?: (error: string) => void;
+  /**
+   * The server's per-field errors (zod's `flatten().fieldErrors`), so a form can
+   * put them ON the fields.
+   *
+   * They used to be flattened into the toast description and nothing else, so a
+   * rejection highlighted nothing: no field, no summary, no scroll-to-first.
+   * Additive — callers that don't pass it keep the toast-only behaviour.
+   */
+  onFieldErrors?: (errors: Record<string, string[]>) => void;
   initialState?: unknown;
   successToastTitle?: string;
   errorToastTitle?: string;
@@ -40,6 +49,7 @@ export function useServerAction<TData = unknown>(
   const {
     onSuccess,
     onError,
+    onFieldErrors,
     initialState = {
       success: false,
       message: null,
@@ -66,6 +76,9 @@ export function useServerAction<TData = unknown>(
           fallbackMessage: serverState.message,
         });
 
+        if (serverState.errors && Object.keys(serverState.errors).length)
+          onFieldErrors?.(serverState.errors);
+
         // Only show default error toast if onError doesn't exist
         if (!onError) {
           toast.error(errorToastTitle, {
@@ -87,6 +100,7 @@ export function useServerAction<TData = unknown>(
     successToastTitle,
     errorToastTitle,
     silent,
+    onFieldErrors,
   ]);
 
   // Reset flag for new submissions

@@ -7,10 +7,13 @@ import { toast } from "sonner";
 
 import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
-import { FormLabel } from "@yan/ui/components/form";
 import { Input } from "@yan/ui/components/input";
 
-import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
+import {
+  FieldLabel,
+  SELECT_CLASS,
+  fieldError,
+} from "@/components/form-bits/form-bits";
 import {
   ACTIONS,
   CLIENT_TYPES,
@@ -102,7 +105,7 @@ export function QuickCreateClient({
 
   const form = useForm<QuickClientFormValues>({
     resolver: zodResolver(quickClientSchema),
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: DEFAULT_QUICK_CLIENT_VALUES,
   });
   const type = useWatch({ control: form.control, name: "type" });
@@ -180,16 +183,24 @@ export function QuickCreateClient({
   return (
     <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
       <div className="space-y-1">
-        <FormLabel>{FIELDS.clientName}</FormLabel>
+        <FieldLabel htmlFor="qc-name" required>
+          {FIELDS.clientName}
+        </FieldLabel>
         <Input
+          id="qc-name"
+          aria-required
           placeholder={PLACEHOLDERS.companyName}
           {...form.register("name")}
         />
         {fieldError(form.formState.errors.name)}
       </div>
       <div className="space-y-1">
-        <FormLabel>{FIELDS.clientType}</FormLabel>
-        <select className={SELECT_CLASS} {...form.register("type")}>
+        <FieldLabel htmlFor="qc-type">{FIELDS.clientType}</FieldLabel>
+        <select
+          id="qc-type"
+          className={SELECT_CLASS}
+          {...form.register("type")}
+        >
           <option value={ClientType.COMPANY}>
             {CLIENT_TYPES[ClientType.COMPANY]}
           </option>
@@ -200,8 +211,12 @@ export function QuickCreateClient({
       </div>
       {type === ClientType.INDIVIDUAL ? (
         <div className="space-y-1">
-          <FormLabel>{FIELDS.address}</FormLabel>
+          <FieldLabel htmlFor="qc-address" required>
+            {FIELDS.address}
+          </FieldLabel>
           <Input
+            id="qc-address"
+            aria-required
             placeholder={PLACEHOLDERS.address}
             {...form.register("address")}
           />
@@ -210,32 +225,47 @@ export function QuickCreateClient({
       ) : (
         <>
           <div className="space-y-1">
-            <FormLabel>{FIELDS.contactPerson}</FormLabel>
+            <FieldLabel htmlFor="qc-contact-name" required>
+              {FIELDS.contactPerson}
+            </FieldLabel>
             <Input
+              id="qc-contact-name"
+              aria-required
               placeholder={PLACEHOLDERS.personName}
               {...form.register("contact_name")}
             />
             {fieldError(form.formState.errors.contact_name)}
           </div>
           <div className="space-y-1">
-            <FormLabel>Số điện thoại liên hệ</FormLabel>
+            <FieldLabel htmlFor="qc-contact-phone">
+              Số điện thoại liên hệ
+            </FieldLabel>
             <Input
+              id="qc-contact-phone"
               placeholder="0901234567"
               {...form.register("contact_phone")}
             />
             {fieldError(form.formState.errors.contact_phone)}
           </div>
           <div className="space-y-1">
-            <FormLabel>Tên địa điểm/Toà nhà</FormLabel>
+            <FieldLabel htmlFor="qc-location-name" required>
+              Tên địa điểm/Toà nhà
+            </FieldLabel>
             <Input
+              id="qc-location-name"
+              aria-required
               placeholder="Trụ sở chính"
               {...form.register("location_name")}
             />
             {fieldError(form.formState.errors.location_name)}
           </div>
           <div className="space-y-1">
-            <FormLabel>{FIELDS.location}</FormLabel>
+            <FieldLabel htmlFor="qc-location-address" required>
+              {FIELDS.location}
+            </FieldLabel>
             <Input
+              id="qc-location-address"
+              aria-required
               placeholder={PLACEHOLDERS.address}
               {...form.register("location_address")}
             />

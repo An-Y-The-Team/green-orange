@@ -39,12 +39,15 @@ import {
 } from "@/app/(dashboard)/quotes/schema";
 import { useCompany } from "@/components/company-provider/company-provider";
 import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
+import { FormErrorSummary } from "@/components/form-error-summary/form-error-summary";
 import { MoneyInput } from "@/components/money-input/money-input";
 import { ACTIONS, DOCUMENT_TEXT, LINE_ITEM_COLUMNS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
+import { useUnsavedGuard } from "@/hooks/use-unsaved-guard/use-unsaved-guard";
+import { applyFieldErrors } from "@/utils/apply-field-errors/apply-field-errors";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { groupByCategory } from "@/utils/group-by-category/group-by-category";
 import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
@@ -118,7 +121,7 @@ export function QuoteBuilderForm({
 
   const form = useForm<QuoteFormValues>({
     resolver: zodResolver(quoteFormSchema),
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: {
       items: initial.items.length ? initial.items : [BLANK_ROW],
       vat_percent: initial.vatPercent,
@@ -135,8 +138,13 @@ export function QuoteBuilderForm({
     name: "items",
   });
 
+  useUnsavedGuard(form.formState.isDirty);
+
   useServerAction(state, isPending, {
     ...ACTION_TOAST_TITLES,
+    // A rejection used to highlight nothing: the server's fieldErrors were
+    // flattened into the toast description and the fields stayed clean.
+    onFieldErrors: (errors) => applyFieldErrors(form, errors),
     onSuccess: (data) => {
       // The action echoes back the saved quote; narrow before reading its id.
       const savedId =
@@ -192,7 +200,8 @@ export function QuoteBuilderForm({
     <>
       <Card>
         <CardContent className="space-y-5">
-          <form onSubmit={handleSubmit(onValid)}>
+          <form onSubmit={handleSubmit(onValid)} className="space-y-5">
+            <FormErrorSummary form={form} />
             {/* Native disable of every control inside — no per-input plumbing. */}
             <fieldset disabled={readOnly} className="space-y-5">
               {projects ? (
@@ -225,6 +234,11 @@ export function QuoteBuilderForm({
                   <TableRow>
                     <TableHead className="min-w-48">
                       {LINE_ITEM_COLUMNS.description}
+                      {/* Marked on the column, not on each of N rows: the
+                          asterisk belongs where the rule is stated once. */}
+                      <span aria-hidden className="text-destructive">
+                        *
+                      </span>
                     </TableHead>
                     <TableHead className="w-20">
                       {LINE_ITEM_COLUMNS.unitShort}
