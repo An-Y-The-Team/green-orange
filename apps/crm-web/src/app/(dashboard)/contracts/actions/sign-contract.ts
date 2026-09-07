@@ -15,7 +15,7 @@ import {
   INVALID_INPUT_MESSAGE,
   UNKNOWN_ERROR_MESSAGE,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 import {
   buildContractContext,
   signedContext,
@@ -137,8 +137,7 @@ export async function signContract(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : "Không thể ký hợp đồng.",
+      message: toActionError(error, "Không thể ký hợp đồng."),
     };
   }
 }

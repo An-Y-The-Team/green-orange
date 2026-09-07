@@ -10,7 +10,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import type { CrewRole } from "../types";
 
@@ -46,10 +46,7 @@ export async function createRole(
     // Name is @unique — a duplicate surfaces here as a raw error.
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.addFailed(NOUNS.role),
+      message: toActionError(error, ACTION_MESSAGES.addFailed(NOUNS.role)),
     };
   }
 }
@@ -85,10 +82,7 @@ export async function renameRole(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : `Không thể đổi tên ${NOUNS.role}.`,
+      message: toActionError(error, `Không thể đổi tên ${NOUNS.role}.`),
     };
   }
 }
@@ -111,10 +105,7 @@ export async function deleteRole(
     // 409 when the role is in use by members or assignments.
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Vị trí đang được sử dụng, không thể xóa.",
+      message: toActionError(error, "Vị trí đang được sử dụng, không thể xóa."),
     };
   }
 }

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { ACTION_MESSAGES, NOUNS } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 /** Delete a draft quote (409 from the backend if it isn't a draft). */
 export async function deleteQuote(
@@ -26,10 +26,7 @@ export async function deleteQuote(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.deleteFailed(NOUNS.quote),
+      message: toActionError(error, ACTION_MESSAGES.deleteFailed(NOUNS.quote)),
     };
   }
 }

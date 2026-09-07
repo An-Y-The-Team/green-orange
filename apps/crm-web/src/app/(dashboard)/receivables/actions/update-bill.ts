@@ -10,7 +10,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { BillStatus } from "../enums";
 import type { Bill } from "../types";
@@ -56,10 +56,7 @@ export async function updateBill(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.updateFailed(NOUNS.bill),
+      message: toActionError(error, ACTION_MESSAGES.updateFailed(NOUNS.bill)),
     };
   }
 }

@@ -9,7 +9,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { type UpdateClientFormValues, updateClientSchema } from "../schema";
 import type { Client } from "../types";
@@ -46,7 +46,7 @@ export async function updateClient(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Không thể cập nhật.",
+      message: toActionError(error, "Không thể cập nhật."),
     };
   }
 }

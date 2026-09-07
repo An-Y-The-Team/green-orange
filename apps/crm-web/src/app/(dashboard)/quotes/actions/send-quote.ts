@@ -9,7 +9,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { sendQuoteSchema } from "../schema";
 import type { Quote } from "../types";
@@ -58,10 +58,7 @@ export async function sendQuote(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.sendFailed(NOUNS.quote),
+      message: toActionError(error, ACTION_MESSAGES.sendFailed(NOUNS.quote)),
     };
   }
 }

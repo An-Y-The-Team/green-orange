@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { ACTION_MESSAGES, NOUNS } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { SettlementStatus } from "../enums";
 import type { Settlement } from "../types";
@@ -35,7 +35,7 @@ async function patchStatus(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : errMessage,
+      message: toActionError(error, errMessage),
     };
   }
 }

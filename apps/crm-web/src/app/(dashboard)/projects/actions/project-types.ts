@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { ACTION_MESSAGES, NOUNS } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import type { ProjectType } from "../types";
 
@@ -48,10 +48,10 @@ export async function createProjectType(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.addFailed(NOUNS.projectType),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.addFailed(NOUNS.projectType)
+      ),
     };
   }
 }
@@ -81,7 +81,7 @@ export async function renameProjectType(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Không thể cập nhật.",
+      message: toActionError(error, "Không thể cập nhật."),
     };
   }
 }
@@ -101,7 +101,7 @@ export async function deleteProjectType(
   } catch (error) {
     // 409 when still referenced. apiSend surfaces only the status line, not the
     // JSON body, so the referencing count (N) isn't available here.
-    const msg = error instanceof Error ? error.message : "";
+    const msg = toActionError(error, "");
     return {
       success: false,
       message: msg.includes("409")

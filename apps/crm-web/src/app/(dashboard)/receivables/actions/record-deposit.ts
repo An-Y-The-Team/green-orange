@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { INVALID_INPUT_MESSAGE } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { MilestoneStatus, MilestoneType } from "../enums";
 import type { PaymentMilestone } from "../types";
@@ -60,8 +60,7 @@ export async function recordDeposit(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : "Không thể ghi nhận cọc.",
+      message: toActionError(error, "Không thể ghi nhận cọc."),
     };
   }
 }

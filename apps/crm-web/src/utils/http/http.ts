@@ -18,6 +18,11 @@
  */
 import { auth } from "@/auth";
 import { AUTH_ENABLED } from "@/auth.config";
+import { UNKNOWN_ERROR_MESSAGE } from "@/constants/server-action";
+import {
+  apiErrorMessage,
+  unmappedApiMessage,
+} from "@/utils/api-error-message/api-error-message";
 
 export const API_URL = process.env.CRM_API_URL;
 
@@ -98,26 +103,112 @@ async function fetchWithAuth(
 
 // Carries the HTTP status as data so callers can branch on it. A plain Error only
 // interpolates the status into its message, which forces string-parsing.
+//
+// `message` stays the full diagnostic line (verb, path, status, body) because
+// that is what belongs in a server log. `backendMessage` is the sentence the API
+// actually complained with, and is the ONLY part allowed anywhere near a toast —
+// via `toActionError`, which translates it. Nothing should render `.message`.
 export class ApiError extends Error {
   constructor(
     readonly status: number,
-    message: string
+    message: string,
+    readonly backendMessage?: string
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 
+/**
+ * The API's own complaint, pulled out of the error body: Nest answers
+ * `{statusCode, message, error}` (message is a string, or an array when its
+ * validation pipe rejects a DTO), FastAPI answers `{detail}` — the two shapes
+ * `AGENTS.md` records as a deliberate difference. Anything unparseable yields
+ * undefined and the caller falls back to a per-status sentence.
+ */
+async function readBackendMessage(res: Response): Promise<{
+  backendMessage?: string;
+  raw: string;
+}> {
+  const raw = await res.text().catch(() => "");
+  try {
+    const body: unknown = JSON.parse(raw);
+    if (!body || typeof body !== "object") return { raw };
+    const { message, detail } = body as {
+      message?: unknown;
+      detail?: unknown;
+    };
+    const pick = message ?? detail;
+    if (typeof pick === "string") return { backendMessage: pick, raw };
+    // Nest's ValidationPipe sends string[]; FastAPI's 422 sends objects with a
+    // `msg`. Join so a DTO rejection still says which fields.
+    if (Array.isArray(pick)) {
+      const parts = pick
+        .map((item) =>
+          typeof item === "string"
+            ? item
+            : typeof (item as { msg?: unknown })?.msg === "string"
+              ? String((item as { msg: string }).msg)
+              : undefined
+        )
+        .filter((part): part is string => Boolean(part));
+      if (parts.length) return { backendMessage: parts.join("; "), raw };
+    }
+    return { raw };
+  } catch {
+    return { raw };
+  }
+}
+
+/**
+ * Every non-2xx becomes an ApiError whose diagnostic line is logged HERE, once,
+ * server-side. Before this, the line was the throw's message and each action
+ * handed it to a toast — the operator read the HTTP verb and the URL.
+ */
+async function failure(label: string, res: Response): Promise<ApiError> {
+  const { backendMessage, raw } = await readBackendMessage(res);
+  const line = `API ${label} failed: ${res.status} ${res.statusText}${raw ? ` — ${raw}` : ""}`;
+  console.error(`[crm-web] ${line}`);
+  if (process.env.NODE_ENV !== "production") {
+    const unmapped = unmappedApiMessage(res.status, backendMessage);
+    if (unmapped) console.warn(unmapped);
+  }
+  return new ApiError(res.status, line, backendMessage);
+}
+
+/**
+ * Any thrown value → the Vietnamese sentence an action returns as
+ * `state.message`. The single conversion point for all 32 action files, so no
+ * `catch` has to remember not to leak `error.message`.
+ *
+ * `fallback` is the action's own "Không thể …" line, used only where the status
+ * has no better wording of its own.
+ */
+export function toActionError(error: unknown, fallback?: string): string {
+  if (error instanceof ApiError)
+    return apiErrorMessage({
+      status: error.status,
+      backendMessage: error.backendMessage,
+      fallback,
+    });
+  // Already a human sentence, thrown by fetchWithAuth for a dead session.
+  if (error instanceof Error && error.message === SESSION_EXPIRED)
+    return SESSION_EXPIRED;
+  // Timeout / DNS / connection refused — the request never got an answer, so
+  // there is no status and the caller's "không thể cập nhật X" would blame the
+  // data for an outage.
+  if (error instanceof Error) {
+    console.error(`[crm-web] request failed: ${error.message}`);
+    return apiErrorMessage({});
+  }
+  return fallback ?? UNKNOWN_ERROR_MESSAGE;
+}
+
 // GET + the ApiError, shared by the two read helpers below. Returns the Response
 // itself so a caller can read headers, not just the body.
 async function get(path: string): Promise<Response> {
   const res = await fetchWithAuth(`${API_URL}${path}`, {});
-  if (!res.ok) {
-    throw new ApiError(
-      res.status,
-      `API ${path} failed: ${res.status} ${res.statusText}`
-    );
-  }
+  if (!res.ok) throw await failure(`GET ${path}`, res);
   return res;
 }
 
@@ -201,12 +292,7 @@ export async function apiSend<T>(
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(
-      `API ${method} ${path} failed: ${res.status} ${res.statusText}${detail ? ` — ${detail}` : ""}`
-    );
-  }
+  if (!res.ok) throw await failure(`${method} ${path}`, res);
   // DELETE handlers answer 204 with an empty body — res.json() would throw
   // "Unexpected end of JSON input" after the row is already gone.
   if (res.status === 204 || res.headers.get("content-length") === "0") {

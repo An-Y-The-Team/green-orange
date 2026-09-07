@@ -9,7 +9,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { type CreateProjectFormValues, createProjectSchema } from "../schema";
 import type { Project } from "../types";
@@ -46,10 +46,10 @@ export async function createProject(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.createFailed(NOUNS.project),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.createFailed(NOUNS.project)
+      ),
     };
   }
 }

@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 
 import { ACTION_MESSAGES, NOUNS } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { TimekeepingSource } from "../enums";
 import { getProjectAssignments, getProjectTimekeeping } from "../queries";
@@ -58,10 +58,10 @@ export async function upsertTimekeeping(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.saveFailed(NOUNS.timesheet),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.saveFailed(NOUNS.timesheet)
+      ),
     };
   }
 }
@@ -78,10 +78,10 @@ export async function deleteTimekeeping(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.deleteFailed(NOUNS.timesheet),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.deleteFailed(NOUNS.timesheet)
+      ),
     };
   }
 }

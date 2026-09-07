@@ -4,7 +4,6 @@ import { Printer } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-import type { ServerActionState } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
@@ -47,25 +46,6 @@ import { BillRow } from "../bill-row/bill-row";
 import { MilestoneRow } from "../milestone-row/milestone-row";
 import { SettlementStepper } from "../settlement-stepper/settlement-stepper";
 
-// The server refuses un-signing in English and apiSend wraps it in the raw HTTP
-// line; this UI is Vietnamese-only, so map it before the toast. Only reachable
-// in a race (a payment recorded while this page is stale) — the button below is
-// disabled whenever we can already see the collected đợt.
-const COLLECTED_ERROR = "payments have already been collected";
-const COLLECTED_MESSAGE =
-  "Không thể mở lại quyết toán: hóa đơn đã thu tiền ở đợt ngoài cọc.";
-
-const unsignInVietnamese = async (
-  settlementId: number,
-  prev: ServerActionState
-): Promise<ServerActionState> => {
-  const state = await unsignSettlement(settlementId, prev);
-  if (!state?.success && state?.message?.includes(COLLECTED_ERROR)) {
-    return { ...state, message: COLLECTED_MESSAGE };
-  }
-  return state;
-};
-
 /**
  * The single quyết toán for a công trình (1:1), its hóa đơn, and its đợt
  * thanh toán. Signing is the money-minting step; un-signing is the correction
@@ -103,7 +83,7 @@ export function SettlementCard({
     () => setSignOpen(false)
   );
   const [unsignPending, runUnsign] = useRun(
-    unsignInVietnamese.bind(null, settlement.id),
+    unsignSettlement.bind(null, settlement.id),
     () => setUnsignOpen(false)
   );
   const [deletePending, runDelete] = useRun(

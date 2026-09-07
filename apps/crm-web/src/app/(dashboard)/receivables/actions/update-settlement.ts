@@ -9,7 +9,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { updateSettlementSchema } from "../schema";
 import type { Settlement } from "../types";
@@ -53,10 +53,10 @@ export async function updateSettlement(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.updateFailed(NOUNS.settlement),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.updateFailed(NOUNS.settlement)
+      ),
     };
   }
 }

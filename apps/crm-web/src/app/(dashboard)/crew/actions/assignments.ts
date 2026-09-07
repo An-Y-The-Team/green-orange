@@ -10,7 +10,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import type { Assignment } from "../types";
 
@@ -36,7 +36,7 @@ const BACKEND_MESSAGES: Record<string, string> = {
 };
 
 function errorMessage(error: unknown, fallback: string): string {
-  const raw = error instanceof Error ? error.message : "";
+  const raw = toActionError(error, "");
   const mapped = Object.entries(BACKEND_MESSAGES).find(([needle]) =>
     raw.includes(needle)
   );
@@ -135,10 +135,10 @@ export async function deleteAssignment(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.deleteFailed(NOUNS.assignment),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.deleteFailed(NOUNS.assignment)
+      ),
     };
   }
 }

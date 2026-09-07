@@ -9,7 +9,7 @@ import {
   INVALID_INPUT_MESSAGE,
   UNKNOWN_ERROR_MESSAGE,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { updateProject } from "../../projects/actions/update-project";
 import { type QuoteDecision, QuoteStatus } from "../enums";
@@ -101,8 +101,7 @@ export async function decideQuote(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : "Không thể xử lý báo giá.",
+      message: toActionError(error, "Không thể xử lý báo giá."),
     };
   }
 }

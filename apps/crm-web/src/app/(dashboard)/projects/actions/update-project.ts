@@ -10,7 +10,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import {
   AcceptanceSubStatus,
@@ -89,10 +89,10 @@ export async function updateProject(
     // Live backend surfaces stage-gate / lock failures as the error message.
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.updateFailed(NOUNS.project),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.updateFailed(NOUNS.project)
+      ),
     };
   }
 }

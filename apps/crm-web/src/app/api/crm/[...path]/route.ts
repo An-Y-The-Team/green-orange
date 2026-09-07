@@ -12,7 +12,12 @@
  */
 import { type NextRequest, NextResponse } from "next/server";
 
-import { ApiError, SESSION_EXPIRED, apiFetchList } from "@/utils/http/http";
+import {
+  ApiError,
+  SESSION_EXPIRED,
+  apiFetchList,
+  toActionError,
+} from "@/utils/http/http";
 
 const ALLOWED = new Set(["projects", "clients", "crew", "quotes"]);
 
@@ -31,7 +36,12 @@ export async function GET(
     return NextResponse.json({ rows, total });
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+      // Translated, not raw: `err.message` is the diagnostic line (verb, path,
+      // status) and this response crosses to the browser.
+      return NextResponse.json(
+        { error: toActionError(err) },
+        { status: err.status }
+      );
     }
     // fetchWithAuth throws a plain Error for a dead Authentik session — answer
     // 401 so the client can tell "log in again" from an outage.

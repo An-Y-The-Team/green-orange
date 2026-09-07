@@ -10,7 +10,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { PaperworkStatus } from "../enums";
 import type { PaperworkItem } from "../types";
@@ -63,10 +63,10 @@ export async function createPaperworkItem(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.addFailed(NOUNS.paperworkItem),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.addFailed(NOUNS.paperworkItem)
+      ),
     };
   }
 }
@@ -98,10 +98,10 @@ export async function updatePaperworkItem(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.updateFailed(NOUNS.paperworkItem),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.updateFailed(NOUNS.paperworkItem)
+      ),
     };
   }
 }
@@ -121,10 +121,10 @@ export async function deletePaperworkItem(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.deleteFailed(NOUNS.paperworkItem),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.deleteFailed(NOUNS.paperworkItem)
+      ),
     };
   }
 }

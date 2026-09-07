@@ -10,7 +10,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { MilestoneStatus, MilestoneType } from "../enums";
 import type { PaymentMilestone } from "../types";
@@ -58,9 +58,7 @@ export async function createMilestone(
     };
   } catch (error) {
     return fail(
-      error instanceof Error
-        ? error.message
-        : ACTION_MESSAGES.addFailed(NOUNS.milestone)
+      toActionError(error, ACTION_MESSAGES.addFailed(NOUNS.milestone))
     );
   }
 }
@@ -104,9 +102,7 @@ export async function updateMilestone(
     };
   } catch (error) {
     return fail(
-      error instanceof Error
-        ? error.message
-        : ACTION_MESSAGES.updateFailed(NOUNS.milestone)
+      toActionError(error, ACTION_MESSAGES.updateFailed(NOUNS.milestone))
     );
   }
 }
@@ -154,9 +150,7 @@ export async function markMilestonePaid(
     revalidate(projectId);
     return { success: true, message: "Đã ghi nhận đã thu.", data: milestone };
   } catch (error) {
-    return fail(
-      error instanceof Error ? error.message : "Không thể ghi nhận đã thu."
-    );
+    return fail(toActionError(error, "Không thể ghi nhận đã thu."));
   }
 }
 
@@ -179,9 +173,7 @@ export async function deleteMilestone(
     };
   } catch (error) {
     return fail(
-      error instanceof Error
-        ? error.message
-        : ACTION_MESSAGES.deleteFailed(NOUNS.milestone)
+      toActionError(error, ACTION_MESSAGES.deleteFailed(NOUNS.milestone))
     );
   }
 }

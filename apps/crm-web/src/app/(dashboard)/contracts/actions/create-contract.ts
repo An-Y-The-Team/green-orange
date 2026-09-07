@@ -9,7 +9,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { type CreateContractFormValues, createContractSchema } from "../schema";
 import type { Contract } from "../types";
@@ -44,10 +44,10 @@ export async function createContract(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.createFailed(NOUNS.contract),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.createFailed(NOUNS.contract)
+      ),
     };
   }
 }

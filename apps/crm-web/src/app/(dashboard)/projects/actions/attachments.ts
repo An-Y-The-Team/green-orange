@@ -10,7 +10,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { AttachmentKind } from "../enums";
 import type { Attachment } from "../types";
@@ -58,10 +58,10 @@ export async function addAttachment(
   } catch (error) {
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : ACTION_MESSAGES.addFailed(NOUNS.attachment),
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.addFailed(NOUNS.attachment)
+      ),
     };
   }
 }
@@ -80,7 +80,7 @@ export async function deleteAttachment(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Không thể xoá tệp.",
+      message: toActionError(error, "Không thể xoá tệp."),
     };
   }
 }

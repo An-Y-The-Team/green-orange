@@ -9,7 +9,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { type ContactFormValues, contactSchema } from "../schema";
 import type { Contact } from "../types";
@@ -91,7 +91,7 @@ export async function deleteContact(
 function errorState(error: unknown, fallback: string): ServerActionState {
   return {
     success: false,
-    message: error instanceof Error ? error.message : fallback,
+    message: toActionError(error, fallback),
   };
 }
 

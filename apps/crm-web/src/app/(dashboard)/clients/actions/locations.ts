@@ -9,7 +9,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiSend } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { type LocationFormValues, locationSchema } from "../schema";
 import type { Location } from "../types";
@@ -24,7 +24,7 @@ const invalid = (e: {
 
 const errorState = (error: unknown, fallback: string): ServerActionState => ({
   success: false,
-  message: error instanceof Error ? error.message : fallback,
+  message: toActionError(error, fallback),
 });
 
 export async function createLocation(
