@@ -9,8 +9,8 @@ import { ACTION_MESSAGES, NOUNS } from "@/constants/server-action";
 import { apiSend } from "@/utils/http/http";
 
 import { TimekeepingSource } from "../enums";
-import { getProjectTimekeeping } from "../queries";
-import type { TimekeepingRecord } from "../types";
+import { getProjectAssignments, getProjectTimekeeping } from "../queries";
+import type { Assignment, TimekeepingRecord } from "../types";
 
 // Chấm công writes. POST /timekeeping is an UPSERT on
 // (crew_member_id, project_id, work_date, source) — re-posting the same key
@@ -103,4 +103,17 @@ export async function loadProjectTimekeeping(
   // interpolating junk into the query string.
   if (!parsed.success) return [];
   return getProjectTimekeeping(parsed.data);
+}
+
+/**
+ * The project's phân công, so the grid's rows are the people actually on this
+ * công trình instead of the whole roster — the secretary was scrolling 40 rows
+ * to enter hours for the four who worked. Client-side loader because the tab
+ * picks its project after the page has rendered.
+ */
+export async function loadProjectAssignments(
+  projectId: number
+): Promise<Assignment[]> {
+  if (!Number.isInteger(projectId) || projectId <= 0) return [];
+  return getProjectAssignments(projectId);
 }

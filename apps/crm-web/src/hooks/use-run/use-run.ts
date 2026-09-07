@@ -20,18 +20,31 @@ import {
  * take no payload (a bound `deleteQuote.bind(null, id)`) leave `I` at `void`, so
  * `run()` is callable with no argument — that's what the old `as never` casts and
  * `input: any` were papering over.
+ *
+ * `D` is the success payload handed to `onSuccess`, so a caller that needs the
+ * saved row (the chấm công grid merges it back into the week it renders) can
+ * annotate it instead of narrowing `unknown`.
+ *
+ * `silent` drops the success toast only — a failure still toasts. That is what a
+ * grid of autosaving cells wants: 35 "Thành công" toasts for one week of hours
+ * is noise, a failed save is not.
  */
-export function useRun<I = void>(
+export function useRun<I = void, D = { id?: number }>(
   action: (
     prev: ServerActionState,
     input: I
   ) => ServerActionState | Promise<ServerActionState>,
-  onSuccess?: (data?: { id?: number }) => void
+  onSuccess?: (data?: D) => void,
+  options?: { silent?: boolean }
 ) {
   const [state, dispatch] = useActionState(action, INITIAL_ACTION_STATE);
   const [isPending, startTransition] = useTransition();
 
-  useServerAction(state, isPending, { ...ACTION_TOAST_TITLES, onSuccess });
+  useServerAction<D>(state as ServerActionState<D>, isPending, {
+    ...ACTION_TOAST_TITLES,
+    onSuccess,
+    silent: options?.silent,
+  });
 
   const run = (input: I) => startTransition(() => dispatch(input));
 

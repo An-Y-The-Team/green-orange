@@ -70,7 +70,26 @@ export function DurationForm({
     INITIAL_ACTION_STATE
   );
   const [isPending, startTransition] = useTransition();
-  useServerAction(state, isPending, ACTION_TOAST_TITLES);
+  // WHICH field is in flight, not just "something is". One `isPending` disabled
+  // all three inputs, so a save on Dự kiến locked Thực tế under the cursor.
+  const [busyField, setBusyField] = useState<DurationField | "start" | null>(
+    null
+  );
+  const [savedField, setSavedField] = useState<DurationField | "start" | null>(
+    null
+  );
+  useServerAction(state, isPending, {
+    ...ACTION_TOAST_TITLES,
+    // Blur-commit with no feedback was the complaint: you type, you tab, and
+    // nothing says the number reached the server. Mark the field instead of
+    // toasting on every keystroke-commit.
+    silent: true,
+    onSuccess: () => {
+      setSavedField(busyField);
+      setBusyField(null);
+    },
+    onError: () => setBusyField(null),
+  });
 
   const [start, setStart] = useState(project.start_date ?? "");
   const [est, setEst] = useState(
@@ -97,10 +116,16 @@ export function DurationForm({
 
   // Commits an integer duration on blur; ignores blank/NaN so a cleared field
   // doesn't patch the row to 0.
+  // ponytail: blank still cannot clear a duration back to "not set" — the PATCH
+  // schema has no nullable for these two, so a cleared box is a no-op rather
+  // than a lie. Same shape as the chấm công cell fixed in plan 02; needs
+  // `est_duration_days`/`actual_duration_days` to accept null first.
   const commitInt = (field: DurationField) => (value: string) => {
     if (value === "") return;
     const n = Math.trunc(Number(value));
-    if (Number.isNaN(n)) return;
+    if (Number.isNaN(n) || n < 0) return;
+    setSavedField(null);
+    setBusyField(field);
     startTransition(() => formAction({ [field]: n }));
   };
 
@@ -108,8 +133,19 @@ export function DurationForm({
   // only empties the input; no patch is sent (same guard as commitInt).
   const handleStartDateChange = (value: string) => {
     setStart(value);
-    if (value) startTransition(() => formAction({ start_date: value }));
+    if (!value) return;
+    setSavedField(null);
+    setBusyField("start");
+    startTransition(() => formAction({ start_date: value }));
   };
+
+  // "Đã lưu" / "Đang lưu…" beside the field that is actually writing.
+  const fieldStatus = (field: DurationField | "start") =>
+    busyField === field ? (
+      <span className="pb-2 text-xs text-muted-foreground">Đang lưu…</span>
+    ) : savedField === field ? (
+      <span className="pb-2 text-xs text-emerald-600">Đã lưu</span>
+    ) : null;
 
   return (
     <section className="space-y-3 text-sm">
@@ -119,24 +155,28 @@ export function DurationForm({
           <DateInput
             id="start-date"
             value={start}
-            disabled={isPending}
+            disabled={busyField === "start"}
             className="h-8 w-auto"
             onChange={handleStartDateChange}
           />
         </div>
+        {fieldStatus("start")}
         <div className="space-y-1.5">
           <Label htmlFor="est-days">Dự kiến (ngày)</Label>
+          {/* Not type="number": the field commits on BLUR, so a stray scroll
+              wheel over it stepped the value and wrote the result to the server.
+              inputMode keeps the numeric keypad; commitInt does the parsing. */}
           <Input
             id="est-days"
-            type="number"
-            min={0}
+            inputMode="numeric"
             value={est}
-            disabled={isPending}
+            disabled={busyField === DurationField.ESTIMATED}
             className="h-8 w-24"
             onChange={(e) => setEst(e.target.value)}
             onBlur={(e) => commitInt(DurationField.ESTIMATED)(e.target.value)}
           />
         </div>
+        {fieldStatus(DurationField.ESTIMATED)}
         {estEnd ? (
           <span className="flex items-center gap-2 pb-1.5 text-muted-foreground">
             → {formatDate(estEnd)}
@@ -150,15 +190,15 @@ export function DurationForm({
           <Label htmlFor="actual-days">Thực tế (ngày · nguồn chính)</Label>
           <Input
             id="actual-days"
-            type="number"
-            min={0}
+            inputMode="numeric"
             value={actual}
-            disabled={isPending}
+            disabled={busyField === DurationField.ACTUAL}
             className="h-8 w-24"
             onChange={(e) => setActual(e.target.value)}
             onBlur={(e) => commitInt(DurationField.ACTUAL)(e.target.value)}
           />
         </div>
+        {fieldStatus(DurationField.ACTUAL)}
         <span className="flex items-center gap-2 pb-1.5 text-muted-foreground">
           Chấm công (toàn công trình): {totalHours} giờ / {recordedDays} ngày có
           ghi nhận

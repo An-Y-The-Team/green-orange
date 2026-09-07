@@ -37,6 +37,21 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   );
 }
 
+/**
+ * Totals row. A second `<tbody>` was standing in for this — it renders, but a
+ * summary row is not another body: `<tfoot>` is what tells a screen reader (and
+ * a printer, which repeats it per page) that the numbers are an aggregate.
+ */
+function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
+  return (
+    <tfoot
+      data-slot="table-footer"
+      className={cn("border-t bg-muted/30 font-medium", className)}
+      {...props}
+    />
+  );
+}
+
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   return (
     <tr
@@ -73,4 +88,12 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   );
 }
 
-export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell };
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableRow,
+  TableHead,
+  TableCell,
+};
