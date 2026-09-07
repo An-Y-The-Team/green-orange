@@ -46,13 +46,23 @@ describe("client list — filters, search, sort", () => {
     expect(counts[0]?.where).toBe(findMany[0]?.where as never);
   });
 
-  test("search ORs name and tax_code, case-insensitively", async () => {
+  // The name goes through the diacritic-insensitive column so `an phat` finds
+  // "An Phát"; the tax code is digits and stays a plain case-fold.
+  test("search ORs the normalized name and tax_code", async () => {
     const { findMany, list } = capture();
-    await list({ search: "cty" });
+    await list({ search: "Cty" });
     expect(findMany[0]?.where.OR).toEqual([
-      { name: { contains: "cty", mode: "insensitive" } },
-      { tax_code: { contains: "cty", mode: "insensitive" } },
+      { name_norm: { contains: "cty" } },
+      { tax_code: { contains: "Cty", mode: "insensitive" } },
     ]);
+  });
+
+  test("an accented query is folded before it reaches the column", async () => {
+    const { findMany, list } = capture();
+    await list({ search: "An Phát" });
+    expect(findMany[0]?.where.OR?.[0]).toEqual({
+      name_norm: { contains: "an phat" },
+    });
   });
 
   test("whitelisted sort gets the id tiebreak", async () => {

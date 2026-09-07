@@ -7,13 +7,7 @@ import { BadRequestException, ValidationPipe } from "@nestjs/common";
 import { describe, expect, test } from "bun:test";
 import { IsIn, IsInt, IsOptional } from "class-validator";
 
-import {
-  CsvIn,
-  CsvIntIn,
-  ListQueryDto,
-  insensitive,
-  orderByArgs,
-} from "./list-query";
+import { CsvIn, CsvIntIn, ListQueryDto, insensitive, normalizeSearch, orderByArgs, unaccented } from "./list-query";
 
 class FixtureQuery extends ListQueryDto {
   @IsOptional() @CsvIn() @IsIn(["a", "b", "c"], { each: true }) tag?: string[];
@@ -102,5 +96,55 @@ describe("orderByArgs", () => {
         fallback: [{ id: "asc" }],
       })
     ).toEqual([{ id: "asc" }]);
+  });
+});
+
+// The bug this is the fix for: every search box folded case but not accents, so
+// `an phat` returned ZERO rows for "Công ty TNHH An Phát" — not a longer list,
+// nothing. The query side must fold exactly the way the Postgres generated
+// column does (`lower(unaccent(name))`), or the two never meet.
+describe("normalizeSearch (query side of the *_norm columns)", () => {
+  test("folds Vietnamese tone marks and case", () => {
+    expect(normalizeSearch("Công ty TNHH An Phát")).toBe(
+      "cong ty tnhh an phat"
+    );
+    expect(normalizeSearch("Nguyễn Thị Hoa")).toBe("nguyen thi hoa");
+    expect(normalizeSearch("Vệ sinh kính")).toBe("ve sinh kinh");
+  });
+
+  // đ/Đ is the one Vietnamese letter NFD decomposition does not fold: it is a
+  // distinct letter, not a base + combining mark. Postgres's unaccent maps it
+  // to d, so this has to as well.
+  test("folds đ and Đ, which decomposition alone leaves alone", () => {
+    expect(normalizeSearch("Đà Nẵng")).toBe("da nang");
+    expect(normalizeSearch("Đội thi công đường")).toBe("doi thi cong duong");
+  });
+
+  test("an already-plain query is unchanged", () => {
+    expect(normalizeSearch("an phat")).toBe("an phat");
+    expect(normalizeSearch("CT-2026-001")).toBe("ct-2026-001");
+  });
+
+  test("the query and the stored value meet in the middle", () => {
+    // What Postgres stores for the row, computed the same way:
+    const stored = normalizeSearch("Công ty TNHH An Phát");
+    // …and what a hurried operator types:
+    for (const typed of ["an phat", "An Phát", "AN PHAT", "ty tnhh"]) {
+      expect(stored).toContain(normalizeSearch(typed));
+    }
+  });
+});
+
+describe("unaccented (the Prisma predicate)", () => {
+  test("normalizes and drops the case-insensitive mode", () => {
+    // `mode: insensitive` would be redundant — the column is already lowered —
+    // and on a citext-free column it costs an extra ILIKE.
+    expect(unaccented("An Phát")).toEqual({ contains: "an phat" });
+  });
+
+  test("still escapes LIKE wildcards", () => {
+    // Without this a search of "%" matched every row.
+    expect(unaccented("100%").contains).toBe("100\\%");
+    expect(unaccented("a_b").contains).toBe("a\\_b");
   });
 });

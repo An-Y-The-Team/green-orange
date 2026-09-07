@@ -31,6 +31,7 @@ import {
   ListQueryDto,
   insensitive,
   orderByArgs,
+  unaccented,
 } from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { PrismaService } from "../prisma/prisma.service";
@@ -88,7 +89,9 @@ export class ClientsController {
       ...(query.search
         ? {
             OR: [
-              { name: insensitive(query.search) },
+              // Diacritic-insensitive on the name (see `unaccented`); the tax
+              // code is digits, so plain case-insensitivity already covers it.
+              { name_norm: unaccented(query.search) },
               { tax_code: insensitive(query.search) },
             ],
           }

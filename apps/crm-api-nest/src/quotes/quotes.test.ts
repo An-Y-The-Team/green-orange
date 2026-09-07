@@ -117,11 +117,11 @@ describe("quote list — filters, search, sort", () => {
     const where = prisma.findManyArgs[0].where;
     expect(where.status).toEqual({ in: ["deal", "waiting"] });
     expect(where.OR).toEqual([
-      { project: { name: { contains: "villa", mode: "insensitive" } } },
+      { project: { name_norm: { contains: "villa" } } },
       { project: { code: { contains: "villa", mode: "insensitive" } } },
       {
         project: {
-          client: { name: { contains: "villa", mode: "insensitive" } },
+          client: { name_norm: { contains: "villa" } },
         },
       },
     ]);

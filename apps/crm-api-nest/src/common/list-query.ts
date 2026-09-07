@@ -50,6 +50,36 @@ export const insensitive = (search: string) => ({
 });
 
 /**
+ * Diacritic-insensitive match, for the `*_norm` search columns.
+ *
+ * Vietnamese is typed at speed without tone marks, so `an phat` has to find
+ * "Công ty TNHH An Phát". It used to find NOTHING — `contains` folds case but
+ * not accents. Postgres holds `lower(unaccent(name))` in a STORED generated
+ * column (migration 20260907000000_unaccent_search); this normalizes the QUERY
+ * the same way so the two meet.
+ *
+ * `unaccent` cannot be called inside a Prisma `where`, which is why the
+ * normalization is stored rather than computed per query.
+ *
+ * Node's NFD-decompose + strip-combining-marks is not a substitute for
+ * Postgres's dictionary in general, but for Vietnamese it agrees on every
+ * letter in the alphabet — including đ/Đ, which decomposition alone does NOT
+ * fold, hence the explicit pair.
+ */
+export const unaccented = (search: string) => ({
+  contains: normalizeSearch(search).replace(/[\\%_]/g, "\\$&"),
+});
+
+/** `lower(unaccent(x))`, matching what the generated column stores. */
+export const normalizeSearch = (value: string): string =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+
+/**
  * Whitelisted, client-controlled sort. `map` is the per-endpoint whitelist
  * (entries are functions so relation sorts like `(o) => ({ client: { name: o
  * } })` fit); `sort_by` outside it is rejected upstream by the DTO's `@IsIn`.

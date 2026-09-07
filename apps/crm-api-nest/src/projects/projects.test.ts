@@ -122,9 +122,10 @@ describe("project list — filters, search, sort", () => {
     const { findMany, list } = capture();
     await list({ search: "villa" });
     expect(findMany[0]?.where.OR).toEqual([
-      { name: { contains: "villa", mode: "insensitive" } },
+      // Names go through the diacritic-insensitive column; the code is ASCII.
+      { name_norm: { contains: "villa" } },
       { code: { contains: "villa", mode: "insensitive" } },
-      { client: { name: { contains: "villa", mode: "insensitive" } } },
+      { client: { name_norm: { contains: "villa" } } },
     ]);
   });
 

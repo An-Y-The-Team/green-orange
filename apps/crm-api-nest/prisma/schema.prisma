@@ -40,6 +40,15 @@ model User {
 model Client {
   id         Int      @id @default(autoincrement())
   name       String
+  /// Search key: `lower(unaccent(name))`, maintained by Postgres as a STORED
+  /// GENERATED column (migration 20260907000000_unaccent_search) so that
+  /// `an phat` finds "An Phát". NEVER write it — Postgres rejects that — and
+  /// never return it: `serialize.interceptor.ts` strips `*_norm` so the HTTP
+  /// contract stays identical to the Python backend, which has no such column.
+  /// Regenerating this table from schema.prisma alone (`db push`) would create
+  /// it as a plain column and search would silently stop updating; the
+  /// generated expression lives in that migration.
+  name_norm  String?
   type       String // company | individual
   tax_code   String?
   // Registered address (địa chỉ đăng ký kinh doanh) — the Bên A line on a
@@ -104,6 +113,15 @@ model Project {
   working_contact_id        Int // defaults to location manager (app logic)
   decision_maker_contact_id Int // defaults to working contact (app logic)
   name                      String
+  /// Search key: `lower(unaccent(name))`, maintained by Postgres as a STORED
+  /// GENERATED column (migration 20260907000000_unaccent_search) so that
+  /// `an phat` finds "An Phát". NEVER write it — Postgres rejects that — and
+  /// never return it: `serialize.interceptor.ts` strips `*_norm` so the HTTP
+  /// contract stays identical to the Python backend, which has no such column.
+  /// Regenerating this table from schema.prisma alone (`db push`) would create
+  /// it as a plain column and search would silently stop updating; the
+  /// generated expression lives in that migration.
+  name_norm  String?
   request_note              String? // stage 1: short "what they want done" from the first call
   referral_source           String? // stage 1: free text (giới thiệu, gọi lại, …) — not a managed list
   stage                     String    @default("request") // request | quote | contract | paperwork | execution | acceptance | settlement | closed
@@ -368,6 +386,15 @@ model CrewRole {
 model CrewMember {
   id              Int      @id @default(autoincrement())
   name            String
+  /// Search key: `lower(unaccent(name))`, maintained by Postgres as a STORED
+  /// GENERATED column (migration 20260907000000_unaccent_search) so that
+  /// `an phat` finds "An Phát". NEVER write it — Postgres rejects that — and
+  /// never return it: `serialize.interceptor.ts` strips `*_norm` so the HTTP
+  /// contract stays identical to the Python backend, which has no such column.
+  /// Regenerating this table from schema.prisma alone (`db push`) would create
+  /// it as a plain column and search would silently stop updating; the
+  /// generated expression lives in that migration.
+  name_norm  String?
   phone           String? // Zalo — future mini-app identity, capture from day one
   employment_type String // permanent | day_hire
   default_role_id Int?

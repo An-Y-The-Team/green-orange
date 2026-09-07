@@ -42,6 +42,7 @@ import {
   ListQueryDto,
   insensitive,
   orderByArgs,
+  unaccented,
 } from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
@@ -253,9 +254,10 @@ export class ProjectsController {
       ...(query.search
         ? {
             OR: [
-              { name: insensitive(query.search) },
+              { name_norm: unaccented(query.search) },
+              // Codes are ASCII (CT-2026-001), so they need no normalization.
               { code: insensitive(query.search) },
-              { client: { name: insensitive(query.search) } },
+              { client: { name_norm: unaccented(query.search) } },
             ],
           }
         : {}),

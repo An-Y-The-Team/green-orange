@@ -35,6 +35,7 @@ import {
   ListQueryDto,
   insensitive,
   orderByArgs,
+  unaccented,
 } from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
@@ -169,7 +170,8 @@ export class CrewController {
       ...(query.search
         ? {
             OR: [
-              { name: insensitive(query.search) },
+              { name_norm: unaccented(query.search) },
+              // Phone numbers are digits.
               { phone: insensitive(query.search) },
             ],
           }

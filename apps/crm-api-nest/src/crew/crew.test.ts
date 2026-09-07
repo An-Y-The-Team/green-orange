@@ -310,7 +310,8 @@ describe("crew list — search and sort", () => {
     const { findMany, list } = capture();
     await list({ search: "0903", role_id: [1, 2] });
     expect(findMany[0]?.where.OR).toEqual([
-      { name: { contains: "0903", mode: "insensitive" } },
+      { name_norm: { contains: "0903" } },
+      // Phone numbers are digits, so a plain case-fold already matches.
       { phone: { contains: "0903", mode: "insensitive" } },
     ]);
     expect(findMany[0]?.where.default_role_id).toEqual({ in: [1, 2] });

@@ -58,3 +58,37 @@ describe("normalize — column-name plumbing", () => {
     expect(normalize(undefined)).toBeUndefined();
   });
 });
+
+// The search columns are an implementation detail of ONE backend. Leaking them
+// would make the Nest and FastAPI responses differ, and crm-web's mirrored types
+// describe neither.
+describe("internal *_norm search keys", () => {
+  test("are stripped from every level of the response", () => {
+    const out = normalize({
+      id: 1,
+      name: "Công ty TNHH An Phát",
+      name_norm: "cong ty tnhh an phat",
+      client: { id: 2, name: "Chị Hoa", name_norm: "chi hoa" },
+      projects: [{ id: 3, name: "Vệ sinh", name_norm: "ve sinh" }],
+    }) as Record<string, unknown>;
+
+    expect(out).not.toHaveProperty("name_norm");
+    expect(out.client).not.toHaveProperty("name_norm");
+    expect((out.projects as Record<string, unknown>[])[0]).not.toHaveProperty(
+      "name_norm"
+    );
+    // …and the real fields survive.
+    expect(out.name).toBe("Công ty TNHH An Phát");
+    expect((out.client as Record<string, unknown>).name).toBe("Chị Hoa");
+  });
+
+  test("a legitimate column merely ending in the word is untouched", () => {
+    // Only the `_norm` SUFFIX is internal; nothing named like this exists today,
+    // but the rule must not swallow a real column later.
+    const out = normalize({ norm: "keep me", normal: "keep me too" }) as Record<
+      string,
+      unknown
+    >;
+    expect(out).toEqual({ norm: "keep me", normal: "keep me too" });
+  });
+});

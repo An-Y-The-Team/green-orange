@@ -37,6 +37,7 @@ import {
   ListQueryDto,
   insensitive,
   orderByArgs,
+  unaccented,
 } from "../common/list-query";
 import { pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
@@ -214,9 +215,9 @@ export class QuotesController {
       ...(query.search
         ? {
             OR: [
-              { project: { name: insensitive(query.search) } },
+              { project: { name_norm: unaccented(query.search) } },
               { project: { code: insensitive(query.search) } },
-              { project: { client: { name: insensitive(query.search) } } },
+              { project: { client: { name_norm: unaccented(query.search) } } },
             ],
           }
         : {}),

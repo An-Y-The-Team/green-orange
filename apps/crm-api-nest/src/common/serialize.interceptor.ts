@@ -14,6 +14,18 @@ import { Observable, map } from "rxjs";
  */
 export const DATE_ONLY_SUFFIX = "_date";
 
+/**
+ * Internal search keys (`Client.name_norm` & co) never leave the process.
+ *
+ * They are Postgres-maintained generated columns holding `lower(unaccent(name))`
+ * so that `an phat` matches "An Phát" (migration
+ * 20260907000000_unaccent_search). Prisma returns every scalar by default, so
+ * without this they would appear on every client/project/crew payload — noise,
+ * and worse, a contract difference from the Python backend, which has no such
+ * column. Stripping here keeps the two responses identical.
+ */
+export const INTERNAL_SUFFIX = "_norm";
+
 // Contract-wide serialization rules, applied once for every response:
 //   • BigInt (integer VND) → JSON number. Safe: VND values are well under 2^53.
 //   • Prisma Decimal (quantity, hours) → JSON number.
@@ -38,7 +50,10 @@ export function normalize(value: unknown, columnName?: string): unknown {
     return (value as unknown[]).map((v) => normalize(v, columnName));
   if (typeof value === "object") {
     const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) out[k] = normalize(v, k);
+    for (const [k, v] of Object.entries(value)) {
+      if (k.endsWith(INTERNAL_SUFFIX)) continue;
+      out[k] = normalize(v, k);
+    }
     return out;
   }
   return value;
