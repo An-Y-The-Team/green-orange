@@ -3,7 +3,7 @@
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app.core.rules import business_today
+from app.core.rules import STAGE_ORDER, business_today
 from app.models.paperwork import DEFAULT_PAPERWORK
 from tests.conftest import close_project
 
@@ -147,3 +147,80 @@ def test_attachment_must_belong_to_its_paperwork_item(
         },
     )
     assert res.status_code == 400
+
+
+def test_summary_is_every_stage_with_its_chot_total(
+    client: TestClient, fixtures: dict, project: dict
+):
+    rows = client.get("/projects/summary").json()
+    # All 8 stages, in pipeline order, so the dashboard never invents the empty
+    # ones itself — an absent stage is a real zero, not unknown.
+    assert [r["stage"] for r in rows] == list(STAGE_ORDER)
+    assert next(r for r in rows if r["stage"] == "request") == {
+        "stage": "request",
+        "count": 1,
+        "deal_total": 0,
+    }
+
+    quote = client.post(
+        "/quotes",
+        json={
+            "project_id": project["id"],
+            "items": [
+                {"description": "Vệ sinh", "quantity": 10, "unit_price": 100_000}
+            ],
+        },
+    ).json()
+    client.post(
+        f"/quotes/{quote['id']}/send", json={"channel": "zalo", "sent_by": "An"}
+    )
+    client.post(f"/quotes/{quote['id']}/decide", json={"status": "deal"})
+
+    rows = client.get("/projects/summary").json()
+    # Σ of the CHỐT quote — the committed value, and the project moved to quote.
+    assert next(r for r in rows if r["stage"] == "quote") == {
+        "stage": "quote",
+        "count": 1,
+        "deal_total": 1_000_000,
+    }
+
+    # Cancelled công trình leave the pipeline entirely.
+    client.patch(
+        f"/projects/{project['id']}",
+        json={"status": "cancelled", "cancel_reason": "khách đổi ý"},
+    )
+    assert all(
+        r["count"] == 0 and r["deal_total"] == 0
+        for r in client.get("/projects/summary").json()
+    )
+
+
+def test_today_filters_are_applied_by_the_server_not_the_page(
+    client: TestClient, project: dict
+):
+    today = business_today()
+    # 06:30 ICT — stored 23:30Z the day BEFORE, which is exactly the row a UTC
+    # date comparison drops from "today".
+    client.patch(
+        f"/projects/{project['id']}",
+        json={"appointment_at": f"{today.isoformat()}T06:30:00+07:00"},
+    )
+
+    def codes(query: str) -> list[str]:
+        return [p["code"] for p in client.get(f"/projects?{query}").json()]
+
+    assert codes(f"appointment_date={today.isoformat()}") == [project["code"]]
+    assert codes("appointment_date=2020-01-01") == []
+    # Not yet visited…
+    assert codes("visited=false") == [project["code"]]
+    assert codes("visited=true") == []
+    client.patch(f"/projects/{project['id']}", json={"visit_date": today.isoformat()})
+    assert codes("visited=true") == [project["code"]]
+    assert codes("visited=false") == []
+    # A parked job only resurfaces once its follow-up date has arrived.
+    assert codes("follow_up_due=true") == []
+    client.patch(
+        f"/projects/{project['id']}",
+        json={"status": "on_hold", "follow_up_date": today.isoformat()},
+    )
+    assert codes("follow_up_due=true") == [project["code"]]

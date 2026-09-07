@@ -8,12 +8,9 @@
 //   • Bills have no POST/DELETE — they live and die with their settlement.
 //   • "overdue" is DERIVED (due_date < today && status != paid), never stored.
 //
-// Python counterpart: `crm-api/app/api/routes/receivables.py`.
-// DIVERGENT as of 2026-09-07 — the summary endpoint and the sort/csv-status
-// params below exist HERE ONLY (crm-ui plan 06 shipped Nest-first by decision).
-// Pointing CRM_API_URL at :8000 gives crm-web an unfiltered, unsorted money
-// screen with no totals. Mirroring is tracked in
-// ~/.claude/plans/crm-ui-06-money-screens.md § "Deferred: the Python twin".
+// Python counterpart: `crm-api/app/api/routes/receivables.py`, back in step as
+// of 2026-09-08 — the summary endpoint, the sort/csv-status params and the
+// giảm giá/VAT pair all exist in both, so CRM_API_URL may point at either.
 import {
   BadRequestException,
   Body,

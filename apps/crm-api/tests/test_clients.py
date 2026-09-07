@@ -119,3 +119,48 @@ def test_client_with_projects_cannot_be_deleted(
     assert client.delete(f"/clients/{fixtures['client_id']}").status_code == 409
     assert client.delete(f"/locations/{fixtures['location_id']}").status_code == 409
     assert project["client"]["id"] == fixtures["client_id"]
+
+
+def test_registered_address_is_stored_and_editable(client: TestClient):
+    # Bên A's address on a contract — a company may supply one, an individual
+    # must (it also seeds their default location).
+    created = client.post(
+        "/clients",
+        json={
+            "name": "Công ty TNHH An Phát",
+            "type": "company",
+            "address": "45 Lê Duẩn, Quận 1, TP.HCM",
+        },
+    ).json()
+    assert created["address"] == "45 Lê Duẩn, Quận 1, TP.HCM"
+    patched = client.patch(
+        f"/clients/{created['id']}", json={"address": "12 Trần Não, TP. Thủ Đức"}
+    )
+    assert patched.json()["address"] == "12 Trần Não, TP. Thủ Đức"
+
+    individual = client.post(
+        "/clients",
+        json={"name": "Chị Hoa", "type": "individual", "address": "12 Trần Não"},
+    ).json()
+    # Stored on the client AND used for the default location, not one or other.
+    assert individual["address"] == "12 Trần Não"
+    assert individual["locations"][0]["address"] == "12 Trần Não"
+
+
+def test_search_ignores_diacritics_in_both_directions(client: TestClient):
+    client.post("/clients", json={"name": "Công ty TNHH An Phát", "type": "company"})
+    client.post("/clients", json={"name": "Xưởng Đường Đá", "type": "company"})
+
+    def names(query: str) -> list[str]:
+        return [c["name"] for c in client.get(f"/clients?search={query}").json()]
+
+    # Typed without tone marks — the case this exists for. Used to find nothing.
+    assert names("an phat") == ["Công ty TNHH An Phát"]
+    assert names("duong da") == ["Xưởng Đường Đá"]
+    # …and typed with them, which still has to work.
+    assert names("An Phát") == ["Công ty TNHH An Phát"]
+    # A rename keeps the search key in step (the mapper event, not the route).
+    created = client.get("/clients?search=an phat").json()[0]
+    client.patch(f"/clients/{created['id']}", json={"name": "Công ty Bình Minh"})
+    assert names("an phat") == []
+    assert names("binh minh") == ["Công ty Bình Minh"]

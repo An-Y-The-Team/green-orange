@@ -6,18 +6,27 @@ advance_stage, called from the quote / contract / settlement / milestone routes)
 and a manual jump just applies. A closed project is locked.
 """
 
+from datetime import date
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, or_
 from sqlmodel import Session, select
 
-from app.api.common import PageDep, csv_filter, ilike, order_by, paged
+from app.api.common import (
+    PageDep,
+    csv_filter,
+    ilike,
+    order_by,
+    paged,
+    unaccented,
+)
 from app.api.deps import SessionDep, get_current_user
 from app.core.rules import (
     CLOSED_PROJECT_MESSAGE,
     STAGE_ORDER,
     assert_project_open,
+    business_day_range,
     business_today,
     next_code,
 )
@@ -39,6 +48,7 @@ from app.models.project import (
     ProjectNoteCreate,
     ProjectNotePublic,
     ProjectPublic,
+    ProjectStageSummary,
     ProjectType,
     ProjectTypeIn,
     ProjectTypePublic,
@@ -161,6 +171,12 @@ def list_projects(
     stage: Annotated[str | None, Query()] = None,
     status_: Annotated[str | None, Query(alias="status")] = None,
     search: Annotated[str | None, Query(max_length=300)] = None,
+    # Derived filters for the dashboard / field "today" panels — the same idea
+    # as `overdue=true` on the đợt list: the rule belongs where the rows are, or
+    # every consumer rebuilds it over whichever page it happened to fetch.
+    appointment_date: Annotated[date | None, Query()] = None,
+    visited: Annotated[Literal["true", "false"] | None, Query()] = None,
+    follow_up_due: Annotated[Literal["true", "false"] | None, Query()] = None,
     sort_by: Annotated[
         Literal["code", "name", "appointment_at", "created_at"] | None, Query()
     ] = None,
@@ -169,6 +185,22 @@ def list_projects(
     statement = select(Project)
     if client_id is not None:
         statement = statement.where(Project.client_id == client_id)
+    if appointment_date is not None:
+        # Half-open local day, not a UTC date prefix — see business_day_range.
+        start, end = business_day_range(appointment_date)
+        statement = statement.where(
+            Project.appointment_at >= start, Project.appointment_at < end
+        )
+    if visited == "false":
+        statement = statement.where(Project.visit_date.is_(None))
+    elif visited == "true":
+        statement = statement.where(Project.visit_date.is_not(None))
+    if follow_up_due == "true":
+        # Parked jobs whose follow-up date has arrived.
+        statement = statement.where(
+            Project.follow_up_date.is_not(None),
+            Project.follow_up_date <= business_today(),
+        )
     stages = csv_filter(stage, STAGE_ORDER, "stage")
     if stages:
         statement = statement.where(Project.stage.in_(stages))
@@ -178,9 +210,10 @@ def list_projects(
     if search:
         statement = statement.where(
             or_(
-                ilike(Project.name, search),
+                unaccented(Project.name_norm, search),
+                # Codes are ASCII (CT-2026-001), so they need no normalization.
                 ilike(Project.code, search),
-                Project.client.has(ilike(Client.name, search)),
+                Project.client.has(unaccented(Client.name_norm, search)),
             )
         )
     return paged(
@@ -202,6 +235,44 @@ def list_projects(
         ),
         page,
     )
+
+
+# Declared above any "/{id}" route so the literal segment wins the match.
+@router.get("/summary", response_model=list[ProjectStageSummary])
+def get_projects_summary(session: SessionDep) -> list[ProjectStageSummary]:
+    """Pipeline rollup for the dashboard: one row per stage, active only.
+
+    `deal_total` is the Σ of each project's CHỐT quote — the committed value,
+    not "whatever was last quoted" — so the number on the dashboard means one
+    specific thing. Twin of GET /projects/summary in
+    crm-api-nest/src/projects/projects.module.ts, which reduces in JS because
+    Prisma cannot group by a relation field; here it is one grouped join.
+    """
+    counts = dict(
+        session.exec(
+            select(Project.stage, func.count())
+            .where(Project.status == "active")
+            .group_by(Project.stage)
+        ).all()
+    )
+    deal_totals = dict(
+        session.exec(
+            select(Project.stage, func.sum(Quote.total_amount))
+            .join(Quote, Quote.project_id == Project.id)
+            .where(Project.status == "active", Quote.status == "deal")
+            .group_by(Project.stage)
+        ).all()
+    )
+    # Every stage present and in pipeline order, so the dashboard renders its
+    # columns without inventing the empty ones itself.
+    return [
+        ProjectStageSummary(
+            stage=stage,
+            count=counts.get(stage, 0),
+            deal_total=deal_totals.get(stage) or 0,
+        )
+        for stage in STAGE_ORDER
+    ]
 
 
 @router.get("/{project_id}", response_model=ProjectDetail)

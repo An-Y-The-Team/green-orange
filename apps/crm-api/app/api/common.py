@@ -13,6 +13,8 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 from sqlmodel.sql.expression import SelectOfScalar
 
+from app.core.search import normalize_search
+
 # Deliberately larger than a web page: several callers aggregate the whole array
 # (dashboard debt totals, timekeeping hours), so a small default would silently
 # return wrong numbers instead of visibly paginating.
@@ -84,6 +86,18 @@ def ilike(column: Any, search: str) -> Any:
     return column.ilike(f"%{escaped}%", escape="\\")
 
 
+def unaccented(column: Any, search: str) -> Any:
+    """Diacritic-insensitive match against a `*_norm` column.
+
+    Vietnamese is typed at speed without tone marks, so `an phat` has to find
+    "Công ty TNHH An Phát" — `ilike` folds case but not accents. The column
+    holds lower(unaccent(name)) (app/core/search.py); this folds the QUERY the
+    same way so the two meet. Twin of `unaccented()` in
+    crm-api-nest/src/common/list-query.ts.
+    """
+    return ilike(column, normalize_search(search))
+
+
 def csv_filter(
     value: str | None, allowed: tuple[str, ...], name: str
 ) -> list[str] | None:
@@ -107,14 +121,22 @@ def order_by(
     sort_order: str | None,
     fallback: list[Any],
     tiebreak: Any,
+    nulls_last: bool = False,
 ) -> list[Any]:
     """Whitelisted, client-controlled sort.
 
     A chosen sort always gets the `id` tiebreak — every sortable column here is
     non-unique, and without a total order pages overlap. No `sort_by` keeps the
     endpoint's historical default order.
+
+    `nulls_last` is for lists whose sortable columns are mostly nullable dates
+    (the two money lists): an đợt with no due date belongs at the bottom in
+    BOTH directions, whereas Postgres would put it on top when sorting desc.
+    Everywhere else the default placement is left alone, because that is what
+    the NestJS twin's plain Prisma `orderBy` emits.
     """
     if not sort_by:
         return fallback
     column = columns[sort_by]
-    return [column.desc() if sort_order == "desc" else column.asc(), tiebreak.desc()]
+    direction = column.desc() if sort_order == "desc" else column.asc()
+    return [direction.nulls_last() if nulls_last else direction, tiebreak.desc()]

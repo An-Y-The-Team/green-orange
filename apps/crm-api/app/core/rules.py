@@ -6,7 +6,7 @@ code,business-date}.ts`. Keep the two in step — these rules decide what a côn
 trình's stage means and when it may still be edited.
 """
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import get_args
 from zoneinfo import ZoneInfo
 
@@ -35,6 +35,19 @@ CLOSED_PROJECT_MESSAGE = (
 def business_today() -> date:
     """Today's date on the Vietnam business calendar."""
     return datetime.now(BUSINESS_TZ).date()
+
+
+def business_day_range(day: date) -> tuple[datetime, datetime]:
+    """Half-open [start, next) in UTC covering one Vietnam calendar day.
+
+    For filtering a TIMESTAMP column (`appointment_at`) by a local date. Vietnam
+    has no DST, so the day is exactly [+07:00 midnight, +1 day). Comparing UTC
+    date prefixes instead is the bug this exists to prevent: an appointment at
+    06:30 ICT is stored 23:30Z on the PREVIOUS UTC day. Twin of
+    `businessDayRange` in crm-api-nest/src/common/business-date.ts.
+    """
+    start = datetime.combine(day, datetime.min.time(), tzinfo=BUSINESS_TZ)
+    return start.astimezone(UTC), (start + timedelta(days=1)).astimezone(UTC)
 
 
 def should_advance(current: str, target: str) -> bool:

@@ -39,6 +39,10 @@ class CrewRole(SQLModel, table=True):
 class CrewMember(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str
+    # Search key: lower(unaccent(name)) — see app/core/search.py. Written by the
+    # mapper event in app/models/__init__.py, never returned (the response
+    # models below list their fields explicitly), GIN-indexed in the migration.
+    name_norm: str | None = None
     phone: str | None = None  # Zalo — the mini-app identity, captured day one
     employment_type: str = Field(index=True)  # permanent | day_hire
     default_role_id: int | None = Field(

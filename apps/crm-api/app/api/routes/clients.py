@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, or_
 from sqlmodel import Session, select
 
-from app.api.common import PageDep, csv_filter, ilike, order_by, paged
+from app.api.common import PageDep, csv_filter, ilike, order_by, paged, unaccented
 from app.api.deps import SessionDep, get_current_user
 from app.models.client import (
     CLIENT_TYPES,
@@ -93,7 +93,12 @@ def list_clients(
         statement = statement.where(Client.type.in_(types))
     if search:
         statement = statement.where(
-            or_(ilike(Client.name, search), ilike(Client.tax_code, search))
+            or_(
+                # Diacritic-insensitive on the name; the tax code is digits, so
+                # plain case-insensitivity already covers it.
+                unaccented(Client.name_norm, search),
+                ilike(Client.tax_code, search),
+            )
         )
     rows = paged(
         session,
@@ -149,6 +154,7 @@ def create_client(session: SessionDep, payload: ClientCreate) -> Client:
         name=payload.name,
         type=payload.type,
         tax_code=payload.tax_code,
+        address=payload.address,
         email=payload.email,
         note=payload.note,
     )

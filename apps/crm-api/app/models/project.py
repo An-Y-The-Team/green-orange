@@ -94,6 +94,10 @@ class Project(SQLModel, table=True):
     # Defaults to the working contact (app logic).
     decision_maker_contact_id: int = Field(foreign_key="contact.id", index=True)
     name: str
+    # Search key: lower(unaccent(name)) — see app/core/search.py. Written by the
+    # mapper event in app/models/__init__.py, never returned (the response
+    # models below list their fields explicitly), GIN-indexed in the migration.
+    name_norm: str | None = None
     # Stage 1: what they want done, from the first call.
     request_note: str | None = None
     # Stage 1: free text (giới thiệu, gọi lại, …) — not a managed list.
@@ -327,3 +331,12 @@ class AttachmentPublic(SQLModel):
     s3_key: str
     note: str | None
     created_at: datetime
+
+
+class ProjectStageSummary(SQLModel):
+    """One pipeline cell: how many active công trình sit in a stage, and the Σ
+    of their chốt quotes (GET /projects/summary)."""
+
+    stage: str
+    count: int
+    deal_total: int

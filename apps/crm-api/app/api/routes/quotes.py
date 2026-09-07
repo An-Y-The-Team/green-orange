@@ -12,7 +12,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func
 from sqlmodel import Session, or_, select
 
-from app.api.common import PageDep, csv_filter, ilike, order_by, paged
+from app.api.common import (
+    PageDep,
+    csv_filter,
+    ilike,
+    order_by,
+    paged,
+    unaccented,
+)
 from app.api.deps import SessionDep, get_current_user
 from app.core.rules import advance_stage, assert_project_open, business_today
 from app.models.client import Client
@@ -136,9 +143,11 @@ def list_quotes(
         # (nullable) project relation, so standalone quotes never match.
         statement = statement.where(
             or_(
-                Quote.project.has(ilike(Project.name, search)),
+                Quote.project.has(unaccented(Project.name_norm, search)),
                 Quote.project.has(ilike(Project.code, search)),
-                Quote.project.has(Project.client.has(ilike(Client.name, search))),
+                Quote.project.has(
+                    Project.client.has(unaccented(Client.name_norm, search))
+                ),
             )
         )
     rows = paged(

@@ -33,8 +33,19 @@ def utcnow() -> datetime:
 class Client(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str
+    # Search key: lower(unaccent(name)), so `an phat` finds "An Phát". Written
+    # by the mapper event in app/models/__init__.py; never sent to the client
+    # (every response model below lists its fields explicitly). Its index is a
+    # GIN trigram one (the predicate is LIKE '%…%', which no btree can serve),
+    # so it lives in the migration rather than here.
+    name_norm: str | None = None
     type: str  # company | individual
     tax_code: str | None = None
+    # Registered address (địa chỉ đăng ký kinh doanh) — the Bên A line on a
+    # contract, printed beside the MST. NOT a site: a client's job sites are
+    # Locations, and one client can have many. For an individual client it is
+    # also what seeds their default Location on create.
+    address: str | None = None
     # The client's own billing/contact email, distinct from Contact emails.
     email: str | None = None
     note: str | None = None
@@ -84,16 +95,19 @@ class ClientCreate(SQLModel):
     tax_code: str | None = None
     email: EmailStr | None = None
     note: str | None = None
-    # Individual clients only: the client IS their own contact, so `phone`
-    # seeds that auto-created contact and `address` its default location.
-    phone: str | None = None
+    # Stored on the client either way (Bên A on a contract). Required for an
+    # individual, because the client IS their own contact and `address` also
+    # seeds the default location that their công trình needs; `phone` seeds
+    # that auto-created contact.
     address: str | None = None
+    phone: str | None = None
 
 
 class ClientUpdate(SQLModel):
     name: str | None = Field(default=None, min_length=1)
     type: ClientType | None = None
     tax_code: str | None = None
+    address: str | None = None
     email: EmailStr | None = None
     note: str | None = None
 
@@ -158,6 +172,7 @@ class ClientPublic(SQLModel):
     name: str
     type: str
     tax_code: str | None
+    address: str | None
     email: str | None
     note: str | None
     created_at: datetime

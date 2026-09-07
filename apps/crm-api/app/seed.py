@@ -105,9 +105,15 @@ def seed_initial_data() -> None:
             name="Công ty TNHH Acme",
             type="company",
             tax_code="0312345678",
+            # Registered address, not a site — it prints as Bên A on the contract.
+            address="45 Lê Duẩn, Phường Bến Nghé, Quận 1, TP.HCM",
             email="ketoan@acme.vn",
         )
-        binh = Client(name="Trần Thị Bình", type="individual")
+        binh = Client(
+            name="Trần Thị Bình",
+            type="individual",
+            address="45 Nguyễn Trãi, Quận 5, TP.HCM",
+        )
         session.add_all([acme, binh])
         session.commit()
 

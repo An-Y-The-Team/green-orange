@@ -12,7 +12,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func
 from sqlmodel import Session, or_, select
 
-from app.api.common import PageDep, csv_filter, ilike, order_by, paged
+from app.api.common import (
+    PageDep,
+    csv_filter,
+    ilike,
+    order_by,
+    paged,
+    unaccented,
+)
 from app.api.deps import SessionDep, get_current_user
 from app.core.rules import assert_project_open, business_today
 from app.models.crew import (
@@ -203,7 +210,10 @@ def list_crew(
         statement = statement.where(CrewMember.default_role_id.in_(role_ids))
     if search:
         statement = statement.where(
-            or_(ilike(CrewMember.name, search), ilike(CrewMember.phone, search))
+            or_(
+                unaccented(CrewMember.name_norm, search),
+                ilike(CrewMember.phone, search),  # phone numbers are digits
+            )
         )
     return paged(
         session,

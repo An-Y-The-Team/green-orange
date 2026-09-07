@@ -36,8 +36,16 @@ class Settlement(SQLModel, table=True):
     # 1:1 — a project settles once; corrections revise this row.
     project_id: int = Field(foreign_key="project.id", unique=True)
     status: str = "draft"  # draft | sent | signed
-    # VND, server-computed from items; copied to the bill on sign.
+    # VND, server-computed Σ item amounts — BEFORE giảm giá and VAT, the same
+    # convention as Quote.total_amount.
     total_amount: int = Field(default=0, sa_type=BigInteger)
+    # The quyết toán settles a contract that was priced with VAT (and sometimes
+    # a giảm giá), so it has to carry both or the hóa đơn asks for less than the
+    # hợp đồng says. What the client owes = (total_amount − discount_amount) +
+    # VAT — `payable_total` in routes/receivables.py, which is what the bill
+    # gets on sign.
+    discount_amount: int = Field(default=0, sa_type=BigInteger)  # giảm giá trước thuế
+    vat_rate: float = 0.08
     signed_date: date | None = None
     note: str | None = None
 
@@ -109,11 +117,17 @@ class SettlementItemIn(SQLModel):
 class SettlementCreate(SQLModel):
     project_id: int
     items: list[SettlementItemIn] | None = None
+    discount_amount: float | None = Field(default=None, ge=0)
+    # Omitted → the column default (8%), not 0: an untaxed quyết toán is the
+    # exception, and defaulting to 0 silently under-bills.
+    vat_rate: float | None = Field(default=None, ge=0, le=1)
     note: str | None = None
 
 
 class SettlementUpdate(SQLModel):
     items: list[SettlementItemIn] | None = None
+    discount_amount: float | None = Field(default=None, ge=0)
+    vat_rate: float | None = Field(default=None, ge=0, le=1)
     status: SettlementStatus | None = None
     signed_date: date | None = None
     note: str | None = None
@@ -186,6 +200,8 @@ class SettlementPublic(SQLModel):
     project_id: int
     status: str
     total_amount: int
+    discount_amount: int
+    vat_rate: float
     signed_date: date | None
     note: str | None
     bill: BillBasic | None
@@ -198,3 +214,26 @@ class BillPublic(BillBasic):
 
 class BillListItem(BillPublic):
     project: ProjectCodeRef
+
+
+class SummaryBucket(SQLModel):
+    """`{count, total}` for one bucket of GET /receivables/summary. `total` is
+    coerced from a NULL sum, or an empty bucket would print "null ₫"."""
+
+    count: int
+    total: int
+
+
+class MilestonesSummary(SQLModel):
+    by_status: dict[str, SummaryBucket]
+    # Derived, never stored — the same predicate the list endpoint applies.
+    overdue: SummaryBucket
+
+
+class BillsSummary(SQLModel):
+    by_status: dict[str, SummaryBucket]
+
+
+class ReceivablesSummary(SQLModel):
+    milestones: MilestonesSummary
+    bills: BillsSummary

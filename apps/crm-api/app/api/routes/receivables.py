@@ -7,15 +7,19 @@ Port of `crm-api-nest/src/receivables/receivables.module.ts`. The rules:
     and schedules the balance; un-signing is its exact inverse.
   • Bills have no POST/DELETE — they live and die with their settlement.
   • "overdue" is DERIVED (due_date < today && status != paid), never stored.
+  • A quyết toán carries the same money shape as the báo giá it settles: what
+    the client owes is (Σ items − giảm giá) + VAT, and only that figure may
+    reach a bill or an đợt (`payable_total`).
 """
 
 import math
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.api.common import PageDep, paged
+from app.api.common import PageDep, csv_filter, ilike, order_by, paged
 from app.api.deps import SessionDep, get_current_user
 from app.core.rules import (
     advance_stage,
@@ -23,6 +27,7 @@ from app.core.rules import (
     assert_step,
     business_today,
 )
+from app.models.project import Project
 from app.models.receivable import (
     BILL_STATUSES,
     MILESTONE_STATUSES,
@@ -30,18 +35,22 @@ from app.models.receivable import (
     Bill,
     BillListItem,
     BillPublic,
+    BillsSummary,
     BillUpdate,
     MilestoneCreate,
     MilestoneListItem,
     MilestonePublic,
+    MilestonesSummary,
     MilestoneUpdate,
     PaymentMilestone,
+    ReceivablesSummary,
     Settlement,
     SettlementCreate,
     SettlementItem,
     SettlementItemIn,
     SettlementPublic,
     SettlementUpdate,
+    SummaryBucket,
 )
 
 router = APIRouter(
@@ -55,6 +64,11 @@ bills_router = APIRouter(
 milestones_router = APIRouter(
     prefix="/payment-milestones",
     tags=["payment-milestones"],
+    dependencies=[Depends(get_current_user)],
+)
+summary_router = APIRouter(
+    prefix="/receivables",
+    tags=["receivables"],
     dependencies=[Depends(get_current_user)],
 )
 
@@ -79,8 +93,32 @@ def compute_items(
     return rows, sum(row.amount for row in rows)
 
 
+def assert_discount_within(total: int, discount: int) -> None:
+    """Giảm giá can never exceed what there is to discount. Checked at WRITE
+    time so an unsignable row is never stored, and again in `payable_total`,
+    which reads the row back on the sign path."""
+    if discount > total:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"giảm giá ({discount}) exceeds the quyết toán subtotal ({total})",
+        )
+
+
+def payable_total(settlement: Settlement) -> int:
+    """What the client actually owes: (Σ items − giảm giá) + VAT.
+
+    `total_amount` stays the pre-tax Σ (the quyết toán sheet prints it as
+    "Cộng"), so this is the ONLY figure that may reach a bill or an đợt thanh
+    toán — billing the subtotal under-asks by the tax the hợp đồng charged.
+    `floor(x + 0.5)` for the same reason as `compute_items`.
+    """
+    assert_discount_within(settlement.total_amount, settlement.discount_amount)
+    net = settlement.total_amount - settlement.discount_amount
+    return net + math.floor(net * settlement.vat_rate + 0.5)
+
+
 def settlement_remainder(total: int, deposits: list[PaymentMilestone]) -> int:
-    """Balance đợt on sign = settlement total − EVERY unallocated cọc.
+    """Balance đợt on sign = settlement payable − EVERY unallocated cọc.
 
     Deliberately status-blind: đợt thanh toán are a payment SCHEDULE, so sum(a
     bill's đợt) must equal bill.total_amount. An unpaid `not_due` cọc is still a
@@ -93,10 +131,19 @@ def settlement_remainder(total: int, deposits: list[PaymentMilestone]) -> int:
     if remainder < 0:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            f"cọc already scheduled ({allocated}) exceeds the settlement total "
-            f"({total}) — correct the đợt thanh toán before signing",
+            f"cọc already scheduled ({allocated}) exceeds the quyết toán "
+            f"payable ({total}) — correct the đợt thanh toán before signing",
         )
     return remainder
+
+
+def overdue_clauses() -> tuple:
+    """The DERIVED overdue rule, in one place. Two copies of it drift, and this
+    one decides a number the owner reads as fact."""
+    return (
+        PaymentMilestone.due_date < business_today(),
+        PaymentMilestone.status != "paid",
+    )
 
 
 def get_settlement_or_404(session: Session, settlement_id: int) -> Settlement:
@@ -166,12 +213,17 @@ def create_settlement(session: SessionDep, payload: SettlementCreate) -> Settlem
             "— a project settles once",
         )
     rows, total = compute_items(payload.items or [])
+    discount = int(payload.discount_amount or 0)
+    assert_discount_within(total, discount)
     settlement = Settlement(
         project_id=payload.project_id,
         note=payload.note,
         total_amount=total,
+        discount_amount=discount,
         items=rows,
     )
+    if payload.vat_rate is not None:
+        settlement.vat_rate = payload.vat_rate
     session.add(settlement)
     # Doc rule: the draft bill is prepared alongside the settlement — one
     # transaction, so a settlement can never exist without its bill.
@@ -240,8 +292,11 @@ def sign(session: Session, settlement: Settlement) -> Settlement:
     cọc and schedule one đợt for the remaining balance (stage 8)."""
     bill = settlement.bill
     if bill:
+        # The bill and its đợt carry what the client owes — subtotal + VAT, less
+        # giảm giá — not the pre-tax Σ the sheet prints as "Cộng".
+        payable = payable_total(settlement)
         bill.status = "official"
-        bill.total_amount = settlement.total_amount
+        bill.total_amount = payable
         session.add(bill)
         # All of them: a leftover cọc would stay unallocated and unsubtracted.
         deposits = list(
@@ -253,7 +308,7 @@ def sign(session: Session, settlement: Settlement) -> Settlement:
                 )
             ).all()
         )
-        remainder = settlement_remainder(settlement.total_amount, deposits)
+        remainder = settlement_remainder(payable, deposits)
         for deposit in deposits:
             deposit.bill_id = bill.id
             session.add(deposit)
@@ -279,6 +334,10 @@ def update_settlement(
     assert_project_open(session, settlement.project_id)
     fields = payload.model_dump(exclude_unset=True)
 
+    # Everything the money fields touch is computed and checked BEFORE any of it
+    # is assigned: a half-applied PATCH that then 400s would leave the row
+    # holding numbers the server itself refuses.
+    rows, total = None, settlement.total_amount
     if payload.items is not None:
         # Doc rule: editable while nháp/đã gửi. Signing derives the bill total +
         # milestones, so a signed settlement is corrected by un-signing first.
@@ -288,8 +347,32 @@ def update_settlement(
                 "items are frozen once signed — un-sign to correct",
             )
         rows, total = compute_items(payload.items)
+
+    # Frozen on sign for the same reason as items: both feed payable_total, and
+    # the bill + its đợt were derived from that figure.
+    if ("discount_amount" in fields or "vat_rate" in fields) and (
+        settlement.status == "signed"
+    ):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "giảm giá / VAT are frozen once signed — un-sign to correct",
+        )
+    discount = (
+        int(payload.discount_amount)
+        if payload.discount_amount is not None
+        else settlement.discount_amount
+    )
+    # Validate the pair as it will STAND after this PATCH, not just what the
+    # body carries: shrinking the items below an existing giảm giá is the same
+    # invalid row as sending too big a giảm giá.
+    assert_discount_within(total, discount)
+
+    if rows is not None:
         settlement.total_amount = total
         settlement.items = rows  # delete-orphan removes the replaced rows
+    settlement.discount_amount = discount
+    if payload.vat_rate is not None:
+        settlement.vat_rate = payload.vat_rate
 
     if "note" in fields:
         settlement.note = fields["note"]
@@ -342,13 +425,42 @@ def list_bills(
     page: PageDep,
     project_id: Annotated[int | None, Query()] = None,
     status_: Annotated[str | None, Query(alias="status")] = None,
+    search: Annotated[str | None, Query(max_length=300)] = None,
+    sort_by: Annotated[
+        Literal["sent_date", "paid_date", "total_amount", "id"] | None, Query()
+    ] = None,
+    sort_order: Annotated[Literal["asc", "desc"] | None, Query()] = None,
 ) -> list[Bill]:
     statement = select(Bill)
     if project_id is not None:
         statement = statement.where(Bill.project_id == project_id)
-    if status_:
-        statement = statement.where(Bill.status == status_)
-    return paged(session, response, statement.order_by(Bill.id.asc()), page)
+    statuses = csv_filter(status_, BILL_STATUSES, "status")
+    if statuses:
+        statement = statement.where(Bill.status.in_(statuses))
+    if search:
+        # A hóa đơn has no name of its own; the code is what is on the paper.
+        statement = statement.where(Bill.project.has(ilike(Project.code, search)))
+    return paged(
+        session,
+        response,
+        statement.order_by(
+            *order_by(
+                {
+                    "sent_date": Bill.sent_date,
+                    "paid_date": Bill.paid_date,
+                    "total_amount": Bill.total_amount,
+                    "id": Bill.id,
+                },
+                sort_by,
+                sort_order,
+                # Was unordered: paging an unordered query overlaps and drops rows.
+                fallback=[Bill.id.asc()],
+                tiebreak=Bill.id,
+                nulls_last=True,
+            )
+        ),
+        page,
+    )
 
 
 @bills_router.get("/{bill_id}", response_model=BillPublic)
@@ -402,6 +514,11 @@ def list_milestones(
     bill_id: Annotated[int | None, Query()] = None,
     status_: Annotated[str | None, Query(alias="status")] = None,
     overdue: Annotated[str | None, Query()] = None,
+    search: Annotated[str | None, Query(max_length=300)] = None,
+    sort_by: Annotated[
+        Literal["due_date", "paid_date", "amount", "id"] | None, Query()
+    ] = None,
+    sort_order: Annotated[Literal["asc", "desc"] | None, Query()] = None,
 ) -> list[PaymentMilestone]:
     statement = select(PaymentMilestone)
     if project_id is not None:
@@ -411,13 +528,44 @@ def list_milestones(
     # Same shape as the paperwork list: `overdue` implies a status, so it
     # REPLACES `status=` rather than fighting it for the same column.
     if overdue == "true":
+        statement = statement.where(*overdue_clauses())
+    else:
+        statuses = csv_filter(status_, MILESTONE_STATUSES, "status")
+        if statuses:
+            statement = statement.where(PaymentMilestone.status.in_(statuses))
+    if search:
         statement = statement.where(
-            PaymentMilestone.due_date < business_today(),
-            PaymentMilestone.status != "paid",
+            PaymentMilestone.project.has(ilike(Project.code, search))
         )
-    elif status_:
-        statement = statement.where(PaymentMilestone.status == status_)
-    return paged(session, response, statement.order_by(PaymentMilestone.id.asc()), page)
+    return paged(
+        session,
+        response,
+        statement.order_by(
+            *order_by(
+                {
+                    "due_date": PaymentMilestone.due_date,
+                    "paid_date": PaymentMilestone.paid_date,
+                    "amount": PaymentMilestone.amount,
+                    "id": PaymentMilestone.id,
+                },
+                sort_by,
+                sort_order,
+                # Soonest due first, undated last. With `paid` filtered out —
+                # what /receivables defaults to — the oldest due dates ARE the
+                # overdue ones, so "quá hạn on top" falls out of this ordering
+                # and survives pagination. It used to be `id asc`, so an overdue
+                # đợt on page 2 never surfaced on the screen whose whole job is
+                # surfacing overdue đợt.
+                fallback=[
+                    PaymentMilestone.due_date.asc().nulls_last(),
+                    PaymentMilestone.id.asc(),
+                ],
+                tiebreak=PaymentMilestone.id,
+                nulls_last=True,
+            )
+        ),
+        page,
+    )
 
 
 @milestones_router.get("/{milestone_id}", response_model=MilestonePublic)
@@ -508,3 +656,63 @@ def delete_milestone(session: SessionDep, milestone_id: int) -> None:
         )
     session.delete(milestone)
     session.commit()
+
+
+# ── Receivables summary ─────────────────────────────────────────────────────
+def _bucket(count: int | None, total: int | None) -> SummaryBucket:
+    """A status with no rows sums to NULL, not 0 — coerce here, once, or the UI
+    prints "null ₫" for an empty bucket."""
+    return SummaryBucket(count=count or 0, total=total or 0)
+
+
+def _by_status(
+    session: Session, model: type, amount_column, statuses: tuple[str, ...], scope
+) -> dict[str, SummaryBucket]:
+    rows = dict(
+        (row[0], _bucket(row[1], row[2]))
+        for row in session.exec(
+            select(model.status, func.count(), func.sum(amount_column))
+            .where(*scope)
+            .group_by(model.status)
+        ).all()
+    )
+    # Every status present, so a consumer never has to handle a missing key —
+    # an absent bucket is a real zero, not unknown.
+    return {status_: rows.get(status_, _bucket(0, 0)) for status_ in statuses}
+
+
+@summary_router.get("/summary", response_model=ReceivablesSummary)
+def get_receivables_summary(
+    session: SessionDep, project_id: Annotated[int | None, Query()] = None
+) -> ReceivablesSummary:
+    """Money totals across the WHOLE filtered collection, not one page.
+
+    A sum over one 100-row page understates the debt and looks authoritative
+    doing it, which is why the dashboard printed no "Tổng công nợ" at all. One
+    endpoint rather than one per table: the money screen and the dashboard each
+    want both halves, so this is one round trip instead of two.
+    """
+    scope = (PaymentMilestone.project_id == project_id,) if project_id else ()
+    bill_scope = (Bill.project_id == project_id,) if project_id else ()
+    overdue = session.exec(
+        select(func.count(), func.sum(PaymentMilestone.amount)).where(
+            *scope, *overdue_clauses()
+        )
+    ).one()
+    return ReceivablesSummary(
+        milestones=MilestonesSummary(
+            by_status=_by_status(
+                session,
+                PaymentMilestone,
+                PaymentMilestone.amount,
+                MILESTONE_STATUSES,
+                scope,
+            ),
+            overdue=_bucket(overdue[0], overdue[1]),
+        ),
+        bills=BillsSummary(
+            by_status=_by_status(
+                session, Bill, Bill.total_amount, BILL_STATUSES, bill_scope
+            )
+        ),
+    )
