@@ -1,6 +1,6 @@
 "use client";
 
-import { Circle, CircleCheckBig, Info, Plus, Printer } from "lucide-react";
+import { Info, Plus, Printer } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 
@@ -28,6 +28,7 @@ import {
   MilestoneType,
 } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
+import { ChecklistRow } from "@/components/checklist-row/checklist-row";
 import { EmptyState } from "@/components/empty-state/empty-state";
 import { MoneyInput } from "@/components/money-input/money-input";
 import {
@@ -47,33 +48,6 @@ import { todayISO } from "@/utils/today-iso/today-iso";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
 import type { Project } from "../../../../types";
-
-function ChecklistRow({
-  done,
-  label,
-  detail,
-  action,
-}: {
-  done: boolean;
-  label: string;
-  detail?: React.ReactNode;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 text-sm">
-      {done ? (
-        <CircleCheckBig className="size-4 shrink-0 text-emerald-600" />
-      ) : (
-        <Circle className="size-4 shrink-0 text-muted-foreground" />
-      )}
-      <span className={done ? "" : "text-muted-foreground"}>{label}</span>
-      {detail ? <span className="ml-auto">{detail}</span> : null}
-      {action ? (
-        <span className={detail ? "" : "ml-auto"}>{action}</span>
-      ) : null}
-    </div>
-  );
-}
 
 export function ContractPanel({
   project,

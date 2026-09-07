@@ -652,13 +652,13 @@ contract could not tell which block they were in (WCAG 2.4.7). A popup container
 inside it.
 
 **Every control needs an accessible name.** An icon-only button takes an
-`aria-label` that names the action *and its target* (`aria-label={`Xóa ${item.name}`}`),
+`aria-label` that names the action _and its target_ (`aria-label={`Xóa ${item.name}`}`),
 not just the verb — four buttons in a list of roles all reading "Xóa" is the same
 as none. An editable table cell takes one too (`` `${column} — dòng ${i + 1}` ``):
 a grid of unnamed inputs announces as a row of anonymous spinbuttons.
 
 **Labels must be associated, not merely adjacent.** `Label` renders a plain
-`<label>`, and a `<label>` that is a *sibling* of its input associates with
+`<label>`, and a `<label>` that is a _sibling_ of its input associates with
 nothing. Use `FormLabel` inside `FormItem`/`FormControl` (which wires
 `htmlFor`, `aria-describedby`, `aria-invalid` and `aria-required` for you), or
 `FieldLabel htmlFor` + `fieldProps(id, error)` from

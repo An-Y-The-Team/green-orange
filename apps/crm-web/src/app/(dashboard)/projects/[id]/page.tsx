@@ -34,6 +34,7 @@ import { StagePanel } from "./components/stage-panel/stage-panel";
 import { StageStepper } from "./components/stage-stepper/stage-stepper";
 import { WorkspaceHeader } from "./components/workspace-header/workspace-header";
 import { WorkspaceTabs } from "./components/workspace-tabs/workspace-tabs";
+import { stageGates } from "./utils/stage-gates/stage-gates";
 
 // Guided "Công Trình workspace" — header (Zone 1), stage rail (Zone 2),
 // stage panel + tabs (Zone 3). Only the current stage's panel renders, so
@@ -118,6 +119,17 @@ export default async function ProjectDetailPage({
     loadClient(project.client_id),
   ]);
 
+  // One derivation for the whole workspace: the rail shows the count, the panel
+  // shows the rows. Computing it in both would be two chances to disagree.
+  const gates = stageGates({
+    project,
+    paperworkItems,
+    attachments,
+    milestones,
+    bills,
+    settlements,
+  });
+
   return (
     <>
       <BackLink href="/projects">{BACK_TO.list}</BackLink>
@@ -127,8 +139,9 @@ export default async function ProjectDetailPage({
         contacts={clientDetail?.contacts ?? []}
         projectTypes={projectTypes}
       />
-      <StageStepper project={project} />
+      <StageStepper project={project} gates={gates} />
       <StagePanel
+        gates={gates}
         project={project}
         attachments={attachments}
         contracts={contracts}

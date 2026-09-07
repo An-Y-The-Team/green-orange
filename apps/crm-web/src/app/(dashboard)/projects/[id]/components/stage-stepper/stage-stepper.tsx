@@ -18,8 +18,20 @@ import { labelOf } from "@/utils/label-of/label-of";
 import { updateProject } from "../../../actions/update-project";
 import { ProjectStatus } from "../../../enums";
 import type { Project } from "../../../types";
+import {
+  type StageGate,
+  gateProgress,
+} from "../../utils/stage-gates/stage-gates";
 
-export function StageStepper({ project }: { project: Project }) {
+export function StageStepper({
+  project,
+  gates,
+}: {
+  project: Project;
+  /** The current stage's conditions — the count on the current step, and the
+      unmet ones listed in the forward confirm. */
+  gates: StageGate[];
+}) {
   const [state, formAction] = useActionState(
     updateProject.bind(null, project.id),
     { success: false } as ServerActionState
@@ -51,10 +63,11 @@ export function StageStepper({ project }: { project: Project }) {
   // itself that later-stage data is kept, so it was asking permission for the
   // harmless direction.
   //
-  // ponytail: the consequence line is generic because there is no per-stage gate
-  // model on the client — only the contract panel computes its own checklist. A
-  // real "còn thiếu: …" list is its own piece of work (see plan 11 in the
-  // review); until then say plainly that the move is allowed either way.
+  // The consequence line names the work that is actually outstanding, from the
+  // same gate array the panel renders. Still a soft warning: the pipeline is
+  // forward-only and never hard-blocked, so the dialog reports and proceeds.
+  const unmet = gates.filter((g) => !g.done);
+  const progress = gateProgress(gates);
   const forwardButton = canAdvance ? (
     <ConfirmAction
       trigger={
@@ -63,7 +76,26 @@ export function StageStepper({ project }: { project: Project }) {
         </Button>
       }
       title={`Chuyển sang "${labelOf(PROJECT_STAGES, nextStage).label}"?`}
-      consequence={`Công trình đang ở "${labelOf(PROJECT_STAGES, project.stage).label}". Hệ thống vẫn cho chuyển khi giai đoạn này chưa xong — kiểm tra lại phần việc còn thiếu trước khi xác nhận.`}
+      consequence={
+        unmet.length === 0 ? (
+          `Giai đoạn "${labelOf(PROJECT_STAGES, project.stage).label}" đã xong hết điều kiện.`
+        ) : (
+          <>
+            {`Giai đoạn "${labelOf(PROJECT_STAGES, project.stage).label}" còn ${unmet.length} việc chưa xong:`}
+            <ul className="mt-2 list-disc space-y-0.5 pl-5">
+              {unmet.map((g) => (
+                <li key={g.key}>
+                  {g.label}
+                  {g.detail ? ` (${g.detail})` : ""}
+                </li>
+              ))}
+            </ul>
+            <span className="mt-2 block">
+              Hệ thống vẫn cho chuyển — xác nhận nếu bạn muốn đi tiếp.
+            </span>
+          </>
+        )
+      }
       confirmLabel="Chuyển giai đoạn"
       pending={isPending}
       onConfirm={goForward}
@@ -133,6 +165,14 @@ export function StageStepper({ project }: { project: Project }) {
                 >
                   {labelOf(PROJECT_STAGES, stage).label}
                 </span>
+                {/* Answers "what does this job need" without scrolling to
+                    the panel. Current step only — a count on a finished or
+                    future stage would be noise. */}
+                {current && progress ? (
+                  <span className="text-xs whitespace-nowrap text-muted-foreground">
+                    {progress.done}/{progress.total} điều kiện
+                  </span>
+                ) : null}
                 {/* The state the colour carries, said out loud. */}
                 <span className="sr-only">
                   {done

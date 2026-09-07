@@ -12,6 +12,7 @@ import type {
 
 import { ProjectStage } from "../../../enums";
 import type { Attachment, PaperworkItem, Project } from "../../../types";
+import type { StageGate } from "../../utils/stage-gates/stage-gates";
 import { AcceptancePanel } from "../panels/acceptance/acceptance";
 import { ClosedPanel } from "../panels/closed/closed";
 import { ContractPanel } from "../panels/contract/contract";
@@ -21,6 +22,7 @@ import { QuotePanel } from "../panels/quote/quote";
 import { RequestPanel } from "../panels/request/request";
 import { SettlementPanel } from "../panels/settlement/settlement";
 import { StageCard } from "../stage-card/stage-card";
+import { StageGates } from "../stage-gates/stage-gates";
 
 // Dispatch to the current stage's panel. Every panel brings its own Card +
 // "Giai đoạn N" header except ContractPanel (a bare body), which is wrapped here.
@@ -36,6 +38,7 @@ export function StagePanel({
   timekeeping,
   assignments,
   paperworkItems,
+  gates,
 }: {
   project: Project;
   attachments: Attachment[];
@@ -47,67 +50,83 @@ export function StagePanel({
   timekeeping: TimekeepingRecord[];
   assignments: Assignment[];
   paperworkItems: PaperworkItem[];
+  gates: StageGate[];
 }) {
-  switch (project.stage) {
-    case ProjectStage.REQUEST:
-      return <RequestPanel project={project} attachments={attachments} />;
-    case ProjectStage.QUOTE:
-      return <QuotePanel project={project} />;
-    case ProjectStage.CONTRACT:
-      return (
-        <StageCard project={project}>
-          <ContractPanel
+  // The CONTRACT stage opts out of the read-only block: its own panel renders
+  // the same three conditions with the button that satisfies each one (Ghi nhận
+  // đã ký / Ghi nhận cọc), which beats a read-only copy above it. The rail's
+  // count still comes from the same array.
+  return (
+    <>
+      <StageGates
+        gates={project.stage === ProjectStage.CONTRACT ? [] : gates}
+      />
+      {renderPanel()}
+    </>
+  );
+
+  function renderPanel() {
+    switch (project.stage) {
+      case ProjectStage.REQUEST:
+        return <RequestPanel project={project} attachments={attachments} />;
+      case ProjectStage.QUOTE:
+        return <QuotePanel project={project} />;
+      case ProjectStage.CONTRACT:
+        return (
+          <StageCard project={project}>
+            <ContractPanel
+              project={project}
+              contracts={contracts}
+              milestones={milestones}
+              dealQuote={dealQuote}
+            />
+          </StageCard>
+        );
+      case ProjectStage.PAPERWORK:
+        return (
+          <PaperworkPanel project={project} paperworkItems={paperworkItems} />
+        );
+      case ProjectStage.EXECUTION:
+        return (
+          <ExecutionPanel
             project={project}
-            contracts={contracts}
+            timekeeping={timekeeping}
+            assignments={assignments}
+          />
+        );
+      case ProjectStage.ACCEPTANCE:
+        return <AcceptancePanel project={project} />;
+      case ProjectStage.SETTLEMENT:
+        return (
+          <SettlementPanel
+            project={project}
+            settlements={settlements}
+            bills={bills}
             milestones={milestones}
             dealQuote={dealQuote}
           />
-        </StageCard>
-      );
-    case ProjectStage.PAPERWORK:
-      return (
-        <PaperworkPanel project={project} paperworkItems={paperworkItems} />
-      );
-    case ProjectStage.EXECUTION:
-      return (
-        <ExecutionPanel
-          project={project}
-          timekeeping={timekeeping}
-          assignments={assignments}
-        />
-      );
-    case ProjectStage.ACCEPTANCE:
-      return <AcceptancePanel project={project} />;
-    case ProjectStage.SETTLEMENT:
-      return (
-        <SettlementPanel
-          project={project}
-          settlements={settlements}
-          bills={bills}
-          milestones={milestones}
-          dealQuote={dealQuote}
-        />
-      );
-    case ProjectStage.CLOSED:
-      return (
-        <ClosedPanel
-          project={project}
-          bills={bills}
-          milestones={milestones}
-          settlements={settlements}
-          contracts={contracts}
-        />
-      );
-    // A stage the enum doesn't know (a legacy row, or one the backend added)
-    // used to fall out of the switch as `undefined`, which React throws on —
-    // the same crash the label maps had. StageCard prints the raw value.
-    default:
-      return (
-        <StageCard project={project}>
-          <p className="text-sm text-muted-foreground">
-            Giai đoạn này chưa được hỗ trợ trong ứng dụng.
-          </p>
-        </StageCard>
-      );
+        );
+      case ProjectStage.CLOSED:
+        return (
+          <ClosedPanel
+            project={project}
+            bills={bills}
+            milestones={milestones}
+            settlements={settlements}
+            contracts={contracts}
+          />
+        );
+      // A stage the enum doesn't know (a legacy row, or one the backend added)
+      // used to fall out of the switch as `undefined`, which React throws on —
+      // the same crash the label maps had. StageCard prints the raw value.
+      default:
+        return (
+          <StageCard project={project}>
+            <p className="text-sm text-muted-foreground">
+              Giai đoạn này chưa được hỗ trợ trong ứng dụng.
+            </p>
+          </StageCard>
+        );
+    }
   }
 }
