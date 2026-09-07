@@ -1,4 +1,4 @@
-import { ArrowLeft, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -9,6 +9,7 @@ import {
   QuoteBuilderForm,
   type QuoteBuilderInitial,
 } from "@/app/(dashboard)/projects/[id]/quotes/new/quote-builder-form/quote-builder-form";
+import { BackLink } from "@/components/back-link/back-link";
 import { PageHeader } from "@/components/page-header/page-header";
 import {
   BACK_TO,
@@ -58,13 +59,12 @@ export default async function QuotePage({
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
-        <Link
+        <BackLink
           href={quote.project_id ? `/projects/${quote.project_id}` : "/quotes"}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          className="mb-0"
         >
-          <ArrowLeft className="size-4" />
           {quote.project_id ? BACK_TO.project : BACK_TO.list}
-        </Link>
+        </BackLink>
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>
 

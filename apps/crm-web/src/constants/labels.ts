@@ -43,30 +43,38 @@ type BadgeVariant =
 type Label = { label: string; variant: BadgeVariant };
 
 // The 8 lifecycle stages, in display order — the workspace stepper.
-export const PROJECT_STAGE_ORDER: ProjectStage[] = [
-  ProjectStage.REQUEST,
-  ProjectStage.QUOTE,
-  ProjectStage.CONTRACT,
-  ProjectStage.PAPERWORK,
-  ProjectStage.EXECUTION,
-  ProjectStage.ACCEPTANCE,
-  ProjectStage.SETTLEMENT,
-  ProjectStage.CLOSED,
-];
+/**
+ * The pipeline in order — derived, not re-listed. It used to be a second
+ * hand-written copy of `ProjectStage`'s declaration order, so adding a stage
+ * meant editing two files and getting away with editing one.
+ *
+ * `Object.values` preserves declaration order for a **string** enum (no reverse
+ * numeric mapping to interleave), which is what makes this safe.
+ */
+export const PROJECT_STAGE_ORDER: ProjectStage[] = Object.values(ProjectStage);
 
 export const PROJECT_STAGES: Record<ProjectStage, Label> = {
+  // Colour follows the PHASE, monotonically along the pipeline:
+  // grey (bán hàng) → amber (chuẩn bị) → solid (đang làm) → green (kết thúc).
+  //
+  // It used to be grey, solid, solid, amber, amber, solid, solid, green — the
+  // same solid-black pill on four *non-adjacent* stages, so the column grouped
+  // unrelated stages and had to be read word by word (measured in plan 00: 5 of
+  // 8 rendered identically). Four phases is the granularity a list column can
+  // carry; the label distinguishes the two stages inside each phase.
+  // `destructive` stays reserved for failure (Hủy, Quá hạn).
   [ProjectStage.REQUEST]: {
     label: "Yêu cầu & Khảo sát",
     variant: "secondary",
   },
-  [ProjectStage.QUOTE]: { label: "Báo giá", variant: "default" },
-  [ProjectStage.CONTRACT]: { label: "Hợp đồng", variant: "default" },
+  [ProjectStage.QUOTE]: { label: "Báo giá", variant: "secondary" },
+  [ProjectStage.CONTRACT]: { label: "Hợp đồng", variant: "warning" },
   [ProjectStage.PAPERWORK]: { label: "Chuẩn bị hồ sơ", variant: "warning" },
-  [ProjectStage.EXECUTION]: { label: "Thi công", variant: "warning" },
+  [ProjectStage.EXECUTION]: { label: "Thi công", variant: "default" },
   [ProjectStage.ACCEPTANCE]: { label: "Nghiệm thu", variant: "default" },
   [ProjectStage.SETTLEMENT]: {
     label: "Quyết toán & Thanh toán",
-    variant: "default",
+    variant: "success",
   },
   [ProjectStage.CLOSED]: { label: "Đã đóng", variant: "success" },
 };
@@ -280,6 +288,27 @@ export const PLACEHOLDERS = {
   address: "123 Đường ABC, Quận 1, TP.HCM",
 } as const;
 
+/**
+ * The product's name, in the one place it is defined.
+ *
+ * It shipped as four: "Dịch vụ Ý Ân" (metadata), "GreenOrange CRM" (sidebar),
+ * "Yan CRM" (login) and "GreenOrange" (field header) — one app, four names, so
+ * a user who saw two of them had no way to know it was the same product.
+ * GreenOrange is the brand: the company is CÔNG TY TNHH DỊCH VỤ GREENORANGE.
+ */
+export const APP_NAME = "GreenOrange CRM";
+
+/**
+ * Photo attachments are **filenames**, not files: there is no object storage
+ * yet (a written-down deferral), so the row records which photo exists in
+ * Zalo/Drive and where the note about it lives. "+ Thêm ảnh" promised an
+ * upload and saved text, which is worse than saying so.
+ */
+export const PHOTO_TEXT = {
+  add: "+ Ghi tên ảnh",
+  hint: "Chưa tải ảnh lên được — ghi tên tệp để đối chiếu với ảnh gửi qua Zalo.",
+} as const;
+
 /** "Quay lại …" back-links out of a detail page. */
 export const BACK_TO = {
   list: "Quay lại danh sách",
@@ -287,6 +316,13 @@ export const BACK_TO = {
   quote: "Quay lại báo giá",
   contract: "Quay lại hợp đồng",
   templates: "Quay lại danh sách mẫu",
+  // Were hardcoded at their two call sites, which is how three wordings for
+  // "back to the list" got into the app.
+  client: "Quay lại khách hàng",
+  paperwork: "Quay lại hồ sơ",
+  projects: "Quay lại danh sách công trình",
+  /** Back into the field shell's Hôm nay card (see the `?from=field` intake). */
+  field: "Quay lại Hôm nay",
 } as const;
 
 /** Boilerplate on printed/exported documents. */

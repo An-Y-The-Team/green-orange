@@ -16,6 +16,7 @@ import {
 
 import { createLocation } from "../../../../../clients/actions/locations";
 import type { Location } from "../../../../../clients/types";
+import { InsetPanel } from "../inset-panel/inset-panel";
 import { toLocation } from "../quick-create-client/quick-create-client";
 
 /**
@@ -55,7 +56,7 @@ export function QuickCreateLocation({
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+    <InsetPanel>
       <div className="space-y-1">
         <FormLabel>Tên địa điểm/Toà nhà</FormLabel>
         <Input
@@ -82,6 +83,6 @@ export function QuickCreateLocation({
           {pending ? ACTIONS.adding : "Thêm địa điểm thi công"}
         </Button>
       </div>
-    </div>
+    </InsetPanel>
   );
 }

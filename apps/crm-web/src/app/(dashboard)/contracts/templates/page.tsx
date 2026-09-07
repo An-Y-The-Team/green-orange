@@ -1,4 +1,4 @@
-import { ArrowLeft, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@yan/ui/components/badge";
@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
+import { BackLink } from "@/components/back-link/back-link";
 import { PageHeader } from "@/components/page-header/page-header";
 import { BACK_TO, FIELDS } from "@/constants/labels";
 
@@ -23,13 +24,7 @@ export default async function ContractTemplatesPage() {
 
   return (
     <>
-      <Link
-        href="/contracts"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        {BACK_TO.contract}
-      </Link>
+      <BackLink href="/contracts">{BACK_TO.contract}</BackLink>
       <PageHeader
         title={FIELDS.contractTemplate}
         description={`${templates.length} mẫu · dùng khi tạo hợp đồng`}

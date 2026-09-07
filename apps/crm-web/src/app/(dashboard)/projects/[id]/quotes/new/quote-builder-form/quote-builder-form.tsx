@@ -18,6 +18,7 @@ import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
+import { Select } from "@yan/ui/components/select";
 import { Separator } from "@yan/ui/components/separator";
 import {
   Table,
@@ -38,7 +39,7 @@ import {
   quoteFormSchema,
 } from "@/app/(dashboard)/quotes/schema";
 import { useCompany } from "@/components/company-provider/company-provider";
-import { SELECT_CLASS, fieldError } from "@/components/form-bits/form-bits";
+import { fieldError } from "@/components/form-bits/form-bits";
 import { FormErrorSummary } from "@/components/form-error-summary/form-error-summary";
 import { MoneyInput } from "@/components/money-input/money-input";
 import { ACTIONS, DOCUMENT_TEXT, LINE_ITEM_COLUMNS } from "@/constants/labels";
@@ -207,9 +208,8 @@ export function QuoteBuilderForm({
               {projects ? (
                 <div className="space-y-1.5">
                   <Label htmlFor="project">Công trình (không bắt buộc)</Label>
-                  <select
+                  <Select
                     id="project"
-                    className={SELECT_CLASS}
                     value={projectId ?? ""}
                     onChange={(e) =>
                       setProjectId(
@@ -225,7 +225,7 @@ export function QuoteBuilderForm({
                         {p.label}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               ) : null}
 

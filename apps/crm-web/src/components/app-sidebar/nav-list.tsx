@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@yan/ui/lib/utils";
 
 import { NAV_ITEMS, activeNavItem } from "@/config/nav";
+import { APP_NAME } from "@/constants/labels";
 
 /**
  * The nav links themselves, shared by the fixed desktop sidebar and the mobile
@@ -52,7 +53,7 @@ export function NavBrand() {
       <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
         G
       </div>
-      <span className="truncate text-sm font-semibold">GreenOrange CRM</span>
+      <span className="truncate text-sm font-semibold">{APP_NAME}</span>
     </div>
   );
 }

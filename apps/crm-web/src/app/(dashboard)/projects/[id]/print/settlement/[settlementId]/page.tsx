@@ -1,10 +1,9 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Badge } from "@yan/ui/components/badge";
 
 import { getProjectSettlements } from "@/app/(dashboard)/receivables/queries";
+import { BackLink } from "@/components/back-link/back-link";
 import {
   DocumentShell,
   SignatureBlocks,
@@ -45,13 +44,9 @@ export default async function SettlementDocumentPage({
   return (
     <>
       <div className="mb-4 flex items-center justify-between print:hidden">
-        <Link
-          href={`/projects/${project.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
+        <BackLink href={`/projects/${project.id}`} className="mb-0">
           {BACK_TO.project}
-        </Link>
+        </BackLink>
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>
 

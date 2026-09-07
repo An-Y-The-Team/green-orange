@@ -1,5 +1,3 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
@@ -12,6 +10,7 @@ import {
 } from "@yan/ui/components/table";
 
 import { getProjectAssignments } from "@/app/(dashboard)/crew/queries";
+import { BackLink } from "@/components/back-link/back-link";
 import { DocumentShell } from "@/components/document-shell/document-shell";
 import { BACK_TO, FIELDS } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
@@ -34,13 +33,9 @@ export default async function WorkerListPage({
 
   return (
     <>
-      <Link
-        href={`/projects/${project.id}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
-      >
-        <ArrowLeft className="size-4" />
+      <BackLink href={`/projects/${project.id}`} className="print:hidden">
         {BACK_TO.project}
-      </Link>
+      </BackLink>
 
       <DocumentShell
         title="DANH SÁCH NHÂN SỰ"

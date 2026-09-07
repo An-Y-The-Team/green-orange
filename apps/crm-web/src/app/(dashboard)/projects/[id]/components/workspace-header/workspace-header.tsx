@@ -21,9 +21,9 @@ import {
 } from "@yan/ui/components/dialog";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
+import { Select } from "@yan/ui/components/select";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import {
   ACTIONS,
   FIELDS,
@@ -157,9 +157,8 @@ export function WorkspaceHeader({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="working-contact">{FIELDS.contactPerson}</Label>
-          <select
+          <Select
             id="working-contact"
-            className={SELECT_CLASS}
             value={draft.working_contact_id}
             onChange={(e) =>
               setDraft({ ...draft, working_contact_id: Number(e.target.value) })
@@ -170,13 +169,12 @@ export function WorkspaceHeader({
                 {c.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="decision-maker">Người quyết định</Label>
-          <select
+          <Select
             id="decision-maker"
-            className={SELECT_CLASS}
             value={draft.decision_maker_contact_id}
             onChange={(e) =>
               setDraft({
@@ -190,7 +188,7 @@ export function WorkspaceHeader({
                 {c.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
       <div className="space-y-1.5">

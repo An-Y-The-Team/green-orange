@@ -1,4 +1,4 @@
-import { ArrowLeft, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -11,6 +11,7 @@ import {
 } from "@/app/(dashboard)/contracts/queries";
 import { getProject } from "@/app/(dashboard)/projects/queries";
 import { getDealQuote } from "@/app/(dashboard)/quotes/queries";
+import { BackLink } from "@/components/back-link/back-link";
 import { BACK_TO } from "@/constants/labels";
 
 import { ContractEditor } from "./contract-editor/contract-editor";
@@ -38,13 +39,7 @@ export default async function NewContractPage({
   ]);
 
   const backLink = (
-    <Link
-      href={`/projects/${projectId}`}
-      className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-    >
-      <ArrowLeft className="size-4" />
-      {BACK_TO.project}
-    </Link>
+    <BackLink href={`/projects/${projectId}`}>{BACK_TO.project}</BackLink>
   );
 
   // A signed contract is frozen. The edit links are already hidden for one, but

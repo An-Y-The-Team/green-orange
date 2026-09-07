@@ -1,7 +1,6 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/back-link/back-link";
 import { PageHeader } from "@/components/page-header/page-header";
 import { BACK_TO } from "@/constants/labels";
 
@@ -22,13 +21,7 @@ export default async function EditContractTemplatePage({
 
   return (
     <>
-      <Link
-        href="/contracts/templates"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        {BACK_TO.templates}
-      </Link>
+      <BackLink href="/contracts/templates">{BACK_TO.templates}</BackLink>
       <PageHeader title="Chỉnh sửa mẫu hợp đồng" description={template.name} />
       <TemplateEditor template={template} />
     </>

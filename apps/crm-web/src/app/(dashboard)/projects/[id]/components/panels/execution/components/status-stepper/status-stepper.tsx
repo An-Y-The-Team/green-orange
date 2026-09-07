@@ -23,8 +23,7 @@ import {
 } from "@/constants/server-action";
 import { labelOf } from "@/utils/label-of/label-of";
 
-import { addNote } from "../../../../../../actions/add-note";
-import { updateProject } from "../../../../../../actions/update-project";
+import { updateProjectWithNote } from "../../../../../../actions/update-project-with-note";
 import { ExecutionSubStatus } from "../../../../../../enums";
 import type { Project } from "../../../../../../types";
 import { EXECUTION_STEPS } from "../../constants";
@@ -34,16 +33,14 @@ export function StatusStepper({ project }: { project: Project }) {
   const current = project.execution_sub_status ?? ExecutionSubStatus.KICKOFF;
   const currentIndex = EXECUTION_STEPS.indexOf(current);
 
+  // The status and its optional note go through one action: the note used to
+  // fire from this action's onSuccess with `silent: true`, so a failed note
+  // meant the status moved and the note vanished with no toast at all.
   const [state, formAction] = useActionState(
-    updateProject.bind(null, project.id),
-    INITIAL_ACTION_STATE
-  );
-  const [noteState, noteAction] = useActionState(
-    addNote.bind(null, project.id),
+    updateProjectWithNote.bind(null, project.id),
     INITIAL_ACTION_STATE
   );
   const [isPending, startTransition] = useTransition();
-  const [, startNote] = useTransition();
 
   const [pending, setPending] = useState<ExecutionSubStatus | null>(null);
   const [note, setNote] = useState("");
@@ -51,16 +48,10 @@ export function StatusStepper({ project }: { project: Project }) {
   useServerAction(state, isPending, {
     ...ACTION_TOAST_TITLES,
     onSuccess: () => {
-      // Optional note carries the sub-status as its tag (timeline in Ghi chú).
-      if (pending && note.trim()) {
-        const tag = pending;
-        startNote(() => noteAction({ body: note.trim(), tag }));
-      }
       setPending(null);
       setNote("");
     },
   });
-  useServerAction(noteState, false, { ...ACTION_TOAST_TITLES, silent: true });
 
   // At kickoff both "→ Dựng rào" and "→ Thi công" are offered (skip allowed).
   const nextTargets = EXECUTION_STEPS.filter((_, i) => i > currentIndex);
@@ -135,7 +126,13 @@ export function StatusStepper({ project }: { project: Project }) {
               disabled={isPending}
               onClick={() =>
                 startTransition(() =>
-                  formAction({ execution_sub_status: pending! })
+                  formAction({
+                    patch: { execution_sub_status: pending! },
+                    // Carries the sub-status as its tag (timeline in Ghi chú).
+                    note: note.trim()
+                      ? { body: note.trim(), tag: pending! }
+                      : undefined,
+                  })
                 )
               }
             >

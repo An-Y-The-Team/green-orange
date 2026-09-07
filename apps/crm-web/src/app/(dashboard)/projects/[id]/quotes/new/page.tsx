@@ -1,8 +1,7 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getQuote, quoteFormSeed } from "@/app/(dashboard)/quotes/queries";
+import { BackLink } from "@/components/back-link/back-link";
 import { PageHeader } from "@/components/page-header/page-header";
 import { BACK_TO } from "@/constants/labels";
 
@@ -61,13 +60,7 @@ export default async function QuoteBuilderPage({
 
   return (
     <>
-      <Link
-        href={`/projects/${project.id}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        {BACK_TO.project}
-      </Link>
+      <BackLink href={`/projects/${project.id}`}>{BACK_TO.project}</BackLink>
 
       <PageHeader
         title="Lập báo giá"

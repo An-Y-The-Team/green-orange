@@ -1,8 +1,7 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getCompany } from "@/app/(dashboard)/settings/company/queries";
+import { BackLink } from "@/components/back-link/back-link";
 import {
   DocumentShell,
   SignatureBlocks,
@@ -29,13 +28,9 @@ export default async function AcceptanceRequestPage({
 
   return (
     <>
-      <Link
-        href={`/projects/${project.id}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
-      >
-        <ArrowLeft className="size-4" />
+      <BackLink href={`/projects/${project.id}`} className="print:hidden">
         {BACK_TO.project}
-      </Link>
+      </BackLink>
 
       <DocumentShell
         title="THƯ YÊU CẦU NGHIỆM THU"

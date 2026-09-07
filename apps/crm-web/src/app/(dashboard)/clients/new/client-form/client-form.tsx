@@ -10,11 +10,11 @@ import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
+import { Select } from "@yan/ui/components/select";
 
 import { CancelButton } from "@/components/cancel-button/cancel-button";
 import {
   FieldLabel,
-  SELECT_CLASS,
   fieldError,
   fieldProps,
 } from "@/components/form-bits/form-bits";
@@ -91,18 +91,14 @@ export function ClientForm() {
 
           <div className="space-y-1.5">
             <Label htmlFor="type">{FIELDS.clientType}</Label>
-            <select
-              id="type"
-              className={SELECT_CLASS}
-              {...form.register("type")}
-            >
+            <Select id="type" {...form.register("type")}>
               <option value={ClientType.COMPANY}>
                 {CLIENT_TYPES[ClientType.COMPANY]}
               </option>
               <option value={ClientType.INDIVIDUAL}>
                 {CLIENT_TYPES[ClientType.INDIVIDUAL]}
               </option>
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1.5">

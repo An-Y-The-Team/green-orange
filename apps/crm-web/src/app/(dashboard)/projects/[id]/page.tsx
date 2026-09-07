@@ -1,5 +1,3 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getProjectContracts } from "@/app/(dashboard)/contracts/queries";
@@ -19,6 +17,7 @@ import {
   getProjectSettlements,
 } from "@/app/(dashboard)/receivables/queries";
 import type { Settlement } from "@/app/(dashboard)/receivables/types";
+import { BackLink } from "@/components/back-link/back-link";
 import { BACK_TO } from "@/constants/labels";
 import { localDateOf, todayISO } from "@/utils/today-iso/today-iso";
 
@@ -121,13 +120,7 @@ export default async function ProjectDetailPage({
 
   return (
     <>
-      <Link
-        href="/projects"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        {BACK_TO.list}
-      </Link>
+      <BackLink href="/projects">{BACK_TO.list}</BackLink>
 
       <WorkspaceHeader
         project={project}

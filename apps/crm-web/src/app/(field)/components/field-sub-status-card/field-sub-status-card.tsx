@@ -24,6 +24,8 @@ import {
 } from "@/constants/server-action";
 import { labelOf } from "@/utils/label-of/label-of";
 
+import { FieldRow } from "../field-row/field-row";
+
 // Forward-only order; hoarding skippable (mirrors the execution panel).
 const EXEC_STEPS = [
   ExecutionSubStatus.KICKOFF,
@@ -56,7 +58,7 @@ export function FieldSubStatusCard({ project }: { project: Project }) {
     : labelOf(ACCEPTANCE_SUB_STATUSES, acc);
 
   return (
-    <div className="space-y-3 rounded-lg border p-3">
+    <FieldRow>
       <Link
         href={`/projects/${project.id}`}
         className="flex items-center justify-between gap-2"
@@ -133,6 +135,6 @@ export function FieldSubStatusCard({ project }: { project: Project }) {
           </>
         )}
       </div>
-    </div>
+    </FieldRow>
   );
 }

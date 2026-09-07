@@ -9,8 +9,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@yan/ui/components/form";
+import { Select } from "@yan/ui/components/select";
 
-import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { FIELDS } from "@/constants/labels";
 
 import type { CreateProjectFormValues } from "../../../../schema";
@@ -40,8 +40,7 @@ export function ClientCascadeSelects({
           <FormItem>
             <FormLabel>{FIELDS.contactPerson}</FormLabel>
             <FormControl>
-              <select
-                className={SELECT_CLASS}
+              <Select
                 value={field.value ?? ""}
                 onChange={(e) => {
                   const id = e.target.value
@@ -58,7 +57,7 @@ export function ClientCascadeSelects({
                     {c.title ? ` — ${c.title}` : ""}
                   </option>
                 ))}
-              </select>
+              </Select>
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -77,8 +76,7 @@ export function ClientCascadeSelects({
           <FormItem>
             <FormLabel>Người quyết định</FormLabel>
             <FormControl>
-              <select
-                className={SELECT_CLASS}
+              <Select
                 value={field.value ?? ""}
                 onChange={(e) =>
                   field.onChange(
@@ -93,7 +91,7 @@ export function ClientCascadeSelects({
                     {c.title ? ` — ${c.title}` : ""}
                   </option>
                 ))}
-              </select>
+              </Select>
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -107,8 +105,7 @@ export function ClientCascadeSelects({
           <FormItem required>
             <FormLabel>{FIELDS.location}</FormLabel>
             <FormControl>
-              <select
-                className={SELECT_CLASS}
+              <Select
                 value={field.value || ""}
                 onChange={(e) => {
                   const id = Number(e.target.value);
@@ -122,7 +119,7 @@ export function ClientCascadeSelects({
                     {l.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </FormControl>
             <FormMessage />
           </FormItem>

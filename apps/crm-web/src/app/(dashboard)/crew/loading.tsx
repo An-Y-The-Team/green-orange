@@ -17,7 +17,7 @@ export default function CrewLoading() {
           <Skeleton key={i} className="h-5 w-20" />
         ))}
       </div>
-      <TableSkeleton columns={6} />
+      <TableSkeleton columns={5} />
     </>
   );
 }

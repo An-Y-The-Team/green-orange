@@ -10,6 +10,7 @@ import {
 
 import { auth, signIn } from "@/auth";
 import { AUTH_ENABLED } from "@/auth.config";
+import { APP_NAME } from "@/constants/labels";
 
 // AUTH_ENABLED comes from a runtime-only env var (AUTH_AUTHENTIK_ISSUER), but it
 // gates an early redirect that runs before any dynamic API. Without this, Next
@@ -31,7 +32,7 @@ export default async function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle as="h1" className="text-lg">
-            Yan CRM
+            {APP_NAME}
           </CardTitle>
           <CardDescription>
             Đăng nhập bằng tài khoản Authentik để tiếp tục.

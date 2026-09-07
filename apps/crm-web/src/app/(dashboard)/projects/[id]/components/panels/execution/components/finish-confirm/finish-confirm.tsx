@@ -10,7 +10,7 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
-import { FIELDS } from "@/constants/labels";
+import { FIELDS, PHOTO_TEXT } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -88,6 +88,7 @@ export function FinishConfirm({ project }: { project: Project }) {
         <Label htmlFor="works-done-photo" className="text-muted-foreground">
           Ảnh hoàn công (tùy chọn)
         </Label>
+        <p className="text-xs text-muted-foreground">{PHOTO_TEXT.hint}</p>
         <div className="flex flex-wrap items-center gap-2">
           <Input
             id="works-done-photo"

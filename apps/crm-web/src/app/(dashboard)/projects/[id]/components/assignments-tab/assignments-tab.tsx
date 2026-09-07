@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@yan/ui/components/dialog";
+import { Select } from "@yan/ui/components/select";
 import {
   Table,
   TableBody,
@@ -27,7 +28,6 @@ import {
 } from "@yan/ui/components/table";
 
 import { EmptyState } from "@/components/empty-state/empty-state";
-import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { ACTIONS, CREW_MEMBER_STATUSES, FIELDS } from "@/constants/labels";
 import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
@@ -317,8 +317,7 @@ function AssignmentForm({
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           Nhân viên
-          <select
-            className={SELECT_CLASS}
+          <Select
             value={f.crew_member_id}
             onChange={(e) => setF({ ...f, crew_member_id: e.target.value })}
           >
@@ -331,12 +330,11 @@ function AssignmentForm({
                   : ` (${labelOf(CREW_MEMBER_STATUSES, c.status).label})`}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {FIELDS.role}
-          <select
-            className={SELECT_CLASS}
+          <Select
             value={f.role_id}
             onChange={(e) => setF({ ...f, role_id: e.target.value })}
           >
@@ -346,7 +344,7 @@ function AssignmentForm({
                 {r.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {FIELDS.fromDate}

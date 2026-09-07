@@ -24,11 +24,11 @@ import {
   FormMessage,
 } from "@yan/ui/components/form";
 import { Input } from "@yan/ui/components/input";
+import { Select } from "@yan/ui/components/select";
 import { Separator } from "@yan/ui/components/separator";
 
 import { CancelButton } from "@/components/cancel-button/cancel-button";
 import { EntityCombobox } from "@/components/entity-combobox/entity-combobox";
-import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { FormErrorSummary } from "@/components/form-error-summary/form-error-summary";
 import {
   ACTIONS,
@@ -296,8 +296,7 @@ export function IntakeForm({
                   <FormItem>
                     <FormLabel>{FIELDS.stage}</FormLabel>
                     <FormControl>
-                      <select
-                        className={SELECT_CLASS}
+                      <Select
                         value={field.value}
                         onChange={(e) => field.onChange(e.target.value)}
                       >
@@ -306,7 +305,7 @@ export function IntakeForm({
                             {labelOf(PROJECT_STAGES, s).label}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { AUTH_ENABLED } from "@/auth.config";
 import { LoginOverlay } from "@/components/login-overlay/login-overlay";
 import { SessionWatch } from "@/components/session-watch/session-watch";
+import { APP_NAME } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
@@ -27,7 +28,7 @@ export default async function FieldLayout({
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
-        <span className="text-sm font-semibold">GreenOrange</span>
+        <span className="text-sm font-semibold">{APP_NAME}</span>
         <span className="text-sm text-muted-foreground">
           {formatDate(todayISO())}
         </span>

@@ -28,21 +28,16 @@ import {
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
-import { addNote } from "../../../../actions/add-note";
 import { addAttachment } from "../../../../actions/attachments";
 import { updateProject } from "../../../../actions/update-project";
+import { updateProjectWithNote } from "../../../../actions/update-project-with-note";
 import { AcceptanceSubStatus, AttachmentKind } from "../../../../enums";
 import type { Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
 
 // Sub-status progress line: Gửi yêu cầu → Nghiệm thu ⇄ Bổ sung → Đạt.
 // rework is the ⇄ branch off inspecting, so it renders inline with it.
-const PROGRESS: AcceptanceSubStatus[] = [
-  AcceptanceSubStatus.REQUEST_SENT,
-  AcceptanceSubStatus.INSPECTING,
-  AcceptanceSubStatus.REWORK,
-  AcceptanceSubStatus.PASSED,
-];
+const PROGRESS: AcceptanceSubStatus[] = Object.values(AcceptanceSubStatus);
 
 // Notes tagged as acceptance events (only "rework" is produced by this panel).
 const ACCEPTANCE_TAGS = new Set(["rework"]);
@@ -66,27 +61,15 @@ export function AcceptancePanel({ project }: { project: Project }) {
   // Rework: note (what the client found, required) THEN status → rework.
   const [reworkOpen, setReworkOpen] = useState(false);
   const [reworkBody, setReworkBody] = useState("");
-  const [noteState, noteAction] = useActionState(
-    addNote.bind(null, project.id),
-    INITIAL_ACTION_STATE
-  );
-  const [reworkStatusState, reworkStatusAction] = useActionState(
-    updateProject.bind(null, project.id),
+  // One action, not a note action chained into a status action: the note is the
+  // reason for the rework, so it goes first, and a failing status change now
+  // says the note was already saved instead of inviting a duplicate retry.
+  const [reworkState, reworkAction] = useActionState(
+    updateProjectWithNote.bind(null, project.id),
     INITIAL_ACTION_STATE
   );
   const [reworkPending, startRework] = useTransition();
-  // Note toast is silent — the status update below is the user-facing confirm.
-  useServerAction(noteState, reworkPending, {
-    ...ACTION_TOAST_TITLES,
-    silent: true,
-    onSuccess: () =>
-      startRework(() =>
-        reworkStatusAction({
-          acceptance_sub_status: AcceptanceSubStatus.REWORK,
-        })
-      ),
-  });
-  useServerAction(reworkStatusState, reworkPending, {
+  useServerAction(reworkState, reworkPending, {
     ...ACTION_TOAST_TITLES,
     onSuccess: () => {
       setReworkOpen(false);
@@ -170,7 +153,13 @@ export function AcceptancePanel({ project }: { project: Project }) {
                     disabled={reworkPending || !reworkBody.trim()}
                     onClick={() =>
                       startRework(() =>
-                        noteAction({ body: reworkBody.trim(), tag: "rework" })
+                        reworkAction({
+                          noteFirst: true,
+                          note: { body: reworkBody.trim(), tag: "rework" },
+                          patch: {
+                            acceptance_sub_status: AcceptanceSubStatus.REWORK,
+                          },
+                        })
                       )
                     }
                   >

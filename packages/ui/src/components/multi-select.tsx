@@ -4,6 +4,7 @@ import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 
 import { cn } from "../lib/utils";
+import { selectClass } from "./select";
 
 export type MultiSelectOption = { value: string; label: string };
 
@@ -48,9 +49,10 @@ function MultiSelect({
         data-slot="multi-select-trigger"
         aria-label={placeholder}
         className={cn(
-          // Mirrors the Input component / crm-web's SELECT_CLASS so filter
-          // controls line up with the rest of the toolbar.
-          "flex h-8 items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+          // The same string a native <select> gets — shared, not copied, so a
+          // filter toolbar mixing the two lines up by construction.
+          selectClass,
+          "flex items-center justify-between gap-1.5 select-none",
           value.length === 0 && "text-muted-foreground",
           disabled && "opacity-50",
           className

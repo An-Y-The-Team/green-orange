@@ -10,12 +10,12 @@ import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { Card, CardContent } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
+import { Select } from "@yan/ui/components/select";
 import { Textarea } from "@yan/ui/components/textarea";
 
 import { CancelButton } from "@/components/cancel-button/cancel-button";
 import {
   FieldLabel,
-  SELECT_CLASS,
   fieldError,
   fieldProps,
 } from "@/components/form-bits/form-bits";
@@ -126,9 +126,8 @@ export function CrewForm({
             <FieldLabel htmlFor="crew-employment-type">
               {FIELDS.employmentType}
             </FieldLabel>
-            <select
+            <Select
               id="crew-employment-type"
-              className={SELECT_CLASS}
               {...form.register("employment_type")}
             >
               {Object.values(EmploymentType).map((t) => (
@@ -136,16 +135,15 @@ export function CrewForm({
                   {EMPLOYMENT_TYPES[t] ?? t}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1">
             <FieldLabel htmlFor="crew-default-role">
               {FIELDS.defaultRole}
             </FieldLabel>
-            <select
+            <Select
               id="crew-default-role"
-              className={SELECT_CLASS}
               {...form.register("default_role_id", {
                 setValueAs: (v) =>
                   v === "" || v == null ? undefined : Number(v),
@@ -157,22 +155,18 @@ export function CrewForm({
                   {r.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1">
             <FieldLabel htmlFor="crew-status">{FIELDS.status}</FieldLabel>
-            <select
-              id="crew-status"
-              className={SELECT_CLASS}
-              {...form.register("status")}
-            >
+            <Select id="crew-status" {...form.register("status")}>
               {Object.values(CrewMemberStatus).map((s) => (
                 <option key={s} value={s}>
                   {labelOf(CREW_MEMBER_STATUSES, s).label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1">

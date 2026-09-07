@@ -6,7 +6,7 @@ export default function ClientsLoading() {
   return (
     <>
       <PageHeader title={FIELDS.client} />
-      <TableSkeleton columns={6} />
+      <TableSkeleton columns={5} />
     </>
   );
 }

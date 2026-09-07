@@ -6,7 +6,7 @@ export default function ProjectsLoading() {
   return (
     <>
       <PageHeader title={FIELDS.project} />
-      <TableSkeleton columns={9} />
+      <TableSkeleton columns={8} />
     </>
   );
 }

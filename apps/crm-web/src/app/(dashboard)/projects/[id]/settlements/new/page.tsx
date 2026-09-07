@@ -1,10 +1,9 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { getDealQuote } from "@/app/(dashboard)/quotes/queries";
 import { SettlementStatus } from "@/app/(dashboard)/receivables/enums";
 import { getProjectSettlements } from "@/app/(dashboard)/receivables/queries";
+import { BackLink } from "@/components/back-link/back-link";
 import { PageHeader } from "@/components/page-header/page-header";
 import { BACK_TO } from "@/constants/labels";
 import { DEFAULT_VAT_RATE } from "@/utils/merge-template/merge-template";
@@ -58,13 +57,7 @@ export default async function NewSettlementPage({
 
   return (
     <>
-      <Link
-        href={`/projects/${project.id}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        {BACK_TO.project}
-      </Link>
+      <BackLink href={`/projects/${project.id}`}>{BACK_TO.project}</BackLink>
 
       <PageHeader
         title="Lập quyết toán"

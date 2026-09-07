@@ -15,6 +15,8 @@ import {
 } from "@/constants/server-action";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
+import { FieldRow } from "../field-row/field-row";
+
 export function FieldAppointmentCard({ project }: { project: Project }) {
   const [state, formAction] = useActionState(
     updateProject.bind(null, project.id),
@@ -27,7 +29,7 @@ export function FieldAppointmentCard({ project }: { project: Project }) {
   const contact = project.working_contact ?? project.decision_maker;
 
   return (
-    <div className="space-y-3 rounded-lg border p-3">
+    <FieldRow>
       <Link href={`/projects/${project.id}`} className="block space-y-1">
         <div className="flex items-center gap-2 font-medium">
           <MapPin className="size-4 shrink-0 text-muted-foreground" />
@@ -68,6 +70,6 @@ export function FieldAppointmentCard({ project }: { project: Project }) {
           Bắt đầu khảo sát
         </Button>
       </div>
-    </div>
+    </FieldRow>
   );
 }

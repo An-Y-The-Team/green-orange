@@ -3,11 +3,9 @@ import type { FieldError } from "react-hook-form";
 import { Label } from "@yan/ui/components/label";
 
 // Shared bits for the forms that are not (yet) built on the @yan/ui `Form*`
-// primitives, so each stays terse. The native <select> styling mirrors the Input
-// component from @yan/ui (no Select primitive exists in the shared package —
-// plan 10 promotes one).
-export const SELECT_CLASS =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+// primitives, so each stays terse. The select styling used to live here as
+// `SELECT_CLASS` (28 call sites, hand-copied from Input); it is now the shared
+// `Select` primitive in @yan/ui.
 
 /**
  * A field's label, associated with its control and marked when required.

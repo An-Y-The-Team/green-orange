@@ -1,4 +1,4 @@
-import { ArrowLeft, TriangleAlert } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
+import { BackLink } from "@/components/back-link/back-link";
 import {
   BACK_TO,
   CREW_MEMBER_STATUSES,
@@ -70,13 +71,7 @@ export default async function CrewDetailPage({
 
   return (
     <>
-      <Link
-        href="/crew"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        {BACK_TO.list}
-      </Link>
+      <BackLink href="/crew">{BACK_TO.list}</BackLink>
       <div className="grid gap-6">
         <Card>
           <CardHeader>

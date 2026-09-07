@@ -23,6 +23,8 @@ import { ACTIONS } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 
+import { FieldRow } from "../field-row/field-row";
+
 export function FieldQuoteCard({
   quoteId,
   projectId,
@@ -62,7 +64,7 @@ export function FieldQuoteCard({
   };
 
   return (
-    <div className="space-y-3 rounded-lg border p-3">
+    <FieldRow>
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium">
           {code} · v{version}
@@ -147,6 +149,6 @@ export function FieldQuoteCard({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </FieldRow>
   );
 }

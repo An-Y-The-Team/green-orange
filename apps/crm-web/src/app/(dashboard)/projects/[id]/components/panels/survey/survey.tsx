@@ -14,7 +14,12 @@ import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
 import { EmptyState } from "@/components/empty-state/empty-state";
-import { ACTIONS, FIELDS, LINE_ITEM_COLUMNS } from "@/constants/labels";
+import {
+  ACTIONS,
+  FIELDS,
+  LINE_ITEM_COLUMNS,
+  PHOTO_TEXT,
+} from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -243,7 +248,7 @@ export function SurveyPanel({
             size="sm"
             onClick={() => setShowAdd((v) => !v)}
           >
-            + Thêm ảnh
+            {PHOTO_TEXT.add}
           </Button>
         </div>
         {rows.length > 0 ? (
@@ -270,34 +275,37 @@ export function SurveyPanel({
           <EmptyState message="Chưa có ảnh khảo sát." />
         )}
         {showAdd ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
-            <Input
-              className="min-w-40 flex-1"
-              placeholder="tên-tệp.jpg"
-              value={newFilename}
-              onChange={(e) => setNewFilename(e.target.value)}
-            />
-            <Input
-              className="min-w-40 flex-1"
-              placeholder={FIELDS.note}
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-            />
-            <Button
-              size="sm"
-              disabled={addPending || !newFilename.trim()}
-              onClick={() =>
-                startAdd(() =>
-                  addAction({
-                    kind: AttachmentKind.SURVEY,
-                    filename: newFilename.trim(),
-                    note: newNote.trim() || undefined,
-                  })
-                )
-              }
-            >
-              {ACTIONS.add}
-            </Button>
+          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+            <p className="text-xs text-muted-foreground">{PHOTO_TEXT.hint}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                className="min-w-40 flex-1"
+                placeholder="tên-tệp.jpg"
+                value={newFilename}
+                onChange={(e) => setNewFilename(e.target.value)}
+              />
+              <Input
+                className="min-w-40 flex-1"
+                placeholder={FIELDS.note}
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+              />
+              <Button
+                size="sm"
+                disabled={addPending || !newFilename.trim()}
+                onClick={() =>
+                  startAdd(() =>
+                    addAction({
+                      kind: AttachmentKind.SURVEY,
+                      filename: newFilename.trim(),
+                      note: newNote.trim() || undefined,
+                    })
+                  )
+                }
+              >
+                {ACTIONS.add}
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>

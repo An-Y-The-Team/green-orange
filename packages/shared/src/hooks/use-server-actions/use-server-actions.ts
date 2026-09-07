@@ -66,7 +66,6 @@ export function useServerAction<TData = unknown>(
       if (serverState.success) {
         if (!silent)
           toast.success(successToastTitle, {
-            id: "server-action-success",
             description: serverState.message,
           });
         onSuccess?.(serverState.data);

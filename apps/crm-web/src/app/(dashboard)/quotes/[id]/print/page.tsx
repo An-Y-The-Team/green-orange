@@ -1,9 +1,8 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Badge } from "@yan/ui/components/badge";
 
+import { BackLink } from "@/components/back-link/back-link";
 import {
   BACK_TO,
   QUOTE_STATUSES,
@@ -35,13 +34,9 @@ export default async function QuotePrintPage({
   return (
     <>
       <div className="mb-4 flex items-center justify-between print:hidden">
-        <Link
-          href={`/quotes/${quote.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
+        <BackLink href={`/quotes/${quote.id}`} className="mb-0">
           {BACK_TO.quote}
-        </Link>
+        </BackLink>
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>
 

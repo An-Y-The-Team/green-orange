@@ -12,9 +12,9 @@ import {
   CardTitle,
 } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
+import { Select } from "@yan/ui/components/select";
 
 import { EmptyState } from "@/components/empty-state/empty-state";
-import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { ACTIONS, FIELDS } from "@/constants/labels";
 
 import {
@@ -73,8 +73,7 @@ export function LocationsSection({
         value={draft.address}
         onChange={(e) => setDraft({ ...draft, address: e.target.value })}
       />
-      <select
-        className={SELECT_CLASS}
+      <Select
         value={draft.manager_contact_id ?? ""}
         onChange={(e) =>
           setDraft({
@@ -89,7 +88,7 @@ export function LocationsSection({
             {c.name}
           </option>
         ))}
-      </select>
+      </Select>
       <div className="flex gap-2">
         <Button
           size="sm"

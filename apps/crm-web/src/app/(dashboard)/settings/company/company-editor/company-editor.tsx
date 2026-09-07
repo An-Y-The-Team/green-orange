@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@yan/ui/components/button";
+import { Input } from "@yan/ui/components/input";
 
 import { TemplateBlock } from "@/components/editor/template-block/template-block";
 import type { PaletteToken } from "@/components/editor/token-palette/token-palette";
@@ -25,10 +26,6 @@ import {
 
 import { updateCompany } from "../actions/update-company";
 import { readLogoFile } from "./read-logo-file";
-
-/** Bordered input for the labelled data fields. */
-const FIELD =
-  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 /**
  * The company fields, grouped as they are presented. Each one is a merge token
@@ -305,9 +302,10 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
                   <span className="text-xs text-muted-foreground">
                     {f.label}
                   </span>
-                  <input
+                  {/* Was a seventh hand-copied input class (rounded-md,
+                      py-1.5) — the shared primitive is the same control. */}
+                  <Input
                     aria-label={f.label}
-                    className={FIELD}
                     placeholder={f.label}
                     value={values[f.key]}
                     onChange={(e) => onChange({ [f.key]: e.target.value })}

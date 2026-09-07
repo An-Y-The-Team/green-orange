@@ -1,7 +1,6 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-
+import { BackLink } from "@/components/back-link/back-link";
 import { PageHeader } from "@/components/page-header/page-header";
+import { BACK_TO } from "@/constants/labels";
 
 import { loadClient } from "../../clients/actions/load-client";
 import { getProject, listProjectTypes } from "../queries";
@@ -37,13 +36,9 @@ export default async function NewProjectPage({
 
   return (
     <>
-      <Link
-        href={fromField ? "/field" : "/projects"}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        {fromField ? "Quay lại Hôm nay" : "Quay lại danh sách công trình"}
-      </Link>
+      <BackLink href={fromField ? "/field" : "/projects"}>
+        {fromField ? BACK_TO.field : BACK_TO.projects}
+      </BackLink>
       <PageHeader
         title="Tiếp nhận yêu cầu"
         description="Ghi nhận yêu cầu mới từ khách hàng để mở công trình."

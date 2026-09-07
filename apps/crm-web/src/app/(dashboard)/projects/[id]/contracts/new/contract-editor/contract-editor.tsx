@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@yan/ui/components/button";
+import { Select } from "@yan/ui/components/select";
 
 import { createContract } from "@/app/(dashboard)/contracts/actions/create-contract";
 import { updateContract } from "@/app/(dashboard)/contracts/actions/update-contract";
@@ -24,7 +25,6 @@ import {
   SaveStatusBadge,
   useAutosave,
 } from "@/components/editor/use-autosave";
-import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { DEFAULT_HEADER_BLOCKS } from "@/constants/header-blocks";
 import { DOCUMENT_TEXT, FIELDS } from "@/constants/labels";
 import { INITIAL_ACTION_STATE } from "@/constants/server-action";
@@ -335,9 +335,9 @@ export function ContractEditor({
         resolve={(token) => ctx[token]}
         footer={<EditableSignatureBlocks reps={reps} onChange={onRepsChange} />}
         toolbarExtra={
-          <select
+          <Select
             aria-label={FIELDS.contractTemplate}
-            className={`${SELECT_CLASS} !h-7 max-w-56 text-xs`}
+            className="!h-7 max-w-56 text-xs"
             value={templateId ?? ""}
             onChange={(e) => onPickTemplate(e.target.value)}
           >
@@ -347,7 +347,7 @@ export function ContractEditor({
                 {t.name}
               </option>
             ))}
-          </select>
+          </Select>
         }
         status={
           <div className="flex items-center gap-2">

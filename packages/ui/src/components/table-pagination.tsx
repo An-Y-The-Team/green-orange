@@ -4,6 +4,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { cn } from "../lib/utils";
 import { Button } from "./button";
+import { Select } from "./select";
 
 /**
  * Client-side pagination footer for filtered tables: range summary, page-size
@@ -50,18 +51,18 @@ function TablePagination({
       <div className="flex items-center gap-4">
         <label className="flex items-center gap-2">
           Mỗi trang
-          <select
+          <Select
             value={limit}
             disabled={isLoading}
             onChange={(e) => onLimitChange(Number(e.target.value))}
-            className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="w-auto px-2"
           >
             {pageSizes.map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <div className="flex items-center gap-2">
           <span>

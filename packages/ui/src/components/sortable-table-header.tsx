@@ -35,7 +35,19 @@ function SortableTableHeader<T extends string>({
       : ArrowDownIcon;
 
   return (
-    <TableHead data-slot="sortable-table-header" className={className}>
+    <TableHead
+      data-slot="sortable-table-header"
+      // The sort state was visible only as an arrow glyph; `aria-sort` is what a
+      // screen reader reads, and it is the attribute the role expects.
+      aria-sort={
+        !isActive
+          ? "none"
+          : sortOrder === SORT_ORDER.ASC
+            ? "ascending"
+            : "descending"
+      }
+      className={className}
+    >
       <Button
         type="button"
         variant="ghost"
@@ -49,11 +61,16 @@ function SortableTableHeader<T extends string>({
                 : SORT_ORDER.DESC,
           })
         }
-        className="-ml-2 h-auto p-1 font-medium hover:bg-transparent"
+        // Hover did nothing at all (ghost + hover:bg-transparent), so a
+        // sortable column was distinguishable from a plain one only by a
+        // low-contrast glyph. Underline on hover is the affordance.
+        className="-ml-2 h-auto p-1 font-medium hover:bg-transparent hover:underline hover:underline-offset-4"
       >
         {label}
         <Icon
-          className={cn("size-3.5", !isActive && "text-muted-foreground")}
+          // muted-foreground on the header row read as decoration; this is the
+          // only cue that the column sorts at all.
+          className={cn("size-3.5", !isActive && "text-foreground/60")}
         />
       </Button>
     </TableHead>

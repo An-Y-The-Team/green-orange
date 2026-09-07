@@ -16,6 +16,7 @@ import {
 
 import { createContact } from "../../../../../clients/actions/contacts";
 import type { Contact } from "../../../../../clients/types";
+import { InsetPanel } from "../inset-panel/inset-panel";
 import { toContact } from "../quick-create-client/quick-create-client";
 
 /**
@@ -57,7 +58,7 @@ export function QuickCreateContact({
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+    <InsetPanel>
       <div className="space-y-1">
         <FormLabel>{FIELDS.contactPerson}</FormLabel>
         <Input
@@ -84,6 +85,6 @@ export function QuickCreateContact({
           {pending ? ACTIONS.adding : "Thêm người liên hệ"}
         </Button>
       </div>
-    </div>
+    </InsetPanel>
   );
 }

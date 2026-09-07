@@ -1,4 +1,4 @@
-import { ArrowLeft, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -7,6 +7,7 @@ import { Button } from "@yan/ui/components/button";
 import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
 import { parsePrintSnapshot } from "@/app/(dashboard)/contracts/print-snapshot";
 import { loadCompany } from "@/app/(dashboard)/settings/company/queries";
+import { BackLink } from "@/components/back-link/back-link";
 import { CompanyProvider } from "@/components/company-provider/company-provider";
 import { CompanyUnavailable } from "@/components/document-shell/company-unavailable";
 import {
@@ -44,13 +45,9 @@ export default async function ContractDocumentPage({
 
   const backLink = (
     <div className="mb-4 flex items-center justify-between print:hidden">
-      <Link
-        href="/contracts"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
+      <BackLink href="/contracts" className="mb-0">
         {BACK_TO.list}
-      </Link>
+      </BackLink>
       {/* The editor lives under the project route, so standalone contracts
           (project_id null) have no edit surface — view/print only. A signed
           contract's content is frozen (the server enforces it too). */}

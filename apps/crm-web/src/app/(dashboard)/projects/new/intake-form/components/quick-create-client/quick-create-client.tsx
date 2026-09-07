@@ -8,10 +8,10 @@ import { toast } from "sonner";
 import { isObject } from "@yan/shared/utils";
 import { Button } from "@yan/ui/components/button";
 import { Input } from "@yan/ui/components/input";
+import { Select } from "@yan/ui/components/select";
 
 import {
   FieldLabel,
-  SELECT_CLASS,
   fieldError,
   fieldProps,
 } from "@/components/form-bits/form-bits";
@@ -42,6 +42,7 @@ import type {
   QuickCreateHandle,
   QuickCreateResult,
 } from "../../types";
+import { InsetPanel } from "../inset-panel/inset-panel";
 
 /** Nullable string field off an untyped payload — mirrors the API's `| null`. */
 const str = (value: unknown) => (typeof value === "string" ? value : null);
@@ -182,7 +183,7 @@ export function QuickCreateClient({
   useImperativeHandle(ref, () => ({ submit }));
 
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+    <InsetPanel>
       <div className="space-y-1">
         <FieldLabel htmlFor="qc-name" required>
           {FIELDS.clientName}
@@ -197,18 +198,14 @@ export function QuickCreateClient({
       </div>
       <div className="space-y-1">
         <FieldLabel htmlFor="qc-type">{FIELDS.clientType}</FieldLabel>
-        <select
-          id="qc-type"
-          className={SELECT_CLASS}
-          {...form.register("type")}
-        >
+        <Select id="qc-type" {...form.register("type")}>
           <option value={ClientType.COMPANY}>
             {CLIENT_TYPES[ClientType.COMPANY]}
           </option>
           <option value={ClientType.INDIVIDUAL}>
             {CLIENT_TYPES[ClientType.INDIVIDUAL]}
           </option>
-        </select>
+        </Select>
       </div>
       {type === ClientType.INDIVIDUAL ? (
         <div className="space-y-1">
@@ -305,6 +302,6 @@ export function QuickCreateClient({
           {pending ? ACTIONS.creating : "Tạo khách hàng"}
         </Button>
       </div>
-    </div>
+    </InsetPanel>
   );
 }
