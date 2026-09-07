@@ -1,28 +1,17 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useTransition } from "react";
 
 import {
   type ServerActionState,
   useServerAction,
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@yan/ui/components/dialog";
 import { cn } from "@yan/ui/lib/utils";
 
-import {
-  ACTIONS,
-  PROJECT_STAGES,
-  PROJECT_STAGE_ORDER,
-} from "@/constants/labels";
+import { ConfirmAction } from "@/components/confirm-action/confirm-action";
+import { PROJECT_STAGES, PROJECT_STAGE_ORDER } from "@/constants/labels";
 import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 import { labelOf } from "@/utils/label-of/label-of";
 
@@ -51,66 +40,58 @@ export function StageStepper({ project }: { project: Project }) {
   // Backend allows closed → settlement (reopen), which is exactly prevStage.
   const canGoBack =
     project.status === ProjectStatus.ACTIVE && Boolean(prevStage);
-  // Soft guard for mistaken advances: moving back is always confirm-gated,
-  // and data entered in later stages is kept (stages are soft, per design).
-  const [confirmBack, setConfirmBack] = useState(false);
-  const confirmGoBack = () => {
-    startTransition(() => formAction({ stage: prevStage }));
-    setConfirmBack(false);
-  };
+
+  const goBack = () => startTransition(() => formAction({ stage: prevStage }));
+  const goForward = () =>
+    startTransition(() => formAction({ stage: nextStage }));
+
+  // The confirm sits on the FORWARD move, which is the consequential one:
+  // entering a stage seeds its artifacts and, for the later stages, freezes what
+  // came before. Moving BACK is a plain button — the dialog it used to have said
+  // itself that later-stage data is kept, so it was asking permission for the
+  // harmless direction.
+  //
+  // ponytail: the consequence line is generic because there is no per-stage gate
+  // model on the client — only the contract panel computes its own checklist. A
+  // real "còn thiếu: …" list is its own piece of work (see plan 11 in the
+  // review); until then say plainly that the move is allowed either way.
+  const forwardButton = canAdvance ? (
+    <ConfirmAction
+      trigger={
+        <Button size="sm" disabled={isPending}>
+          Chuyển sang: {labelOf(PROJECT_STAGES, nextStage).label}
+        </Button>
+      }
+      title={`Chuyển sang "${labelOf(PROJECT_STAGES, nextStage).label}"?`}
+      consequence={`Công trình đang ở "${labelOf(PROJECT_STAGES, project.stage).label}". Hệ thống vẫn cho chuyển khi giai đoạn này chưa xong — kiểm tra lại phần việc còn thiếu trước khi xác nhận.`}
+      confirmLabel="Chuyển giai đoạn"
+      pending={isPending}
+      onConfirm={goForward}
+    />
+  ) : null;
+
+  const backButton = canGoBack ? (
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={isPending}
+      onClick={goBack}
+      title="Dữ liệu đã nhập ở các giai đoạn sau được giữ nguyên"
+    >
+      ← {labelOf(PROJECT_STAGES, prevStage).label}
+    </Button>
+  ) : null;
 
   return (
     <div className="mb-6">
-      <Dialog open={confirmBack} onOpenChange={setConfirmBack}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Quay lại giai đoạn &ldquo;
-              {prevStage ? labelOf(PROJECT_STAGES, prevStage).label : ""}
-              &rdquo;?
-            </DialogTitle>
-            <DialogDescription>
-              Dữ liệu đã nhập ở các giai đoạn sau sẽ được giữ nguyên.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmBack(false)}>
-              {ACTIONS.cancel}
-            </Button>
-            <Button disabled={isPending} onClick={confirmGoBack}>
-              Quay lại
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Compact pill below md. */}
       <div className="flex items-center gap-3 md:hidden">
         <span className="text-sm font-medium">
           {currentIndex + 1}/{PROJECT_STAGE_ORDER.length} ·{" "}
           {labelOf(PROJECT_STAGES, project.stage).label}
         </span>
-        {canGoBack ? (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={isPending}
-            onClick={() => setConfirmBack(true)}
-          >
-            ← {labelOf(PROJECT_STAGES, prevStage).label}
-          </Button>
-        ) : null}
-        {canAdvance ? (
-          <Button
-            size="sm"
-            disabled={isPending}
-            onClick={() =>
-              startTransition(() => formAction({ stage: nextStage }))
-            }
-          >
-            → {labelOf(PROJECT_STAGES, nextStage).label}
-          </Button>
-        ) : null}
+        {backButton}
+        {forwardButton}
       </div>
 
       {/* Full pipeline line at md+. */}
@@ -147,28 +128,13 @@ export function StageStepper({ project }: { project: Project }) {
             </div>
           );
         })}
-        {canGoBack ? (
-          <Button
-            size="sm"
-            variant="outline"
-            className="ml-2"
-            disabled={isPending}
-            onClick={() => setConfirmBack(true)}
-          >
-            ← {labelOf(PROJECT_STAGES, prevStage).label}
-          </Button>
-        ) : null}
-        {canAdvance ? (
-          <Button
-            size="sm"
-            className={canGoBack ? undefined : "ml-2"}
-            disabled={isPending}
-            onClick={() =>
-              startTransition(() => formAction({ stage: nextStage }))
-            }
-          >
-            Chuyển sang: {labelOf(PROJECT_STAGES, nextStage).label}
-          </Button>
+        {/* The two actions share a wrapper so a wrapping rail can't leave them
+            sitting beside step 8, reading as that step's own buttons. */}
+        {backButton || forwardButton ? (
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {backButton}
+            {forwardButton}
+          </div>
         ) : null}
       </div>
     </div>

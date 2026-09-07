@@ -26,6 +26,7 @@ import {
   QuoteStatus,
 } from "@/app/(dashboard)/quotes/enums";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
+import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import {
   ACTIONS,
   QUOTE_CHANNELS,
@@ -169,13 +170,18 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
           <>
             {quote.status === QuoteStatus.WAITING ? (
               <>
-                <Button
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => decide(QuoteStatus.DEAL)}
-                >
-                  Chốt ✓
-                </Button>
+                <ConfirmAction
+                  trigger={
+                    <Button size="sm" disabled={busy}>
+                      Chốt ✓
+                    </Button>
+                  }
+                  title={`Chốt báo giá v${quote.version}?`}
+                  consequence={`Chốt ${formatVND(quote.total_amount)} và đưa công trình sang Hợp đồng. Bản này khóa lại — muốn đổi giá phải lập phiên bản mới.`}
+                  confirmLabel="Chốt báo giá"
+                  pending={busy}
+                  onConfirm={() => decide(QuoteStatus.DEAL)}
+                />
                 <Button
                   variant="outline"
                   size="sm"

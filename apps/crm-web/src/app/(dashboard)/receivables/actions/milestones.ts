@@ -71,6 +71,10 @@ const updateSchema = z.object({
   status: z.nativeEnum(MilestoneStatus).optional(),
   amount: z.coerce.number().int().nonnegative().optional(),
   due_date: z.string().optional(),
+  // Status is one-step forward server-side, so "đã thu" can't be undone —
+  // correcting the DAY it was collected is the only fix available, and the
+  // backend has always accepted it independently of status.
+  paid_date: z.string().optional(),
   bill_id: z.number().int().positive().nullable().optional(),
 });
 export type UpdateMilestoneInput = z.input<typeof updateSchema>;

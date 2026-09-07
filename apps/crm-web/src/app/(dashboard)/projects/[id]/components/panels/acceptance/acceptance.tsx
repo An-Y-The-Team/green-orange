@@ -19,6 +19,7 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
+import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { ACCEPTANCE_SUB_STATUSES, ACTIONS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
@@ -179,12 +180,18 @@ export function AcceptancePanel({ project }: { project: Project }) {
               </DialogContent>
             </Dialog>
 
-            <Button
-              disabled={statusPending}
-              onClick={() => setStatus(AcceptanceSubStatus.PASSED)}
-            >
-              <FileCheck2 className="size-4" />✓ Đạt — ký BB
-            </Button>
+            <ConfirmAction
+              trigger={
+                <Button disabled={statusPending}>
+                  <FileCheck2 className="size-4" />✓ Đạt — ký BB
+                </Button>
+              }
+              title="Nghiệm thu đạt?"
+              consequence="Ghi nhận nghiệm thu đạt hôm nay và mở Quyết toán & Thanh toán. Đây là trạng thái cuối của Nghiệm thu — muốn quay lại Bổ sung phải lùi giai đoạn thủ công."
+              confirmLabel="Nghiệm thu đạt"
+              pending={statusPending}
+              onConfirm={() => setStatus(AcceptanceSubStatus.PASSED)}
+            />
           </>
         ) : null}
 

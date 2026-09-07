@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
+import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { FIELDS, OVERDUE_LABEL, PAPERWORK_STATUSES } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
@@ -88,8 +89,26 @@ function PaperworkRow({
       <TableCell>
         <div className="flex items-center gap-2">
           <Badge variant={label.variant}>{label.label}</Badge>
-          {/* One-way single-tap status advance; hidden once approved (terminal). */}
-          {next ? (
+          {/* One-way status advance; hidden once approved (terminal). Only the
+              APPROVED hop is confirm-gated: it is terminal and it opens Thi
+              công, while confirming every → Đã nộp on a 7-item checklist would
+              be friction with nothing to say. */}
+          {next === PaperworkStatus.APPROVED ? (
+            <ConfirmAction
+              trigger={
+                <Button size="sm" variant="outline" disabled={isPending}>
+                  → {labelOf(PAPERWORK_STATUSES, next).label}
+                </Button>
+              }
+              title={`Duyệt "${item.name}"?`}
+              consequence="Đã duyệt là trạng thái cuối — không có nút quay lại. Khi mọi hồ sơ đã duyệt, công trình được phép sang Thi công."
+              confirmLabel="Đã duyệt"
+              pending={isPending}
+              onConfirm={() =>
+                startTransition(() => updateAction({ status: next }))
+              }
+            />
+          ) : next ? (
             <Button
               size="sm"
               variant="outline"

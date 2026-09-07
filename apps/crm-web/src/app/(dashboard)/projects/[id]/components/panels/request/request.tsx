@@ -13,7 +13,12 @@ import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
-import { todayISO } from "@/utils/today-iso/today-iso";
+import {
+  localDateOf,
+  localISO,
+  localTimeOf,
+  todayISO,
+} from "@/utils/today-iso/today-iso";
 
 import { updateProject } from "../../../../actions/update-project";
 import type { Attachment, Project } from "../../../../types";
@@ -42,9 +47,15 @@ export function RequestPanel({
   const run = (input: Parameters<typeof updateProject>[2]) =>
     startTransition(() => formAction(input));
 
-  // Dời hẹn — edit appointment_at in place (no history).
-  const initialDate = project.appointment_at?.slice(0, 10) ?? todayISO();
-  const initialTime = project.appointment_at?.slice(11, 16) ?? "09:00";
+  // Dời hẹn — edit appointment_at in place (no history). Read through the local
+  // helpers, never `iso.slice(0, 10)`: that is the UTC day, so an appointment
+  // before 07:00 ICT prefilled this form with yesterday's date and 23:xx.
+  const initialDate = project.appointment_at
+    ? localDateOf(project.appointment_at)
+    : todayISO();
+  const initialTime = project.appointment_at
+    ? localTimeOf(project.appointment_at)
+    : "09:00";
   const [apptDate, setApptDate] = useState(initialDate);
   const [apptTime, setApptTime] = useState(initialTime);
 
@@ -54,11 +65,7 @@ export function RequestPanel({
   // Combines the date + time inputs into one ISO instant; the toast reports
   // the outcome.
   const handleReschedule = () =>
-    run({
-      appointment_at: new Date(
-        `${apptDate}T${apptTime || "00:00"}`
-      ).toISOString(),
-    });
+    run({ appointment_at: localISO(apptDate, apptTime) });
 
   return (
     <StageCard project={project} contentClassName="space-y-4">

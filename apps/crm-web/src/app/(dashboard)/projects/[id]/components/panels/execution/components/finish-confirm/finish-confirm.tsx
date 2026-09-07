@@ -5,14 +5,18 @@ import { useActionState, useState, useTransition } from "react";
 
 import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
+import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { FIELDS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
+import { formatDate } from "@/utils/format-date/format-date";
+import { localISO, nowHHmm, todayISO } from "@/utils/today-iso/today-iso";
 
 import { addAttachment } from "../../../../../../actions/attachments";
 import { updateProject } from "../../../../../../actions/update-project";
@@ -42,6 +46,10 @@ export function FinishConfirm({ project }: { project: Project }) {
 
   const [filename, setFilename] = useState("");
   const [imgNote, setImgNote] = useState("");
+  // The completion day is a real datum — it drives nghiệm thu and the quyết
+  // toán — so the operator sees it and can back-date it. It used to be a bare
+  // `new Date()` stamped invisibly, with nothing in the UI able to correct it.
+  const [doneDate, setDoneDate] = useState(todayISO);
 
   useServerAction(state, isPending, ACTION_TOAST_TITLES);
   useServerAction(attState, false, {
@@ -68,7 +76,7 @@ export function FinishConfirm({ project }: { project: Project }) {
   const confirmFinished = () =>
     startTransition(() =>
       formAction({
-        works_done_at: new Date().toISOString(),
+        works_done_at: localISO(doneDate, nowHHmm()),
         stage: ProjectStage.ACCEPTANCE,
         acceptance_sub_status: AcceptanceSubStatus.REQUEST_SENT,
       })
@@ -105,10 +113,29 @@ export function FinishConfirm({ project }: { project: Project }) {
         </div>
       </div>
 
-      <Button disabled={isPending} onClick={confirmFinished}>
-        <CircleCheckBig className="size-4" />
-        Xác nhận hoàn tất thi công
-      </Button>
+      <ConfirmAction
+        trigger={
+          <Button disabled={isPending}>
+            <CircleCheckBig className="size-4" />
+            Xác nhận hoàn tất thi công
+          </Button>
+        }
+        title="Xác nhận hoàn tất thi công"
+        consequence={`Đóng giai đoạn Thi công vào ngày ${formatDate(doneDate)} và mở Nghiệm thu (đã gửi yêu cầu). Không có nút quay lại — muốn sửa phải chuyển giai đoạn thủ công.`}
+        confirmLabel="Hoàn tất thi công"
+        pending={isPending}
+        confirmDisabled={!doneDate}
+        onConfirm={confirmFinished}
+      >
+        <div className="space-y-1">
+          <Label htmlFor="works-done-date">Ngày hoàn tất</Label>
+          <DateInput
+            id="works-done-date"
+            value={doneDate}
+            onChange={setDoneDate}
+          />
+        </div>
+      </ConfirmAction>
     </section>
   );
 }

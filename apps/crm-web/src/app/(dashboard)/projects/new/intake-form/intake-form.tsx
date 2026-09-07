@@ -38,7 +38,7 @@ import {
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
 import { labelOf } from "@/utils/label-of/label-of";
-import { nowHHmm, todayISO } from "@/utils/today-iso/today-iso";
+import { localISO, nowHHmm, todayISO } from "@/utils/today-iso/today-iso";
 
 import { loadClient } from "../../../clients/actions/load-client";
 import { ClientType } from "../../../clients/enums";
@@ -223,11 +223,9 @@ export function IntakeForm({
 
   const onValid = (values: CreateProjectFormValues) => {
     const appointment_at =
-      values.stage !== ProjectStage.REQUEST
+      values.stage !== ProjectStage.REQUEST || !apptDate
         ? undefined
-        : apptDate
-          ? new Date(`${apptDate}T${apptTime || "00:00"}`).toISOString()
-          : undefined;
+        : localISO(apptDate, apptTime);
     // Decision maker defaults to the working contact.
     startTransition(() =>
       formAction({
