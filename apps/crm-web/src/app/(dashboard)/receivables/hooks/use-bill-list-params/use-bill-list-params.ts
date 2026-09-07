@@ -6,6 +6,7 @@ import { SORT_ORDER } from "@yan/shared/constants/filters";
 import { cap, usePageParams } from "@yan/shared/hooks";
 import { createPaginationConfigWithSearch } from "@yan/shared/utils";
 
+import { filterReset } from "@/hooks/use-filter-list/filter-reset";
 import { useFilterList } from "@/hooks/use-filter-list/use-filter-list";
 
 import { BillStatus } from "../../enums";
@@ -63,9 +64,19 @@ export function useBillListParams() {
     page: cap(list.isLoading ? undefined : list.totalPages),
   });
 
+  // The empty state needs to know whether it is empty because of the filters
+  // or because there is nothing there — see ListEmptyState.
+  const reset = filterReset({
+    params,
+    defaults: DEFAULT_PARAMS,
+    keys: ["search", "status"] as const,
+    apply: setListParams,
+  });
+
   return {
     params,
     setListParams,
+    ...reset,
     setPage: (page: number) => setParams((prev) => ({ ...prev, page })),
     pageSizes,
     ...list,

@@ -3,7 +3,6 @@
 import { Loader2 } from "lucide-react";
 
 import type { SortOrder } from "@yan/shared/constants/filters";
-import { Button } from "@yan/ui/components/button";
 import { Card } from "@yan/ui/components/card";
 import { MultiSelect } from "@yan/ui/components/multi-select";
 import { SearchInput } from "@yan/ui/components/search-input";
@@ -19,6 +18,7 @@ import {
 import { TablePagination } from "@yan/ui/components/table-pagination";
 import { cn } from "@yan/ui/lib/utils";
 
+import { ListEmptyState } from "@/components/empty-state/empty-state";
 import { TableSkeleton } from "@/components/table-skeleton/table-skeleton";
 import { BILL_STATUSES, FIELDS } from "@/constants/labels";
 
@@ -33,8 +33,6 @@ const STATUS_OPTIONS = Object.entries(BILL_STATUSES).map(
   ([value, { label }]) => ({ value, label })
 );
 
-const UNPAID = [BillStatus.DRAFT, BillStatus.OFFICIAL, BillStatus.SENT];
-
 /** Hóa đơn, on the same server-filtered/sorted/paged footing as the đợt table. */
 export function BillTable() {
   const {
@@ -47,15 +45,12 @@ export function BillTable() {
     isLoading,
     isFetching,
     isError,
+    hasFilters,
+    clearFilters,
   } = useBillListParams();
 
   const onSort = (sort: { sortBy: BillSortKey; sortOrder: SortOrder }) =>
     setListParams(sort);
-
-  const hasFilters =
-    Boolean(params.search) ||
-    params.status.length !== UNPAID.length ||
-    !UNPAID.every((s) => params.status.includes(s));
 
   return (
     <div className="space-y-3">
@@ -135,24 +130,11 @@ export function BillTable() {
                 ) : rows.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6}>
-                      <div className="flex flex-wrap items-center gap-3 py-2 text-muted-foreground">
-                        {hasFilters ? (
-                          <>
-                            Không có hóa đơn nào khớp bộ lọc.
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                setListParams({ search: "", status: UNPAID })
-                              }
-                            >
-                              Xóa bộ lọc
-                            </Button>
-                          </>
-                        ) : (
-                          "Không còn hóa đơn nào phải thu."
-                        )}
-                      </div>
+                      <ListEmptyState
+                        noun="hóa đơn"
+                        filtered={hasFilters}
+                        onClearFilters={clearFilters}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

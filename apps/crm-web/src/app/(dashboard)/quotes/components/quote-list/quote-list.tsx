@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import type { SortOrder } from "@yan/shared/constants/filters";
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 import { Card } from "@yan/ui/components/card";
 import { MultiSelect } from "@yan/ui/components/multi-select";
 import { SearchInput } from "@yan/ui/components/search-input";
@@ -20,6 +21,7 @@ import {
 import { TablePagination } from "@yan/ui/components/table-pagination";
 import { cn } from "@yan/ui/lib/utils";
 
+import { ListEmptyState } from "@/components/empty-state/empty-state";
 import { TableSkeleton } from "@/components/table-skeleton/table-skeleton";
 import {
   FIELDS,
@@ -27,6 +29,7 @@ import {
   QUOTE_STATUSES,
   QUOTE_SUPERSEDED_LABEL,
 } from "@/constants/labels";
+import { useRowNavigation } from "@/hooks/use-row-navigation/use-row-navigation";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
@@ -61,7 +64,11 @@ export function QuoteList() {
     isLoading,
     isFetching,
     isError,
+    hasFilters,
+    clearFilters,
   } = useQuoteListParams();
+
+  const rowProps = useRowNavigation();
 
   const onSort = (sort: { sortBy: QuoteSortKey; sortOrder: SortOrder }) =>
     setListParams(sort);
@@ -144,8 +151,20 @@ export function QuoteList() {
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-muted-foreground">
-                      Không có báo giá nào khớp bộ lọc.
+                    <TableCell colSpan={7}>
+                      <ListEmptyState
+                        noun="báo giá"
+                        filtered={hasFilters}
+                        onClearFilters={clearFilters}
+                        action={
+                          <Button
+                            size="sm"
+                            render={<Link href="/quotes/new" />}
+                          >
+                            + Báo giá mới
+                          </Button>
+                        }
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -159,7 +178,10 @@ export function QuoteList() {
                       ? QUOTE_SUPERSEDED_LABEL
                       : labelOf(QUOTE_STATUSES, quote.status);
                     return (
-                      <TableRow key={quote.id}>
+                      <TableRow
+                        key={quote.id}
+                        {...rowProps(`/quotes/${quote.id}`)}
+                      >
                         <TableCell className="font-medium">
                           <Link
                             href={`/quotes/${quote.id}`}

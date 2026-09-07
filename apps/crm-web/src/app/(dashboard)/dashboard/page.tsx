@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@yan/ui/components/card";
 
+import { EmptyState } from "@/components/empty-state/empty-state";
 import { PageHeader } from "@/components/page-header/page-header";
 import { OVERDUE_LABEL } from "@/constants/labels";
 import { formatDate } from "@/utils/format-date/format-date";
@@ -40,16 +41,16 @@ const DEBT_FETCH_ROWS = 50;
 function ProjectLinkList({
   items,
   detail,
+  empty,
 }: {
   items: Project[];
   /** What the right-hand column means for this panel. */
   detail: (project: Project) => string | null;
+  /** Per-panel copy: both panels used to share "Không có công trình nào.", so
+   *  an empty Hôm nay was indistinguishable from an empty follow-up list. */
+  empty: string;
 }) {
-  if (items.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">Không có công trình nào.</p>
-    );
-  }
+  if (items.length === 0) return <EmptyState message={empty} />;
   return (
     <ul className="space-y-2 text-sm">
       {items.map((p) => (
@@ -183,6 +184,7 @@ export default async function DashboardPage() {
                 (a?.appointment_at ?? "").localeCompare(b?.appointment_at ?? "")
               )}
               detail={(p) => formatTime(p?.appointment_at) || null}
+              empty="Không có lịch hẹn hôm nay."
             />
           </CardContent>
         </Card>
@@ -195,6 +197,7 @@ export default async function DashboardPage() {
             <ProjectLinkList
               items={followUps}
               detail={(p) => formatDate(p?.follow_up_date) || null}
+              empty="Không có công trình nào cần theo dõi."
             />
             {overduePaperwork.length > 0 ? (
               <div className="space-y-2 border-t pt-3">
@@ -260,7 +263,7 @@ export default async function DashboardPage() {
           </div>
 
           {debts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Không có công nợ.</p>
+            <EmptyState message="Không có công nợ." />
           ) : (
             <ul className="space-y-2 text-sm">
               {debts.slice(0, PANEL_ROWS).map((d) => (

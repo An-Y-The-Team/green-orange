@@ -20,12 +20,14 @@ import {
 import { TablePagination } from "@yan/ui/components/table-pagination";
 import { cn } from "@yan/ui/lib/utils";
 
+import { ListEmptyState } from "@/components/empty-state/empty-state";
 import { TableSkeleton } from "@/components/table-skeleton/table-skeleton";
 import {
   CREW_MEMBER_STATUSES,
   EMPLOYMENT_TYPES,
   FIELDS,
 } from "@/constants/labels";
+import { useRowNavigation } from "@/hooks/use-row-navigation/use-row-navigation";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { CrewMemberStatus, EmploymentType } from "../../enums";
@@ -55,7 +57,10 @@ export function RosterTab({ roles }: { roles: CrewRole[] }) {
     isLoading,
     isFetching,
     isError,
+    hasFilters,
+    clearFilters,
   } = useRosterListParams();
+  const rowProps = useRowNavigation();
 
   const roleOptions = roles.map((role) => ({
     value: String(role.id),
@@ -151,15 +156,27 @@ export function RosterTab({ roles }: { roles: CrewRole[] }) {
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-muted-foreground">
-                      Không có nhân sự nào khớp bộ lọc.
+                    <TableCell colSpan={5}>
+                      <ListEmptyState
+                        noun="nhân sự"
+                        filtered={hasFilters}
+                        onClearFilters={clearFilters}
+                        action={
+                          <Button size="sm" render={<Link href="/crew/new" />}>
+                            + Thêm nhân sự
+                          </Button>
+                        }
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
                   rows.map((member) => {
                     const status = labelOf(CREW_MEMBER_STATUSES, member.status);
                     return (
-                      <TableRow key={member.id}>
+                      <TableRow
+                        key={member.id}
+                        {...rowProps(`/crew/${member.id}`)}
+                      >
                         <TableCell className="font-medium">
                           <Link
                             href={`/crew/${member.id}`}

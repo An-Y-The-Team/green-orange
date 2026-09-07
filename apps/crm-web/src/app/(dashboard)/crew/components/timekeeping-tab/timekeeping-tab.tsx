@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { Button } from "@yan/ui/components/button";
@@ -21,6 +22,7 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
+import { EmptyState } from "@/components/empty-state/empty-state";
 import { EntityCombobox } from "@/components/entity-combobox/entity-combobox";
 import { FIELDS } from "@/constants/labels";
 import { addDays } from "@/utils/add-days/add-days";
@@ -239,11 +241,19 @@ export function TimekeepingTab({ crew }: { crew: CrewMember[] }) {
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={days.length + 2}
-                        className="text-center text-muted-foreground"
-                      >
-                        Không có nhân sự đang làm.
+                      <TableCell colSpan={days.length + 2}>
+                        <EmptyState
+                          message="Không có nhân sự đang làm."
+                          action={
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              render={<Link href="/crew/new" />}
+                            >
+                              + Thêm nhân sự
+                            </Button>
+                          }
+                        />
                       </TableCell>
                     </TableRow>
                   ) : (

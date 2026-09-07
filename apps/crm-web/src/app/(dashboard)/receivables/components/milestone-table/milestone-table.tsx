@@ -19,6 +19,7 @@ import {
 import { TablePagination } from "@yan/ui/components/table-pagination";
 import { cn } from "@yan/ui/lib/utils";
 
+import { ListEmptyState } from "@/components/empty-state/empty-state";
 import { TableSkeleton } from "@/components/table-skeleton/table-skeleton";
 import { FIELDS, MILESTONE_STATUSES } from "@/constants/labels";
 
@@ -53,16 +54,12 @@ export function MilestoneTable() {
     isLoading,
     isFetching,
     isError,
+    hasFilters,
+    clearFilters,
   } = useMilestoneListParams();
 
   const onSort = (sort: { sortBy: MilestoneSortKey; sortOrder: SortOrder }) =>
     setListParams(sort);
-
-  const hasFilters =
-    Boolean(params.search) ||
-    params.overdue ||
-    params.status.length !== 2 ||
-    !params.status.every((s) => s !== MilestoneStatus.PAID);
 
   return (
     <div className="space-y-3">
@@ -158,31 +155,11 @@ export function MilestoneTable() {
                 ) : rows.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7}>
-                      <div className="flex flex-wrap items-center gap-3 py-2 text-muted-foreground">
-                        {hasFilters ? (
-                          <>
-                            Không có đợt nào khớp bộ lọc.
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                setListParams({
-                                  search: "",
-                                  overdue: false,
-                                  status: [
-                                    MilestoneStatus.NOT_DUE,
-                                    MilestoneStatus.AWAITING_PAYMENT,
-                                  ],
-                                })
-                              }
-                            >
-                              Xóa bộ lọc
-                            </Button>
-                          </>
-                        ) : (
-                          "Không còn đợt nào phải thu."
-                        )}
-                      </div>
+                      <ListEmptyState
+                        noun="đợt thanh toán"
+                        filtered={hasFilters}
+                        onClearFilters={clearFilters}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

@@ -12,6 +12,7 @@ import {
 } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 
+import { EmptyState } from "@/components/empty-state/empty-state";
 import { ACTIONS, FIELDS } from "@/constants/labels";
 
 import {
@@ -142,7 +143,7 @@ export function ContactsSection({
           )
         )}
         {contacts.length === 0 && list.mode !== ADD_MODE ? (
-          <p className="text-sm text-muted-foreground">Chưa có liên hệ.</p>
+          <EmptyState message="Chưa có liên hệ. Dùng [+ Thêm liên hệ] ở trên." />
         ) : null}
         {list.mode === ADD_MODE ? (
           <div className="rounded-md border border-dashed p-2">{editForm}</div>

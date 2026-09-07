@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import {
+  Tabs,
+  TabsList,
+  TabsPanel,
+  TabsTrigger,
+} from "@yan/ui/components/tabs";
 
 import { FIELDS } from "@/constants/labels";
+import { useTabParam } from "@/hooks/use-tab-param/use-tab-param";
 
 import type { CrewMember, CrewRole } from "../../types";
 import { RolesTab } from "../roles-tab/roles-tab";
@@ -10,9 +16,8 @@ import { RosterTab } from "../roster-tab/roster-tab";
 import { TimekeepingTab } from "../timekeeping-tab/timekeeping-tab";
 
 const TABS = ["roster", "roles", "timekeeping"] as const;
-type Tab = (typeof TABS)[number];
 
-const TAB_LABELS: Record<Tab, string> = {
+const TAB_LABELS: Record<(typeof TABS)[number], string> = {
   roster: "Danh sách",
   roles: FIELDS.role,
   timekeeping: "Chấm công",
@@ -25,31 +30,30 @@ export function CrewTabs({
   crew: CrewMember[];
   roles: CrewRole[];
 }) {
-  const [tab, setTab] = useState<Tab>("roster");
+  const [tab, setTab] = useTabParam(TABS, "roster");
 
   return (
-    <div>
-      <div className="mb-4 flex flex-wrap gap-1 border-b">
+    <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
+      <TabsList>
         {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={[
-              "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-              tab === t
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            ].join(" ")}
-          >
+          <TabsTrigger key={t} value={t}>
             {TAB_LABELS[t]}
-          </button>
+            {t === "roles" ? ` (${roles.length})` : null}
+          </TabsTrigger>
         ))}
-      </div>
+      </TabsList>
 
-      {tab === "roster" ? <RosterTab roles={roles} /> : null}
-      {tab === "roles" ? <RolesTab roles={roles} /> : null}
-      {tab === "timekeeping" ? <TimekeepingTab crew={crew} /> : null}
-    </div>
+      {/* Panels stay mounted-on-demand: the roster and chấm công tabs each own a
+          query, and rendering all three would fire every one on arrival. */}
+      <TabsPanel value="roster">
+        {tab === "roster" ? <RosterTab roles={roles} /> : null}
+      </TabsPanel>
+      <TabsPanel value="roles">
+        {tab === "roles" ? <RolesTab roles={roles} /> : null}
+      </TabsPanel>
+      <TabsPanel value="timekeeping">
+        {tab === "timekeeping" ? <TimekeepingTab crew={crew} /> : null}
+      </TabsPanel>
+    </Tabs>
   );
 }

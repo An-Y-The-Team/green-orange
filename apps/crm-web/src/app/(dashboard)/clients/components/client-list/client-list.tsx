@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import type { SortOrder } from "@yan/shared/constants/filters";
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 import { Card } from "@yan/ui/components/card";
 import { MultiSelect } from "@yan/ui/components/multi-select";
 import { SearchInput } from "@yan/ui/components/search-input";
@@ -20,8 +21,10 @@ import {
 import { TablePagination } from "@yan/ui/components/table-pagination";
 import { cn } from "@yan/ui/lib/utils";
 
+import { ListEmptyState } from "@/components/empty-state/empty-state";
 import { TableSkeleton } from "@/components/table-skeleton/table-skeleton";
 import { CLIENT_TYPES, FIELDS } from "@/constants/labels";
+import { useRowNavigation } from "@/hooks/use-row-navigation/use-row-navigation";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import { ClientType } from "../../enums";
@@ -46,7 +49,11 @@ export function ClientList() {
     isLoading,
     isFetching,
     isError,
+    hasFilters,
+    clearFilters,
   } = useClientListParams();
+
+  const rowProps = useRowNavigation();
 
   const onSort = (sort: { sortBy: ClientSortKey; sortOrder: SortOrder }) =>
     setListParams(sort);
@@ -123,13 +130,28 @@ export function ClientList() {
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-muted-foreground">
-                      Không có khách hàng nào khớp bộ lọc.
+                    <TableCell colSpan={5}>
+                      <ListEmptyState
+                        noun="khách hàng"
+                        filtered={hasFilters}
+                        onClearFilters={clearFilters}
+                        action={
+                          <Button
+                            size="sm"
+                            render={<Link href="/clients/new" />}
+                          >
+                            + Khách hàng mới
+                          </Button>
+                        }
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
                   rows.map((client) => (
-                    <TableRow key={client.id}>
+                    <TableRow
+                      key={client.id}
+                      {...rowProps(`/clients/${client.id}`)}
+                    >
                       <TableCell className="font-medium">
                         <Link
                           href={`/clients/${client.id}`}

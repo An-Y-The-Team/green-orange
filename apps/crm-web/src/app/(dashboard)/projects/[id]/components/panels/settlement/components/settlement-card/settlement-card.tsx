@@ -220,7 +220,7 @@ export function SettlementCard({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Chưa có đợt thanh toán.
+            Chưa có đợt thanh toán. Dùng [+ Thêm đợt] ở trên.
           </p>
         )}
       </div>

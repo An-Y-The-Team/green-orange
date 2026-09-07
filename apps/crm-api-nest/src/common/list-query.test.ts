@@ -7,7 +7,15 @@ import { BadRequestException, ValidationPipe } from "@nestjs/common";
 import { describe, expect, test } from "bun:test";
 import { IsIn, IsInt, IsOptional } from "class-validator";
 
-import { CsvIn, CsvIntIn, ListQueryDto, insensitive, normalizeSearch, orderByArgs, unaccented } from "./list-query";
+import {
+  CsvIn,
+  CsvIntIn,
+  ListQueryDto,
+  insensitive,
+  normalizeSearch,
+  orderByArgs,
+  unaccented,
+} from "./list-query";
 
 class FixtureQuery extends ListQueryDto {
   @IsOptional() @CsvIn() @IsIn(["a", "b", "c"], { each: true }) tag?: string[];

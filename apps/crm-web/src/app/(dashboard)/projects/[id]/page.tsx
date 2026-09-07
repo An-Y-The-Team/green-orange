@@ -18,11 +18,7 @@ import {
   getProjectMilestones,
   getProjectSettlements,
 } from "@/app/(dashboard)/receivables/queries";
-import type {
-  Bill,
-  PaymentMilestone,
-  Settlement,
-} from "@/app/(dashboard)/receivables/types";
+import type { Settlement } from "@/app/(dashboard)/receivables/types";
 import { BACK_TO } from "@/constants/labels";
 import { localDateOf, todayISO } from "@/utils/today-iso/today-iso";
 
@@ -68,7 +64,11 @@ export default async function ProjectDetailPage({
   const isClosed = stage === ProjectStage.CLOSED;
 
   const needsContracts = isContract || isClosed;
-  const needsMilestones = isContract || isSettlement || isClosed;
+  // Milestones and bills are NOT stage-gated any more: the Thanh toán tab is
+  // available at every stage, and gating them meant a project at Thi công —
+  // which cannot have got there without a collected cọc — showed "no payments".
+  // Two extra reads on a page that already fans out a dozen, in exchange for a
+  // tab that does not lie.
   const needsDealQuote = isContract || isSettlement;
   const needsMoneyDocs = isSettlement || isClosed;
 
@@ -92,9 +92,7 @@ export default async function ProjectDetailPage({
     needsContracts
       ? getProjectContracts(project.id)
       : Promise.resolve<Contract[]>([]),
-    needsMilestones
-      ? getProjectMilestones(project.id)
-      : Promise.resolve<PaymentMilestone[]>([]),
+    getProjectMilestones(project.id),
     needsDealQuote
       ? getDealQuote(project.id)
       : Promise.resolve<Quote | undefined>(undefined),
@@ -114,7 +112,7 @@ export default async function ProjectDetailPage({
     needsMoneyDocs
       ? getProjectSettlements(project.id)
       : Promise.resolve<Settlement[]>([]),
-    needsMoneyDocs ? getProjectBills(project.id) : Promise.resolve<Bill[]>([]),
+    getProjectBills(project.id),
     listCrew(),
     listCrewRoles(),
     listProjectTypes(),
@@ -155,6 +153,8 @@ export default async function ProjectDetailPage({
         assignments={assignments}
         crew={crew}
         roles={roles}
+        milestones={milestones}
+        bills={bills}
       />
     </>
   );

@@ -427,9 +427,7 @@ class BillsController {
     const where = {
       project_id: query.project_id ? Number(query.project_id) : undefined,
       ...(query.status?.length ? { status: { in: query.status } } : {}),
-      ...(query.search
-        ? { project: { code: insensitive(query.search) } }
-        : {}),
+      ...(query.search ? { project: { code: insensitive(query.search) } } : {}),
     };
     return withTotalCount(
       res,
@@ -578,9 +576,7 @@ export class PaymentMilestonesController {
         : query.status?.length
           ? { status: { in: query.status } }
           : {}),
-      ...(query.search
-        ? { project: { code: insensitive(query.search) } }
-        : {}),
+      ...(query.search ? { project: { code: insensitive(query.search) } } : {}),
     };
     return withTotalCount(
       res,
@@ -771,7 +767,10 @@ export class ReceivablesSummaryController {
     const milestones = Object.fromEntries(
       MILESTONE_STATUS.map((status) => {
         const row = milestoneGroups.find((g) => g.status === status);
-        return [status, bucket(row?._count._all ?? 0, row?._sum.amount ?? null)];
+        return [
+          status,
+          bucket(row?._count._all ?? 0, row?._sum.amount ?? null),
+        ];
       })
     );
     const bills = Object.fromEntries(

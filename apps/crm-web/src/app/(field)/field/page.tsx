@@ -12,6 +12,7 @@ import { ProjectStage } from "@/app/(dashboard)/projects/enums";
 import { listProjects } from "@/app/(dashboard)/projects/queries";
 import { QuoteStatus } from "@/app/(dashboard)/quotes/enums";
 import { listQuotes } from "@/app/(dashboard)/quotes/queries";
+import { EmptyState } from "@/components/empty-state/empty-state";
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
@@ -58,9 +59,7 @@ export default async function FieldPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {todayAppointments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Không có lịch hẹn hôm nay.
-            </p>
+            <EmptyState message="Không có lịch hẹn hôm nay." />
           ) : (
             todayAppointments.map((p) => (
               <FieldAppointmentCard key={p.id} project={p} />
@@ -88,9 +87,7 @@ export default async function FieldPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {waitingQuotes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Không có báo giá chờ quyết định.
-            </p>
+            <EmptyState message="Không có báo giá chờ quyết định." />
           ) : (
             waitingQuotes.map(({ quote, project }) => (
               <FieldQuoteCard
@@ -112,9 +109,7 @@ export default async function FieldPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {onSite.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Không có công trình đang thi công.
-            </p>
+            <EmptyState message="Không có công trình đang thi công." />
           ) : (
             onSite.map((p) => <FieldSubStatusCard key={p.id} project={p} />)
           )}

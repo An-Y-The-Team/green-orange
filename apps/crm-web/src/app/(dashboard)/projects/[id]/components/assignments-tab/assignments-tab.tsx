@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
+import { EmptyState } from "@/components/empty-state/empty-state";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { ACTIONS, CREW_MEMBER_STATUSES, FIELDS } from "@/constants/labels";
 import { ACTION_TOAST_TITLES } from "@/constants/server-action";
@@ -112,7 +113,7 @@ export function AssignmentsTab({
   return (
     <div className="space-y-4">
       {assignments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Chưa có phân công.</p>
+        <EmptyState message="Chưa có phân công. Dùng [+ Phân công] ở trên." />
       ) : (
         <Table>
           <TableHeader>

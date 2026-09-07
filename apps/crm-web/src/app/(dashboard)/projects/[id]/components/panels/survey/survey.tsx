@@ -13,6 +13,7 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
+import { EmptyState } from "@/components/empty-state/empty-state";
 import { ACTIONS, FIELDS, LINE_ITEM_COLUMNS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
@@ -200,7 +201,7 @@ export function SurveyPanel({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Chưa có hạng mục.</p>
+          <EmptyState message="Chưa có hạng mục — thêm ở dòng bên dưới." />
         )}
         <div>
           <Button
@@ -266,7 +267,7 @@ export function SurveyPanel({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">Chưa có ảnh.</p>
+          <EmptyState message="Chưa có ảnh khảo sát." />
         )}
         {showAdd ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">

@@ -10,6 +10,7 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import { EmptyState } from "@/components/empty-state/empty-state";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { settlementTotals } from "@/utils/quote-totals/quote-totals";
 
@@ -62,11 +63,21 @@ export function SettlementPanel({
           projectId={project.id}
         />
       ) : (
-        <p className="text-sm text-muted-foreground">
-          {dealQuote
-            ? "Chưa có quyết toán. Quyết toán mới sẽ lấy hạng mục từ báo giá đã chốt."
-            : "Chưa có quyết toán."}
-        </p>
+        <EmptyState
+          message={
+            dealQuote
+              ? "Chưa có quyết toán. Quyết toán mới sẽ lấy hạng mục từ báo giá đã chốt."
+              : "Chưa có quyết toán."
+          }
+          action={
+            <Button
+              size="sm"
+              render={<Link href={`/projects/${project.id}/settlements/new`} />}
+            >
+              + Quyết toán
+            </Button>
+          }
+        />
       )}
 
       <Separator />

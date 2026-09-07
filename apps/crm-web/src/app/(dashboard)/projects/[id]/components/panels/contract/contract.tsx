@@ -28,6 +28,7 @@ import {
   MilestoneType,
 } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
+import { EmptyState } from "@/components/empty-state/empty-state";
 import { MoneyInput } from "@/components/money-input/money-input";
 import {
   ACTIONS,
@@ -290,7 +291,17 @@ export function ContractPanel({
         </div>
 
         {contracts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Chưa có hợp đồng.</p>
+          <EmptyState
+            message="Chưa có hợp đồng."
+            action={
+              <Button
+                size="sm"
+                render={<Link href={`/projects/${project.id}/contracts/new`} />}
+              >
+                Soạn hợp đồng
+              </Button>
+            }
+          />
         ) : (
           <ul className="space-y-2">
             {contracts.map((c) => (

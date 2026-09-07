@@ -193,7 +193,7 @@ export function ProjectTypesManager({
         ))}
         {types.length === 0 ? (
           <li className="text-sm text-muted-foreground">
-            Chưa có loại công trình nào.
+            Chưa có loại công trình nào — thêm ở ô bên trên.
           </li>
         ) : null}
       </ul>

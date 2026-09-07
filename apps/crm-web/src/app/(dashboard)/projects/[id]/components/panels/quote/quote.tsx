@@ -27,6 +27,7 @@ import {
 } from "@/app/(dashboard)/quotes/enums";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
+import { EmptyState } from "@/components/empty-state/empty-state";
 import {
   ACTIONS,
   QUOTE_CHANNELS,
@@ -318,21 +319,23 @@ export function QuotePanel({ project }: { project: Project }) {
       {latest ? (
         <LatestVersion quote={latest} project={project} />
       ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">Chưa có báo giá.</p>
-          <Button
-            size="sm"
-            render={
-              <Link
-                href={`/projects/${project.id}/quotes/new${
-                  project.survey_items?.length ? "?from=survey" : ""
-                }`}
-              />
-            }
-          >
-            Lập báo giá
-          </Button>
-        </div>
+        <EmptyState
+          message="Chưa có báo giá."
+          action={
+            <Button
+              size="sm"
+              render={
+                <Link
+                  href={`/projects/${project.id}/quotes/new${
+                    project.survey_items?.length ? "?from=survey" : ""
+                  }`}
+                />
+              }
+            >
+              Lập báo giá
+            </Button>
+          }
+        />
       )}
 
       {older.length > 0 ? (

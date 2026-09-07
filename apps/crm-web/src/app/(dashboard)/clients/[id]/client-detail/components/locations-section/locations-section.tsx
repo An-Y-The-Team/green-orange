@@ -13,6 +13,7 @@ import {
 } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 
+import { EmptyState } from "@/components/empty-state/empty-state";
 import { SELECT_CLASS } from "@/components/form-bits/form-bits";
 import { ACTIONS, FIELDS } from "@/constants/labels";
 
@@ -145,7 +146,7 @@ export function LocationsSection({
           )
         )}
         {items.length === 0 && list.mode !== ADD_MODE ? (
-          <p className="text-sm text-muted-foreground">Chưa có địa điểm.</p>
+          <EmptyState message="Chưa có địa điểm. Dùng [+ Thêm địa điểm] ở trên." />
         ) : null}
         {list.mode === ADD_MODE ? (
           <div className="rounded-md border border-dashed p-2">{editForm}</div>
