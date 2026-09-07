@@ -142,7 +142,9 @@ export function EntityCombobox({
       </div>
 
       <Combobox.Portal>
-        <Combobox.Positioner sideOffset={4} align="start" className="z-50">
+        {/* z-60: above the dialog layer, so a picker inside a dialog is
+            clickable — see the note in @yan/ui date-input.tsx. */}
+        <Combobox.Positioner sideOffset={4} align="start" className="z-60">
           <Combobox.Popup className="max-h-72 w-[var(--anchor-width)] max-w-[var(--available-width)] overflow-y-auto rounded-lg bg-popover py-1 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none">
             {isError ? (
               <p className="px-3 py-2 text-destructive">

@@ -117,8 +117,17 @@ function DateInput({
           }
         />
         <Popover.Portal>
-          <Popover.Positioner sideOffset={4} align="end">
-            <Popover.Popup className="z-50 w-64 rounded-xl bg-popover p-3 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none">
+          {/* The z-index belongs on the POSITIONER, and above the dialog layer.
+              Base UI portals this popover INTO the open dialog's portal, where
+              the positioner is a sibling of `dialog-overlay`/`dialog-content`
+              (both z-50). With the z-index on the popup instead, the positioner
+              stayed at `z-auto` — a descendant cannot out-paint a sibling
+              stacking context of its own ancestor — so the calendar rendered
+              behind the dialog's backdrop and could not be clicked. z-60, not
+              z-50: a tie falls back to DOM order, and the popover subtree
+              mounts before the overlay. */}
+          <Popover.Positioner sideOffset={4} align="end" className="z-60">
+            <Popover.Popup className="w-64 rounded-xl bg-popover p-3 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none">
               <div className="mb-2 flex items-center justify-between">
                 <Button
                   variant="ghost"

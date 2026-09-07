@@ -56,11 +56,18 @@ function MultiSelect({
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
-        <SelectPrimitive.Positioner sideOffset={4} align="start">
+        {/* z-index on the positioner, above the dialog layer — see the note in
+            date-input.tsx: on the popup it leaves the positioner at `z-auto`,
+            and a MultiSelect opened inside a dialog would render behind it. */}
+        <SelectPrimitive.Positioner
+          sideOffset={4}
+          align="start"
+          className="z-60"
+        >
           <SelectPrimitive.Popup
             data-slot="multi-select-popup"
             className={cn(
-              "z-50 min-w-(--anchor-width) rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none",
+              "min-w-(--anchor-width) rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none",
               "data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
             )}
           >
