@@ -200,7 +200,7 @@ export const TIMEKEEPING_SOURCES: Record<TimekeepingSource, string> = {
  */
 export const FIELDS = {
   status: "Trạng thái",
-  client: "Khách hàng",
+  client: "Khách hàng/Công ty",
   clientName: "Tên khách hàng",
   clientType: "Loại khách hàng",
   contactPerson: "Người liên hệ",
@@ -296,7 +296,7 @@ export const PLACEHOLDERS = {
  * a user who saw two of them had no way to know it was the same product.
  * GreenOrange is the brand: the company is CÔNG TY TNHH DỊCH VỤ GREENORANGE.
  */
-export const APP_NAME = "GreenOrange CRM";
+export const APP_NAME = "Quản lý công trình & nhân sự Ý Ân" as const;
 
 /**
  * Photo attachments are **filenames**, not files: there is no object storage
