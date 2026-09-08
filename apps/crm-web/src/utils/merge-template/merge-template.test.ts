@@ -5,8 +5,10 @@ import { doc, mf, p, t } from "@/utils/lexical-build/lexical-build";
 
 import {
   CONTRACT_TOKENS,
+  QUOTE_TOKENS,
   SIGNED_TOKENS,
   buildContractContext,
+  buildQuoteContext,
   previewContext,
   signedContext,
   unknownTokens,
@@ -50,6 +52,40 @@ test("every token in CONTRACT_TOKENS resolves against a real contract", () => {
   expect(ctx.value_before_tax).toContain("36.000.000");
   expect(ctx.value).toContain("38.880.000");
   expect(ctx.vat_rate).toBe("8%");
+});
+
+// Same invariant for the báo giá terms block: QUOTE_TOKENS is its palette, and
+// a chip the context can't fill prints ⟨token?⟩ on a customer-facing sheet.
+test("every token in QUOTE_TOKENS resolves against a real quote", () => {
+  const ctx = buildQuoteContext({
+    quote: {
+      total_amount: 36_000_000,
+      vat_rate: 0.08,
+      project: {
+        code: "CT-2026-001",
+        name: "Vệ sinh kính Vincom",
+        client: { name: "Vincom Retail" },
+      },
+    },
+  });
+
+  for (const { token } of QUOTE_TOKENS) {
+    expect(ctx, `quote context is missing ${token}`).toHaveProperty(token);
+  }
+  expect(ctx.value_before_tax).toContain("36.000.000");
+  expect(ctx.value).toContain("38.880.000");
+  expect(ctx.vat_rate).toBe("8%");
+  expect(ctx.client).toBe("Vincom Retail");
+});
+
+// A standalone quote has no project: those chips resolve empty, never a marker.
+test("QUOTE_TOKENS resolve to empty strings without a project", () => {
+  const ctx = buildQuoteContext({
+    quote: { total_amount: 0, vat_rate: 0.08 },
+  });
+  expect(ctx.project_code).toBe("");
+  expect(ctx.project_name).toBe("");
+  expect(ctx.client).toBe("");
 });
 
 test("no whitelisted token is reported unknown", () => {

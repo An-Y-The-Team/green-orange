@@ -25,7 +25,10 @@ test("a hồ sơ item walks chưa xong → đã nộp → đã duyệt, once", a
   await expect(row.getByRole("button", { name: "→ Đã duyệt" })).toBeVisible();
   await expect(page.getByText("Hồ sơ (0/4 đã duyệt)")).toBeVisible();
 
+  // Only the APPROVED hop is confirm-gated — it is terminal and it opens Thi
+  // công, while confirming every → Đã nộp would be friction with nothing to say.
   await row.getByRole("button", { name: "→ Đã duyệt" }).click();
+  await page.getByRole("button", { name: "Đã duyệt", exact: true }).click();
   await expect(page.getByText("Hồ sơ (1/4 đã duyệt)")).toBeVisible();
   // Đã duyệt is terminal — no way further, and no way back.
   await expect(row.getByRole("button", { name: /^→/ })).toHaveCount(0);

@@ -4,6 +4,7 @@ import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ChevronDown } from "lucide-react";
@@ -34,6 +35,7 @@ export function TemplateBlock({
   onChange,
   tokens,
   ctx,
+  readOnly,
 }: {
   label: string;
   hint?: string;
@@ -43,11 +45,18 @@ export function TemplateBlock({
   tokens: PaletteToken[];
   /** Resolves chips to live values for display. */
   ctx: MergeContext;
+  /**
+   * Frozen document: no toolbar, no chip menu, caret only. A `contentEditable`
+   * ignores a surrounding `<fieldset disabled>`, so a read-only host page has
+   * to say so here or the text stays typeable.
+   */
+  readOnly?: boolean;
 }) {
   const initialConfig = {
     namespace: `template-block-${label}`,
     theme: EDITOR_THEME,
     nodes: [...EDITOR_NODES],
+    editable: !readOnly,
     editorState: value && value.length > 0 ? value : undefined,
     onError(error: Error) {
       throw error;
@@ -64,23 +73,25 @@ export function TemplateBlock({
           {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1 rounded-md border bg-muted/40 p-1">
-          <Toolbar />
-          <span className="mx-1 h-5 w-px bg-border" />
-          <details className="relative">
-            <summary className="flex cursor-pointer select-none list-none items-center gap-1 rounded-md px-2 py-1 text-xs font-medium hover:bg-accent [&::-webkit-details-marker]:hidden">
-              Chèn
-              <ChevronDown className="size-3.5" />
-            </summary>
-            <div className="absolute left-0 top-full z-30 mt-1 w-[26rem] max-w-[80vw] rounded-md border bg-popover p-1 shadow-md">
-              <TokenPalette
-                tokens={tokens}
-                showLineItems={false}
-                resolve={(token) => ctx[token]}
-              />
-            </div>
-          </details>
-        </div>
+        {readOnly ? null : (
+          <div className="flex flex-wrap items-center gap-1 rounded-md border bg-muted/40 p-1">
+            <Toolbar />
+            <span className="mx-1 h-5 w-px bg-border" />
+            <details className="relative">
+              <summary className="flex cursor-pointer select-none list-none items-center gap-1 rounded-md px-2 py-1 text-xs font-medium hover:bg-accent [&::-webkit-details-marker]:hidden">
+                Chèn
+                <ChevronDown className="size-3.5" />
+              </summary>
+              <div className="absolute left-0 top-full z-30 mt-1 w-[26rem] max-w-[80vw] rounded-md border bg-popover p-1 shadow-md">
+                <TokenPalette
+                  tokens={tokens}
+                  showLineItems={false}
+                  resolve={(token) => ctx[token]}
+                />
+              </div>
+            </details>
+          </div>
+        )}
 
         <div className="relative rounded-md border border-dashed border-zinc-300 bg-white p-3">
           <RichTextPlugin
@@ -101,6 +112,9 @@ export function TemplateBlock({
       </section>
 
       <HistoryPlugin />
+      {/* The toolbar offers bullet/numbered lists; without this the commands it
+          dispatches are unhandled and nothing happens. */}
+      <ListPlugin />
       <OnChangePlugin
         ignoreSelectionChange
         onChange={(editorState) =>

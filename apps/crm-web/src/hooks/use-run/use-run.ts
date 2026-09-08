@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useActionState, useTransition } from "react";
 
 import {
@@ -39,10 +40,19 @@ export function useRun<I = void, D = { id?: number }>(
 ) {
   const [state, dispatch] = useActionState(action, INITIAL_ACTION_STATE);
   const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
 
   useServerAction<D>(state as ServerActionState<D>, isPending, {
     ...ACTION_TOAST_TITLES,
-    onSuccess,
+    onSuccess: (data) => {
+      // A server action's `revalidatePath` refreshes the RSC tree and says
+      // nothing to the client-side list queries (use-filter-list). Buttons that
+      // write from INSIDE such a table — the money screen's "Ghi nhận đã thu" —
+      // toasted success and left the row reading its old status until a manual
+      // reload. Invalidating only refetches what is mounted.
+      void queryClient.invalidateQueries();
+      onSuccess?.(data);
+    },
     silent: options?.silent,
   });
 

@@ -1,3 +1,6 @@
+import { MilestoneStatus } from "@/app/(dashboard)/receivables/enums";
+import { FIELDS, MILESTONE_STATUSES } from "@/constants/labels";
+
 import { expect, isoDay, test } from "./fixtures";
 
 /**
@@ -28,6 +31,22 @@ test("a past-due đợt reads Quá hạn until it is collected", async ({
   await row.getByRole("button", { name: "Ghi nhận đã thu" }).click();
   await page.getByRole("button", { name: "Xác nhận", exact: true }).click();
 
-  await expect(row).toContainText("Đã thu");
+  // The screen answers "what do I still need to collect", so Đã thu is hidden
+  // by default: the row leaving the list is the collection landing.
+  await expect(row).toHaveCount(0);
+
+  // Ask for it back, and the derived badge is gone with no status write between.
+  // Two status filters on the page — đợt then hóa đơn, in that order.
+  await page.getByRole("combobox", { name: FIELDS.status }).first().click();
+  await page
+    .getByRole("option", {
+      name: MILESTONE_STATUSES[MilestoneStatus.PAID].label,
+    })
+    .click();
+  await page.keyboard.press("Escape");
+
+  await expect(row).toContainText(
+    MILESTONE_STATUSES[MilestoneStatus.PAID].label
+  );
   await expect(row).not.toContainText("Quá hạn");
 });

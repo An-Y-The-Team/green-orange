@@ -28,7 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from "@yan/ui/components/table";
-import { Textarea } from "@yan/ui/components/textarea";
 
 import { createQuote } from "@/app/(dashboard)/quotes/actions/create-quote";
 import { updateQuote } from "@/app/(dashboard)/quotes/actions/update-quote";
@@ -39,6 +38,7 @@ import {
   quoteFormSchema,
 } from "@/app/(dashboard)/quotes/schema";
 import { useCompany } from "@/components/company-provider/company-provider";
+import { TemplateBlock } from "@/components/editor/template-block/template-block";
 import { fieldError } from "@/components/form-bits/form-bits";
 import { FormErrorSummary } from "@/components/form-error-summary/form-error-summary";
 import { MoneyInput } from "@/components/money-input/money-input";
@@ -51,6 +51,16 @@ import { useUnsavedGuard } from "@/hooks/use-unsaved-guard/use-unsaved-guard";
 import { applyFieldErrors } from "@/utils/apply-field-errors/apply-field-errors";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { groupByCategory } from "@/utils/group-by-category/group-by-category";
+import {
+  ensureLexicalBody,
+  lexicalPlainText,
+} from "@/utils/lexical-build/lexical-build";
+import {
+  QUOTE_TOKENS,
+  buildQuoteContext,
+  resolveMergeFieldText,
+  stripMergeFieldText,
+} from "@/utils/merge-template/merge-template";
 import { itemAmount, quoteTotals } from "@/utils/quote-totals/quote-totals";
 
 export interface QuoteBuilderInitial {
@@ -65,7 +75,14 @@ export interface QuoteBuilderInitial {
     unit_price: number;
   }[];
   vatPercent: number;
+  /** Lexical editorState JSON; legacy plain text is migrated on open. */
   note: string;
+  /**
+   * Resolves the project chips in the terms editor. Unset on a standalone quote
+   * until one is saved against a project — an unresolved chip shows its label
+   * while editing and resolves on the printable.
+   */
+  project?: { code: string; name: string; client?: { name: string } } | null;
   // Signer on the printable; empty = the company representative signs.
   repName: string;
   repTitle: string;
@@ -120,13 +137,31 @@ export function QuoteBuilderForm({
         ? `/projects/${projectId}`
         : "/quotes";
 
+  // The terms block is rich text (Lexical JSON). Seeded once — chips baked with
+  // the values the quote was saved with, so they read like the final sheet —
+  // and stripped back to bare tokens on save.
+  const [noteSeed] = useState(() =>
+    resolveMergeFieldText(
+      ensureLexicalBody(initial.note),
+      buildQuoteContext({
+        quote: {
+          total_amount: quoteTotals(initial.items, initial.vatPercent / 100)
+            .subtotal,
+          vat_rate: initial.vatPercent / 100,
+          project: initial.project,
+        },
+        company,
+      })
+    )
+  );
+
   const form = useForm<QuoteFormValues>({
     resolver: zodResolver(quoteFormSchema),
     mode: "onTouched",
     defaultValues: {
       items: initial.items.length ? initial.items : [BLANK_ROW],
       vat_percent: initial.vatPercent,
-      note: initial.note,
+      note: noteSeed,
       // Mandatory signer, prefilled with the company representative; swap the
       // name when someone else signs. Title stays blank unless typed.
       rep_name: initial.repName || company.representative,
@@ -170,6 +205,17 @@ export function QuoteBuilderForm({
     (Number(watchedVat) || 0) / 100
   );
 
+  // Chips inserted from the palette read the figures as they stand now; the
+  // printable always re-resolves from the saved quote.
+  const noteCtx = buildQuoteContext({
+    quote: {
+      total_amount: subtotal,
+      vat_rate: (Number(watchedVat) || 0) / 100,
+      project: initial.project,
+    },
+    company,
+  });
+
   // Hạng mục sections — runs of consecutive rows sharing a category. The header
   // is not its own record: renaming it writes the value onto every row it covers.
   const groups = groupByCategory(watchedItems);
@@ -189,7 +235,13 @@ export function QuoteBuilderForm({
         unit_price: it.unit_price,
       })),
       vat_rate: values.vat_percent / 100,
-      note: values.note || undefined,
+      // Baked chip text round-trips through storage, so strip it back to bare
+      // tokens or a stale total freezes onto the paper. An emptied editor sends
+      // "" (never undefined) so deleting the terms persists on PATCH, the same
+      // reason rep_title below is always sent.
+      note: lexicalPlainText(values.note ?? "")
+        ? stripMergeFieldText(values.note ?? "")
+        : "",
       rep_name: values.rep_name,
       // Always sent (never undefined) so clearing the title persists on PATCH.
       rep_title: values.rep_title ?? "",
@@ -447,15 +499,21 @@ export function QuoteBuilderForm({
                 </dl>
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="note">Điều khoản & ghi chú</Label>
-                <Textarea
-                  id="note"
-                  rows={3}
-                  placeholder="Báo giá hiệu lực 30 ngày…"
-                  {...register("note")}
-                />
-              </div>
+              <Controller
+                control={control}
+                name="note"
+                render={({ field }) => (
+                  <TemplateBlock
+                    label="Điều khoản & ghi chú"
+                    hint="Hiệu lực, tiến độ thanh toán, bảo hành… Chèn để lấy số tài khoản hoặc tổng giá trị."
+                    value={noteSeed}
+                    onChange={field.onChange}
+                    tokens={QUOTE_TOKENS}
+                    ctx={noteCtx}
+                    readOnly={readOnly}
+                  />
+                )}
+              />
 
               {/* Signer on the printable. Name is required (prefilled with the
                   company representative); the title prints only when given. */}

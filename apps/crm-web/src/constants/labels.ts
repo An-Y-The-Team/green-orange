@@ -328,6 +328,7 @@ export const BACK_TO = {
 /** Boilerplate on printed/exported documents. */
 export const DOCUMENT_TEXT = {
   contractHeading: "HỢP ĐỒNG",
+  quoteHeading: "BẢNG BÁO GIÁ",
   partyA: "Bên A (Khách hàng)",
   partyB: "Bên B (Nhà cung cấp dịch vụ)",
   partyASignatory: "ĐẠI DIỆN BÊN A",

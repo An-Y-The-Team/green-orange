@@ -26,6 +26,8 @@ export default async function NewQuotePage({
 
   const copied = copy ? await getQuote(Number(copy)) : undefined;
   const initial: QuoteBuilderInitial = {
+    // No project until the picker below sets one, so the terms editor's project
+    // chips show their labels here and resolve on the saved quote's printable.
     projectId: undefined,
     version: 1,
     ...(copied

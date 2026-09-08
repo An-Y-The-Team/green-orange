@@ -39,6 +39,8 @@ export default async function QuoteBuilderPage({
   const initial: QuoteBuilderInitial = {
     projectId: project.id,
     version: latestVersion + 1,
+    // Resolves the project chips in the terms editor.
+    project: { code: project.code, name: project.name, client: project.client },
     ...(copied
       ? quoteFormSeed(copied)
       : {

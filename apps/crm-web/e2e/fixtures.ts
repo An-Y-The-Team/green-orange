@@ -40,7 +40,11 @@ export type Api = {
     stage?: ProjectStage;
     name?: string;
   }): Promise<ProjectRow>;
-  createQuote(projectId: number, amount: number): Promise<QuoteRow>;
+  createQuote(
+    projectId: number,
+    amount: number,
+    note?: string
+  ): Promise<QuoteRow>;
   sendQuote(quoteId: number): Promise<void>;
   createMilestone(opts: {
     projectId: number;
@@ -71,6 +75,17 @@ export function displayDay(iso: string): string {
  */
 export const stepperButton = (page: Page, name: string | RegExp) =>
   page.getByRole("button", { name }).filter({ visible: true });
+
+/**
+ * Move a project forward one stage. The FORWARD move is confirm-gated — it is
+ * the consequential direction (entering a stage seeds its artifacts) and the
+ * dialog lists whatever the current stage still has outstanding. Going back is
+ * a plain button.
+ */
+export async function advanceStage(page: Page, toLabel: string) {
+  await stepperButton(page, `Chuyển sang: ${toLabel}`).click();
+  await page.getByRole("button", { name: "Chuyển giai đoạn" }).click();
+}
 
 let counter = 0;
 /** Unique per worker AND per run, so re-runs never collide on a name. */
@@ -129,12 +144,13 @@ function makeApi(request: APIRequestContext): Api {
         5
       ),
 
-    createQuote: (projectId, amount) =>
+    createQuote: (projectId, amount, note) =>
       post("/quotes", {
         project_id: projectId,
         items: [
           { description: "Vệ sinh kính", quantity: 1, unit_price: amount },
         ],
+        note,
       }),
 
     // A draft quote has no decision buttons — the client has to have seen it.

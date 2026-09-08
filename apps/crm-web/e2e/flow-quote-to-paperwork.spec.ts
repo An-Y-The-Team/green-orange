@@ -1,7 +1,7 @@
 import { ProjectStage } from "@/app/(dashboard)/projects/enums";
 import { PROJECT_STAGES } from "@/constants/labels";
 
-import { expect, stepperButton, test } from "./fixtures";
+import { advanceStage, expect, test } from "./fixtures";
 
 /**
  * The spine of the pipeline, stages 2 → 4, as one flow
@@ -29,17 +29,15 @@ test("a quote drives a công trình from Báo giá to Chuẩn bị hồ sơ", as
   // A draft has no decision buttons — the client has to have been sent it.
   await api.sendQuote(quote.id);
   await page.reload();
-  await page.getByRole("button", { name: /^Chốt/ }).click();
+  await page.getByRole("button", { name: "Chốt ✓" }).click();
+  await page.getByRole("button", { name: "Chốt báo giá" }).click();
   await expect(page.getByText("Báo giá đã chốt —")).toBeVisible();
 
   // Chốt does NOT move the stage on its own: transitions are soft, the operator
   // moves. (The business doc calls this a gate; the backend implements it as a
   // manual move — if that ever changes, this line is where it shows.)
   await expect(page.locator(`#stage-${ProjectStage.QUOTE}`)).toBeVisible();
-  await stepperButton(
-    page,
-    `Chuyển sang: ${PROJECT_STAGES[ProjectStage.CONTRACT].label}`
-  ).click();
+  await advanceStage(page, PROJECT_STAGES[ProjectStage.CONTRACT].label);
   await expect(page.locator(`#stage-${ProjectStage.CONTRACT}`)).toBeVisible();
 
   // Stage 3's exit is a two-item checklist, independent of a written contract.

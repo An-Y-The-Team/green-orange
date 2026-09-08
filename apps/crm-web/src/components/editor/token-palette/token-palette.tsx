@@ -50,6 +50,14 @@ export function TokenPalette({
       $insertNodeToNearestRoot($createLineItemsNode());
     });
 
+  /**
+   * The palette lives in a `<details>` popover, which stays open until its own
+   * summary is clicked again — over whatever sits below it (in the quote
+   * builder, the save buttons). Inserting is the end of the errand, so close it.
+   */
+  const closePopover = (event: React.MouseEvent<HTMLElement>) =>
+    event.currentTarget.closest("details")?.removeAttribute("open");
+
   return (
     <div className="space-y-1.5 px-2 py-1.5">
       <div>
@@ -64,7 +72,10 @@ export function TokenPalette({
               variant="outline"
               size="xs"
               title={`{{${token.token}}}`}
-              onClick={() => insert(token.token)}
+              onClick={(event) => {
+                insert(token.token);
+                closePopover(event);
+              }}
             >
               {token.label}
             </Button>
@@ -77,7 +88,10 @@ export function TokenPalette({
             type="button"
             variant="outline"
             size="xs"
-            onClick={insertLineItems}
+            onClick={(event) => {
+              insertLineItems();
+              closePopover(event);
+            }}
           >
             <Table />
             Chèn bảng báo giá

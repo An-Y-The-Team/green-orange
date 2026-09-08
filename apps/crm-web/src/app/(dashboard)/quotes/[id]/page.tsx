@@ -53,6 +53,7 @@ export default async function QuotePage({
     projectId: quote.project_id ?? undefined,
     version: quote.version,
     editId: quote.id,
+    project: quote.project,
     ...quoteFormSeed(quote),
   };
 

@@ -15,6 +15,7 @@ import { groupByCategory } from "@/utils/group-by-category/group-by-category";
 import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
 import type { Quote } from "../../types";
+import { QuoteTerms } from "./quote-terms/quote-terms";
 
 /**
  * The customer-facing sheet — what /quotes/[id]/print shows, and what a frozen
@@ -43,7 +44,7 @@ export function QuoteDocument({
 
   return (
     <DocumentShell
-      title="BẢNG BÁO GIÁ"
+      title={DOCUMENT_TEXT.quoteHeading}
       actions={actions}
       // Mã số leads; the version prints in the meta grid, not here.
       subtitle={
@@ -175,14 +176,8 @@ export function QuoteDocument({
           </div>
         </div>
 
-        {/* Terms block */}
-        {quote.note && (
-          <div className="mt-5 text-xs text-zinc-600">
-            <p className="font-medium">Điều khoản & ghi chú:</p>
-            {/* The textarea's line breaks must survive onto the printable. */}
-            <p className="whitespace-pre-line">{quote.note}</p>
-          </div>
-        )}
+        {/* Terms block — rich text, rendered by the same walker as the letterhead. */}
+        {quote.note && <QuoteTerms quote={quote} />}
 
         {/* The closing clause the paper form carries (xlsx "Bang bao gia" c). */}
         <p className="mt-5 text-xs text-zinc-600">

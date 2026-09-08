@@ -1,6 +1,6 @@
 /**
- * Contract merge tokens — the catalog of merge fields and the context builders
- * that resolve them against a contract (or sample values).
+ * Merge tokens — the catalog of merge fields and the context builders that
+ * resolve them against a contract, a báo giá, or sample values.
  *
  * Pure module (no React, no IO) so it runs in two places unchanged:
  *   • the print page ([id]/page.tsx) — server-side, against a real Contract;
@@ -150,6 +150,29 @@ export const CONTRACT_TOKENS: ReadonlyArray<{
 export type MergeContext = Record<string, string>;
 
 /**
+ * The slice of {@link CONTRACT_TOKENS} a báo giá can resolve — the palette for
+ * its "Điều khoản & ghi chú" block. A subset, not a second catalog, so the chip
+ * labels and the strip-on-save lookup stay in one place.
+ *
+ * All of `company.*` is in: a terms block's whole job is stating who to pay,
+ * how much and by when. The contract-only tokens (signing date, Bên A's MST,
+ * the site + schedule) are out — a quote has no signed date and no site plan.
+ */
+const QUOTE_TOKEN_NAMES: ReadonlySet<string> = new Set([
+  "project_code",
+  "project_name",
+  "client",
+  "value",
+  "value_before_tax",
+  "vat_rate",
+  "vat_amount",
+  "value_in_words",
+]);
+export const QUOTE_TOKENS = CONTRACT_TOKENS.filter(
+  (t) => QUOTE_TOKEN_NAMES.has(t.token) || t.token.startsWith("company.")
+);
+
+/**
  * Tokens whose values come from rows that stay editable after the paper is
  * signed — the client, its decision maker, the location, the project schedule.
  * A rename, a moved office or a slipped start date would otherwise retroactively
@@ -267,6 +290,47 @@ export function buildContractContext({
     vat_rate: `${Math.round(vatRate * 100)}%`,
     vat_amount: money ? formatVND(money.vat) : "",
     value_in_words: money ? vndInWords(money.total) : "",
+  };
+}
+
+/**
+ * Real merge values for a báo giá's terms block — the {@link QUOTE_TOKENS}
+ * slice, formatted here like {@link buildContractContext} does. Missing values
+ * resolve to an empty string, never a marker.
+ *
+ * `quote` is a shape, not necessarily a row: the builder form passes its live
+ * form values (`total_amount` is the pre-VAT Σ, exactly what the column holds),
+ * so an inserted chip reads like the final sheet while the author types.
+ */
+export function buildQuoteContext({
+  quote,
+  company = COMPANY,
+}: {
+  /**
+   * Not necessarily a Quote row — the fields this reads, so the builder form
+   * can pass live totals and whatever project it has in hand.
+   */
+  quote: Pick<Quote, "total_amount" | "vat_rate"> & {
+    project?: {
+      code: string;
+      name: string;
+      client?: { name: string };
+    } | null;
+  };
+  company?: CompanyInfo;
+}): MergeContext {
+  const money = storedTotals(quote);
+
+  return {
+    project_code: quote.project?.code ?? "",
+    project_name: quote.project?.name ?? "",
+    client: quote.project?.client?.name ?? "",
+    ...companyContext(company),
+    value: formatVND(money.total),
+    value_before_tax: formatVND(money.subtotal),
+    vat_rate: `${Math.round(quote.vat_rate * 100)}%`,
+    vat_amount: formatVND(money.vat),
+    value_in_words: vndInWords(money.total),
   };
 }
 

@@ -1,7 +1,7 @@
 import { ProjectStage } from "@/app/(dashboard)/projects/enums";
 import { PROJECT_STAGES } from "@/constants/labels";
 
-import { expect, stepperButton, test } from "./fixtures";
+import { advanceStage, expect, stepperButton, test } from "./fixtures";
 
 /**
  * Manual stage moves are SOFT — no gates, forward or back
@@ -21,13 +21,12 @@ test("advancing a stage re-renders the panel, and going back restores it", async
   await page.goto("/projects/1");
   await expect(page.locator(`#stage-${ProjectStage.QUOTE}`)).toBeVisible();
 
-  const next = PROJECT_STAGES[ProjectStage.CONTRACT].label;
-  await stepperButton(page, `Chuyển sang: ${next}`).click();
+  await advanceStage(page, PROJECT_STAGES[ProjectStage.CONTRACT].label);
   await expect(page.locator(`#stage-${ProjectStage.CONTRACT}`)).toBeVisible();
 
+  // Backward is the plain button: the dialog it used to have was asking
+  // permission for the harmless direction (later-stage data is kept).
   const prev = PROJECT_STAGES[ProjectStage.QUOTE].label;
   await stepperButton(page, `← ${prev}`).click();
-  // Backward moves are confirm-gated.
-  await page.getByRole("button", { name: "Quay lại", exact: true }).click();
   await expect(page.locator(`#stage-${ProjectStage.QUOTE}`)).toBeVisible();
 });
