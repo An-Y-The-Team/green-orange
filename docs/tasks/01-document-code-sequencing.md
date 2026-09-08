@@ -145,9 +145,9 @@ Decisions block, and a refreshed `ponytail:` comment naming what's still true.
 5. **Fix the docstring** (drop the imaginary `BG-…`/`QT-…`) and rewrite the
    `ponytail:` comment so it names what is still true, not what you just fixed.
 6. **Make the last two tests pass**, then delete the `pytestmark` line from
-   `tests/test_codes.py` and the `addopts` + `markers` lines from
-   [`pyproject.toml`](../../apps/crm-api/pyproject.toml). The tests now run with
-   everything else, forever.
+   `tests/test_codes.py`. The tests now run with everything else, forever.
+   Leave `pyproject.toml` alone — the `exercise` marker stays for the next
+   ticket.
 7. **De-rot the two old assertions.** `tests/test_projects.py:14` and
    `tests/test_contracts.py:16` hardcode `CT-2026-001` and `HD-2026-001`. They
    pass today and would have started failing on their own next January. Both
@@ -156,9 +156,10 @@ Decisions block, and a refreshed `ponytail:` comment naming what's still true.
 
 ## Acceptance criteria
 
-- [ ] `uv run pytest -q` runs all 68 tests and is green — no "deselected" line,
-      no `exercise` marker left anywhere. (`git diff | grep exercise` should
-      come back empty.)
+- [ ] `uv run pytest -q` runs your twelve tests alongside everything else and
+      is green. (`git grep pytestmark apps/crm-api/tests/test_codes.py` comes
+      back empty. Another ticket's tests may still show as "deselected" — that
+      is fine, they are not yours.)
 - [ ] `uv run ruff check .` is clean. (Something in the imports will go unused
       once `max(id)` is gone. Ruff will tell you.)
 - [ ] `next_sequence([...], "CT", 2027)` returns `1` when only 2026 codes exist

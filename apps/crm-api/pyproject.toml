@@ -39,9 +39,9 @@ select = ["E", "F", "I", "UP", "B"]
 pythonpath = ["."]
 # An open student exercise ships its acceptance tests RED (see docs/tasks/).
 # Deselected by default so `main` — and every unrelated pull request — stays
-# green; run them with `uv run pytest -m exercise`. The PR that makes them pass
-# deletes these two settings and the `pytestmark` line in the test module, so
-# the suite guards the behaviour from then on.
+# green; run them with `uv run pytest -m exercise`. The PR that makes one pass
+# deletes the `pytestmark` line in THAT test module, and from then on the suite
+# guards the behaviour. These two settings stay put for the next exercise.
 addopts = "-m 'not exercise'"
 markers = [
     "exercise: acceptance tests for an open student exercise (docs/tasks/)",

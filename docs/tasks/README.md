@@ -24,11 +24,13 @@ suite, and the interesting part is the reasoning, not the typing.
 
 ## The backlog
 
-| #                                    | Task                                                  | Issue | Shape                           |
-| ------------------------------------ | ----------------------------------------------------- | ----- | ------------------------------- |
-| [01](01-document-code-sequencing.md) | Fix document code sequencing / Đánh số hồ sơ theo năm | #70   | pure logic + one judgement call |
+| #                                    | Task                                                      | Issue | Shape                                  |
+| ------------------------------------ | --------------------------------------------------------- | ----- | -------------------------------------- |
+| [01](01-document-code-sequencing.md) | Fix document code sequencing / Đánh số hồ sơ theo năm     | #70   | pure logic + one judgement call        |
+| [02](02-crew-double-booking.md)      | Light up the double-booking warning / Cảnh báo trùng lịch | #71   | interval logic + three judgement calls |
 
-More get added one at a time, as the one in flight lands.
+Work them in order — 02 depends on 01. More get added one at a time, as the
+one in flight lands.
 
 ## How a task works
 
@@ -37,9 +39,9 @@ More get added one at a time, as the one in flight lands.
    red for everyone else. Run yours with `uv run pytest -m exercise`; run
    everything else with `uv run pytest -q` and keep it green the whole time.
 2. **Deleting the marker is part of the job.** The PR that makes them pass also
-   removes `addopts` and `markers` from `apps/crm-api/pyproject.toml` and the
-   `pytestmark` line from the test module, so the tests guard the behaviour from
-   then on.
+   removes the `pytestmark` line from your test module, so the tests guard the
+   behaviour from then on. Leave `apps/crm-api/pyproject.toml` alone — the
+   `exercise` marker itself is permanent, and the next ticket needs it.
 3. **Some questions have no answer, only a defence.** Tickets with a
    "Decide and defend" section want your reasoning written into the ticket
    before you're done. A reviewer will push on the trade-off, not tick a spec.
