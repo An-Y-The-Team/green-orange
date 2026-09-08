@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Badge } from "@yan/ui/components/badge";
+import { Button } from "@yan/ui/components/button";
 import { Card } from "@yan/ui/components/card";
 import { Input } from "@yan/ui/components/input";
 import {
@@ -41,6 +43,11 @@ export default async function UsersPage({
       <PageHeader
         title="Người dùng"
         description="Tài khoản đăng nhập CRM, quản lý trên Authentik."
+        action={
+          <Button size="sm" render={<Link href="/settings/users/new" />}>
+            + Người dùng mới
+          </Button>
+        }
       />
 
       {/* Plain GET form: the server component re-renders with ?q= — no client
@@ -83,7 +90,14 @@ export default async function UsersPage({
             ) : (
               users.map((user) => (
                 <TableRow key={user.pk}>
-                  <TableCell className="font-medium">{user.username}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/settings/users/${user.pk}`}
+                      className="hover:underline"
+                    >
+                      {user.username}
+                    </Link>
+                  </TableCell>
                   <TableCell>{user.name}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {user.email}

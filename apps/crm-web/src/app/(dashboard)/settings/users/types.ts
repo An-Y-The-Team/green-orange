@@ -16,3 +16,9 @@ export interface AkUser {
   last_login: string | null;
   groups_obj: AkGroup[];
 }
+
+/** What the create/update actions hand back; `link` only on create. */
+export interface UserActionResult {
+  user: AkUser;
+  link: string | null;
+}

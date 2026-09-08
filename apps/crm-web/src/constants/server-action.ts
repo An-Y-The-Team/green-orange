@@ -71,4 +71,5 @@ export const NOUNS = {
   settlement: "quyết toán",
   template: "mẫu",
   timesheet: "giờ công",
+  user: "người dùng",
 } as const;

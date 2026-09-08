@@ -11,7 +11,7 @@
  * is useless to the person receiving it.
  */
 import { auth } from "@/auth";
-import { ApiError } from "@/utils/http/http";
+import { ApiError, toActionError } from "@/utils/http/http";
 
 /** Authentik group whose members may manage accounts (admin + secretary). */
 export const USER_ADMIN_GROUP = "crm-admins";
@@ -124,6 +124,16 @@ export async function isUserAdmin(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * The catch-all for a users action: the gate's refusal is already a sentence,
+ * everything else goes through the app-wide `toActionError` mapping.
+ */
+export function userActionError(error: unknown, fallback: string): string {
+  return error instanceof ForbiddenError
+    ? error.message
+    : toActionError(error, fallback);
 }
 
 /** {@link isUserAdmin} for server actions: throws {@link ForbiddenError}. */
