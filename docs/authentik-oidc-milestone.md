@@ -203,5 +203,9 @@ redirects to `…/application/o/authorize/` with `response_type=code`, the corre
   pre-seed? (Recommend auto-create.)
 - **Authorization granularity**: just authenticated-or-not, or map Authentik
   groups → CRM roles (RBAC)? The CMS already does RBAC — could mirror.
+  _Resolved 2026-09-08 for the one case that needed it:_ the user-management page
+  gates on membership of the Authentik group `crm-admins` via one API lookup per
+  request (see [authentik-user-management-future.md](./authentik-user-management-future.md));
+  CRM data itself is still authenticated-or-not.
 - **`aud` claim**: confirm Authentik's access-token audience against `client_id`
   on the live instance and adjust the verifier/scope mapping accordingly.

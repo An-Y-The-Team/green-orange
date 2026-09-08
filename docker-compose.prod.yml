@@ -155,6 +155,11 @@ services:
       AUTH_AUTHENTIK_ID: ${CRM_OIDC_CLIENT_ID}
       AUTH_AUTHENTIK_SECRET: ${CRM_OIDC_CLIENT_SECRET}
       AUTH_AUTHENTIK_ISSUER: https://${AUTH_DOMAIN}/application/o/green-orange/
+      # Người dùng page (Danh mục → Người dùng): server-only token of the Authentik
+      # service account `crm-user-admin`, minted by
+      # `scripts/setup-authentik-crm.py --user-admin` (DEPLOY.md §6e). Unset = the
+      # page is hidden and its route redirects — deploy stays safe without it.
+      AUTHENTIK_ADMIN_TOKEN: ${CRM_AUTHENTIK_ADMIN_TOKEN:-}
     networks: [internal]
 
   # ── Authentik (identity provider) ──────────────────────────────────────────
