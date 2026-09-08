@@ -251,7 +251,9 @@ dang_hoat_dong | hoan → huy (Hủy, + reason, terminal)
   client goes silent, quote rejected…).
 - `hoan` — client wants the job but not now (e.g. quote on hold). Revivable
   back to `dang_hoat_dong`; should carry a follow-up date so parked jobs
-  resurface instead of being forgotten.
+  resurface instead of being forgotten. That follow-up date can be moved
+  (earlier or later) while parked — the Hoãn quote itself stays frozen; only the
+  project's date changes (2026-09-08).
 - The stage is **frozen where the project died/parked**, so reports can show
   _where_ leads are lost (in practice: usually at Báo giá, and rarely).
 

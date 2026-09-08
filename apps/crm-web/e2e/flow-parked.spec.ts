@@ -37,4 +37,23 @@ test("hoãn freezes the stage and resurfaces the job on the dashboard", async ({
   await expect(
     page.getByRole("link", { name: new RegExp(project.code) })
   ).toBeVisible();
+
+  // The date can move while parked — the quote stays frozen, the stage stays put.
+  await page.goto(`/projects/${project.id}`);
+  await page.getByRole("button", { name: "Dời ngày hẹn" }).click();
+  await page
+    .getByRole("textbox", { name: "Hẹn liên hệ lại" })
+    .fill(displayDay(isoDay(1)));
+  await page.getByRole("button", { name: "Lưu", exact: true }).click();
+  await expect(
+    page.getByText(`Hẹn liên hệ lại: ${displayDay(isoDay(1))}`)
+  ).toBeVisible();
+  await expect(page.locator(`#stage-${ProjectStage.QUOTE}`)).toBeVisible();
+  await expect(stepperButton(page, /^Chuyển sang:/)).toHaveCount(0);
+
+  // Tomorrow ⇒ off today's desk.
+  await page.goto("/dashboard");
+  await expect(
+    page.getByRole("link", { name: new RegExp(project.code) })
+  ).toHaveCount(0);
 });

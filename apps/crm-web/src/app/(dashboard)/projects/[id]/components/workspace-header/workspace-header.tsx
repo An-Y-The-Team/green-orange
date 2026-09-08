@@ -109,10 +109,15 @@ export function WorkspaceHeader({
     }));
 
   // Hoãn — freeze the project at its current stage, then close the dialog; the
-  // toast reports the outcome.
+  // toast reports the outcome. Re-used as "Dời ngày hẹn" while already parked:
+  // status is idempotent, only the follow-up date moves (the quote stays frozen).
   const confirmHold = () => {
     run({ status: ProjectStatus.ON_HOLD, follow_up_date: followUp });
     setHoldOpen(false);
+  };
+  const openHold = () => {
+    setFollowUp(project.follow_up_date ?? "");
+    setHoldOpen(true);
   };
 
   // Hủy — same shape as Hoãn, with the required reason instead of a date.
@@ -121,9 +126,8 @@ export function WorkspaceHeader({
     setCancelOpen(false);
   };
 
-  const frozen =
-    project.status === ProjectStatus.ON_HOLD ||
-    project.status === ProjectStatus.CANCELLED;
+  const parked = project.status === ProjectStatus.ON_HOLD;
+  const frozen = parked || project.status === ProjectStatus.CANCELLED;
 
   // Same key both places it's shown — the header badge and the frozen banner.
   const statusBadge = labelOf(PROJECT_STATUSES, project.status);
@@ -275,45 +279,50 @@ export function WorkspaceHeader({
               >
                 Kích hoạt lại
               </Button>
-            ) : (
-              <>
-                {/* Hoãn — pick a follow-up date */}
-                <Dialog open={holdOpen} onOpenChange={setHoldOpen}>
-                  <Button variant="outline" onClick={() => setHoldOpen(true)}>
-                    Hoãn
-                  </Button>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Hoãn công trình</DialogTitle>
-                      <DialogDescription>
-                        Chọn ngày liên hệ lại. Công trình sẽ được đóng băng ở
-                        giai đoạn hiện tại.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="follow-up-date">Hẹn liên hệ lại</Label>
-                      <DateInput
-                        id="follow-up-date"
-                        value={followUp}
-                        onChange={setFollowUp}
-                      />
-                    </div>
-                    <DialogFooter>
-                      <DialogClose
-                        render={
-                          <Button variant="ghost">{ACTIONS.close}</Button>
-                        }
-                      />
-                      <Button
-                        disabled={isPending || !followUp}
-                        onClick={confirmHold}
-                      >
-                        Xác nhận hoãn
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+            ) : null}
 
+            {/* Hoãn — pick a follow-up date; while parked, move that date */}
+            {project.status !== ProjectStatus.CANCELLED ? (
+              <Dialog open={holdOpen} onOpenChange={setHoldOpen}>
+                <Button variant="outline" onClick={openHold}>
+                  {parked ? "Dời ngày hẹn" : "Hoãn"}
+                </Button>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {parked ? "Dời ngày hẹn liên hệ lại" : "Hoãn công trình"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {parked
+                        ? "Chọn ngày liên hệ lại mới. Báo giá vẫn giữ nguyên."
+                        : "Chọn ngày liên hệ lại. Công trình sẽ được đóng băng ở giai đoạn hiện tại."}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="follow-up-date">Hẹn liên hệ lại</Label>
+                    <DateInput
+                      id="follow-up-date"
+                      value={followUp}
+                      onChange={setFollowUp}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <DialogClose
+                      render={<Button variant="ghost">{ACTIONS.close}</Button>}
+                    />
+                    <Button
+                      disabled={isPending || !followUp}
+                      onClick={confirmHold}
+                    >
+                      {parked ? ACTIONS.save : "Xác nhận hoãn"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            ) : null}
+
+            {frozen ? null : (
+              <>
                 {/* Hủy — reason required */}
                 <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
                   <Button
