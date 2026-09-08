@@ -253,9 +253,9 @@ tunnel and POSTs the Dockhand webhook. Dockhand pulls `release` and runs
 >
 > ```bash
 > # Address the postgres container directly (no env-file needed; local socket =
-> # trust auth). Match it by compose service label so the command works whatever
-> # the project name is (green-orange vs a folder-derived yan-portf).
-> PG=$(docker ps -qf label=com.docker.compose.service=postgres)
+> # trust auth). Dockhand names containers `green-orange-<service>-1` and does NOT
+> # set compose labels, so a label lookup returns empty — use the name.
+> PG=green-orange-postgres-1
 > docker exec "$PG" psql -U postgres -c "CREATE DATABASE directus;"
 > ```
 
@@ -350,8 +350,8 @@ its DB connection.
 ```bash
 # Address the postgres container directly. Local socket connections use `trust`
 # auth, so `-U postgres` needs no password and no env-file — fully self-contained.
-# Match by compose service label (works whatever the project name is).
-PG=$(docker ps -qf label=com.docker.compose.service=postgres)
+# Dockhand names containers `green-orange-<service>-1` and sets no compose labels.
+PG=green-orange-postgres-1
 docker exec "$PG" \
   psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='authentik'" \
   | grep -q 1 || \
@@ -434,7 +434,7 @@ the database itself must exist first. As with `authentik` (§6a), the multi-DB i
 script only runs on a **fresh** volume, so create it once by hand (idempotent):
 
 ```bash
-PG=$(docker ps -qf label=com.docker.compose.service=postgres)
+PG=green-orange-postgres-1
 docker exec "$PG" \
   psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='crm'" \
   | grep -q 1 || \
@@ -491,7 +491,7 @@ but the database must exist first. As with `crm` (§6b), the multi-DB init scrip
 only runs on a **fresh** volume, so create it once by hand (idempotent):
 
 ```bash
-PG=$(docker ps -qf label=com.docker.compose.service=postgres)
+PG=green-orange-postgres-1
 docker exec "$PG" \
   psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='crm_nest'" \
   | grep -q 1 || \
@@ -584,7 +584,7 @@ giá, hóa đơn…) and must never touch prod. `seed-templates.ts` writes only
 bun, so run the compiled file:
 
 ```bash
-NEST=$(docker ps -qf label=com.docker.compose.service=crm-api-nest)
+NEST=green-orange-crm-api-nest-1
 docker exec "$NEST" node dist/seed-templates.js
 ```
 
@@ -656,9 +656,10 @@ git tag v1.1.0 && git push origin v1.1.0
 
 Address the postgres container directly (`docker exec`), so backups don't depend
 on a compose env-file (Dockhand owns the env now, not `.env.production`). Local
-socket connections use `trust` auth, so `-U postgres` needs no password. Match the
-container/volume by compose **label** rather than a hardcoded name, so it works
-whatever the project is named (`green-orange` vs a folder-derived `yan-portf`).
+socket connections use `trust` auth, so `-U postgres` needs no password. Dockhand
+names containers `green-orange-<service>-1` and does **not** set compose labels
+(`docker ps -qf label=com.docker.compose.service=postgres` returns empty, and a
+`docker exec ""` fails silently in cron), so use the name. Confirm with `docker ps`.
 
 ```bash
 # Postgres — nightly dump per database (add to the deploy user's crontab).
@@ -666,11 +667,12 @@ whatever the project is named (`green-orange` vs a folder-derived `yan-portf`).
 # what the UI actually reads (crm-api-nest is the prod default — §6c), `crm`
 # belongs to the Python crm-api. Dump both; missing `crm_nest` means backing up
 # everything except the live CRM data.
+# `/root/backups` must exist first: `mkdir -p /root/backups`.
 # `pg_dumpall` is simplest if you'd rather grab everything in one shot.
-0 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres directus  | gzip > /root/backups/directus-$(date +\%F).sql.gz
-5 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres authentik | gzip > /root/backups/authentik-$(date +\%F).sql.gz
-8 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres crm       | gzip > /root/backups/crm-$(date +\%F).sql.gz
-9 3 * * * docker exec "$(docker ps -qf label=com.docker.compose.service=postgres)" pg_dump -U postgres crm_nest  | gzip > /root/backups/crm_nest-$(date +\%F).sql.gz
+0 3 * * * docker exec "green-orange-postgres-1" pg_dump -U postgres directus  | gzip > /root/backups/directus-$(date +\%F).sql.gz
+5 3 * * * docker exec "green-orange-postgres-1" pg_dump -U postgres authentik | gzip > /root/backups/authentik-$(date +\%F).sql.gz
+8 3 * * * docker exec "green-orange-postgres-1" pg_dump -U postgres crm       | gzip > /root/backups/crm-$(date +\%F).sql.gz
+9 3 * * * docker exec "green-orange-postgres-1" pg_dump -U postgres crm_nest  | gzip > /root/backups/crm_nest-$(date +\%F).sql.gz
 
 # Uploaded files live in the `media` named volume (mounted at /directus/uploads) —
 # back it up too. Resolve the volume by label (name is <project>_media):
@@ -679,7 +681,7 @@ docker run --rm -v "$VOL":/data -v /root/backups:/backup alpine \
   tar czf /backup/media-$(date +%F).tar.gz -C /data .
 ```
 
-Restore: `gunzip -c dump.sql.gz | docker exec -i "$(docker ps -qf label=com.docker.compose.service=postgres)" psql -U postgres directus`.
+Restore: `gunzip -c dump.sql.gz | docker exec -i "green-orange-postgres-1" psql -U postgres directus`.
 
 > These labels are set by Compose on every container/volume it creates, so they
 > hold regardless of the project name. Sanity-check with `docker ps` /
