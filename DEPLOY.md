@@ -35,7 +35,8 @@ The prod stack's config is split by sensitivity:
   `crm-api`, `crm-api-nest`).
 - **Secrets** (`POSTGRES_PASSWORD`, `DIRECTUS_KEY`/`SECRET`/`ADMIN_PASSWORD`/
   `STATIC_TOKEN`/`PREVIEW_SECRET`, `CRM_AUTH_SECRET`, `CRM_OIDC_CLIENT_SECRET`,
-  `AUTHENTIK_SECRET_KEY`/`BOOTSTRAP_PASSWORD`/`BOOTSTRAP_TOKEN`) live **only in
+  `CRM_AUTHENTIK_ADMIN_TOKEN`, `AUTHENTIK_SECRET_KEY`/`BOOTSTRAP_PASSWORD`/
+  `BOOTSTRAP_TOKEN`) live **only in
   Dockhand's secret store** — injected via shell env at deploy time, never written
   to disk or git. Set these once in the Dockhand stack's env editor.
 
@@ -598,6 +599,65 @@ docker exec "$NEST" node dist/seed-templates.js --force
 
 Then check the list at `https://$CRM_DOMAIN/contracts/templates`, and tick
 **Đang sử dụng** on anything you want offered in the contract editor.
+
+## 6e. CRM user management (Danh mục → Người dùng)
+
+crm-web manages CRM accounts **in Authentik** from `/settings/users` — list, create
+(the person sets their own password through a one-day recovery link), edit,
+lock/unlock, new recovery link, group membership. Design + deltas:
+[`docs/authentik-user-management-future.md`](docs/authentik-user-management-future.md).
+Only members of the Authentik group **`crm-admins`** (or a superuser) see the page;
+everyone else gets no card and a redirect. The page is **dormant until its token is
+set**, so the rest of the stack deploys unchanged without it.
+
+**1. Create the Authentik objects** — from the authorized machine, against the prod
+instance, with the bootstrap token (same shape as §6a step 5). Idempotent; re-run any
+time:
+
+```bash
+AUTHENTIK_URL=https://auth.example.com \
+AUTHENTIK_API_TOKEN=<AUTHENTIK_BOOTSTRAP_TOKEN> \
+python3 scripts/setup-authentik-crm.py --user-admin
+```
+
+It creates the group `crm-admins`, the service account `crm-user-admin` with **only**
+the seven user/group permissions the page needs (never superuser — this token can
+create accounts), a non-expiring **`api`-intent** token for it, and a recovery flow
+`crm-recovery` (password prompt → user write) set as the default brand's Recovery flow.
+It ends with `AUTHENTIK_ADMIN_TOKEN=…`.
+
+**2. Store the token** — Dockhand → stack env → `CRM_AUTHENTIK_ADMIN_TOKEN` (compose
+maps it to crm-web's `AUTHENTIK_ADMIN_TOKEN`). Redeploy the stack; no image change is
+needed.
+
+**3. Confirm** — sign in at `https://$CRM_DOMAIN` as `akadmin` (a superuser passes the
+gate): Danh mục shows the **Người dùng** card and the list shows `akadmin`. Any other
+account sees no card and `/settings/users` bounces to Danh mục.
+
+**4. Create the real admins from the page** — still as `akadmin`: "+ Người dùng mới"
+for the admin and the secretary, tick `crm-admins` in the Nhóm card of each, and hand
+each person their recovery link (one day, one use; **Đặt lại mật khẩu** mints a new
+one). From then on they manage accounts themselves and `akadmin` goes back in the
+drawer.
+
+**5. Rotation / lost key** — re-running step 1 prints the same key again (it reads the
+token `crm-user-admin-api` by identifier). To rotate: Authentik → Directory → Tokens →
+delete `crm-user-admin-api`, re-run step 1, update the Dockhand secret, redeploy.
+
+**6. Backups** — nothing new: all of it lives in the `authentik` database already in
+the nightly dump (§8).
+
+> Gotchas:
+>
+> - The token must be **`api`-intent**. The app password Authentik hands out when a
+>   service account is created is refused as a Bearer ("Token invalid/expired").
+> - **Đặt lại mật khẩu** answering "Recovery flow not applicable" means the brand's
+>   Recovery flow is unset — re-run step 1.
+> - Recovery links carry the public `https://auth.…` origin only because Caddy
+>   forwards `X-Forwarded-Proto https` to Authentik (§6a gotcha 2). If they ever come
+>   out as `http://`, that header is the first thing to check.
+> - Locking an account takes effect within one access-token lifetime (Authentik
+>   refuses the refresh), not at the instant the button is pressed.
 
 ---
 

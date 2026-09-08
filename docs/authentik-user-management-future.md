@@ -1,14 +1,43 @@
-# Future option: user management inside crm-web via the Authentik API
+# User management inside crm-web via the Authentik API
 
-Status: **Deferred design note — planned, not yet built.** Captures the agreed
-approach for a full user-management page in `crm-web` (list / create / edit /
-deactivate / reset password / group membership) backed by the Authentik REST
-API, so the design doesn't have to be re-derived when it's picked up.
+Status: **Built 2026-09-08** (Steps 1–3; prod rollout is DEPLOY.md §6e). This note
+was the agreed design (2026-07-22) and is kept as the rationale; the section
+"What was built" records where it differs from the plan below.
 
 Decision context (2026-07-22): the cheaper alternatives were considered and
 declined — a sidebar link to Authentik's own admin UI (`/if/admin/`), and
 CRM-side RBAC via token claims. The requirement is managing users **without
 leaving the CRM**.
+
+## What was built (deltas from the design)
+
+| Where                                                       | What                                                                                                                                                                             |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/crm-web/src/utils/authentik-admin/authentik-admin.ts` | `akFetch`, `usersEnabled`, the gate (`isUserAdmin` / `requireUserAdmin`), `userActionError`. Base URL = the **issuer's origin** (public URL), no separate `AUTHENTIK_ADMIN_URL`. |
+| `apps/crm-web/src/app/(dashboard)/settings/users/`          | List, `new/`, `[id]/` (edit + lock/unlock + Đặt lại mật khẩu + Nhóm), one action per mutation, `group-changes.ts` (tested) for the group rules.                                  |
+| `scripts/setup-authentik-crm.py --user-admin`               | Phase 0 as code: group `crm-admins`, service account, **`api`-intent token**, recovery flow `crm-recovery` on the brand. Manual fallback in its docstring.                       |
+| Entry point                                                 | A gated card on **Danh mục** (`/settings`), not a sidebar item — the nav is a static client list, a server-checked card needs no plumbing.                                       |
+| Onboarding                                                  | **Recovery link only.** No `set_password`, no admin-typed passwords. The link renders once, inline, never in a URL.                                                              |
+| Guardrails                                                  | Deactivate never delete; no self-lock; superuser groups hidden **and** refused; no leaving `crm-admins` yourself; reset link refused for a locked account.                       |
+
+Facts learned on authentik **2025.10** that the plan below got wrong:
+
+- The token `POST /core/users/service_account/` returns is an **app password** and the
+  API rejects it as a Bearer. A separate `POST /core/tokens/` with `intent: api` is
+  needed (`view_key` reads it back, so it is re-printable).
+- `POST /core/users/{id}/recovery/` returns `{ link }` only (no `token`, no
+  `token_duration` param); default validity 1 day. It requires a Recovery flow on the
+  brand or answers 400 "Recovery flow not applicable to user". The flow must **not** be
+  `require_unauthenticated` — the API plans it under the service account's request.
+- Permissions are granted **directly to the service-account user**
+  (`/rbac/permissions/assigned_by_users/{id}/assign/`), no role needed:
+  `view_user, add_user, change_user, reset_user_password, view_group,
+add_user_to_group, remove_user_from_group`.
+- A `"use server"` module may export only async functions — tsc does not catch it.
+
+---
+
+The rest of this note is the original design, unchanged.
 
 ## Architecture
 

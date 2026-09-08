@@ -11,12 +11,18 @@ import {
 
 import { PageHeader } from "@/components/page-header/page-header";
 import { FIELDS } from "@/constants/labels";
+import { isUserAdmin } from "@/utils/authentik-admin/authentik-admin";
 
 import { listProjectTypes } from "../projects/queries";
 import { ProjectTypesManager } from "./project-types-manager/project-types-manager";
 
 export default async function SettingsPage() {
-  const projectTypes = await listProjectTypes();
+  const [projectTypes, canManageUsers] = await Promise.all([
+    listProjectTypes(),
+    // False when Authentik admin isn't configured or the caller isn't in
+    // crm-admins. The page re-checks — this only decides whether to show a card.
+    isUserAdmin(),
+  ]);
 
   return (
     <>
@@ -53,6 +59,26 @@ export default async function SettingsPage() {
             </Link>
           </CardContent>
         </Card>
+
+        {canManageUsers ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Người dùng</CardTitle>
+              <CardDescription>
+                Tài khoản đăng nhập CRM: thêm, sửa, khóa, đặt lại mật khẩu.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/settings/users"
+                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-muted/50"
+              >
+                <span>Quản lý người dùng</span>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Link>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </>
   );
