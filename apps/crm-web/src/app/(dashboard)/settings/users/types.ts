@@ -3,6 +3,8 @@
 export interface AkGroup {
   pk: string;
   name: string;
+  /** Membership grants Authentik superuser — never assignable from the CRM. */
+  is_superuser: boolean;
 }
 
 export interface AkUser {

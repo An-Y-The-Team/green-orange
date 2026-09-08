@@ -1,7 +1,7 @@
 import { akFetch } from "@/utils/authentik-admin/authentik-admin";
 import { ApiError } from "@/utils/http/http";
 
-import type { AkUser } from "./types";
+import type { AkGroup, AkUser } from "./types";
 
 // Well above any real headcount here; the page has no pager on purpose.
 const PAGE_SIZE = 200;
@@ -33,4 +33,12 @@ export async function getUser(pk: number): Promise<AkUser | null> {
     if (error instanceof ApiError && error.status === NOT_FOUND) return null;
     throw error;
   }
+}
+
+/** Every Authentik group, by name — the picker hides the superuser ones. */
+export async function listGroups(): Promise<AkGroup[]> {
+  const { results } = await akFetch<{ results: AkGroup[] }>(
+    `/core/groups/?ordering=name&page_size=${PAGE_SIZE}`
+  );
+  return results;
 }
