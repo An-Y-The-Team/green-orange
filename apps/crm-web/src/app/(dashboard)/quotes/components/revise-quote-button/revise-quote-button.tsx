@@ -23,13 +23,13 @@ export function ReviseQuoteButton({
   if (disabled) {
     return (
       <Button variant="outline" size="sm" disabled>
-        Tạo phiên bản mới
+        Sửa Báo giá này
       </Button>
     );
   }
   return (
     <Button variant="outline" size="sm" render={<Link href={href} />}>
-      Tạo phiên bản mới
+      Sửa Báo giá này
     </Button>
   );
 }

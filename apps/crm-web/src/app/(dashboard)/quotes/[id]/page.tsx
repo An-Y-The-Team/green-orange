@@ -26,7 +26,7 @@ import { getQuote, isSuperseded, quoteFormSeed } from "../queries";
  * A quote's own page — the line grid, editable in place. This is where a báo giá
  * is worked on; no need to go through the project's stage panel. Sent/decided
  * versions are frozen (the backend 409s on PATCH), so those render the same grid
- * read-only with "Tạo phiên bản mới". The customer-facing sheet is /print.
+ * read-only with "Sửa Báo giá này". The customer-facing sheet is /print.
  */
 export default async function QuotePage({
   params,

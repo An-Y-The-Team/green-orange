@@ -284,7 +284,7 @@ Per-state actions on the latest version:
 - **Nháp** — [Sửa] (builder page) · [Gửi] · [Xóa nháp]. Gửi is a tiny
   confirm (allowed dialog): channels Zalo/Email/In (multi-select → one
   `QuoteSendLog` row per channel) + who sent.
-- **Chờ** — [Chốt]/[Hoãn]/[Hủy] · [Gửi lại] · [Tạo phiên bản mới] =
+- **Chờ** — [Chốt]/[Hoãn]/[Hủy] · [Gửi lại] · [Sửa Báo giá này] =
   bargaining, copies the version into a new draft on the builder page.
 - **Chốt** — panel turns green; "→ Sang giai đoạn Hợp đồng" becomes the
   primary button.
@@ -622,7 +622,7 @@ auto-advances that project to Báo giá), or leave it standalone (walk-in /
 speculative) and attach later. Detail = the printable (DocumentShell) +
 version history rail (older versions frozen/`superseded`, watermark "Đã thay
 thế"). Project-scoped creation stays at `/projects/:id/quotes/new` (also used
-by "Tạo phiên bản mới" for bargaining).
+by "Sửa Báo giá này" for bargaining).
 
 ### Hợp đồng (`/contracts`, templates kept)
 
