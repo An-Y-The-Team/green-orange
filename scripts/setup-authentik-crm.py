@@ -20,6 +20,26 @@ Stdlib only — no pip installs.
         python3 scripts/setup-authentik-crm.py
 
 Re-running is safe: it reuses an existing application with the same slug.
+
+    # crm-web's Người dùng page (docs/authentik-user-management-future.md):
+    python3 scripts/setup-authentik-crm.py --user-admin
+
+`--user-admin` idempotently creates what that page needs and prints the
+service account's API token (put it in apps/crm-web/.env as AUTHENTIK_ADMIN_TOKEN;
+re-running prints the same key again):
+  • group `crm-admins` — the page's access gate; add the admin + secretary to it,
+  • service account `crm-user-admin` with only the user/group permissions listed
+    in USER_ADMIN_PERMISSIONS (never superuser — this token can mint accounts),
+  • recovery flow `crm-recovery` (password prompt → user write, reusing the
+    default password-change stages) set as the default brand's Recovery flow —
+    without it Authentik answers the "create recovery link" call with 400.
+Manual equivalent in the Admin UI, if the script can't reach the instance:
+Directory → Groups → create `crm-admins`; Directory → Users → Create Service
+account `crm-user-admin`, then its Permissions tab → assign the codenames below,
+and Directory → Tokens → create an `api`-intent token for it (the app password
+the service-account dialog hands out is NOT accepted as an API Bearer);
+Flows → create a `recovery` flow binding `default-password-change-prompt` and
+`default-password-change-write`; System → Brands → set it as Recovery flow.
 """
 
 import json
@@ -39,6 +59,24 @@ REDIRECT_URIS = [
         "CRM_REDIRECT_URIS", "http://localhost:3002/api/auth/callback/authentik"
     ).split(",")
     if u.strip()
+]
+
+# --- --user-admin objects (crm-web Người dùng page) ---
+USER_ADMIN_GROUP = "crm-admins"
+USER_ADMIN_ACCOUNT = "crm-user-admin"
+USER_ADMIN_TOKEN_ID = "crm-user-admin-api"
+RECOVERY_FLOW_SLUG = "crm-recovery"
+# Global permissions, verified against the 2025.10 API (/rbac/permissions/).
+# Exactly what list / create / edit / deactivate / recovery link / group
+# membership need — no delete_user, no impersonate, no superuser.
+USER_ADMIN_PERMISSIONS = [
+    "authentik_core.view_user",
+    "authentik_core.add_user",
+    "authentik_core.change_user",
+    "authentik_core.reset_user_password",
+    "authentik_core.view_group",
+    "authentik_core.add_user_to_group",
+    "authentik_core.remove_user_from_group",
 ]
 
 
@@ -93,6 +131,99 @@ def scope_pks(names: list[str]) -> list[str]:
         if m:
             out.append(m["pk"])
     return out
+
+
+def by_name(path: str, key: str, value: str) -> dict | None:
+    # `?search=` is a contains-match; pin it to the exact name so `crm-admins`
+    # can't resolve to a `crm-admins-old` someone created by hand.
+    results = api("GET", f"{path}?search={value}")["results"]
+    return next((r for r in results if r.get(key) == value), None)
+
+
+def user_admin() -> None:
+    group = by_name("/core/groups/", "name", USER_ADMIN_GROUP) or api(
+        "POST", "/core/groups/", {"name": USER_ADMIN_GROUP}
+    )
+
+    account = first("/core/users/", username=USER_ADMIN_ACCOUNT)
+    if not account:
+        created = api(
+            "POST",
+            "/core/users/service_account/",
+            {"name": USER_ADMIN_ACCOUNT, "create_group": False, "expiring": False},
+        )
+        account = {"pk": created["user_pk"]}
+    # The token that dialog/endpoint returns is an `app_password` — Authentik's
+    # API auth rejects it ("Token invalid/expired"). Bearer needs intent=api.
+    # expiring=False: a key that silently dies after the default ~360 days would
+    # brick the page with no warning.
+    if not first("/core/tokens/", identifier=USER_ADMIN_TOKEN_ID):
+        api(
+            "POST",
+            "/core/tokens/",
+            {
+                "identifier": USER_ADMIN_TOKEN_ID,
+                "intent": "api",
+                "user": account["pk"],
+                "expiring": False,
+                "description": "crm-web Người dùng page (AUTHENTIK_ADMIN_TOKEN)",
+            },
+        )
+    token = api("GET", f"/core/tokens/{USER_ADMIN_TOKEN_ID}/view_key/")["key"]
+    # Direct user permissions, no role/group indirection. Assigning is additive
+    # and re-assigning an existing permission is a no-op, so this is idempotent.
+    api(
+        "POST",
+        f"/rbac/permissions/assigned_by_users/{account['pk']}/assign/",
+        {"permissions": USER_ADMIN_PERMISSIONS},
+    )
+
+    flow = first("/flows/instances/", slug=RECOVERY_FLOW_SLUG)
+    if not flow:
+        prompt = by_name(
+            "/stages/prompt/stages/", "name", "default-password-change-prompt"
+        )
+        write = by_name("/stages/user_write/", "name", "default-password-change-write")
+        if not (prompt and write):
+            sys.exit("Missing default password-change stages — is Authentik booted?")
+        flow = api(
+            "POST",
+            "/flows/instances/",
+            {
+                "name": "CRM – đặt lại mật khẩu",
+                "slug": RECOVERY_FLOW_SLUG,
+                "title": "Đặt mật khẩu mới",
+                "designation": "recovery",
+                # NOT require_unauthenticated: the recovery-link API plans this
+                # flow under the (authenticated) service account's request and
+                # would reject it as "not applicable".
+                "authentication": "none",
+            },
+        )
+        api(
+            "POST",
+            "/flows/bindings/",
+            {"target": flow["pk"], "stage": prompt["pk"], "order": 0},
+        )
+        api(
+            "POST",
+            "/flows/bindings/",
+            {"target": flow["pk"], "stage": write["pk"], "order": 10},
+        )
+    brand = first("/core/brands/", default="true")
+    if brand and not brand.get("flow_recovery"):
+        api(
+            "PATCH",
+            f"/core/brands/{brand['brand_uuid']}/",
+            {"flow_recovery": flow["pk"]},
+        )
+
+    print("=== crm-web user admin ===")
+    print(f"Group        : {group['name']} (add the admin + secretary to it)")
+    print(f"Service acct : {USER_ADMIN_ACCOUNT} (pk {account['pk']})")
+    print(f"Recovery flow: {RECOVERY_FLOW_SLUG} (brand default)")
+    print("\n--- apps/crm-web/.env (prod: Dockhand secret store) ---")
+    print(f"AUTHENTIK_ADMIN_TOKEN={token}")
 
 
 def main() -> None:
@@ -158,4 +289,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    user_admin() if "--user-admin" in sys.argv[1:] else main()
