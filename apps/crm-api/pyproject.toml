@@ -37,6 +37,15 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+# An open student exercise ships its acceptance tests RED (see docs/tasks/).
+# Deselected by default so `main` — and every unrelated pull request — stays
+# green; run them with `uv run pytest -m exercise`. The PR that makes them pass
+# deletes these two settings and the `pytestmark` line in the test module, so
+# the suite guards the behaviour from then on.
+addopts = "-m 'not exercise'"
+markers = [
+    "exercise: acceptance tests for an open student exercise (docs/tasks/)",
+]
 # Starlette 1.3 prefers `httpx2` for its TestClient and warns when falling back
 # to `httpx`. We keep `httpx` on purpose (well-known, used by app code too), so
 # silence just this one nudge — real deprecations still surface.

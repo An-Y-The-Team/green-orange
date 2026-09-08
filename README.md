@@ -10,7 +10,7 @@ This project uses **Turborepo** to manage multiple applications in a single repo
 - `apps/cms`: The **Directus** CMS backend (official Docker image + config-as-code in this folder), providing a headless content management interface — with a free, open-source Visual Editor — to manage services, projects, and testimonials.
 - `apps/crm-web`: A Next.js 16 CRM dashboard. **Requires a backend and a seeded database** — it reads every page over HTTP from `CRM_API_URL`. See [Running just the CRM stack](#-running-just-the-crm-stack).
 - `apps/crm-api-nest`: A NestJS + Prisma backend (Bun, port 8001) — the **production default** and the only backend `crm-web` speaks to. Also owns the demo dataset (`bun run seed`).
-- `apps/crm-api`: A FastAPI + SQLModel backend (port 8000) — the **learning sandbox**. `clients` is fully worked; `contacts`/`leads`/`deals`/`tasks` are exercises for students to implement. It serves the **v1** contract, so it is not UI-compatible — verify it via `/docs` + `pytest`, not the dashboard ([AGENTS.md](AGENTS.md)).
+- `apps/crm-api`: A FastAPI + SQLModel backend (port 8000) — the **teaching sandbox**, implementing the same v2 contract as `crm-api-nest`, so `crm-web` runs against either (`CRM_API_URL` picks). Student exercises live in [`docs/tasks/`](docs/tasks/README.md).
 - `packages/ui` (`@yan/ui`): Shared shadcn + Tailwind v4 UI primitives consumed by both `web` and `crm-web`.
 
 > **Working on the CRM?** Jump to [Running just the CRM stack](#-running-just-the-crm-stack) — you do **not** need `web` or `cms`.
@@ -200,17 +200,17 @@ day-to-day work.
 > running and the `crm_nest` database seeded. That's the five steps below, and
 > steps 1–3 are once per machine.
 
-> **`crm-api-nest` is the only backend that serves this UI.** The Python
-> `crm-api` is the students' v1 sandbox and is not UI-compatible — see
-> [AGENTS.md](AGENTS.md) and
+> **`crm-api-nest` is the default backend for this UI**, and the steps below
+> assume it. The Python `crm-api` serves the same contract on port 8000 against
+> its own `crm` database — see [AGENTS.md](AGENTS.md) and
 > [`apps/crm-api-nest/README.md`](apps/crm-api-nest/README.md).
 
 ### CRM prerequisites
 
 - [Bun](https://bun.sh/) — package manager + runtime for `crm-web` and `crm-api-nest`
 - [Docker](https://www.docker.com/) — runs Postgres
-- [uv](https://docs.astral.sh/uv/) — only if you're also doing the Python
-  `crm-api` exercises
+- [uv](https://docs.astral.sh/uv/) — only if you're also working on the Python
+  `crm-api` ([exercises](docs/tasks/README.md))
 
 ### 1. Install dependencies (from the repo root)
 

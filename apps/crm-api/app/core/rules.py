@@ -6,6 +6,7 @@ code,business-date}.ts`. Keep the two in step — these rules decide what a côn
 trình's stage means and when it may still be edited.
 """
 
+from collections.abc import Iterable
 from datetime import UTC, date, datetime, timedelta
 from typing import get_args
 from zoneinfo import ZoneInfo
@@ -85,6 +86,44 @@ def assert_project_open(session: Session, project_id: int | None) -> None:
     project = session.get(Project, project_id)
     if project is not None and project.stage == "closed":
         raise HTTPException(status.HTTP_409_CONFLICT, CLOSED_PROJECT_MESSAGE)
+
+
+# ── Document codes ──────────────────────────────────────────────────────────
+# STUDENT EXERCISE — docs/tasks/01-document-code-sequencing.md.
+#
+# The three functions below are stubs. They are the shape `next_code` is meant
+# to be rebuilt on: two pure functions that know nothing about a database, plus
+# one thin wrapper that does the query. `tests/test_codes.py` is the spec —
+# run it with `uv run pytest -m exercise`.
+#
+# They exist as stubs rather than as an empty file so the test module imports
+# cleanly: a missing name is a collection error, which fails CI on every
+# unrelated pull request too.
+
+
+def format_code(prefix: str, year: int, sequence: int) -> str:
+    """`("CT", 2026, 1)` → `"CT-2026-001"`. The only place the wire format
+    lives — a code that is read back by `parse_sequence` must be written here.
+    """
+    raise NotImplementedError("student exercise: docs/tasks/01-…")
+
+
+def parse_sequence(code: str, prefix: str, year: int) -> int | None:
+    """The sequence number out of `code`, but only when it belongs to this
+    prefix AND this year — otherwise `None`.
+
+    `None` is also the answer for anything unparsable. Rows are edited by hand
+    and codes predate this function, so junk must not raise: a bad row somewhere
+    in the table cannot be allowed to block creating a new công trình.
+    """
+    raise NotImplementedError("student exercise: docs/tasks/01-…")
+
+
+def next_sequence(existing_codes: Iterable[str], prefix: str, year: int) -> int:
+    """The next number for this prefix in this year, given every code already
+    issued. `1` when the year has none yet — that is how January restarts.
+    """
+    raise NotImplementedError("student exercise: docs/tasks/01-…")
 
 
 def next_code(session: Session, model: type, prefix: str) -> str:
