@@ -55,7 +55,9 @@ export function RemedyPage({
   );
   const [workDate, setWorkDate] = useState(
     () =>
-      shiftToClose?.work_date ?? prefill?.workDate ?? dayjs().format("YYYY-MM-DD")
+      shiftToClose?.work_date ??
+      prefill?.workDate ??
+      dayjs().format("YYYY-MM-DD")
   );
   const [startTime, setStartTime] = useState(
     shiftToClose?.start_time ?? DEFAULT_START_TIME
