@@ -102,7 +102,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
 
   const printBtn = (
     <Button
-      variant="ghost"
+      variant="outline"
       size="sm"
       render={<Link href={`/quotes/${quote.id}/print`} />}
     >
@@ -352,7 +352,7 @@ export function QuotePanel({ project }: { project: Project }) {
               </Badge>
               <span className="tabular-nums">{formatVND(q.total_amount)}</span>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className="ml-auto"
                 render={<Link href={`/quotes/${q.id}/print`} />}

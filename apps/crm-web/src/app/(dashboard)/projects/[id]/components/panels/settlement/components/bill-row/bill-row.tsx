@@ -46,7 +46,7 @@ export function BillRow({
       </div>
       <div className="flex flex-wrap gap-2">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           render={
             <Link

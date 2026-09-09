@@ -414,7 +414,7 @@ function PaymentTab({
             <Badge variant={badge.variant}>{badge.label}</Badge>
             <Button
               size="sm"
-              variant="ghost"
+              variant="outline"
               className="ml-auto"
               render={
                 <Link href={`/projects/${projectId}/print/bill/${bill.id}`} />

@@ -151,7 +151,7 @@ export function TypeChips({
         <Button
           type="button"
           size="sm"
-          variant="ghost"
+          variant="outline"
           onClick={() => setAdding(true)}
         >
           <Plus className="size-4" />

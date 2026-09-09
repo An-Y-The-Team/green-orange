@@ -76,7 +76,11 @@ export function MemberActions({
           Nghỉ việc
         </Button>
       ) : null}
-      <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(true)}>
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={() => setConfirmOpen(true)}
+      >
         <Trash2 className="size-4" />
         {ACTIONS.delete}
       </Button>

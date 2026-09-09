@@ -132,4 +132,11 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Tailwind v4 preflight leaves buttons at `cursor: default`, so a button and a
+     badge felt identical under the mouse. Every control gets the pointer. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary {
+    cursor: pointer;
+  }
 }

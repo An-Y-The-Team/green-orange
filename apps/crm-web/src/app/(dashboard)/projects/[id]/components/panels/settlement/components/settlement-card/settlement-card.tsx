@@ -149,7 +149,7 @@ export function SettlementCard({
           </Button>
         ) : null}
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           render={
             <Link

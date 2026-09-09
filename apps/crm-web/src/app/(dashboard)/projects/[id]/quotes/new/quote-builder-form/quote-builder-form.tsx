@@ -426,7 +426,7 @@ export function QuoteBuilderForm({
                           <TableCell colSpan={6}>
                             <Button
                               type="button"
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               // Straight after this group's last row, so the flat
                               // order the server stores matches what's on screen.

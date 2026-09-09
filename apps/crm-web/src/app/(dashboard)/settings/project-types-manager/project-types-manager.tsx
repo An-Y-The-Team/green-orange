@@ -179,13 +179,16 @@ export function ProjectTypesManager({
             ) : (
               <>
                 <span className="flex-1 text-sm">{t.name}</span>
-                <Button size="sm" variant="ghost" onClick={() => startEdit(t)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => startEdit(t)}
+                >
                   {ACTIONS.edit}
                 </Button>
                 <Button
                   size="sm"
-                  variant="ghost"
-                  className="text-destructive"
+                  variant="destructive"
                   onClick={() => setConfirmId(t.id)}
                 >
                   {ACTIONS.delete}

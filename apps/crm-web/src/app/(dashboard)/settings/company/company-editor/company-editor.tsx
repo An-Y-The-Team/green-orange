@@ -262,7 +262,7 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
                   <Button
                     type="button"
                     size="sm"
-                    variant="ghost"
+                    variant="destructive"
                     onClick={onRemoveLogo}
                   >
                     <Trash2 className="size-4" />

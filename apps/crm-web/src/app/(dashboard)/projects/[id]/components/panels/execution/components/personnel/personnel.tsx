@@ -54,8 +54,8 @@ export function Personnel({
         ) : null}
         <Button
           size="sm"
-          variant="ghost"
-          className="ml-auto text-muted-foreground"
+          variant="outline"
+          className="ml-auto"
           render={
             <Link href="/crew">
               <Users className="size-4" />

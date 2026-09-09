@@ -194,7 +194,7 @@ export function SurveyPanel({
                   onChange={(e) => setItem(i, { note: e.target.value })}
                 />
                 <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="sm"
                   onClick={() =>
                     setItems((prev) => prev.filter((_, j) => j !== i))
@@ -260,9 +260,8 @@ export function SurveyPanel({
                   {a.note ? ` — "${a.note}"` : ""}
                 </span>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0"
+                  variant="destructive"
+                  size="xs"
                   disabled={delPending && deletingId === a.id}
                   onClick={() => handleDeleteAttachment(a.id)}
                 >

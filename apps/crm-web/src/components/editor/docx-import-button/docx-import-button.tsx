@@ -47,7 +47,7 @@ export function DocxImportButton() {
       />
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
         size="sm"
         disabled={busy}
         onClick={() => inputRef.current?.click()}

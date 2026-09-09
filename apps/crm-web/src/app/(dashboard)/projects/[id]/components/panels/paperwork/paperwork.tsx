@@ -251,7 +251,7 @@ export function PaperworkPanel({
           {/* Worker list "Danh sách nhân sự" — printable from assignments. */}
           <Button
             size="sm"
-            variant="ghost"
+            variant="outline"
             render={
               <Link href={`/projects/${project.id}/print/worker-list`}>
                 <Users className="size-4" />

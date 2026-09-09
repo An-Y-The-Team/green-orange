@@ -9,6 +9,21 @@
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Brand colour. The shared theme is greyscale; the CRM paints its primary action
+   colour with the GreenOrange emerald (same scale as apps/web --brand-primary-*)
+   so a primary button, a link and a focus ring read as "do something", not as
+   another black rectangle. Emerald-700 on white keeps white text above 4.5:1. */
+:root {
+  --primary: oklch(50.8% 0.118 165.612);
+  --primary-foreground: oklch(98.5% 0 0);
+  --ring: oklch(69.6% 0.17 162.48);
+}
+.dark {
+  --primary: oklch(76.5% 0.177 163.223);
+  --primary-foreground: oklch(26.2% 0.051 172.552);
+  --ring: oklch(59.6% 0.145 163.225);
+}
+
 /* Operators asked for a bigger UI. Every Tailwind size (text, spacing, radii) is
    rem-based, so raising the root font-size zooms the whole app proportionally
    instead of only enlarging text into cramped rows. */

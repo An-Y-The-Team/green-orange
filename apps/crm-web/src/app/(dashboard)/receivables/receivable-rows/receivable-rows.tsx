@@ -114,7 +114,7 @@ export function MilestoneRow({
         {paid ? (
           <ConfirmAction
             trigger={
-              <Button variant="ghost" size="sm">
+              <Button variant="outline" size="sm">
                 Sửa ngày thu
               </Button>
             }
@@ -246,7 +246,7 @@ export function BillRow({
           {bill.status === BillStatus.PAID ? (
             <ConfirmAction
               trigger={
-                <Button variant="ghost" size="sm">
+                <Button variant="outline" size="sm">
                   Sửa ngày thu
                 </Button>
               }

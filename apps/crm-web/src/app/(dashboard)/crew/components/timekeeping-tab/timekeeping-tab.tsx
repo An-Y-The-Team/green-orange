@@ -196,7 +196,7 @@ export function TimekeepingTab({ crew }: { crew: CrewMember[] }) {
               {!noAssignments ? (
                 <Button
                   size="sm"
-                  variant="ghost"
+                  variant="outline"
                   className="ml-auto"
                   onClick={() => setShowAll((v) => !v)}
                 >
