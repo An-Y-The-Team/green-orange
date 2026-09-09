@@ -9,7 +9,7 @@
     "actionBarHidden": false
   },
   "debug": false,
-  "listCSS": [],
-  "listSyncJS": [],
+  "listCSS": ["assets/index.css"],
+  "listSyncJS": ["assets/index.module.js"],
   "listAsyncJS": []
 }

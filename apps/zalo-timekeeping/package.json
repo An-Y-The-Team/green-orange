@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint src --max-warnings 0",
     "check-types": "tsc --noEmit",
+    "test": "bun test src",
     "clean": "rm -rf www .turbo node_modules"
   },
   "dependencies": {

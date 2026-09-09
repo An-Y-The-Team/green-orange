@@ -23,3 +23,6 @@ next-env.d.ts
 # local env files
 .env*.local
 .env
+
+# zalo mini app build output
+/www

@@ -36,13 +36,19 @@ The prod stack's config is split by sensitivity:
 - **Secrets** (`POSTGRES_PASSWORD`, `DIRECTUS_KEY`/`SECRET`/`ADMIN_PASSWORD`/
   `STATIC_TOKEN`/`PREVIEW_SECRET`, `CRM_AUTH_SECRET`, `CRM_OIDC_CLIENT_SECRET`,
   `CRM_AUTHENTIK_ADMIN_TOKEN`, `AUTHENTIK_SECRET_KEY`/`BOOTSTRAP_PASSWORD`/
-  `BOOTSTRAP_TOKEN`) live **only in
+  `BOOTSTRAP_TOKEN`, and — for the Zalo mini app — `CRM_JWT_SECRET` +
+  `ZALO_APP_SECRET`) live **only in
   Dockhand's secret store** — injected via shell env at deploy time, never written
   to disk or git. Set these once in the Dockhand stack's env editor.
 
 Dockhand's git stack reads `deploy/deploy.env` as the compose env-file (lowest
 precedence), then layers its stored vars/secrets on top. Keep each var in a single
 home to avoid a stored value silently shadowing the file.
+
+> `CRM_JWT_SECRET` is mapped to the container's `JWT_SECRET` (compose does the
+> rename). Prod runs `AUTH_MODE=oidc`, which needs no secret of its own, but crew
+> tokens for the mini app are **always HS256** — so this one is required as soon
+> as §6d ships, and every worker login 401s without it.
 
 > **Legacy note:** the old flow kept everything in a gitignored `.env.production`
 > on the VPS that the SSH deploy `sed`-edited. That file is no longer used by the
@@ -54,9 +60,16 @@ home to avoid a stored value silently shadowing the file.
 ## 1. Prerequisites
 
 - A VPS (Ubuntu 22.04+, **amd64**) with a public IP.
-- A domain. Two DNS **A** records pointing at the VPS IP:
+- A domain. DNS **A** records pointing at the VPS IP:
   - `example.com` (and `www.example.com`) → site
   - `cms.example.com` → Directus Studio/API
+  - `quanly.example.com` → crm-web (§7)
+  - `auth.example.com` → Authentik (§6b)
+  - `api-crm.example.com` → public crm-api-nest for the Zalo mini app (§6d)
+
+  The last three are added by the section that needs them; each also needs a
+  Pangolin resource, which is manual — Caddy config alone is not enough.
+
 - Docker Engine + Compose plugin on the VPS.
 - This repo pushed to GitHub.
 

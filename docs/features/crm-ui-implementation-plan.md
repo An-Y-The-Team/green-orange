@@ -400,8 +400,13 @@ the deferred list below).
 ## Deferred / blocked (do not build without a new decision)
 
 - Cost module (own design session), S3 uploads (attachments stay
-  metadata-only), Zalo mini-app ingest, bank-feed bill auto-flip,
-  Python crm-api update for students.
+  metadata-only), bank-feed bill auto-flip, Python crm-api update for students
+  (including the Zalo endpoints and the `status`/`start_time`/`end_time`
+  columns — the Python model cannot represent a mini-app row until then).
+- **No longer deferred:** Zalo mini-app ingest was built on
+  `feat/zalo-mini-app` — `apps/zalo-timekeeping` plus `/auth/zalo-token`,
+  `/worker/*` and `POST /timekeeping/:id/decide` in crm-api-nest. Ops runbook in
+  DEPLOY.md §6d.
 
 ## Changelog
 

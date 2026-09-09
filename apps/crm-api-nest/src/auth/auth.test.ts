@@ -10,7 +10,12 @@
 // `declare module "express"` augmentation promises downstream code, and a first
 // OIDC login provisions exactly ONE shadow row even when several requests arrive
 // at once.
-import { Controller, Get, UnauthorizedException } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import { afterEach, describe, expect, test } from "bun:test";
@@ -21,6 +26,7 @@ import "reflect-metadata";
 import { Public } from "../common/public.decorator";
 import type { PrismaService } from "../prisma/prisma.service";
 import { AuthController } from "./auth.controller";
+import { AuthService } from "./auth.service";
 import { JwtGuard } from "./jwt.guard";
 import { OidcService } from "./oidc.service";
 
@@ -33,6 +39,7 @@ const jwt = new JwtService({});
 const env = {
   AUTH_MODE: process.env.AUTH_MODE,
   JWT_SECRET: process.env.JWT_SECRET,
+  ZALO_APP_SECRET: process.env.ZALO_APP_SECRET,
 };
 const setEnv = (key: keyof typeof env, value?: string) => {
   if (value === undefined) delete process.env[key];
@@ -41,6 +48,7 @@ const setEnv = (key: keyof typeof env, value?: string) => {
 afterEach(() => {
   setEnv("AUTH_MODE", env.AUTH_MODE);
   setEnv("JWT_SECRET", env.JWT_SECRET);
+  setEnv("ZALO_APP_SECRET", env.ZALO_APP_SECRET);
 });
 
 // Touching one of these is a failure, not a fallback: local mode must never
@@ -549,5 +557,150 @@ describe("AuthController.token input guard", () => {
     } as any;
     await new AuthController(auth).token({ username: "kim", password: "pw" });
     expect(calls).toEqual([["kim", "pw"]]);
+  });
+});
+
+// The mini app's only door. Everything here is a refusal path: the phone number
+// arrives from Zalo, not from the client, so the ONLY thing that decides whether
+// a worker gets a token is (a) Zalo confirming the number and (b) that number
+// already being on the roster. A silent widening of either — a non-200 treated
+// as success, an unnormalizable number falling through, a `left` member still
+// matching — hands a crew token to someone who never worked here.
+describe("AuthService.zaloToken", () => {
+  const SECRET_KEY = "zalo-app-secret";
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  // Only Zalo's Open API hop is faked. normalizePhone, the roster lookup and the
+  // signing stay production code — faking those would test the fake.
+  const service = (
+    zalo: { ok?: boolean; body?: unknown } | Error,
+    members: { id: number; name: string; phone: string; status: string }[] = []
+  ) => {
+    setEnv("ZALO_APP_SECRET", SECRET_KEY);
+    setEnv("JWT_SECRET", SECRET);
+    const calls: { headers: Record<string, string> }[] = [];
+    globalThis.fetch = (async (_url: string, init: any) => {
+      calls.push({ headers: init?.headers ?? {} });
+      if (zalo instanceof Error) throw zalo;
+      return {
+        ok: zalo.ok ?? true,
+        json: async () => zalo.body,
+      };
+    }) as unknown as typeof fetch;
+    const prisma = {
+      crewMember: {
+        findUnique: async ({ where }: any) =>
+          members.find((m) => m.phone === where.phone) ?? null,
+      },
+    } as unknown as PrismaService;
+    return { auth: new AuthService(prisma, jwt), calls };
+  };
+
+  const kim = { id: 7, name: "Kim Lê", phone: "0912345678", status: "working" };
+  const ok = { body: { data: { number: "84912345678" }, error: 0 } };
+
+  const refused = async (act: Promise<unknown>, message?: string) => {
+    const outcome = await act.then(
+      (value) => `resolved to ${JSON.stringify(value)}`,
+      (error: unknown) => error
+    );
+    expect(outcome).toBeInstanceOf(UnauthorizedException);
+    if (message !== undefined) {
+      expect((outcome as UnauthorizedException).message).toBe(message);
+    }
+  };
+
+  test("a roster match mints a crew token, not a CRM one", async () => {
+    const { auth } = service(ok, [kim]);
+    const result = await auth.zaloToken("phone-token", "zalo-access-token");
+    expect(result.token_type).toBe("bearer");
+    expect(result.crew_member).toEqual({ id: 7, name: "Kim Lê" });
+    // kind:"crew" is what jwt.guard.ts keys the @Worker()-only boundary on;
+    // losing it would make this token look like an operator's.
+    expect(jwt.verify(result.access_token, { secret: SECRET })).toMatchObject({
+      sub: "crew:7",
+      kind: "crew",
+      crew_member_id: 7,
+    });
+  });
+
+  // The app secret must never leave the server, and the pair is sent as HEADERS
+  // (not query params) — Zalo's /me/info reads access_token/code/secret_key there.
+  test("the exchange sends the pair plus the app secret as headers", async () => {
+    const { auth, calls } = service(ok, [kim]);
+    await auth.zaloToken("phone-token", "zalo-access-token");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].headers).toEqual({
+      access_token: "zalo-access-token",
+      code: "phone-token",
+      secret_key: SECRET_KEY,
+    });
+  });
+
+  test("no ZALO_APP_SECRET → 500, never a token", async () => {
+    const { auth } = service(ok, [kim]);
+    setEnv("ZALO_APP_SECRET", undefined);
+    await expect(auth.zaloToken("t", "a")).rejects.toBeInstanceOf(
+      InternalServerErrorException
+    );
+  });
+
+  test("Zalo rejecting the code (non-200) → 401", async () => {
+    const { auth } = service({ ok: false, body: { error: -201 } }, [kim]);
+    await refused(auth.zaloToken("expired-token", "a"));
+  });
+
+  // A single-use token reused after its 2 minutes comes back 200 with an error
+  // body and no number — the status code alone is not the check.
+  test("a 200 with no data.number → 401", async () => {
+    const { auth } = service({ body: { error: -201, message: "invalid" } }, [
+      kim,
+    ]);
+    await refused(auth.zaloToken("reused-token", "a"));
+  });
+
+  test("the network hop failing → 401, not a 500", async () => {
+    const { auth } = service(new TypeError("fetch failed"), [kim]);
+    await refused(auth.zaloToken("t", "a"));
+  });
+
+  test("a number normalizePhone cannot read → 401", async () => {
+    const { auth } = service({ body: { data: { number: "12345" } } }, [kim]);
+    await refused(auth.zaloToken("t", "a"));
+  });
+
+  // The roster IS the allowlist: an unknown number gets the message the mini app
+  // shows verbatim, so a worker knows to call the office rather than retry.
+  test("a number nobody on the roster has → 401 with the Vietnamese reason", async () => {
+    const { auth } = service(ok, []);
+    await refused(
+      auth.zaloToken("t", "a"),
+      "Số điện thoại chưa được đăng ký với công ty"
+    );
+  });
+
+  test("a member who has left can no longer log in", async () => {
+    const { auth } = service(ok, [{ ...kim, status: "left" }]);
+    await refused(
+      auth.zaloToken("t", "a"),
+      "Số điện thoại chưa được đăng ký với công ty"
+    );
+  });
+
+  test("on_leave is not left: they can still log time", async () => {
+    const { auth } = service(ok, [{ ...kim, status: "on_leave" }]);
+    expect((await auth.zaloToken("t", "a")).crew_member.id).toBe(7);
+  });
+
+  // Zalo returns the 84-prefixed form; the roster stores the local 0… form.
+  // If these two ever disagree every login refuses as "not registered".
+  test("the 84… number Zalo returns matches the 0… number on the roster", async () => {
+    const { auth } = service({ body: { data: { number: "84912345678" } } }, [
+      kim,
+    ]);
+    expect((await auth.zaloToken("t", "a")).crew_member.id).toBe(7);
   });
 });

@@ -144,13 +144,37 @@ Business codes (`CT-…` projects, `HD-…` contracts) are server-assigned.
   type, default role, status.
 - `GET|POST /assignments`, `PATCH|DELETE /assignments/:id` — responses include
   `overlaps` (double-booking is allowed; the UI warns, never blocks).
-- `GET /timekeeping` (`?project_id&crew_member_id&from&to`),
+- `GET /timekeeping` (`?project_id&crew_member_id&status&from&to`),
   `POST /timekeeping` — upsert per (member, project, day, source); manual is
-  source of truth. `DELETE /timekeeping/:id`.
+  source of truth and is born `approved`. `DELETE /timekeeping/:id`.
+- `POST /timekeeping/:id/decide` — `{status: approved|rejected}`, the operator's
+  duyệt/từ chối for Zalo submissions. Only `pending` rows are decidable (409
+  otherwise), so it can never touch a manual row. `GET /timekeeping/summary`
+  counts `approved` hours only.
+
+### Worker (`src/worker/`) — Zalo mini app only
+
+Class-level `@Worker()`: these routes accept **only** crew tokens, and every
+other route rejects them. A worker sees exactly their own rows.
+
+- `GET /worker/me`, `GET /worker/projects` — projects they're assigned to today,
+  excluding closed ones.
+- `POST /worker/timekeeping` — `{project_id, work_date, start_time, end_time,
+note?}`. Refuses a day they aren't assigned to (403), a locked project (409)
+  and a shift over 16h (400); `end_time` at-or-before `start_time` is an
+  overnight shift (+24h). Upserts as `pending`; an already-`approved` row is
+  locked (409), pending/rejected rows are overwritable so a rejected day can be
+  resubmitted. Errors are Vietnamese — the app shows them verbatim.
+- `GET /worker/timekeeping` (`?from&to`, 31-day default window).
 
 ### Auth & health
 
 - `POST /auth/token` (public) — local password grant.
+- `POST /auth/zalo-token` (public) — Zalo mini-app login. Takes the zmp-sdk
+  `{token, access_token}` pair, exchanges it at `graph.zalo.me/v2.0/me/info`
+  (needs `ZALO_APP_SECRET`), matches the number against `CrewMember.phone`, and
+  mints a 30-day **crew** token. Crew tokens are HS256 even under
+  `AUTH_MODE=oidc`, so `JWT_SECRET` is required for this path.
 - `GET /auth/me` — current user.
 - `GET /health` (public) — `{status, auth_mode}`.
 
