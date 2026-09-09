@@ -59,8 +59,11 @@ export interface Project {
   code: string; // CT-…
   client_id: number;
   location_id: number;
-  working_contact_id: number;
-  decision_maker_contact_id: number;
+  // Null when nobody at the company has been named yet — both backends allow a
+  // công trình to open without a contact, and one is attached later from the
+  // workspace header.
+  working_contact_id: number | null;
+  decision_maker_contact_id: number | null;
   name: string;
   request_note?: string | null; // stage 1
   referral_source?: string | null; // stage 1, free text

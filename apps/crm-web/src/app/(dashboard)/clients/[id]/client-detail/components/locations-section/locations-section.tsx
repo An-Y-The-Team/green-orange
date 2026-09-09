@@ -64,7 +64,7 @@ export function LocationsSection({
   const editForm = (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
       <Input
-        placeholder="Tên địa điểm"
+        placeholder="Tên toà nhà thi công"
         value={draft.name}
         onChange={(e) => setDraft({ ...draft, name: e.target.value })}
       />

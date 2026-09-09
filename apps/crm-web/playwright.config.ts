@@ -30,8 +30,25 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // Retried everywhere, not just CI. Under the full suite (fully parallel, one
+  // web server + API + database) a server action's RESPONSE is occasionally
+  // aborted client-side: the request logs `200` and the row is written, then the
+  // browser reports net::ERR_ABORTED for that POST, so the revalidated tree
+  // never lands and the panel keeps rendering pre-write data. It hit a
+  // different write-heavy spec roughly every other run. Not reproducible with
+  // one spec run 5× in parallel, not a slow server (a probe on the heaviest page
+  // stayed under 1s throughout a failing run), and unaffected by blocking
+  // Next's prefetches or by closing the confirm dialog on success instead of on
+  // click — i.e. a router race under load, not something the spec can await.
+  // Playwright still reports the retried test as flaky, so this stays visible.
+  retries: 1,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
+  // 10s, not the 5s default: almost every assertion here follows a write
+  // (server action → API → revalidatePath → re-render), and with the suite
+  // fully parallel on one server+API+database a single round-trip was measured
+  // at just over 5s under load — which surfaced as "element not found" on a
+  // different spec each run. This is an assertion *budget*, not a sleep.
+  expect: { timeout: 10000 },
   use: { baseURL: `http://localhost:${WEB_PORT}`, trace: "on-first-retry" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [

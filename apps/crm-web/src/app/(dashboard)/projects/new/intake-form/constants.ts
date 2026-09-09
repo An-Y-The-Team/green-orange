@@ -4,6 +4,7 @@ import type { QuickClientFormValues } from "../../schema";
 export const DEFAULT_QUICK_CLIENT_VALUES: QuickClientFormValues = {
   name: "",
   type: ClientType.COMPANY,
+  tax_code: "",
   address: "",
   contact_name: "",
   contact_phone: "",

@@ -89,8 +89,10 @@ export function WorkspaceHeader({
   const saveEdit = () =>
     run({
       name: draft.name.trim(),
-      working_contact_id: draft.working_contact_id,
-      decision_maker_contact_id: draft.decision_maker_contact_id,
+      // Omitted while nobody is named — PATCH takes ids, and there is no
+      // "clear it" on the API: attaching a contact is the only move.
+      working_contact_id: draft.working_contact_id ?? undefined,
+      decision_maker_contact_id: draft.decision_maker_contact_id ?? undefined,
       type_ids: draft.type_ids,
       request_note: draft.request_note.trim(),
       referral_source: draft.referral_source.trim(),
@@ -163,11 +165,21 @@ export function WorkspaceHeader({
           <Label htmlFor="working-contact">{FIELDS.contactPerson}</Label>
           <Select
             id="working-contact"
-            value={draft.working_contact_id}
+            value={draft.working_contact_id ?? ""}
             onChange={(e) =>
-              setDraft({ ...draft, working_contact_id: Number(e.target.value) })
+              setDraft({
+                ...draft,
+                working_contact_id: e.target.value
+                  ? Number(e.target.value)
+                  : null,
+              })
             }
           >
+            {/* Only while none is set: a công trình can be opened before anyone
+                at the company is named, and the API has no way to unset one. */}
+            {draft.working_contact_id == null ? (
+              <option value="">— Chưa có —</option>
+            ) : null}
             {contacts.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -176,17 +188,22 @@ export function WorkspaceHeader({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="decision-maker">Người quyết định</Label>
+          <Label htmlFor="decision-maker">Quản lý</Label>
           <Select
             id="decision-maker"
-            value={draft.decision_maker_contact_id}
+            value={draft.decision_maker_contact_id ?? ""}
             onChange={(e) =>
               setDraft({
                 ...draft,
-                decision_maker_contact_id: Number(e.target.value),
+                decision_maker_contact_id: e.target.value
+                  ? Number(e.target.value)
+                  : null,
               })
             }
           >
+            {draft.decision_maker_contact_id == null ? (
+              <option value="">— Chưa có —</option>
+            ) : null}
             {contacts.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}

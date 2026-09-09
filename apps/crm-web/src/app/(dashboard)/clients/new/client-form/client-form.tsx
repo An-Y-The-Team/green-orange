@@ -53,6 +53,7 @@ export function ClientForm() {
     defaultValues: {
       name: "",
       type: ClientType.COMPANY,
+      tax_code: "",
       email: "",
       address: "",
     },
@@ -100,6 +101,18 @@ export function ClientForm() {
               </option>
             </Select>
           </div>
+
+          {type === ClientType.COMPANY ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="tax_code">{FIELDS.taxCode}</Label>
+              <Input
+                {...fieldProps("tax_code", form.formState.errors.tax_code)}
+                placeholder="0312345678"
+                {...form.register("tax_code")}
+              />
+              {fieldError(form.formState.errors.tax_code, "tax_code")}
+            </div>
+          ) : null}
 
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>

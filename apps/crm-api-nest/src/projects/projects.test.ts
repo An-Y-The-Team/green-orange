@@ -66,6 +66,19 @@ describe("project create — contacts must belong to the client", () => {
     expect(prisma.created).toEqual([]);
   });
 
+  test("no contact and no location manager → created with null contacts", async () => {
+    const prisma = fake(1);
+    prisma.location.findUnique = async () => ({
+      id: 5,
+      client_id: 1,
+      manager_contact_id: null,
+    });
+    await new ProjectsController(prisma).create(dto({}));
+    const data = prisma.created[0] as Record<string, unknown>;
+    expect(data.working_contact_id).toBeNull();
+    expect(data.decision_maker_contact_id).toBeNull();
+  });
+
   test("own contact + appointment_at persists in ONE write (F14)", async () => {
     const prisma = fake(1);
     await new ProjectsController(prisma).create(

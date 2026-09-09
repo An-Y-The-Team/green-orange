@@ -29,13 +29,12 @@ export async function createClient(
   }
 
   try {
-    // Drop empty email — backend @IsEmail rejects "".
-    const { email, ...rest } = parsed.data;
-    const client = await apiSend<Client>(
-      "/clients",
-      "POST",
-      email ? { ...rest, email } : rest
+    // Drop blank optionals: the backend's @IsEmail rejects "", and a blank
+    // MST/address should stay NULL rather than land as an empty string.
+    const payload = Object.fromEntries(
+      Object.entries(parsed.data).filter(([, value]) => value !== "")
     );
+    const client = await apiSend<Client>("/clients", "POST", payload);
 
     revalidatePath("/clients");
 

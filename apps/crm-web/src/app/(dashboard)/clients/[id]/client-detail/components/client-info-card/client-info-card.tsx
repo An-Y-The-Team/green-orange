@@ -118,7 +118,7 @@ export function ClientInfoCard({
           <div className="space-y-3">
             {isCompany ? (
               <div className="space-y-1.5">
-                <Label htmlFor="tax_code">Mã số thuế</Label>
+                <Label htmlFor="tax_code">{FIELDS.taxCode}</Label>
                 <Input
                   id="tax_code"
                   value={draft.tax_code}
@@ -186,7 +186,7 @@ export function ClientInfoCard({
               value={formatDate(client.created_at)}
             />
             {isCompany ? (
-              <Field label="Mã số thuế" value={info.tax_code || "—"} />
+              <Field label={FIELDS.taxCode} value={info.tax_code || "—"} />
             ) : null}
             <Field
               label={isCompany ? FIELDS.registeredAddress : FIELDS.address}

@@ -23,6 +23,36 @@ def test_create_fills_code_contacts_and_paperwork(
     assert [i["name"] for i in items] == list(DEFAULT_PAPERWORK)
 
 
+def test_create_allows_a_project_with_no_contact(client: TestClient, fixtures: dict):
+    """A walk-in company is filed before anyone there is named: no contact given,
+    and the new site has no manager to inherit one from."""
+    site = client.post(
+        "/locations",
+        json={
+            "client_id": fixtures["client_id"],
+            "name": "Toà nhà B",
+            "address": "9 Lê Lợi",
+        },
+    ).json()
+    res = client.post(
+        "/projects",
+        json={
+            "name": "Chưa có người liên hệ",
+            "client_id": fixtures["client_id"],
+            "location_id": site["id"],
+            "type_ids": [fixtures["type_id"]],
+        },
+    )
+    assert res.status_code == 201, res.text
+    body = res.json()
+    assert body["working_contact_id"] is None
+    assert body["decision_maker_contact_id"] is None
+    # …and it reads back the same way, relations included.
+    detail = client.get(f"/projects/{body['id']}").json()
+    assert detail["working_contact"] is None
+    assert detail["decision_maker"] is None
+
+
 def test_create_rejects_a_location_from_another_client(
     client: TestClient, fixtures: dict
 ):

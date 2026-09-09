@@ -141,10 +141,6 @@ const MESSAGES: { match: RegExp; vi: (m: RegExpMatchArray) => string }[] = [
       `Loại công trình đang dùng ở ${m[1]} công trình — không xóa được.`,
   },
   {
-    match: /working_contact_id required \(location has no manager\)/i,
-    vi: () => "Chọn người liên hệ — địa điểm này chưa có người quản lý.",
-  },
-  {
     match: /location_id does not belong to client_id/i,
     vi: () => "Địa điểm không thuộc khách hàng đã chọn.",
   },

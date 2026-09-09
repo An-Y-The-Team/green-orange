@@ -5,9 +5,9 @@ import { expect, test } from "@playwright/test";
  * redirect → the list re-reads the API. A unique name per run means this never
  * collides with itself or with the seeded rows, so no reset is needed.
  *
- * ponytail: the rows it leaves behind are harmless until /clients outgrows its
- * 100-row first page — then either delete `E2E …` clients or give the list a
- * server-side search.
+ * The row is found through the list's own search box: /clients pages at 20
+ * rows sorted by name, so a freshly created client is only on page 1 by
+ * accident, and the rows every run leaves behind eventually push it off.
  */
 test("creating a client shows it on the list", async ({ page }) => {
   const stamp = Date.now();
@@ -19,6 +19,7 @@ test("creating a client shows it on the list", async ({ page }) => {
   await page.getByRole("button", { name: "Tạo khách hàng" }).click();
 
   await expect(page).toHaveURL(/\/clients$/);
+  await page.getByPlaceholder("Tìm tên, MST…").fill(name);
   // The row, not any text: the success toast carries the name too, and it is
   // still on screen when the list arrives.
   await expect(page.getByRole("link", { name })).toBeVisible();

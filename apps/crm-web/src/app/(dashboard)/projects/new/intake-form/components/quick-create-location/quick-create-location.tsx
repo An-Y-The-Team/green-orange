@@ -58,7 +58,7 @@ export function QuickCreateLocation({
   return (
     <InsetPanel>
       <div className="space-y-1">
-        <FormLabel>Tên địa điểm/Toà nhà</FormLabel>
+        <FormLabel>Tên toà nhà thi công</FormLabel>
         <Input
           placeholder="Chi nhánh Quận 7"
           value={name}

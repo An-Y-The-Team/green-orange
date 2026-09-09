@@ -110,8 +110,12 @@ model Project {
   code                      String    @unique
   client_id                 Int
   location_id               Int
-  working_contact_id        Int // defaults to location manager (app logic)
-  decision_maker_contact_id Int // defaults to working contact (app logic)
+  // Both nullable: a công trình can be opened for a company whose contact
+  // person is not known yet (the intake form's quick-create allows it). When one
+  // IS given, working defaults to the location manager and decision maker to the
+  // working contact — app logic, see projects.module.ts create().
+  working_contact_id        Int?
+  decision_maker_contact_id Int?
   name                      String
   /// Search key: `lower(unaccent(name))`, maintained by Postgres as a STORED
   /// GENERATED column (migration 20260907000000_unaccent_search) so that
@@ -146,8 +150,8 @@ model Project {
 
   client          Client        @relation(fields: [client_id], references: [id])
   location        Location      @relation(fields: [location_id], references: [id])
-  working_contact Contact       @relation("working_contact", fields: [working_contact_id], references: [id])
-  decision_maker  Contact       @relation("decision_maker", fields: [decision_maker_contact_id], references: [id])
+  working_contact Contact?      @relation("working_contact", fields: [working_contact_id], references: [id])
+  decision_maker  Contact?      @relation("decision_maker", fields: [decision_maker_contact_id], references: [id])
   types           ProjectType[] // 1..n tags (enforced ≥1 in DTO)
 
   quotes             Quote[]

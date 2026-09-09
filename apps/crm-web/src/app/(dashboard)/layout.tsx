@@ -2,7 +2,7 @@ import { LogOut } from "lucide-react";
 
 import { Button } from "@yan/ui/components/button";
 
-import { getCompany } from "@/app/(dashboard)/settings/company/queries";
+import { loadCompany } from "@/app/(dashboard)/settings/company/queries";
 import { auth, signOut } from "@/auth";
 import { AUTH_ENABLED } from "@/auth.config";
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar";
@@ -37,7 +37,12 @@ export default async function DashboardLayout({
   // The editable company profile — every document header/signature reads it
   // (client components via CompanyProvider, server pages via getCompany).
   // Never fetched while the login gate is up: no token → pointless 401.
-  const company = needsLogin ? null : await getCompany();
+  // It doubles as the token probe: Auth.js only checks the token's claimed
+  // expiry, the backend has the final say. A 401 here re-gates BEFORE any page
+  // fetch can throw SESSION_EXPIRED onto error.tsx, where nothing lets you log
+  // back in.
+  const load = needsLogin ? null : await loadCompany();
+  const sessionDead = needsLogin || Boolean(load?.sessionExpired);
 
   // One node, rendered in the desktop sidebar footer AND the mobile drawer's —
   // the sign-out is a server action, so it has to be built here rather than in
@@ -83,10 +88,12 @@ export default async function DashboardLayout({
           tabIndex={-1}
           className="flex-1 overflow-y-auto p-4 md:p-6 outline-none print:overflow-visible print:p-0"
         >
-          {needsLogin || !company ? (
-            <LoginOverlay expired={Boolean(session?.error)} />
+          {sessionDead || !load ? (
+            <LoginOverlay
+              expired={Boolean(session?.error || load?.sessionExpired)}
+            />
           ) : (
-            <CompanyProvider company={company}>
+            <CompanyProvider company={load.company}>
               {AUTH_ENABLED && <SessionWatch />}
               {children}
             </CompanyProvider>

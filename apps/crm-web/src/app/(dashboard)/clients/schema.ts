@@ -10,6 +10,7 @@ export const createClientSchema = z
   .object({
     name: z.string().min(1),
     type: z.nativeEnum(ClientType),
+    tax_code: z.string().optional(),
     email: clientEmail,
     address: z.string().optional(),
   })

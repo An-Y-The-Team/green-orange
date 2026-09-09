@@ -96,7 +96,8 @@ async function fetchWithAuth(
   // Live auth + 401 → the session's token is dead (expired or revoked). Fail with
   // a human message here so all ~40 server actions surface "log in again" from
   // their existing catch instead of a raw "401 Unauthorized"; reloading the page
-  // then hits the layout's auth gate, which shows the login overlay.
+  // then hits the layout's probe read (loadCompany → sessionExpired), which
+  // re-gates with the login overlay even though Auth.js still holds a session.
   if (res.status === 401 && AUTH_ENABLED) throw new Error(SESSION_EXPIRED);
   return res;
 }

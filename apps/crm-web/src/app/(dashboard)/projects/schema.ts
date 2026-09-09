@@ -11,6 +11,7 @@ export const quickClientSchema = z
   .object({
     name: z.string().min(1, "Nhập tên khách hàng"),
     type: z.nativeEnum(ClientType),
+    tax_code: z.string().optional(),
     address: z.string().optional(),
     contact_name: z.string().optional(),
     contact_phone: z.string().optional(),
@@ -27,11 +28,14 @@ export const quickClientSchema = z
         });
       return;
     }
-    if (!v.contact_name?.trim())
+    // Người liên hệ is optional — a công trình can start from a company and a
+    // site alone. A phone without a name is not, though: the contact row the
+    // API needs is keyed by name, so the number would be dropped silently.
+    if (v.contact_phone?.trim() && !v.contact_name?.trim())
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["contact_name"],
-        message: "Nhập tên người liên hệ.",
+        message: "Nhập tên người liên hệ đi kèm số điện thoại.",
       });
     if (!v.location_name?.trim())
       ctx.addIssue({

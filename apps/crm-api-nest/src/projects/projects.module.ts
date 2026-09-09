@@ -376,12 +376,11 @@ export class ProjectsController {
         dto.decision_maker_contact_id,
         "decision_maker_contact_id"
       );
+    // May stay null: a walk-in company often has no named contact on the first
+    // call, and the intake form's quick-create block lets it through. The
+    // workspace header is where one gets attached later.
     const working =
       dto.working_contact_id ?? location.manager_contact_id ?? null;
-    if (working === null)
-      throw new BadRequestException(
-        "working_contact_id required (location has no manager)"
-      );
     const code = await nextCode(this.prisma.project, "CT");
     // Same transaction: auto-seed the stage-5 default paperwork checklist.
     return this.prisma.$transaction(async (tx) => {

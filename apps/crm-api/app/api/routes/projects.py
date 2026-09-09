@@ -304,12 +304,10 @@ def create_project(session: SessionDep, payload: ProjectCreate) -> Project:
             payload.decision_maker_contact_id,
             "decision_maker_contact_id",
         )
+    # May stay None: a walk-in company often has no named contact on the first
+    # call, and the intake form's quick-create block lets it through. The
+    # workspace header is where one gets attached later.
     working = payload.working_contact_id or location.manager_contact_id
-    if working is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "working_contact_id required (location has no manager)",
-        )
     types = resolve_types(session, payload.type_ids)
     project = Project(
         code=next_code(session, Project, "CT"),

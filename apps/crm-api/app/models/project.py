@@ -89,10 +89,16 @@ class Project(SQLModel, table=True):
     code: str = Field(unique=True)  # CT-2026-001, server-assigned
     client_id: int = Field(foreign_key="client.id", index=True)
     location_id: int = Field(foreign_key="location.id", index=True)
-    # Defaults to the location manager (app logic).
-    working_contact_id: int = Field(foreign_key="contact.id", index=True)
-    # Defaults to the working contact (app logic).
-    decision_maker_contact_id: int = Field(foreign_key="contact.id", index=True)
+    # Both nullable: a công trình can be opened for a company whose contact
+    # person is not known yet (the intake form's quick-create allows it). When
+    # one IS given, working defaults to the location manager and decision maker
+    # to the working contact — app logic, see routes/projects.py create_project.
+    working_contact_id: int | None = Field(
+        default=None, foreign_key="contact.id", index=True
+    )
+    decision_maker_contact_id: int | None = Field(
+        default=None, foreign_key="contact.id", index=True
+    )
     name: str
     # Search key: lower(unaccent(name)) — see app/core/search.py. Written by the
     # mapper event in app/models/__init__.py, never returned (the response
@@ -142,10 +148,10 @@ class Project(SQLModel, table=True):
 
     client: Client = Relationship()
     location: Location = Relationship()
-    working_contact: Contact = Relationship(
+    working_contact: Contact | None = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Project.working_contact_id]"}
     )
-    decision_maker: Contact = Relationship(
+    decision_maker: Contact | None = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Project.decision_maker_contact_id]"}
     )
     types: list[ProjectType] = Relationship(link_model=ProjectTypeLink)
@@ -268,8 +274,8 @@ class ProjectPublic(SQLModel):
     code: str
     client_id: int
     location_id: int
-    working_contact_id: int
-    decision_maker_contact_id: int
+    working_contact_id: int | None
+    decision_maker_contact_id: int | None
     name: str
     request_note: str | None
     referral_source: str | None
@@ -303,8 +309,8 @@ class ProjectWithRelations(ProjectPublic):
 class ProjectListItem(ProjectWithRelations):
     # The field page needs the site contact per appointment; decision_maker is
     # the [Gọi] fallback when the working contact has no phone.
-    working_contact: ContactRef
-    decision_maker: ContactRef
+    working_contact: ContactRef | None
+    decision_maker: ContactRef | None
 
 
 class ProjectNotePublic(SQLModel):
@@ -316,8 +322,8 @@ class ProjectNotePublic(SQLModel):
 
 
 class ProjectDetail(ProjectWithRelations):
-    working_contact: ContactPublic
-    decision_maker: ContactPublic
+    working_contact: ContactPublic | None
+    decision_maker: ContactPublic | None
     paperwork_items: list[PaperworkItemPublic]
     quotes: list[QuoteBasic]
     notes: list[ProjectNotePublic]

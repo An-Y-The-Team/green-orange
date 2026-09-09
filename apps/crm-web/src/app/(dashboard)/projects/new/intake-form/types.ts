@@ -14,8 +14,8 @@ export type ClientDetail = {
 export type Prefill = {
   client_id: number;
   location_id: number;
-  working_contact_id: number;
-  decision_maker_contact_id: number;
+  working_contact_id: number | null;
+  decision_maker_contact_id: number | null;
 };
 
 /**

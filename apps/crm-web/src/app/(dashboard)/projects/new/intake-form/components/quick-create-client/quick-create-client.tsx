@@ -111,6 +111,7 @@ export function QuickCreateClient({
     defaultValues: DEFAULT_QUICK_CLIENT_VALUES,
   });
   const type = useWatch({ control: form.control, name: "type" });
+  const isIndividual = type === ClientType.INDIVIDUAL;
 
   const runCreate = async (values: QuickClientFormValues) => {
     setPending(true);
@@ -119,7 +120,10 @@ export function QuickCreateClient({
       const clientRes = await createClient(INITIAL_ACTION_STATE, {
         name: values.name,
         type: values.type,
-        address: isCompany ? undefined : values.address,
+        tax_code: isCompany ? values.tax_code : undefined,
+        // Bên A's registered address on a contract — kept on the client for
+        // both types; a company's job sites are separate Locations below.
+        address: values.address,
       });
       const client = clientRes.success ? toClientOption(clientRes.data) : null;
       if (!client) {
@@ -136,26 +140,31 @@ export function QuickCreateClient({
         return true;
       }
 
+      // No name typed = no contact person yet; the company + site are enough to
+      // open a công trình, and one can be added from the select later.
+      const contactName = values.contact_name?.trim();
       const [contactRes, locationRes] = await Promise.all([
-        createContact(client.id, INITIAL_ACTION_STATE, {
-          name: values.contact_name ?? "",
-          phone: values.contact_phone,
-          email: "",
-          title: "",
-        }),
+        contactName
+          ? createContact(client.id, INITIAL_ACTION_STATE, {
+              name: contactName,
+              phone: values.contact_phone,
+              email: "",
+              title: "",
+            })
+          : undefined,
         createLocation(client.id, INITIAL_ACTION_STATE, {
           name: values.location_name ?? "",
           address: values.location_address ?? "",
         }),
       ]);
-      const contact = toContact(contactRes.data, client.id);
+      const contact = contactRes && toContact(contactRes.data, client.id);
       const location = toLocation(locationRes.data, client.id);
-      if (!contact || !location) {
+      if (!location || (contactRes && !contact)) {
         // Client exists but a dependent failed — report the client alone and let
         // the user fill the rest via the selects.
         toast.error("Lỗi", {
           description:
-            contactRes.message ||
+            contactRes?.message ||
             locationRes.message ||
             "Không thể tạo liên hệ/địa điểm.",
         });
@@ -163,7 +172,12 @@ export function QuickCreateClient({
         return true;
       }
 
-      await onCreated({ client, type: values.type, contact, location });
+      await onCreated({
+        client,
+        type: values.type,
+        contact: contact ?? undefined,
+        location,
+      });
       return true;
     } finally {
       setPending(false);
@@ -207,56 +221,14 @@ export function QuickCreateClient({
           </option>
         </Select>
       </div>
-      {type === ClientType.INDIVIDUAL ? (
-        <div className="space-y-1">
-          <FieldLabel htmlFor="qc-address" required>
-            {FIELDS.address}
-          </FieldLabel>
-          <Input
-            {...fieldProps("qc-address", form.formState.errors.address)}
-            aria-required
-            placeholder={PLACEHOLDERS.address}
-            {...form.register("address")}
-          />
-          {fieldError(form.formState.errors.address, "qc-address")}
-        </div>
-      ) : (
+      {/* Required first: the company and its site are what a công trình needs.
+          MST, trụ sở and the contact person are filled in when known — often
+          after the phone call this form is being typed during. */}
+      {isIndividual ? null : (
         <>
           <div className="space-y-1">
-            <FieldLabel htmlFor="qc-contact-name" required>
-              {FIELDS.contactPerson}
-            </FieldLabel>
-            <Input
-              {...fieldProps(
-                "qc-contact-name",
-                form.formState.errors.contact_name
-              )}
-              aria-required
-              placeholder={PLACEHOLDERS.personName}
-              {...form.register("contact_name")}
-            />
-            {fieldError(form.formState.errors.contact_name, "qc-contact-name")}
-          </div>
-          <div className="space-y-1">
-            <FieldLabel htmlFor="qc-contact-phone">
-              Số điện thoại liên hệ
-            </FieldLabel>
-            <Input
-              {...fieldProps(
-                "qc-contact-phone",
-                form.formState.errors.contact_phone
-              )}
-              placeholder="0901234567"
-              {...form.register("contact_phone")}
-            />
-            {fieldError(
-              form.formState.errors.contact_phone,
-              "qc-contact-phone"
-            )}
-          </div>
-          <div className="space-y-1">
             <FieldLabel htmlFor="qc-location-name" required>
-              Tên địa điểm/Toà nhà
+              Tên toà nhà thi công
             </FieldLabel>
             <Input
               {...fieldProps(
@@ -288,6 +260,67 @@ export function QuickCreateClient({
             {fieldError(
               form.formState.errors.location_address,
               "qc-location-address"
+            )}
+          </div>
+        </>
+      )}
+      {type === ClientType.COMPANY ? (
+        <div className="space-y-1">
+          <FieldLabel htmlFor="qc-tax-code">{FIELDS.taxCode}</FieldLabel>
+          <Input
+            {...fieldProps("qc-tax-code", form.formState.errors.tax_code)}
+            placeholder="0312345678"
+            {...form.register("tax_code")}
+          />
+          {fieldError(form.formState.errors.tax_code, "qc-tax-code")}
+        </div>
+      ) : null}
+      {/* Shown for both types: a company's registered address is Bên A's
+          address on its contracts, printed beside the MST. Only individuals
+          must fill it (it also seeds their default location). */}
+      <div className="space-y-1">
+        <FieldLabel htmlFor="qc-address" required={isIndividual}>
+          {isIndividual ? FIELDS.address : FIELDS.registeredAddress}
+        </FieldLabel>
+        <Input
+          {...fieldProps("qc-address", form.formState.errors.address)}
+          aria-required={isIndividual || undefined}
+          placeholder={PLACEHOLDERS.address}
+          {...form.register("address")}
+        />
+        {fieldError(form.formState.errors.address, "qc-address")}
+      </div>
+      {isIndividual ? null : (
+        <>
+          <div className="space-y-1">
+            <FieldLabel htmlFor="qc-contact-name">
+              {FIELDS.contactPerson}
+            </FieldLabel>
+            <Input
+              {...fieldProps(
+                "qc-contact-name",
+                form.formState.errors.contact_name
+              )}
+              placeholder={PLACEHOLDERS.personName}
+              {...form.register("contact_name")}
+            />
+            {fieldError(form.formState.errors.contact_name, "qc-contact-name")}
+          </div>
+          <div className="space-y-1">
+            <FieldLabel htmlFor="qc-contact-phone">
+              Số điện thoại liên hệ
+            </FieldLabel>
+            <Input
+              {...fieldProps(
+                "qc-contact-phone",
+                form.formState.errors.contact_phone
+              )}
+              placeholder="0901234567"
+              {...form.register("contact_phone")}
+            />
+            {fieldError(
+              form.formState.errors.contact_phone,
+              "qc-contact-phone"
             )}
           </div>
         </>

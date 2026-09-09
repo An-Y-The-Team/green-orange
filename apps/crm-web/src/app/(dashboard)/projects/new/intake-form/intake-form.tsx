@@ -124,8 +124,9 @@ export function IntakeForm({
     defaultValues: {
       client_id: prefill?.client_id ?? 0,
       location_id: prefill?.location_id ?? 0,
-      working_contact_id: prefill?.working_contact_id,
-      decision_maker_contact_id: prefill?.decision_maker_contact_id,
+      working_contact_id: prefill?.working_contact_id ?? undefined,
+      decision_maker_contact_id:
+        prefill?.decision_maker_contact_id ?? undefined,
       name: "",
       type_ids: [],
       stage: ProjectStage.REQUEST,
@@ -203,20 +204,23 @@ export function IntakeForm({
     setForcedClientLabel(client.name);
     setShowQuickCreate(false);
 
-    if (!contact || !location) {
+    if (!location) {
       await selectClient(client.id);
       return;
     }
 
+    // `contact` is absent when no người liên hệ was named — the selects below
+    // then open with an empty contact list, which they already allow.
     const nextDetail: ClientDetail = {
       name: client.name,
       type,
-      contacts: [contact],
+      contacts: contact ? [contact] : [],
       locations: [location],
     };
     setDetail(nextDetail);
     form.setValue("client_id", client.id, { shouldValidate: true });
-    form.setValue("working_contact_id", contact.id, { shouldValidate: true });
+    if (contact)
+      form.setValue("working_contact_id", contact.id, { shouldValidate: true });
     form.setValue("location_id", location.id, { shouldValidate: true });
     maybeSuggestName(form.getValues("type_ids"), location.id, nextDetail);
   }

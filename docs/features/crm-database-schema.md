@@ -124,8 +124,8 @@ The spine. Stage + orthogonal status + per-stage sub-statuses live here.
 | id                        | bigserial PK     |                                                                                                                                         |
 | client_id                 | FK → client      | who signs/pays                                                                                                                          |
 | location_id               | FK → location    | where                                                                                                                                   |
-| working_contact_id        | FK → contact     | defaults to location manager                                                                                                            |
-| decision_maker_contact_id | FK → contact     | approves quote / signs; defaults to working contact                                                                                     |
+| working_contact_id        | FK → contact null | defaults to location manager; null until someone at the company is named (2026-09-09)                                                   |
+| decision_maker_contact_id | FK → contact null | approves quote / signs; defaults to working contact, so also null until then (2026-09-09)                                               |
 | name                      | text             |                                                                                                                                         |
 | request_note              | text null        | stage 1: short "what they want" from the first call (2026-07-23 UI deltas)                                                              |
 | referral_source           | text null        | stage 1: free text — giới thiệu, gọi lại, … (2026-07-23 UI deltas)                                                                      |

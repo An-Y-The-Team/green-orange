@@ -64,7 +64,7 @@ export function ClientCascadeSelects({
         )}
       />
 
-      {/* Người quyết định — who approves the báo giá / signs the hợp đồng, which
+      {/* Quản lý — who approves the báo giá / signs the hợp đồng, which
           crm-business-flow.md says is often someone at HQ rather than the
           day-to-day contact. The form used to overwrite it with the working
           contact on submit, with no way to say otherwise; "giống người liên hệ"
@@ -74,7 +74,7 @@ export function ClientCascadeSelects({
         name="decision_maker_contact_id"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Người quyết định</FormLabel>
+            <FormLabel>Quản lý</FormLabel>
             <FormControl>
               <Select
                 value={field.value ?? ""}

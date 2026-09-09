@@ -201,8 +201,9 @@ export const TIMEKEEPING_SOURCES: Record<TimekeepingSource, string> = {
 export const FIELDS = {
   status: "Trạng thái",
   client: "Khách hàng/Công ty",
-  clientName: "Tên khách hàng",
+  clientName: "Tên khách hàng / cty",
   clientType: "Loại khách hàng",
+  taxCode: "Mã số thuế",
   contactPerson: "Người liên hệ",
   project: "Công trình",
   projectName: "Tên công trình",
@@ -218,7 +219,7 @@ export const FIELDS = {
   address: "Địa chỉ công ty",
   /** A company client's registered address — Bên A's address on a contract,
    * distinct from FIELDS.location (a job site). */
-  registeredAddress: "Địa chỉ đăng ký kinh doanh",
+  registeredAddress: "Địa chỉ trụ sở",
   location: "Địa điểm/Địa chỉ thi công",
   note: "Ghi chú",
   source: "Nguồn",
