@@ -16,7 +16,10 @@ import { settlementTotals } from "@/utils/quote-totals/quote-totals";
 
 import type { Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
-import { SettlementCard } from "./components/settlement-card/settlement-card";
+import {
+  SettlementAdvance,
+  SettlementCard,
+} from "./components/settlement-card/settlement-card";
 
 export function SettlementPanel({
   project,
@@ -51,7 +54,13 @@ export function SettlementPanel({
   const target = settlement ? settlementTotals(settlement).total : 0;
 
   return (
-    <StageCard project={project} contentClassName="space-y-4">
+    <StageCard
+      project={project}
+      contentClassName="space-y-4"
+      footer={
+        settlement ? <SettlementAdvance settlement={settlement} /> : undefined
+      }
+    >
       {settlement ? (
         <SettlementCard
           settlement={settlement}
@@ -82,24 +91,14 @@ export function SettlementPanel({
 
       <Separator />
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm">
-          <span className="text-muted-foreground">Toàn công trình: </span>
-          Đã thu{" "}
-          <span className="font-semibold tabular-nums">
-            {formatVND(collected)}
-          </span>{" "}
-          / <span className="tabular-nums">{formatVND(target)}</span>
-        </p>
-        {settlement ? null : (
-          <Button
-            size="sm"
-            render={<Link href={`/projects/${project.id}/settlements/new`} />}
-          >
-            + Quyết toán
-          </Button>
-        )}
-      </div>
+      <p className="text-sm">
+        <span className="text-muted-foreground">Toàn công trình: </span>
+        Đã thu{" "}
+        <span className="font-semibold tabular-nums">
+          {formatVND(collected)}
+        </span>{" "}
+        / <span className="tabular-nums">{formatVND(target)}</span>
+      </p>
     </StageCard>
   );
 }

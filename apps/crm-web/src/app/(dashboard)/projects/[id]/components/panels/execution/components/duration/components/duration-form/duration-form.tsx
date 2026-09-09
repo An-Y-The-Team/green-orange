@@ -205,9 +205,10 @@ export function DurationForm({
           {disagree ? (
             <>
               <Badge variant={OVERDUE_LABEL.variant}>⚠</Badge>
+              {/* Inside running text, so a link rather than a box. */}
               <Button
                 size="sm"
-                variant="outline"
+                variant="link"
                 onClick={() => setDiffOpen(true)}
               >
                 Xem chênh lệch
@@ -255,7 +256,7 @@ export function DurationForm({
           </Table>
           <DialogFooter>
             <DialogClose
-              render={<Button variant="ghost">{ACTIONS.close}</Button>}
+              render={<Button variant="outline">{ACTIONS.close}</Button>}
             />
           </DialogFooter>
         </DialogContent>

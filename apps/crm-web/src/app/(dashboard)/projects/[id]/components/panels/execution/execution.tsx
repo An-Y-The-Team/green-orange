@@ -6,7 +6,10 @@ import type {
 import type { Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
 import { Duration } from "./components/duration/duration";
-import { FinishConfirm } from "./components/finish-confirm/finish-confirm";
+import {
+  FinishConfirm,
+  FinishPhotos,
+} from "./components/finish-confirm/finish-confirm";
 import { Personnel } from "./components/personnel/personnel";
 import { StatusStepper } from "./components/status-stepper/status-stepper";
 
@@ -20,11 +23,15 @@ export function ExecutionPanel({
   assignments: Assignment[];
 }) {
   return (
-    <StageCard project={project} contentClassName="space-y-6">
+    <StageCard
+      project={project}
+      contentClassName="space-y-6"
+      footer={<FinishConfirm project={project} />}
+    >
       <StatusStepper project={project} />
       <Duration project={project} timekeeping={timekeeping} />
       <Personnel project={project} assignments={assignments} />
-      <FinishConfirm project={project} />
+      <FinishPhotos project={project} />
     </StageCard>
   );
 }

@@ -77,7 +77,7 @@ function ReopenButton({ project }: { project: Project }) {
         </p>
         <DialogFooter>
           <DialogClose
-            render={<Button variant="ghost">{ACTIONS.close}</Button>}
+            render={<Button variant="outline">{ACTIONS.close}</Button>}
           />
           <Button
             disabled={isPending}
@@ -139,7 +139,23 @@ export function ClosedPanel({
   const quotes = project.quotes ?? [];
 
   return (
-    <StageCard project={project} contentClassName="space-y-4 text-sm">
+    <StageCard
+      project={project}
+      contentClassName="space-y-4 text-sm"
+      footer={
+        <>
+          <ReopenButton project={project} />
+          <Button
+            render={
+              <Link href={`/projects/new?from=${project.id}`}>
+                <Plus className="size-4" />
+                Công trình mới tại địa điểm này
+              </Link>
+            }
+          />
+        </>
+      }
+    >
       {fullyCollected ? (
         <p className="font-medium text-emerald-700 dark:text-emerald-400">
           ✓ Hoàn thành · Đã thu đủ {formatVND(collected)}
@@ -196,19 +212,6 @@ export function ClosedPanel({
             label="BB nghiệm thu"
           />
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 pt-2">
-        <Button
-          variant="outline"
-          render={
-            <Link href={`/projects/new?from=${project.id}`}>
-              <Plus className="size-4" />
-              Công trình mới tại địa điểm này
-            </Link>
-          }
-        />
-        <ReopenButton project={project} />
       </div>
     </StageCard>
   );

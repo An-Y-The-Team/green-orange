@@ -88,6 +88,36 @@ export function AcceptancePanel({ project }: { project: Project }) {
       project={project}
       contentClassName="space-y-5"
       aside={<Badge variant={label.variant}>{label.label}</Badge>}
+      footer={
+        <>
+          <Button
+            variant="outline"
+            render={
+              <Link
+                href={`/projects/${project.id}/print/acceptance-request`}
+                target="_blank"
+              >
+                <Printer className="size-4" />
+                In thư yêu cầu nghiệm thu
+              </Link>
+            }
+          />
+          {sub === AcceptanceSubStatus.INSPECTING ? (
+            <ConfirmAction
+              trigger={
+                <Button disabled={statusPending}>
+                  <FileCheck2 className="size-4" />✓ Đạt — ký BB
+                </Button>
+              }
+              title="Nghiệm thu đạt?"
+              consequence="Ghi nhận nghiệm thu đạt hôm nay và mở Quyết toán & Thanh toán. Đây là trạng thái cuối của Nghiệm thu — muốn quay lại Bổ sung phải lùi giai đoạn thủ công."
+              confirmLabel="Nghiệm thu đạt"
+              pending={statusPending}
+              onConfirm={() => setStatus(AcceptanceSubStatus.PASSED)}
+            />
+          ) : null}
+        </>
+      }
     >
       {/* Progress line */}
       <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
@@ -116,6 +146,7 @@ export function AcceptancePanel({ project }: { project: Project }) {
         {sub === AcceptanceSubStatus.REQUEST_SENT ? (
           <Button
             variant="outline"
+            size="sm"
             disabled={statusPending}
             onClick={() => setStatus(AcceptanceSubStatus.INSPECTING)}
           >
@@ -126,7 +157,11 @@ export function AcceptancePanel({ project }: { project: Project }) {
         {sub === AcceptanceSubStatus.INSPECTING ? (
           <>
             <Dialog open={reworkOpen} onOpenChange={setReworkOpen}>
-              <Button variant="outline" onClick={() => setReworkOpen(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReworkOpen(true)}
+              >
                 Khách báo lỗi → Bổ sung
               </Button>
               <DialogContent>
@@ -147,7 +182,7 @@ export function AcceptancePanel({ project }: { project: Project }) {
                 </div>
                 <DialogFooter>
                   <DialogClose
-                    render={<Button variant="ghost">{ACTIONS.close}</Button>}
+                    render={<Button variant="outline">{ACTIONS.close}</Button>}
                   />
                   <Button
                     disabled={reworkPending || !reworkBody.trim()}
@@ -168,25 +203,13 @@ export function AcceptancePanel({ project }: { project: Project }) {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-
-            <ConfirmAction
-              trigger={
-                <Button disabled={statusPending}>
-                  <FileCheck2 className="size-4" />✓ Đạt — ký BB
-                </Button>
-              }
-              title="Nghiệm thu đạt?"
-              consequence="Ghi nhận nghiệm thu đạt hôm nay và mở Quyết toán & Thanh toán. Đây là trạng thái cuối của Nghiệm thu — muốn quay lại Bổ sung phải lùi giai đoạn thủ công."
-              confirmLabel="Nghiệm thu đạt"
-              pending={statusPending}
-              onConfirm={() => setStatus(AcceptanceSubStatus.PASSED)}
-            />
           </>
         ) : null}
 
         {sub === AcceptanceSubStatus.REWORK ? (
           <Button
             variant="outline"
+            size="sm"
             disabled={statusPending}
             onClick={() => setStatus(AcceptanceSubStatus.INSPECTING)}
           >
@@ -220,19 +243,6 @@ export function AcceptancePanel({ project }: { project: Project }) {
           </ul>
         </section>
       ) : null}
-
-      <Button
-        variant="outline"
-        render={
-          <Link
-            href={`/projects/${project.id}/print/acceptance-request`}
-            target="_blank"
-          >
-            <Printer className="size-4" />
-            In thư yêu cầu nghiệm thu
-          </Link>
-        }
-      />
     </StageCard>
   );
 }
@@ -264,6 +274,7 @@ function AcceptanceReport({ projectId }: { projectId: number }) {
       </div>
       <Button
         variant="outline"
+        size="sm"
         disabled={isPending || !filename.trim()}
         onClick={() =>
           startTransition(() =>

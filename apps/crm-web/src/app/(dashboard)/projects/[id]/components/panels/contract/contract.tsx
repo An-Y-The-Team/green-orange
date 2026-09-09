@@ -161,7 +161,7 @@ export function ContractPanel({
                     <DialogFooter>
                       <DialogClose
                         render={
-                          <Button variant="ghost">{ACTIONS.close}</Button>
+                          <Button variant="outline">{ACTIONS.close}</Button>
                         }
                       />
                       <Button
@@ -224,7 +224,7 @@ export function ContractPanel({
                     <DialogFooter>
                       <DialogClose
                         render={
-                          <Button variant="ghost">{ACTIONS.close}</Button>
+                          <Button variant="outline">{ACTIONS.close}</Button>
                         }
                       />
                       <Button
@@ -253,15 +253,20 @@ export function ContractPanel({
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">Hợp đồng (không bắt buộc)</h3>
-          <Button
-            size="sm"
-            render={
-              <Link href={`/projects/${project.id}/contracts/new`}>
-                <Plus className="size-4" />
-                Tạo hợp đồng
-              </Link>
-            }
-          />
+          {/* Only once one exists — otherwise the EmptyState below carries the
+              same action, and the section showed two buttons for one route. */}
+          {contracts.length > 0 ? (
+            <Button
+              variant="outline"
+              size="sm"
+              render={
+                <Link href={`/projects/${project.id}/contracts/new`}>
+                  <Plus className="size-4" />
+                  Tạo hợp đồng
+                </Link>
+              }
+            />
+          ) : null}
         </div>
 
         {contracts.length === 0 ? (
@@ -272,7 +277,7 @@ export function ContractPanel({
                 size="sm"
                 render={<Link href={`/projects/${project.id}/contracts/new`} />}
               >
-                Soạn hợp đồng
+                Tạo hợp đồng
               </Button>
             }
           />
@@ -371,7 +376,7 @@ function ContractRow({
               </div>
               <DialogFooter>
                 <DialogClose
-                  render={<Button variant="ghost">{ACTIONS.close}</Button>}
+                  render={<Button variant="outline">{ACTIONS.close}</Button>}
                 />
                 <Button
                   disabled={isPending || !date}

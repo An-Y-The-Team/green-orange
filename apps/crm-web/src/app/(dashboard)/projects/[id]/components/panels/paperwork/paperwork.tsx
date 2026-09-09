@@ -7,12 +7,6 @@ import { useActionState, useState, useTransition } from "react";
 import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@yan/ui/components/card";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Input } from "@yan/ui/components/input";
 import {
@@ -41,6 +35,7 @@ import {
 } from "../../../../actions/paperwork";
 import { PaperworkStatus } from "../../../../enums";
 import type { PaperworkItem, Project } from "../../../../types";
+import { StageCard } from "../../stage-card/stage-card";
 
 // One-way stepper: preparing→submitted→approved. approved is terminal.
 // The backend PATCH has no forward-only guard, so the map is the enforcement.
@@ -239,14 +234,12 @@ export function PaperworkPanel({
   ).length;
 
   return (
-    <Card id={`stage-${project.stage}`} className="mb-6 scroll-mt-4">
-      <CardHeader>
-        <CardTitle
-          as="h2"
-          className="flex items-center justify-between text-sm uppercase tracking-wide text-muted-foreground"
-        >
-          <span>
-            Hồ sơ ({approved}/{total} đã duyệt)
+    <StageCard
+      project={project}
+      aside={
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {approved}/{total} đã duyệt
           </span>
           {/* Worker list "Danh sách nhân sự" — printable from assignments. */}
           <Button
@@ -259,9 +252,10 @@ export function PaperworkPanel({
               </Link>
             }
           />
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </div>
+      }
+    >
+      <>
         {total === 0 ? (
           // Vacuous gate — nothing to approve, execution isn't blocked on paperwork.
           <p className="mb-3 text-sm text-muted-foreground">Không cần hồ sơ</p>
@@ -284,7 +278,7 @@ export function PaperworkPanel({
             <AddPaperworkRow projectId={project.id} />
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </>
+    </StageCard>
   );
 }

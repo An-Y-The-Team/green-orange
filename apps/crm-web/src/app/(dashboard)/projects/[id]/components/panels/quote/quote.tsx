@@ -22,7 +22,7 @@ import { deleteQuote } from "@/app/(dashboard)/quotes/actions/delete-quote";
 import { ReviseQuoteButton } from "@/app/(dashboard)/quotes/components/revise-quote-button/revise-quote-button";
 import { SendQuoteDialog } from "@/app/(dashboard)/quotes/components/send-quote-dialog/send-quote-dialog";
 import {
-  type QuoteDecision,
+  type QuoteDecision as QuoteDecisionStatus,
   QuoteStatus,
 } from "@/app/(dashboard)/quotes/enums";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
@@ -57,48 +57,21 @@ function SendHistory({ quote }: { quote: Quote }) {
   );
 }
 
-/** The latest version carries the live status + per-state actions. */
+/**
+ * The latest version's identity and its *utility* actions (edit, revise, print,
+ * delete a draft). Deciding the quote — send, chốt, hoãn, hủy — is the stage's
+ * next step and lives in the panel footer (`QuoteDecision`), so the strip here
+ * no longer mixes "look at this" with "advance the pipeline".
+ */
 function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
-  const [sendOpen, setSendOpen] = useState(false);
-  const [holdOpen, setHoldOpen] = useState(false);
-  const [cancelOpen, setCancelOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [followUp, setFollowUp] = useState("");
-  const [reason, setReason] = useState(`Khách hủy báo giá v${quote.version}`);
-
-  const [decidePending, runDecide] = useRun(decideQuote.bind(null, quote.id));
   const [deletePending, runDelete] = useRun(
     deleteQuote.bind(null, quote.id),
     () => setDeleteOpen(false)
   );
 
-  const busy = decidePending || deletePending;
   const isDeal = quote.status === QuoteStatus.DEAL;
-
-  const decide = (
-    status: QuoteDecision,
-    extra?: { follow_up_date?: string; cancel_reason?: string }
-  ) =>
-    runDecide({
-      status,
-      projectId: project.id,
-      version: quote.version,
-      ...extra,
-    });
-
   const statusBadge = labelOf(QUOTE_STATUSES, quote.status);
-
-  // Hoãn — sends the follow-up date with the decision, then closes the dialog.
-  const handleConfirmHold = () => {
-    decide(QuoteStatus.ON_HOLD, { follow_up_date: followUp });
-    setHoldOpen(false);
-  };
-
-  // Hủy — sends the cancel reason with the decision, then closes the dialog.
-  const handleConfirmCancel = () => {
-    decide(QuoteStatus.REJECTED, { cancel_reason: reason.trim() });
-    setCancelOpen(false);
-  };
 
   const printBtn = (
     <Button
@@ -113,7 +86,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
     <ReviseQuoteButton
       quoteId={quote.id}
       projectId={project.id}
-      disabled={busy}
+      disabled={deletePending}
     />
   );
 
@@ -147,71 +120,27 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
             >
               {ACTIONS.edit}
             </Button>
-            <Button size="sm" onClick={() => setSendOpen(true)}>
-              {ACTIONS.send}
-            </Button>
+            {printBtn}
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
-              disabled={busy}
+              disabled={deletePending}
               onClick={() => setDeleteOpen(true)}
             >
               Xóa nháp
             </Button>
-            {printBtn}
           </>
-        ) : null}
-
-        {/* Every non-draft version — waiting, chốt, hoãn, hủy — is frozen but
-            revisable: bargaining can reopen after a chốt (client changes scope,
-            price gets renegotiated), so no status hard-locks "phiên bản mới".
-            The chốt version stays chốt until the new one is decided, so the
-            contract keeps reading a real figure meanwhile. */}
-        {quote.status !== QuoteStatus.DRAFT ? (
+        ) : (
+          /* Every non-draft version — waiting, chốt, hoãn, hủy — is frozen but
+             revisable: bargaining can reopen after a chốt (client changes scope,
+             price gets renegotiated), so no status hard-locks "phiên bản mới".
+             The chốt version stays chốt until the new one is decided, so the
+             contract keeps reading a real figure meanwhile. */
           <>
-            {quote.status === QuoteStatus.WAITING ? (
-              <>
-                <ConfirmAction
-                  trigger={
-                    <Button size="sm" disabled={busy}>
-                      Chốt ✓
-                    </Button>
-                  }
-                  title={`Chốt báo giá v${quote.version}?`}
-                  consequence={`Chốt ${formatVND(quote.total_amount)} và đưa công trình sang Hợp đồng. Bản này khóa lại — muốn đổi giá phải lập phiên bản mới.`}
-                  confirmLabel="Chốt báo giá"
-                  pending={busy}
-                  onConfirm={() => decide(QuoteStatus.DEAL)}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => setHoldOpen(true)}
-                >
-                  Hoãn
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => setCancelOpen(true)}
-                >
-                  {ACTIONS.cancel}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSendOpen(true)}
-                >
-                  Gửi lại
-                </Button>
-              </>
-            ) : null}
             {reviseBtn}
             {printBtn}
           </>
-        ) : null}
+        )}
       </div>
 
       {isDeal ? (
@@ -220,6 +149,118 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
           bước, hoặc tạo phiên bản mới nếu khách đổi ý.
         </p>
       ) : null}
+
+      {/* Xóa nháp — tiny confirm. */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xóa báo giá nháp?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {project.code} · v{quote.version} sẽ bị xóa.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              {ACTIONS.close}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deletePending}
+              onClick={() => runDelete()}
+            >
+              {ACTIONS.delete}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/**
+ * The stage's next step: what happens to the quote. Draft → gửi; waiting →
+ * gửi lại / hoãn / hủy / chốt. Rendered in the StageCard footer with chốt as
+ * the primary, so the one button that advances the pipeline is never a small
+ * outline lost in a row of print links (which is where it used to sit).
+ */
+function QuoteDecision({ quote, project }: { quote: Quote; project: Project }) {
+  const [sendOpen, setSendOpen] = useState(false);
+  const [holdOpen, setHoldOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [followUp, setFollowUp] = useState("");
+  const [reason, setReason] = useState(`Khách hủy báo giá v${quote.version}`);
+
+  const [busy, runDecide] = useRun(decideQuote.bind(null, quote.id));
+
+  const decide = (
+    status: QuoteDecisionStatus,
+    extra?: { follow_up_date?: string; cancel_reason?: string }
+  ) =>
+    runDecide({
+      status,
+      projectId: project.id,
+      version: quote.version,
+      ...extra,
+    });
+
+  // Hoãn — sends the follow-up date with the decision, then closes the dialog.
+  const handleConfirmHold = () => {
+    decide(QuoteStatus.ON_HOLD, { follow_up_date: followUp });
+    setHoldOpen(false);
+  };
+
+  // Hủy — sends the cancel reason with the decision, then closes the dialog.
+  const handleConfirmCancel = () => {
+    decide(QuoteStatus.REJECTED, { cancel_reason: reason.trim() });
+    setCancelOpen(false);
+  };
+
+  const isDraft = quote.status === QuoteStatus.DRAFT;
+  const isWaiting = quote.status === QuoteStatus.WAITING;
+
+  // Chốt/hoãn/hủy are decisions on a quote the client has seen; a frozen or
+  // already-decided version offers none, and the stepper carries the stage hop.
+  if (!isDraft && !isWaiting) return null;
+
+  return (
+    <>
+      {isWaiting ? (
+        <>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => setSendOpen(true)}
+          >
+            Gửi lại
+          </Button>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => setHoldOpen(true)}
+          >
+            Hoãn
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={busy}
+            onClick={() => setCancelOpen(true)}
+          >
+            {ACTIONS.cancel}
+          </Button>
+          <ConfirmAction
+            trigger={<Button disabled={busy}>Chốt ✓</Button>}
+            title={`Chốt báo giá v${quote.version}?`}
+            consequence={`Chốt ${formatVND(quote.total_amount)} và đưa công trình sang Hợp đồng. Bản này khóa lại — muốn đổi giá phải lập phiên bản mới.`}
+            confirmLabel="Chốt báo giá"
+            pending={busy}
+            onConfirm={() => decide(QuoteStatus.DEAL)}
+          />
+        </>
+      ) : (
+        <Button disabled={busy} onClick={() => setSendOpen(true)}>
+          {ACTIONS.send}
+        </Button>
+      )}
 
       <SendQuoteDialog
         quoteId={quote.id}
@@ -280,31 +321,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Xóa nháp — tiny confirm. */}
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Xóa báo giá nháp?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            {project.code} · v{quote.version} sẽ bị xóa.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              {ACTIONS.close}
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deletePending}
-              onClick={() => runDelete()}
-            >
-              {ACTIONS.delete}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </>
   );
 }
 
@@ -315,7 +332,13 @@ export function QuotePanel({ project }: { project: Project }) {
   const [latest, ...older] = versions;
 
   return (
-    <StageCard project={project} contentClassName="space-y-4">
+    <StageCard
+      project={project}
+      contentClassName="space-y-4"
+      footer={
+        latest ? <QuoteDecision quote={latest} project={project} /> : undefined
+      }
+    >
       {latest ? (
         <LatestVersion quote={latest} project={project} />
       ) : (

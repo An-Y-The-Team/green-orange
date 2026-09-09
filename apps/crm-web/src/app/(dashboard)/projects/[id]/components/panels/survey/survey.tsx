@@ -42,8 +42,6 @@ export function SurveyPanel({
   project: Project;
   attachments: Attachment[];
 }) {
-  const router = useRouter();
-
   // Field edits (visit_date / survey_items / survey_note) share one action.
   const [saveState, saveAction] = useActionState(
     updateProject.bind(null, project.id),
@@ -55,18 +53,6 @@ export function SurveyPanel({
   });
   const save = (input: Parameters<typeof updateProject>[2]) =>
     startSave(() => saveAction(input));
-
-  // Exit → move to quote, then jump to the survey-prefilled quote builder.
-  const [exitState, exitAction] = useActionState(
-    updateProject.bind(null, project.id),
-    INITIAL_ACTION_STATE
-  );
-  const [exitPending, startExit] = useTransition();
-  useServerAction(exitState, exitPending, {
-    ...ACTION_TOAST_TITLES,
-    onSuccess: () =>
-      router.push(`/projects/${project.id}/quotes/new?from=survey`),
-  });
 
   // --- visit_date --------------------------------------------------------
   const [visitDate, setVisitDate] = useState(project.visit_date ?? "");
@@ -136,6 +122,7 @@ export function SurveyPanel({
         </div>
         <Button
           variant="outline"
+          size="sm"
           disabled={
             savePending || !visitDate || visitDate === project.visit_date
           }
@@ -210,6 +197,7 @@ export function SurveyPanel({
         )}
         <div>
           <Button
+            variant="outline"
             size="sm"
             disabled={savePending}
             onClick={() => save({ survey_items: items })}
@@ -231,6 +219,7 @@ export function SurveyPanel({
           onChange={(e) => setSurveyNote(e.target.value)}
         />
         <Button
+          variant="outline"
           size="sm"
           disabled={savePending}
           onClick={() => save({ survey_note: surveyNote })}
@@ -261,7 +250,7 @@ export function SurveyPanel({
                 </span>
                 <Button
                   variant="destructive"
-                  size="xs"
+                  size="sm"
                   disabled={delPending && deletingId === a.id}
                   onClick={() => handleDeleteAttachment(a.id)}
                 >
@@ -308,18 +297,39 @@ export function SurveyPanel({
           </div>
         ) : null}
       </div>
-
-      {/* Exit → quote builder */}
-      <div className="border-t border-border pt-4">
-        <Button
-          disabled={exitPending}
-          onClick={() =>
-            startExit(() => exitAction({ stage: ProjectStage.QUOTE }))
-          }
-        >
-          ✓ Đủ dữ liệu — lập báo giá
-        </Button>
-      </div>
     </div>
+  );
+}
+
+/**
+ * Stage 1's exit, rendered in the StageCard footer by RequestPanel.
+ *
+ * Stage 1 produces no artifact of its own, so the panel carries the move to
+ * Báo giá (docs/features/crm-ui-redesign.md, Zone 1) — every other stage
+ * advances off an artifact or the stepper. It lives in the footer with every
+ * other stage's primary rather than trailing the photo list.
+ */
+export function SurveyExit({ project }: { project: Project }) {
+  const router = useRouter();
+  const [state, action] = useActionState(
+    updateProject.bind(null, project.id),
+    INITIAL_ACTION_STATE
+  );
+  const [isPending, startTransition] = useTransition();
+  useServerAction(state, isPending, {
+    ...ACTION_TOAST_TITLES,
+    onSuccess: () =>
+      router.push(`/projects/${project.id}/quotes/new?from=survey`),
+  });
+
+  return (
+    <Button
+      disabled={isPending}
+      onClick={() =>
+        startTransition(() => action({ stage: ProjectStage.QUOTE }))
+      }
+    >
+      ✓ Đủ dữ liệu — lập báo giá
+    </Button>
   );
 }

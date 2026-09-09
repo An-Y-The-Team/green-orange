@@ -23,7 +23,7 @@ import {
 import { updateProject } from "../../../../actions/update-project";
 import type { Attachment, Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
-import { SurveyPanel } from "../survey/survey";
+import { SurveyExit, SurveyPanel } from "../survey/survey";
 
 // Stage 1 = Yêu cầu & Khảo sát: the appointment IS the survey visit, so one
 // panel with two halves. `visit_date` (set by "Đã gặp khách") reveals the
@@ -67,8 +67,32 @@ export function RequestPanel({
   const handleReschedule = () =>
     run({ appointment_at: localISO(apptDate, apptTime) });
 
+  // Footer = the stage's next step: before the visit it's "Đã gặp khách"
+  // (with the date it stamps), after it the move to Báo giá.
+  const footer = project.visit_date ? (
+    <SurveyExit project={project} />
+  ) : (
+    <>
+      <div className="space-y-1.5">
+        <Label htmlFor="visit-date">Ngày gặp khách</Label>
+        <DateInput
+          id="visit-date"
+          className="w-auto"
+          value={visitDate}
+          onChange={setVisitDate}
+        />
+      </div>
+      <Button
+        disabled={isPending || !visitDate}
+        onClick={() => run({ visit_date: visitDate })}
+      >
+        ✓ Đã gặp khách — bắt đầu khảo sát
+      </Button>
+    </>
+  );
+
   return (
-    <StageCard project={project} contentClassName="space-y-4">
+    <StageCard project={project} contentClassName="space-y-4" footer={footer}>
       <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
         {project.request_note ? (
           <div className="contents">
@@ -113,6 +137,7 @@ export function RequestPanel({
             </div>
             <Button
               variant="outline"
+              size="sm"
               disabled={
                 isPending ||
                 !apptDate ||
@@ -128,25 +153,7 @@ export function RequestPanel({
 
       {project.visit_date ? (
         <SurveyPanel project={project} attachments={attachments} />
-      ) : (
-        <div className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="visit-date">Ngày gặp khách</Label>
-            <DateInput
-              id="visit-date"
-              className="w-auto"
-              value={visitDate}
-              onChange={setVisitDate}
-            />
-          </div>
-          <Button
-            disabled={isPending || !visitDate}
-            onClick={() => run({ visit_date: visitDate })}
-          >
-            ✓ Đã gặp khách — bắt đầu khảo sát
-          </Button>
-        </div>
-      )}
+      ) : null}
     </StageCard>
   );
 }

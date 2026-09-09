@@ -27,31 +27,17 @@ import {
 } from "../../../../../../enums";
 import type { Project } from "../../../../../../types";
 
-/**
- * Exit: a single patch stamps `works_done_at` and moves to stage 7 with
- * `request_sent` (the backend does NOT auto-set it). Finish images are optional
- * and attach independently.
- */
-export function FinishConfirm({ project }: { project: Project }) {
-  const [state, formAction] = useActionState(
-    updateProject.bind(null, project.id),
-    INITIAL_ACTION_STATE
-  );
+/** Optional hoàn-công images — they attach independently of the exit. */
+export function FinishPhotos({ project }: { project: Project }) {
   const [attState, attAction] = useActionState(
     addAttachment.bind(null, project.id),
     INITIAL_ACTION_STATE
   );
-  const [isPending, startTransition] = useTransition();
   const [, startAtt] = useTransition();
 
   const [filename, setFilename] = useState("");
   const [imgNote, setImgNote] = useState("");
-  // The completion day is a real datum — it drives nghiệm thu and the quyết
-  // toán — so the operator sees it and can back-date it. It used to be a bare
-  // `new Date()` stamped invisibly, with nothing in the UI able to correct it.
-  const [doneDate, setDoneDate] = useState(todayISO);
 
-  useServerAction(state, isPending, ACTION_TOAST_TITLES);
   useServerAction(attState, false, {
     ...ACTION_TOAST_TITLES,
     onSuccess: () => {
@@ -72,18 +58,8 @@ export function FinishConfirm({ project }: { project: Project }) {
     );
   };
 
-  // One patch closes out thi công and opens nghiệm thu.
-  const confirmFinished = () =>
-    startTransition(() =>
-      formAction({
-        works_done_at: localISO(doneDate, nowHHmm()),
-        stage: ProjectStage.ACCEPTANCE,
-        acceptance_sub_status: AcceptanceSubStatus.REQUEST_SENT,
-      })
-    );
-
   return (
-    <section className="space-y-3">
+    <>
       <div className="space-y-1.5">
         <Label htmlFor="works-done-photo" className="text-muted-foreground">
           Ảnh hoàn công (tùy chọn)
@@ -114,7 +90,43 @@ export function FinishConfirm({ project }: { project: Project }) {
           </Button>
         </div>
       </div>
+    </>
+  );
+}
 
+/**
+ * Stage 5's exit, rendered in the StageCard footer by ExecutionPanel.
+ *
+ * One patch stamps `works_done_at` and moves to stage 6 with `request_sent`
+ * (the backend does NOT auto-set it). It used to trail the photo form inside
+ * the body, indistinguishable from the "Thêm ảnh" beside it.
+ */
+export function FinishConfirm({ project }: { project: Project }) {
+  const [state, formAction] = useActionState(
+    updateProject.bind(null, project.id),
+    INITIAL_ACTION_STATE
+  );
+  const [isPending, startTransition] = useTransition();
+
+  // The completion day is a real datum — it drives nghiệm thu and the quyết
+  // toán — so the operator sees it and can back-date it. It used to be a bare
+  // `new Date()` stamped invisibly, with nothing in the UI able to correct it.
+  const [doneDate, setDoneDate] = useState(todayISO);
+
+  useServerAction(state, isPending, ACTION_TOAST_TITLES);
+
+  // One patch closes out thi công and opens nghiệm thu.
+  const confirmFinished = () =>
+    startTransition(() =>
+      formAction({
+        works_done_at: localISO(doneDate, nowHHmm()),
+        stage: ProjectStage.ACCEPTANCE,
+        acceptance_sub_status: AcceptanceSubStatus.REQUEST_SENT,
+      })
+    );
+
+  return (
+    <>
       <ConfirmAction
         trigger={
           <Button disabled={isPending}>
@@ -138,6 +150,6 @@ export function FinishConfirm({ project }: { project: Project }) {
           />
         </div>
       </ConfirmAction>
-    </section>
+    </>
   );
 }

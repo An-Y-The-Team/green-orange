@@ -65,8 +65,6 @@ export function SettlementCard({
   extraMilestones: PaymentMilestone[];
   projectId: number;
 }) {
-  const [signOpen, setSignOpen] = useState(false);
-  const [signedDate, setSignedDate] = useState(todayISO);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [unsignOpen, setUnsignOpen] = useState(false);
 
@@ -75,13 +73,6 @@ export function SettlementCard({
   const isSigned = settlement.status === SettlementStatus.SIGNED;
   const badge = labelOf(SETTLEMENT_STATUSES, settlement.status);
 
-  const [sendPending, runSend] = useRun(
-    sendSettlement.bind(null, settlement.id)
-  );
-  const [signPending, runSign] = useRun(
-    signSettlement.bind(null, settlement.id),
-    () => setSignOpen(false)
-  );
   const [unsignPending, runUnsign] = useRun(
     unsignSettlement.bind(null, settlement.id),
     () => setUnsignOpen(false)
@@ -90,7 +81,7 @@ export function SettlementCard({
     deleteSettlement.bind(null, settlement.id),
     () => setDeleteOpen(false)
   );
-  const busy = sendPending || signPending || unsignPending || deletePending;
+  const busy = unsignPending || deletePending;
 
   const milestones = [...extraMilestones, ...billMilestones];
 
@@ -162,18 +153,8 @@ export function SettlementCard({
           In
         </Button>
         {isDraft ? (
-          <Button size="sm" disabled={busy} onClick={() => runSend()}>
-            Đã gửi
-          </Button>
-        ) : null}
-        {isSent ? (
-          <Button size="sm" disabled={busy} onClick={() => setSignOpen(true)}>
-            ✓ Đã ký
-          </Button>
-        ) : null}
-        {isDraft ? (
           <Button
-            variant="outline"
+            variant="destructive"
             size="sm"
             disabled={busy}
             onClick={() => setDeleteOpen(true)}
@@ -225,38 +206,6 @@ export function SettlementCard({
         )}
       </div>
 
-      {/* Sign — tiny date confirm */}
-      <Dialog open={signOpen} onOpenChange={setSignOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Xác nhận khách đã ký</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Hóa đơn sẽ thành chính thức với tổng {formatVND(payable)}, đợt cọc
-            được gắn vào hóa đơn và đợt còn lại được tạo tự động.
-          </p>
-          <div className="space-y-1">
-            <Label htmlFor={`signed-${settlement.id}`}>{FIELDS.signDate}</Label>
-            <DateInput
-              id={`signed-${settlement.id}`}
-              value={signedDate}
-              onChange={setSignedDate}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSignOpen(false)}>
-              {ACTIONS.close}
-            </Button>
-            <Button
-              disabled={busy || !signedDate}
-              onClick={() => runSign({ signed_date: signedDate })}
-            >
-              Xác nhận đã ký
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Un-sign — the correction path (one quyết toán per công trình) */}
       <Dialog open={unsignOpen} onOpenChange={setUnsignOpen}>
         <DialogContent>
@@ -304,5 +253,76 @@ export function SettlementCard({
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/**
+ * Stage 7's next step: gửi the draft, then record the signature — the money-
+ * minting hop that officializes the hóa đơn. Rendered in the StageCard footer
+ * so it stops sitting fourth in a strip that also holds Sửa / In / Xóa nháp.
+ */
+export function SettlementAdvance({ settlement }: { settlement: Settlement }) {
+  const [signOpen, setSignOpen] = useState(false);
+  const [signedDate, setSignedDate] = useState(todayISO);
+
+  const [sendPending, runSend] = useRun(
+    sendSettlement.bind(null, settlement.id)
+  );
+  const [signPending, runSign] = useRun(
+    signSettlement.bind(null, settlement.id),
+    () => setSignOpen(false)
+  );
+  const busy = sendPending || signPending;
+
+  const { total: payable } = settlementTotals(settlement);
+
+  if (settlement.status === SettlementStatus.DRAFT) {
+    return (
+      <Button disabled={busy} onClick={() => runSend()}>
+        Đã gửi
+      </Button>
+    );
+  }
+
+  if (settlement.status !== SettlementStatus.SENT) return null;
+
+  return (
+    <>
+      <Button disabled={busy} onClick={() => setSignOpen(true)}>
+        ✓ Đã ký
+      </Button>
+
+      {/* Sign — tiny date confirm */}
+      <Dialog open={signOpen} onOpenChange={setSignOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận khách đã ký</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Hóa đơn sẽ thành chính thức với tổng {formatVND(payable)}, đợt cọc
+            được gắn vào hóa đơn và đợt còn lại được tạo tự động.
+          </p>
+          <div className="space-y-1">
+            <Label htmlFor={`signed-${settlement.id}`}>{FIELDS.signDate}</Label>
+            <DateInput
+              id={`signed-${settlement.id}`}
+              value={signedDate}
+              onChange={setSignedDate}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSignOpen(false)}>
+              {ACTIONS.close}
+            </Button>
+            <Button
+              disabled={busy || !signedDate}
+              onClick={() => runSign({ signed_date: signedDate })}
+            >
+              Xác nhận đã ký
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

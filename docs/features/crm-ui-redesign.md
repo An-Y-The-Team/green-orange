@@ -132,6 +132,43 @@ The center of the app. Three zones:
   can start during stage 3, crew can be assigned early). Tabs reuse the same
   components the stage panels embed.
 
+### Panel action grammar (2026-09-09)
+
+Every panel had invented its own placement: the stage exit sat bottom-left
+alone in stages 1 and 5, mid-card among the secondaries in 6 and 7, and was
+`size="sm"` in 2 and 7 — so the one button that moves the job forward was
+never in the same place twice. Operators could not tell an advance from a
+print link. The rules below are binding for all eight panels; where a
+per-stage ASCII mockup in this document disagrees, the mockup predates them.
+
+1. **Footer = the stage's next step.** `StageCard`'s `footer` slot renders a
+   bordered, right-aligned `CardFooter`. The rightmost button is the panel's
+   single primary (default variant); stage-level secondaries (print the stage
+   letter, reopen) are `outline` to its left. Default-size buttons appear
+   **only** in a footer — panel bodies are `size="sm"` throughout.
+2. **Header = status, or the list's add.** `StageCard`'s `aside` takes a badge
+   or a count, and lives outside the `h2` so a button is never part of the
+   heading. Section (`h3`) headers keep `justify-between` with at most one
+   `outline sm` add on the right. Never a primary in a header.
+3. **Body rows right-align their own actions** (`ml-auto`, `outline sm`).
+   A text delete is `destructive sm`; an icon-only delete is `ghost icon-sm`
+   with an `aria-label` naming its target.
+4. **Sub-status transitions form one row directly under their progress strip**,
+   `outline sm`, transitions only — no edit/print/delete mixed in. The
+   transition that _leaves_ the stage is not in the row; it is the footer
+   primary.
+5. **Field saves are `outline sm`** at the end of the field row they commit.
+6. **Dialog footers are Đóng (`outline`) then the confirm** (default, or
+   `destructive` when it destroys) — what `ConfirmAction` already renders.
+7. **A verb keeps its variant everywhere.** Hủy / Xóa / Xóa nháp →
+   `destructive`. Hoãn / Sửa / In / Xem bản in / Gửi lại → `outline`. A print
+   button carries the `Printer` icon.
+
+Stage 1 and stage 5 own their advance (`SurveyExit`, `FinishConfirm`); stage 2
+and stage 7 own the decision that triggers it (`QuoteDecision`,
+`SettlementAdvance`). All four are separate components rendered into the
+footer slot, so panel bodies hold no stage-advancing state.
+
 ### Per-stage panels (first-pass draft — each stage confirmed below, one by one)
 
 | #   | Stage                   | Panel contents                      | Auto-advance trigger (soft, forward-only) |

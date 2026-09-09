@@ -233,7 +233,7 @@ export function ProjectTypesManager({
           </DialogHeader>
           <DialogFooter>
             <DialogClose
-              render={<Button variant="ghost">{ACTIONS.close}</Button>}
+              render={<Button variant="outline">{ACTIONS.close}</Button>}
             />
             <Button
               variant="destructive"

@@ -120,7 +120,7 @@ export function StatusStepper({ project }: { project: Project }) {
           </div>
           <DialogFooter>
             <DialogClose
-              render={<Button variant="ghost">{ACTIONS.close}</Button>}
+              render={<Button variant="outline">{ACTIONS.close}</Button>}
             />
             <Button
               disabled={isPending}

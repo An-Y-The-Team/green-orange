@@ -24,6 +24,7 @@ import { Label } from "@yan/ui/components/label";
 import { Select } from "@yan/ui/components/select";
 import { Textarea } from "@yan/ui/components/textarea";
 
+import { CancelButton } from "@/components/cancel-button/cancel-button";
 import {
   ACTIONS,
   FIELDS,
@@ -231,20 +232,17 @@ export function WorkspaceHeader({
           }
         />
       </div>
-      <div className="flex gap-2">
-        <Button
-          size="lg"
-          disabled={isPending || !draft.name.trim()}
-          onClick={saveEdit}
-        >
+      <div className="flex justify-end gap-2">
+        <CancelButton
+          dirty={
+            draft.name !== project.name ||
+            draft.request_note !== (project.request_note ?? "") ||
+            draft.referral_source !== (project.referral_source ?? "")
+          }
+          onCancel={() => setEditing(false)}
+        />
+        <Button disabled={isPending || !draft.name.trim()} onClick={saveEdit}>
           {isPending ? ACTIONS.saving : ACTIONS.save}
-        </Button>
-        <Button
-          size="lg"
-          variant="destructive"
-          onClick={() => setEditing(false)}
-        >
-          {ACTIONS.cancel}
         </Button>
       </div>
     </div>
@@ -325,7 +323,9 @@ export function WorkspaceHeader({
                   </div>
                   <DialogFooter>
                     <DialogClose
-                      render={<Button variant="ghost">{ACTIONS.close}</Button>}
+                      render={
+                        <Button variant="outline">{ACTIONS.close}</Button>
+                      }
                     />
                     <Button
                       disabled={isPending || !followUp}
@@ -367,7 +367,7 @@ export function WorkspaceHeader({
                     <DialogFooter>
                       <DialogClose
                         render={
-                          <Button variant="ghost">{ACTIONS.close}</Button>
+                          <Button variant="outline">{ACTIONS.close}</Button>
                         }
                       />
                       <Button
