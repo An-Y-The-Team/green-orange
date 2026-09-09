@@ -12,7 +12,6 @@ from typing import get_args
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
-from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models.project import Project, ProjectStage
@@ -89,12 +88,12 @@ def assert_project_open(session: Session, project_id: int | None) -> None:
 
 
 # ── Document codes ──────────────────────────────────────────────────────────
-# STUDENT EXERCISE — docs/tasks/01-document-code-sequencing.md.
+# DOCUMENT CODE SEQUENCING — the pure helpers are the real design, and
+# `next_code()` is the thin database-backed wrapper that uses them.
 #
-# The three functions below are stubs. They are the shape `next_code` is meant
-# to be rebuilt on: two pure functions that know nothing about a database, plus
-# one thin wrapper that does the query. `tests/test_codes.py` is the spec —
-# run it with `uv run pytest -m exercise`.
+# The three functions below are the contract: two pure functions that know
+# nothing about a database, plus one thin wrapper that does the query.
+# `tests/test_codes.py` is the spec — run it with `uv run pytest -m exercise`.
 #
 # They exist as stubs rather than as an empty file so the test module imports
 # cleanly: a missing name is a collection error, which fails CI on every
@@ -105,7 +104,10 @@ def format_code(prefix: str, year: int, sequence: int) -> str:
     """`("CT", 2026, 1)` → `"CT-2026-001"`. The only place the wire format
     lives — a code that is read back by `parse_sequence` must be written here.
     """
-    raise NotImplementedError("student exercise: docs/tasks/01-…")
+    """`- What happens past 999: The sequence continues to 1000 and beyond. The
+    three-digit formatting is a minimum width, not a maximum, so CT-2026-1000
+    is valid."""
+    return f"{prefix}-{year}-{sequence:03d}"
 
 
 def parse_sequence(code: str, prefix: str, year: int) -> int | None:
@@ -116,25 +118,54 @@ def parse_sequence(code: str, prefix: str, year: int) -> int | None:
     and codes predate this function, so junk must not raise: a bad row somewhere
     in the table cannot be allowed to block creating a new công trình.
     """
-    raise NotImplementedError("student exercise: docs/tasks/01-…")
+    expected_prefix = f"{prefix}-{year}-"
+    if not code or not code.startswith(f"{prefix}-"):
+        return None
+    if not code.startswith(expected_prefix):
+        return None
+
+    suffix = code.removeprefix(expected_prefix)
+    if not suffix.isdigit():
+        return None
+    return int(suffix)
 
 
 def next_sequence(existing_codes: Iterable[str], prefix: str, year: int) -> int:
     """The next number for this prefix in this year, given every code already
     issued. `1` when the year has none yet — that is how January restarts.
+
+    We do not recycle deleted numbers such as `CT-2026-002` because document
+    codes are a monotonically increasing business ledger, not a free-list of
+    reusable identifiers. Reusing a deleted code would create ambiguity for
+    external references, audit trails, and any historical record that still
+    points at the old document; instead we continue from the max issued sequence
+    and leave gaps where records were removed.
     """
-    raise NotImplementedError("student exercise: docs/tasks/01-…")
+    sequences = [
+        seq
+        for code in existing_codes
+        if (seq := parse_sequence(code, prefix, year)) is not None
+    ]
+    return max(sequences, default=0) + 1
 
 
 def next_code(session: Session, model: type, prefix: str) -> str:
-    """Server-assigned document code: CT-2026-001, BG-…, HD-…, QT-….
+    """Server-assigned document code for the real code families: CT-2026-001,
+    HD-2026-004.
 
-    ponytail: sequence number is max(id) + 1 and the year is hardcoded — not
-    race-safe under concurrent inserts, fine for this app. The NestJS backend
-    carries the identical caveat on purpose so both emit the same codes.
+    `next_code()` only emits the `CT` and `HD` prefixes; other document families
+    have their own generation logic.
+
+    ponytail: the remaining race is the classic read-max/insert gap for a
+    prefix+year: two concurrent requests can both read the same existing codes,
+    both decide the same next sequence, and then both insert it before either
+    commit completes.
     """
-    highest = session.exec(select(func.max(model.id))).one()
-    return f"{prefix}-2026-{(highest or 0) + 1:03d}"
+    year = business_today().year
+    existing = session.exec(
+        select(model.code).where(model.code.startswith(f"{prefix}-{year}-"))
+    ).all()
+    return format_code(prefix, year, next_sequence(existing, prefix, year))
 
 
 def assert_step(order: tuple[str, ...], current: str, target: str) -> None:

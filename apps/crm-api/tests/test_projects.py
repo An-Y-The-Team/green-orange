@@ -11,7 +11,7 @@ from tests.conftest import close_project
 def test_create_fills_code_contacts_and_paperwork(
     client: TestClient, fixtures: dict, project: dict
 ):
-    assert project["code"] == "CT-2026-001"
+    assert project["code"] == f"CT-{business_today().year}-001"
     assert project["stage"] == "request"
     # Both contacts default from the location manager.
     assert (
