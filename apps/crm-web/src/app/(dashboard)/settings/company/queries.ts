@@ -3,7 +3,7 @@ import {
   DEFAULT_NATIONAL_BODY,
 } from "@/components/document-shell/default-header";
 import { COMPANY, type CompanyData } from "@/config/company";
-import { ApiError, apiFetch, SESSION_EXPIRED } from "@/utils/http/http";
+import { ApiError, SESSION_EXPIRED, apiFetch } from "@/utils/http/http";
 
 /** The Python teaching sandbox answers 501 for endpoints it hasn't built. */
 const NOT_IMPLEMENTED = 501;
