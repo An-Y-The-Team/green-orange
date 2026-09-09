@@ -124,3 +124,14 @@ def test_update_replaces_the_line_items(client: TestClient, project: dict):
     assert res.status_code == 200
     assert [i["description"] for i in res.json()["items"]] == ["Gộp lại"]
     assert res.json()["total_amount"] == 2000
+
+
+def test_grand_total_is_after_vat_and_sortable(client: TestClient):
+    low = make_quote(client, vat_rate=0.0)
+    high = make_quote(client, vat_rate=0.1)
+    assert low["grand_total"] == low["total_amount"]
+    assert high["grand_total"] == round(high["total_amount"] * 1.1)
+    res = client.get("/quotes", params={"sort_by": "grand_total", "sort_order": "desc"})
+    assert res.status_code == 200, res.text
+    ids = [q["id"] for q in res.json()]
+    assert ids.index(high["id"]) < ids.index(low["id"])

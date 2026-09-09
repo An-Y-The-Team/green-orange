@@ -188,8 +188,8 @@ class ListQuotesQuery extends ListQueryDto {
   @IsOptional() @IsString() project_id?: string;
   @IsOptional() @CsvIn() @IsIn(QUOTE_STATUS, { each: true }) status?: string[];
   @IsOptional()
-  @IsIn(["id", "version", "total_amount", "decided_date"])
-  sort_by?: "id" | "version" | "total_amount" | "decided_date";
+  @IsIn(["id", "version", "total_amount", "grand_total", "decided_date"])
+  sort_by?: "id" | "version" | "total_amount" | "grand_total" | "decided_date";
 }
 
 @Controller("quotes")
@@ -229,6 +229,7 @@ export class QuotesController {
           id: (o) => ({ id: o }),
           version: (o) => ({ version: o }),
           total_amount: (o) => ({ total_amount: o }),
+          grand_total: (o) => ({ grand_total: o }),
           decided_date: (o) => ({ decided_date: o }),
         },
         sortBy: query.sort_by,

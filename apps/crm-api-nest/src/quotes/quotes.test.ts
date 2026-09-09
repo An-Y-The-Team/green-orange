@@ -132,10 +132,10 @@ describe("quote list — filters, search, sort", () => {
     // The list DTO isn't exported; the handler signature carries it.
     const list = (q: Parameters<QuotesController["list"]>[1]) =>
       new QuotesController(prisma).list(res(), q);
-    await list({ sort_by: "total_amount", sort_order: "desc" });
+    await list({ sort_by: "grand_total", sort_order: "desc" });
     await list({});
     expect(prisma.findManyArgs[0].orderBy).toEqual([
-      { total_amount: "desc" },
+      { grand_total: "desc" },
       { id: "desc" },
     ]);
     expect(prisma.findManyArgs[1].orderBy).toEqual([

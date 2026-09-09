@@ -184,6 +184,11 @@ model Quote {
   status       String    @default("draft") // draft | waiting | deal | on_hold | rejected — latest version carries live status
   total_amount BigInt // VND
   vat_rate     Float     @default(0.08) // kept from v1 (printable A4 shows VAT)
+  // Postgres GENERATED ALWAYS … STORED (see migration 20260912000000_quote_grand_total):
+  // Σ items + VAT, the figure every screen prints, so GET /quotes?sort_by=grand_total
+  // orders pages by what the user sees. Prisma has no generated-column syntax —
+  // dbgenerated() only keeps the client from ever writing it.
+  grand_total  BigInt    @default(dbgenerated("(total_amount + round(total_amount * vat_rate))::bigint"))
   decided_date DateTime? @db.Date
   note         String?
   // Signature footer (per-quote signer); falls back to the company

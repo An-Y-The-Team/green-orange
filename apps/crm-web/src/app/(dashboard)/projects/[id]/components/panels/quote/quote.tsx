@@ -39,6 +39,7 @@ import { formatDate } from "@/utils/format-date/format-date";
 import { formatTime } from "@/utils/format-time/format-time";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
+import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
 import type { Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
@@ -166,7 +167,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
         </span>
         <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
         <span className="ml-auto font-semibold tabular-nums">
-          {formatVND(quote.total_amount)}
+          {formatVND(storedTotals(quote).total)}
         </span>
       </div>
 
@@ -312,7 +313,7 @@ function QuoteDecision({ quote, project }: { quote: Quote; project: Project }) {
           <ConfirmAction
             trigger={<Button disabled={busy}>Chốt ✓</Button>}
             title={`Chốt báo giá v${quote.version}?`}
-            consequence={`Chốt ${formatVND(quote.total_amount)} và đưa công trình sang Hợp đồng. Bản này khóa lại — muốn đổi giá phải lập phiên bản mới.`}
+            consequence={`Chốt ${formatVND(storedTotals(quote).total)} và đưa công trình sang Hợp đồng. Bản này khóa lại — muốn đổi giá phải lập phiên bản mới.`}
             confirmLabel="Chốt báo giá"
             pending={busy}
             onConfirm={() => decide(QuoteStatus.DEAL)}
@@ -435,7 +436,9 @@ export function QuotePanel({ project }: { project: Project }) {
               <Badge variant={QUOTE_SUPERSEDED_LABEL.variant}>
                 {QUOTE_SUPERSEDED_LABEL.label}
               </Badge>
-              <span className="tabular-nums">{formatVND(q.total_amount)}</span>
+              <span className="tabular-nums">
+                {formatVND(storedTotals(q).total)}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
