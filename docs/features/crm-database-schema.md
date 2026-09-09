@@ -119,34 +119,34 @@ location (their address) at creation time — app logic, not schema.
 
 The spine. Stage + orthogonal status + per-stage sub-statuses live here.
 
-| column                    | type             | notes                                                                                                                                   |
-| ------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| id                        | bigserial PK     |                                                                                                                                         |
-| client_id                 | FK → client      | who signs/pays                                                                                                                          |
-| location_id               | FK → location    | where                                                                                                                                   |
+| column                    | type              | notes                                                                                                                                   |
+| ------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| id                        | bigserial PK      |                                                                                                                                         |
+| client_id                 | FK → client       | who signs/pays                                                                                                                          |
+| location_id               | FK → location     | where                                                                                                                                   |
 | working_contact_id        | FK → contact null | defaults to location manager; null until someone at the company is named (2026-09-09)                                                   |
 | decision_maker_contact_id | FK → contact null | approves quote / signs; defaults to working contact, so also null until then (2026-09-09)                                               |
-| name                      | text             |                                                                                                                                         |
-| request_note              | text null        | stage 1: short "what they want" from the first call (2026-07-23 UI deltas)                                                              |
-| referral_source           | text null        | stage 1: free text — giới thiệu, gọi lại, … (2026-07-23 UI deltas)                                                                      |
-| stage                     | text             | `request` `quote` `contract` `paperwork` `execution` `acceptance` `settlement` `closed` (8 — `survey` merged into `request` 2026-07-25) |
-| status                    | text             | `active` \| `on_hold` \| `cancelled` — default `active`                                                                                 |
-| cancel_reason             | text null        | required when status = `cancelled`                                                                                                      |
-| follow_up_date            | date null        | parked (`on_hold`) jobs resurface                                                                                                       |
-| appointment_at            | timestamptz null | stage 1; reschedule = update in place                                                                                                   |
-| visit_date                | date null        | set by "Đã gặp khách" tap — **in-stage marker**, not a stage move: null = awaiting appointment, set = surveying                         |
-| survey_note               | text null        | stage 1 notes (photos → attachment)                                                                                                     |
-| survey_items              | jsonb null       | stage 1: `{name, quantity, unit, note}[]` — measurement rows that prefill quote items (2026-07-23 UI deltas)                            |
-| client_signed_date        | date null        | stage-3 gate 1 (contract or deal-quote confirmation)                                                                                    |
-| execution_sub_status      | text null        | `kickoff` \| `hoarding` \| `works`                                                                                                      |
-| start_date                | date null        | stage 5                                                                                                                                 |
-| est_duration_days         | int null         |                                                                                                                                         |
-| actual_duration_days      | int null         | **manual = source of truth**; timekeeping-derived value computed at read time, conflict surfaced in UI                                  |
-| approaches                | text null        | free text until a structure emerges                                                                                                     |
-| works_done_at             | timestamptz null | stage-5 exit button                                                                                                                     |
-| acceptance_sub_status     | text null        | `request_sent` \| `inspecting` \| `rework` \| `passed`                                                                                  |
-| acceptance_passed_date    | date null        | stamped when acceptance_sub_status → `passed` (2026-07-23 UI deltas)                                                                    |
-| created_at / updated_at   | timestamptz      |                                                                                                                                         |
+| name                      | text              |                                                                                                                                         |
+| request_note              | text null         | stage 1: short "what they want" from the first call (2026-07-23 UI deltas)                                                              |
+| referral_source           | text null         | stage 1: free text — giới thiệu, gọi lại, … (2026-07-23 UI deltas)                                                                      |
+| stage                     | text              | `request` `quote` `contract` `paperwork` `execution` `acceptance` `settlement` `closed` (8 — `survey` merged into `request` 2026-07-25) |
+| status                    | text              | `active` \| `on_hold` \| `cancelled` — default `active`                                                                                 |
+| cancel_reason             | text null         | required when status = `cancelled`                                                                                                      |
+| follow_up_date            | date null         | parked (`on_hold`) jobs resurface                                                                                                       |
+| appointment_at            | timestamptz null  | stage 1; reschedule = update in place                                                                                                   |
+| visit_date                | date null         | set by "Đã gặp khách" tap — **in-stage marker**, not a stage move: null = awaiting appointment, set = surveying                         |
+| survey_note               | text null         | stage 1 notes (photos → attachment)                                                                                                     |
+| survey_items              | jsonb null        | stage 1: `{name, quantity, unit, note}[]` — measurement rows that prefill quote items (2026-07-23 UI deltas)                            |
+| client_signed_date        | date null         | stage-3 gate 1 (contract or deal-quote confirmation)                                                                                    |
+| execution_sub_status      | text null         | `kickoff` \| `hoarding` \| `works`                                                                                                      |
+| start_date                | date null         | stage 5                                                                                                                                 |
+| est_duration_days         | int null          |                                                                                                                                         |
+| actual_duration_days      | int null          | **manual = source of truth**; timekeeping-derived value computed at read time, conflict surfaced in UI                                  |
+| approaches                | text null         | free text until a structure emerges                                                                                                     |
+| works_done_at             | timestamptz null  | stage-5 exit button                                                                                                                     |
+| acceptance_sub_status     | text null         | `request_sent` \| `inspecting` \| `rework` \| `passed`                                                                                  |
+| acceptance_passed_date    | date null         | stamped when acceptance_sub_status → `passed` (2026-07-23 UI deltas)                                                                    |
+| created_at / updated_at   | timestamptz       |                                                                                                                                         |
 
 Stage-3 gate 2 (deposit received) is not a column — it's the `deposit`
 milestone reaching `paid`. Stage-4 exit is "no paperwork_item not yet
@@ -322,15 +322,15 @@ project has one settlement and `settlement_id` is unique, there is exactly
 
 ### crew_member
 
-| column          | type                 | notes                                                 |
-| --------------- | -------------------- | ----------------------------------------------------- |
-| id              | bigserial PK         |                                                       |
-| name            | text                 |                                                       |
-| phone           | text null            | Zalo — future mini-app identity, capture from day one |
-| employment_type | text                 | `permanent` \| `day_hire` (day-hires common)          |
-| default_role_id | FK → crew_role, null |                                                       |
-| status          | text                 | `working` ⇄ `on_leave` → `left`                       |
-| note            | text null            |                                                       |
+| column          | type                 | notes                                                  |
+| --------------- | -------------------- | ------------------------------------------------------ |
+| id              | bigserial PK         |                                                        |
+| name            | text                 |                                                        |
+| phone           | text null **unique** | Zalo mini-app identity — normalized `0…` 10-digit form |
+| employment_type | text                 | `permanent` \| `day_hire` (day-hires common)           |
+| default_role_id | FK → crew_role, null |                                                        |
+| status          | text                 | `working` ⇄ `on_leave` → `left`                        |
+| note            | text null            |                                                        |
 
 ### assignment (worker ↔ project)
 
@@ -348,18 +348,70 @@ stage-5 worker list are generated from these rows.
 
 ### timekeeping_record
 
-| column         | type             | notes                                              |
-| -------------- | ---------------- | -------------------------------------------------- |
-| id             | bigserial PK     |                                                    |
-| crew_member_id | FK → crew_member |                                                    |
-| project_id     | FK → project     |                                                    |
-| work_date      | date             |                                                    |
-| hours          | numeric          | raw hours worked that day                          |
-| source         | text             | `manual` \| `zalo_app` — manual is source of truth |
-| note           | text null        |                                                    |
+| column         | type             | notes                                                               |
+| -------------- | ---------------- | ------------------------------------------------------------------- |
+| id             | bigserial PK     |                                                                     |
+| crew_member_id | FK → crew_member |                                                                     |
+| project_id     | FK → project     |                                                                     |
+| work_date      | date             |                                                                     |
+| hours          | numeric          | raw hours worked that day                                           |
+| source         | text             | `manual` \| `zalo_app` — manual is source of truth                  |
+| status         | text             | `open` \| `pending` \| `approved` \| `rejected`, default `approved` |
+| start_time     | text null        | `"HH:mm"` — zalo_app rows only                                      |
+| end_time       | text null        | `"HH:mm"`, null while `open`; before start = overnight              |
+| remedy_reason  | text null        | non-null ⟺ đơn bù công — times claimed, not stamped                 |
+| flag           | text null        | `over_cap` — clock-out past 16h, hours clamped                      |
+| created_at     | timestamptz      | default now()                                                       |
+| note           | text null        | the worker's ghi chú                                                |
 
 Unique `(crew_member_id, project_id, work_date, source)` — a manual row and
 a zalo_app row may coexist for the same day; conflicts resolved in UI.
+
+`status` defaults to `approved`, so manual rows and the operator's
+`POST /timekeeping` upsert behave as they always did. The mini app writes the
+other three:
+
+- **`open`** — clocked in (`POST /worker/clock-in`), not yet out. `hours` is 0
+  and `end_time` null. Counted nowhere and not decidable, so it is inert until
+  closed. One per worker at a time, one per worker+công trình+day.
+- **`pending`** — a finished shift (`POST /worker/clock-out`) or an đơn bù công
+  (`POST /worker/remedy`), awaiting duyệt. A **stamped** one (clocked in _and_ out,
+  `remedy_reason` null) is not remediable: the mini app is refused with a 409 and
+  the office corrects it via the manual row in the weekly grid.
+- **`rejected`** — the worker may resubmit, which returns it to `pending`. Their
+  claimed times apply, but a start the server stamped still survives.
+
+Only `pending` rows can be decided (`POST /timekeeping/:id/decide`); summaries
+and the weekly grid count `approved` hours only.
+
+`start_time`/`end_time` are plain text, not `time` — the API's serializer would
+render a `time` column as a 1970 ISO timestamp.
+
+Both times on a clocked shift are stamped by the **server** in
+`Asia/Ho_Chi_Minh`; the client never sends a time, so a wrong or tampered phone
+clock cannot change what is recorded. A clock-out computes hours from the two
+stamps' full dates, not from the `"HH:mm"` pair, which is the only way to tell an
+8-hour overnight from a shift abandoned for a day — over 16 hours it clamps to 16
+and sets `flag = over_cap`. Nothing sweeps an abandoned shift: it stays `open`
+until the worker closes it, and the operator sees it on Nhân sự → Chấm công and
+(once dated before today) on the dashboard.
+
+`remedy_reason` is the discriminator, not merely a note: a stamped shift and a
+claimed one both arrive `pending`, so it is the only thing telling the operator
+these times were typed after the fact — and it holds the lý do they decide on. It
+is also what makes a row's times the worker's to edit: a `start_time` the server
+stamped is preserved through every remedy, so the guarantee above holds even after
+an operator rejects a shift and the worker resubmits.
+
+Closing an already-open shift never consults the project's stage. A công trình
+closed mid-shift would otherwise leave the worker unable to clock out, unable to
+remedy, and — because the one-shift-at-a-time rule is global — unable to log time
+on any other project either.
+
+The correction path for a stamped shift is the operator's manual row in the
+Chấm công grid, so that cell must stay writable; the input there is the **manual
+override field** (empty means no override) and the chip beside it describes the
+Zalo row.
 
 ### attachment
 
@@ -419,6 +471,8 @@ crew role names, quote units) is data, stays Vietnamese as typed.
 | crew_member.employment_type   | permanent / day_hire                            | Chính thức / Thời vụ                          |
 | crew_member.status            | working / on_leave / left                       | Đang làm / Tạm nghỉ / Nghỉ việc               |
 | timekeeping_record.source     | manual / zalo_app                               | Thủ công / Zalo app                           |
+| timekeeping_record.status     | open / pending / approved / rejected            | Đang làm / Chờ duyệt / Đã duyệt / Từ chối     |
+| timekeeping_record.flag       | over_cap                                        | Quá 16 giờ                                    |
 
 ## Cost module — sketch only (own design session pending)
 

@@ -23,6 +23,25 @@ export const businessDateString = (at: Date = new Date()): string =>
 export const businessToday = (at: Date = new Date()): Date =>
   new Date(`${businessDateString(at)}T00:00:00.000Z`);
 
+// 'en-GB' with hour12:false renders "14:32"; hourCycle h23 keeps midnight as "00:32"
+// rather than 'en-GB' + h24's "24:32", which would fail the HH_MM validator.
+const TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: BUSINESS_TZ,
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/**
+ * Wall-clock time in the business timezone as "HH:mm" — the server's own stamp for a
+ * clock-in/clock-out, in the same shape as the `start_time`/`end_time` columns.
+ *
+ * The device clock is never trusted for this: a worker can change their phone's clock,
+ * and a phone whose clock is simply wrong would silently record wrong hours.
+ */
+export const businessTimeString = (at: Date = new Date()): string =>
+  TIME_FORMATTER.format(at);
+
 // Vietnam has no DST, so the business day is exactly [+07:00 midnight, +1 day).
 const BUSINESS_UTC_OFFSET = "+07:00";
 

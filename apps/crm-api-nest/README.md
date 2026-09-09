@@ -144,13 +144,63 @@ Business codes (`CT-…` projects, `HD-…` contracts) are server-assigned.
   type, default role, status.
 - `GET|POST /assignments`, `PATCH|DELETE /assignments/:id` — responses include
   `overlaps` (double-booking is allowed; the UI warns, never blocks).
-- `GET /timekeeping` (`?project_id&crew_member_id&from&to`),
+- `GET /timekeeping` (`?project_id&crew_member_id&status&from&to`),
   `POST /timekeeping` — upsert per (member, project, day, source); manual is
-  source of truth. `DELETE /timekeeping/:id`.
+  source of truth and is born `approved`. `DELETE /timekeeping/:id`.
+- `POST /timekeeping/:id/decide` — `{status: approved|rejected}`, the operator's
+  duyệt/từ chối for Zalo submissions. Only `pending` rows are decidable (409
+  otherwise), so it can never touch a manual row. `GET /timekeeping/summary`
+  counts `approved` hours only.
+
+### Worker (`src/worker/`) — Zalo mini app only
+
+Class-level `@Worker()`: these routes accept **only** crew tokens, and every
+other route rejects them. A worker sees exactly their own rows.
+
+- `GET /worker/me`, `GET /worker/projects` — projects they're assigned to today,
+  excluding closed ones.
+- `GET /worker/shift` — `{shift: {...} | null}`, always an envelope: a bare
+  `null` is an empty 200 body the app cannot parse. `stale` means the shift
+  started on an earlier business day, i.e. they forgot to chấm công ra.
+- `POST /worker/clock-in` — `{project_id}`, and no time: the **server** stamps
+  `start_time` in `Asia/Ho_Chi_Minh`, so a wrong or tampered phone clock cannot
+  change what is recorded. Writes `hours: 0`, `status: open`. Refuses a day they
+  aren't assigned to (403), a locked project (409), a shift already running even
+  on another công trình (409), and a second clock-in the same day (409, pointing
+  at đơn bù công).
+- `POST /worker/clock-out` — no body; the open shift is found by the token.
+  Hours come from the two stamps' **full dates**, not the `"HH:mm"` pair — that
+  is what distinguishes an 8-hour overnight from a shift abandoned for a day.
+  Past 16h the hours clamp to 16 and `flag` becomes `over_cap`. `work_date` is
+  never recomputed: a 01:00 clock-out belongs to the day it started, and moving
+  it would move the row off its composite key. Flips the row to `pending`.
+  Retrying after a lost response returns today's already-closed row, not a 404.
+  Deliberately does **not** check the project's stage: a công trình closed
+  mid-shift must not leave the worker unable to close the shift.
+- `POST /worker/remedy` — đơn bù công: `{project_id, work_date, start_time,
+end_time, reason, note?}` with `reason` required. **Refused (409) for a shift
+  already clocked in AND out** while it is still `pending` — that one is the
+  office's to correct, not the worker's — and a `start_time` the server stamped
+  survives every remedy, so rejecting a shift does not make its stamps editable.
+  The CLAIMED-times path, so
+  hours come from the pair (`end_time` at-or-before `start_time` is overnight,
+  +24h) and a span over 16h is a 400. Upserts as `pending` with `remedy_reason`
+  set — the discriminator that tells the operator these times were typed, not
+  stamped. Refuses an unassigned day (403) and a locked project (409); an
+  already-`approved` row is locked (409), pending/rejected rows are overwritable
+  so a rejected day can be resubmitted. Closing an `open` shift keeps the
+  server's `start_time` — only the giờ ra is the worker's to claim.
+  Errors are Vietnamese — the app shows them verbatim.
+- `GET /worker/timekeeping` (`?from&to`, 31-day default window).
 
 ### Auth & health
 
 - `POST /auth/token` (public) — local password grant.
+- `POST /auth/zalo-token` (public) — Zalo mini-app login. Takes the zmp-sdk
+  `{token, access_token}` pair, exchanges it at `graph.zalo.me/v2.0/me/info`
+  (needs `ZALO_APP_SECRET`), matches the number against `CrewMember.phone`, and
+  mints a 30-day **crew** token. Crew tokens are HS256 even under
+  `AUTH_MODE=oidc`, so `JWT_SECRET` is required for this path.
 - `GET /auth/me` — current user.
 - `GET /health` (public) — `{status, auth_mode}`.
 

@@ -8,7 +8,7 @@ import { Input } from "@yan/ui/components/input";
 import { TableCell } from "@yan/ui/components/table";
 import { cn } from "@yan/ui/lib/utils";
 
-import { TIMEKEEPING_SOURCES } from "@/constants/labels";
+import { TIMEKEEPING_SOURCES, TIMEKEEPING_STATUSES } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 
@@ -17,6 +17,7 @@ import {
   upsertTimekeeping,
 } from "../../../../actions/timekeeping";
 import type { TimekeepingRecord } from "../../../../types";
+import { baselineHours } from "../../utils/baseline-hours/baseline-hours";
 
 /**
  * One member × one day of the chấm công week — and the reason it is its own
@@ -108,7 +109,11 @@ export function TimekeepingCell({
       return;
     }
     setError(null);
-    if (row && row.hours === hours) return;
+    // Compare against what the cell is SHOWING, which may be the zalo row —
+    // `row` is only ever the manual one, so the old `row && row.hours === hours`
+    // could not fire on a zalo-only cell and a bare tab-through wrote an
+    // approved manual row, bypassing duyệt. See utils/baseline-hours.
+    if (hours === baselineHours({ manual: row, zalo })) return;
     save({ crew_member_id: memberId, work_date: date, hours });
   };
 
@@ -158,6 +163,8 @@ export function TimekeepingCell({
             title="Giờ từ ứng dụng Zalo — nhập tay để ghi đè"
           >
             {TIMEKEEPING_SOURCES[zalo.source] ?? zalo.source}
+            {" · "}
+            {TIMEKEEPING_STATUSES[zalo.status] ?? zalo.status}
           </Badge>
         ) : null}
       </div>

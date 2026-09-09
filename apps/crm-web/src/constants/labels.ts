@@ -13,10 +13,13 @@
  */
 import { ClientType } from "@/app/(dashboard)/clients/enums";
 import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
+import { MAX_SHIFT_HOURS } from "@/app/(dashboard)/crew/constants";
 import {
   CrewMemberStatus,
   EmploymentType,
+  TimekeepingFlag,
   TimekeepingSource,
+  TimekeepingStatus,
 } from "@/app/(dashboard)/crew/enums";
 import {
   AcceptanceSubStatus,
@@ -188,6 +191,17 @@ export const CREW_MEMBER_STATUSES: Record<CrewMemberStatus, Label> = {
 export const TIMEKEEPING_SOURCES: Record<TimekeepingSource, string> = {
   [TimekeepingSource.MANUAL]: "Nhập tay",
   [TimekeepingSource.ZALO_APP]: "Zalo app",
+};
+
+export const TIMEKEEPING_STATUSES: Record<TimekeepingStatus, string> = {
+  [TimekeepingStatus.OPEN]: "Đang làm",
+  [TimekeepingStatus.PENDING]: "Chờ duyệt",
+  [TimekeepingStatus.APPROVED]: "Đã duyệt",
+  [TimekeepingStatus.REJECTED]: "Từ chối",
+};
+
+export const TIMEKEEPING_FLAGS: Record<TimekeepingFlag, string> = {
+  [TimekeepingFlag.OVER_CAP]: `Quá ${MAX_SHIFT_HOURS} giờ`,
 };
 
 /**

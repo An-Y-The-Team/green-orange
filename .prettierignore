@@ -3,4 +3,5 @@ node_modules/
 dist/
 build/
 .turbo/
+www/
 apps/cms/snapshots/snapshot.yaml

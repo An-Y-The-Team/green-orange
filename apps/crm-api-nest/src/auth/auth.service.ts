@@ -1,8 +1,18 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { verify } from "@node-rs/argon2";
 
+import { normalizePhone } from "../common/phone";
 import { PrismaService } from "../prisma/prisma.service";
+
+// Matches the house pattern in crm-web's utils/http/http.ts (a named constant +
+// AbortSignal.timeout). Shorter than that 30s budget: a worker is standing on
+// site waiting for a login, and Zalo answers in well under a second normally.
+const ZALO_FETCH_TIMEOUT_MS = 5_000;
 
 @Injectable()
 export class AuthService {
@@ -31,5 +41,65 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { username } });
     if (!user) throw new UnauthorizedException();
     return { id: user.id, username: user.username, full_name: user.full_name };
+  }
+
+  // Zalo mini-app login. The app sends the zmp-sdk getPhoneNumber() token plus
+  // the user's Zalo access token; Zalo's Open API converts the pair into the
+  // real phone number (server-side only — needs the app secret). The number
+  // must match a pre-registered CrewMember or login is refused. Crew tokens
+  // are long-lived (workers must not re-consent daily) and only ever unlock
+  // @Worker() routes — see jwt.guard.ts.
+  async zaloToken(token: string, zaloAccessToken: string) {
+    const secret = process.env.ZALO_APP_SECRET;
+    if (!secret) {
+      throw new InternalServerErrorException("ZALO_APP_SECRET not configured");
+    }
+
+    const failed = new UnauthorizedException(
+      "Đăng nhập Zalo thất bại, vui lòng thử lại"
+    );
+    let number: string | undefined;
+    try {
+      const res = await fetch("https://graph.zalo.me/v2.0/me/info", {
+        headers: {
+          access_token: zaloAccessToken,
+          code: token,
+          secret_key: secret,
+        },
+        // Bounded, because this route is @Public() and now internet-reachable:
+        // without it each request holds an outbound connection to Zalo for as
+        // long as Zalo takes, so a loop exhausts sockets here and hammers Zalo
+        // with our app secret attached. The catch below already turns a failure
+        // into the right Vietnamese 401 — it simply never fired.
+        signal: AbortSignal.timeout(ZALO_FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) throw failed;
+      const body = (await res.json()) as { data?: { number?: string } };
+      number = body?.data?.number;
+    } catch {
+      throw failed;
+    }
+
+    const phone = normalizePhone(number);
+    if (!phone) throw failed;
+
+    const member = await this.prisma.crewMember.findUnique({
+      where: { phone },
+    });
+    if (!member || member.status === "left") {
+      throw new UnauthorizedException(
+        "Số điện thoại chưa được đăng ký với công ty"
+      );
+    }
+
+    const access_token = await this.jwt.signAsync(
+      { sub: `crew:${member.id}`, kind: "crew", crew_member_id: member.id },
+      { secret: process.env.JWT_SECRET, expiresIn: "30d" }
+    );
+    return {
+      access_token,
+      token_type: "bearer",
+      crew_member: { id: member.id, name: member.name },
+    };
   }
 }

@@ -11,6 +11,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { ProjectsModule } from "./projects/projects.module";
 import { QuotesModule } from "./quotes/quotes.module";
 import { ReceivablesModule } from "./receivables/receivables.module";
+import { WorkerModule } from "./worker/worker.module";
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ReceivablesModule } from "./receivables/receivables.module";
     PaperworkModule,
     CrewModule,
     ReceivablesModule,
+    WorkerModule,
   ],
   controllers: [HealthController],
 })

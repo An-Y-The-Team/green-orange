@@ -1,0 +1,198 @@
+/* Thumb-first, one-column. The Zalo webview provides the app chrome
+   (app-config.json); this only styles the content area. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  color: #1f2937;
+  background: #f9fafb;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.screen-message {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+}
+
+.field-row .field {
+  flex: 1;
+}
+
+select,
+input,
+textarea {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 400;
+  background: #fff;
+}
+
+.btn {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #16a34a;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: #16a34a;
+}
+
+.hint {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.error {
+  margin: 0;
+  font-size: 14px;
+  color: #dc2626;
+}
+
+.success {
+  margin: 0;
+  font-size: 14px;
+  color: #16a34a;
+}
+
+.log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.log-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.log-detail {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chip.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.chip.approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.chip.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* The shift in progress, and the read-only header of a đơn bù công closing it. */
+.shift-card {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.shift-project {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.shift-detail {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Not an error — the worker did nothing wrong, but they must act (đơn bù công). */
+.warning {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  background: #fffbeb;
+  font-size: 14px;
+  color: #92400e;
+}
+
+.chip.open {
+  background: #dbeafe;
+  color: #1e40af;
+}

@@ -36,13 +36,19 @@ The prod stack's config is split by sensitivity:
 - **Secrets** (`POSTGRES_PASSWORD`, `DIRECTUS_KEY`/`SECRET`/`ADMIN_PASSWORD`/
   `STATIC_TOKEN`/`PREVIEW_SECRET`, `CRM_AUTH_SECRET`, `CRM_OIDC_CLIENT_SECRET`,
   `CRM_AUTHENTIK_ADMIN_TOKEN`, `AUTHENTIK_SECRET_KEY`/`BOOTSTRAP_PASSWORD`/
-  `BOOTSTRAP_TOKEN`) live **only in
+  `BOOTSTRAP_TOKEN`, and — for the Zalo mini app — `CRM_JWT_SECRET` +
+  `ZALO_APP_SECRET`) live **only in
   Dockhand's secret store** — injected via shell env at deploy time, never written
   to disk or git. Set these once in the Dockhand stack's env editor.
 
 Dockhand's git stack reads `deploy/deploy.env` as the compose env-file (lowest
 precedence), then layers its stored vars/secrets on top. Keep each var in a single
 home to avoid a stored value silently shadowing the file.
+
+> `CRM_JWT_SECRET` is mapped to the container's `JWT_SECRET` (compose does the
+> rename). Prod runs `AUTH_MODE=oidc`, which needs no secret of its own, but crew
+> tokens for the mini app are **always HS256** — so this one is required as soon
+> as §6d ships, and every worker login 401s without it.
 
 > **Legacy note:** the old flow kept everything in a gitignored `.env.production`
 > on the VPS that the SSH deploy `sed`-edited. That file is no longer used by the
@@ -54,9 +60,16 @@ home to avoid a stored value silently shadowing the file.
 ## 1. Prerequisites
 
 - A VPS (Ubuntu 22.04+, **amd64**) with a public IP.
-- A domain. Two DNS **A** records pointing at the VPS IP:
+- A domain. DNS **A** records pointing at the VPS IP:
   - `example.com` (and `www.example.com`) → site
   - `cms.example.com` → Directus Studio/API
+  - `quanly.example.com` → crm-web (§7)
+  - `auth.example.com` → Authentik (§6b)
+  - `api-crm.example.com` → public crm-api-nest for the Zalo mini app (§6d)
+
+  The last three are added by the section that needs them; each also needs a
+  Pangolin resource, which is manual — Caddy config alone is not enough.
+
 - Docker Engine + Compose plugin on the VPS.
 - This repo pushed to GitHub.
 
@@ -477,15 +490,18 @@ internal network).
 `crm-api-nest` (NestJS + Prisma) implements the **v2** contract and is the **only**
 backend that serves the current UI — every dashboard page shows live data. It is no
 longer interchangeable with `crm-api`, which still implements **v1** (see step 5 and
-AGENTS.md). Like `crm-api` it is **internal-only** (no `ports:`, no Caddy route),
-reached at `http://crm-api-nest:8001`. In prod, **crm-web points at it by default**
+AGENTS.md). crm-web reaches it internally at `http://crm-api-nest:8001`; since the
+Zalo mini app (§6d) it is **also published at `CRM_API_DOMAIN`** via Caddy — every
+route is JWT-guarded, and worker tokens only unlock `/worker/*`. The Python
+`crm-api` stays internal-only. In prod, **crm-web points at it by default**
 (`CRM_API_URL: http://crm-api-nest:8001` in
 [`docker-compose.prod.yml`](docker-compose.prod.yml)); the Python `crm-api` keeps
 running so switching back is one line (see step 5). CI builds + pushes the
 `crm-api-nest` image and pins `CRM_API_NEST_IMAGE` in `deploy/deploy.env`.
 
-**1. No DNS / no Caddy route** — it's internal-only, same as `crm-api`. Nothing to
-add; crm-web already reaches it over the docker network.
+**1. DNS / Caddy route** — crm-web reaches it over the docker network with no route
+needed. For the Zalo mini app, `CRM_API_DOMAIN` (deploy.env) must resolve to the
+edge and pass through to Caddy :8001 — see §6d.
 
 **2. Create the `crm_nest` database** — it runs `prisma migrate deploy` on start,
 but the database must exist first. As with `crm` (§6b), the multi-DB init script
@@ -534,7 +550,13 @@ unattended without comment. These two don't:
   migration is recorded as failed — the app is down until it's fixed. Merge the
   duplicates by hand (keep the signed/latest settlement, delete the others with their
   bills), then let the container restart. If Prisma still refuses because of the failed
-  entry: `docker exec <crm-api-nest> npx prisma migrate resolve --rolled-back 20260725010000_settlement_one_per_project`.
+  entry: `docker exec <crm-api-nest> node /app/node_modules/prisma/build/index.js migrate resolve --rolled-back 20260725010000_settlement_one_per_project`.
+  Run the CLI by path, **never** `npx prisma`: npx fetches `latest` when the
+  local binary is missing, and npm's `latest` is now Prisma 8, which rejects this
+  v6 schema with "datasource property `url` is no longer supported". `bunx` is
+  not an option inside this container either — the runtime image is node:22-slim
+  and has no bun. A "Cannot find module" here means the CLI moved in the image;
+  `docker exec <crm-api-nest> ls /app/node_modules/prisma/build` to confirm.
   Pre-flight check (safe to run any time):
 
   ```bash
@@ -658,6 +680,74 @@ the nightly dump (§8).
 >   out as `http://`, that header is the first thing to check.
 > - Locking an account takes effect within one access-token lifetime (Authentik
 >   refuses the refresh), not at the instant the button is pressed.
+
+---
+
+## 6d. Zalo mini app "Chấm công" (apps/zalo-timekeeping)
+
+Workers log hours from a Zalo Mini App; logs land as **pending**
+`TimekeepingRecord` rows (`source: zalo_app`) that the operator duyệt/từ chối on
+the CRM's Nhân sự → Chấm công tab. **Zalo hosts the app bundle** (`zmp deploy`,
+not our Docker pipeline) — only the CRM API needs public reachability. Full app
+docs in [`apps/zalo-timekeeping/README.md`](apps/zalo-timekeeping/README.md).
+
+**1. Zalo Developers console (longest lead time — start first)**
+
+- Create the Mini App under the company Zalo App at developers.zalo.me; note the
+  Mini App ID and the Zalo App's **secret key**.
+- Register the **getPhoneNumber** permission in the Mini App Center (written
+  justification + screenshot; reviewed with the version submission — login
+  depends on it).
+- Whitelist `https://api-crm.dichvuyan.com` in the app's request-domain list.
+
+**2. Secrets in Dockhand** (both new, both required by crm-api-nest):
+
+- `CRM_JWT_SECRET` — signs crew HS256 JWTs. Crew tokens are HS256 **even in
+  AUTH_MODE=oidc** (`src/auth/jwt.guard.ts`), so prod now needs this set:
+  `openssl rand -hex 32`.
+- `ZALO_APP_SECRET` — the Zalo App secret key from step 1; converts phone-number
+  tokens via graph.zalo.me in `POST /auth/zalo-token`.
+
+**3. Phone dedup pre-check** — the release's migration normalizes
+`CrewMember.phone` (`+84`/`84` → `0…`, strip separators) and adds a UNIQUE index.
+Duplicates make `prisma migrate deploy` **fail loudly on container start** (by
+design — never auto-merge two workers). Before deploying, on the VPS:
+
+```bash
+PG=$(docker ps -qf label=com.docker.compose.service=postgres)
+docker exec "$PG" psql -U postgres -d crm_nest -c \
+  "SELECT regexp_replace(phone,'\D','','g'), count(*) FROM \"CrewMember\" \
+   WHERE phone IS NOT NULL GROUP BY 1 HAVING count(*) > 1"
+```
+
+Rows returned → fix those members' phones in crm-web first.
+
+**4. Edge (Pangolin/Newt)** — add the public hostname `api-crm.dichvuyan.com` →
+VPS `:8001` (same pattern as the existing domains). DNS + Caddy
+(`CRM_API_DOMAIN` in deploy.env) are already wired by the release.
+
+**5. Deploy the release** — tag as usual; migration runs on container start.
+Smoke: `curl https://api-crm.dichvuyan.com/health` → `{"status":"ok",...}` and an
+unauthenticated `curl https://api-crm.dichvuyan.com/projects` → 401.
+
+**6. Deploy the mini app** (developer machine, needs Zalo login):
+
+```bash
+cd apps/zalo-timekeeping
+bun run build            # bundle in www/
+bunx zmp-cli login       # QR scan with the company Zalo account
+bunx zmp-cli deploy      # "Deploy your existing project" → www/
+```
+
+This uploads a **testing** version (deep link `https://zalo.me/s/<miniAppId>`,
+QR in the console) usable by registered testers. When it checks out: submit the
+version for **Zalo review** in the Mini App Center, then **publish**. Workers
+install nothing — the app lives inside Zalo.
+
+**7. Roster** — a worker can log in only if their Zalo phone matches a
+`CrewMember.phone` (normalized `0…` form) and they're not `left`; they can log
+time only on projects they have an Assignment covering that date. Both are
+maintained in crm-web (Nhân sự page).
 
 ---
 

@@ -1,8 +1,11 @@
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
+import { addDays } from "@/utils/add-days/add-days";
 import type { DateRange } from "@/utils/date-range/date-range";
 import { apiFetchDetail, apiFetchList, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
+import { todayISO } from "@/utils/today-iso/today-iso";
 
+import { TimekeepingStatus } from "./enums";
 import type { CrewMemberStatus } from "./enums";
 import type {
   Assignment,
@@ -94,6 +97,54 @@ export async function getProjectTimekeeping({
 }): Promise<TimekeepingRecord[]> {
   return apiFetchSafe<TimekeepingRecord[]>(
     `/timekeeping?project_id=${projectId}&${rangeQuery(range)}`,
+    []
+  );
+}
+
+// Pending submissions can be older than the API's 31-day dateless default (a
+// worker logs Friday, the operator opens the tab after Tết) — so this read
+// states an explicitly wide window instead of relying on it.
+const PENDING_WINDOW_DAYS = 365;
+
+/** GET /timekeeping?status=pending — every mini-app submission awaiting duyệt. */
+export async function getPendingTimekeeping(): Promise<TimekeepingRecord[]> {
+  const from = new Date();
+  from.setUTCDate(from.getUTCDate() - PENDING_WINDOW_DAYS);
+  const fromParam = from.toISOString().slice(0, 10);
+  return apiFetchSafe<TimekeepingRecord[]>(
+    `/timekeeping?status=${TimekeepingStatus.PENDING}&from=${fromParam}&limit=${MAX_PAGE_SIZE}`,
+    []
+  );
+}
+
+/**
+ * GET /timekeeping?status=open — shifts clocked in and not yet out.
+ *
+ * Same wide window and the same reason: nothing sweeps an open shift, so one a
+ * worker abandoned last month is still open and still the operator's problem.
+ */
+export async function getOpenShifts(): Promise<TimekeepingRecord[]> {
+  const from = new Date();
+  from.setUTCDate(from.getUTCDate() - PENDING_WINDOW_DAYS);
+  const fromParam = from.toISOString().slice(0, 10);
+  return apiFetchSafe<TimekeepingRecord[]>(
+    `/timekeeping?status=${TimekeepingStatus.OPEN}&from=${fromParam}&limit=${MAX_PAGE_SIZE}`,
+    []
+  );
+}
+
+/**
+ * The same open shifts, narrowed to the ones that have gone stale — clocked in
+ * on an earlier business day, so the worker went home without chấm công ra.
+ *
+ * `to` filters `work_date`, so "open, dated before today" IS the stale
+ * predicate: no new endpoint, and no derived column to keep in sync. Mirrors how
+ * receivables answers `overdue=true`.
+ */
+export async function getStaleOpenShifts(): Promise<TimekeepingRecord[]> {
+  const yesterday = addDays(todayISO(), -1);
+  return apiFetchSafe<TimekeepingRecord[]>(
+    `/timekeeping?status=${TimekeepingStatus.OPEN}&to=${yesterday}&limit=${MAX_PAGE_SIZE}`,
     []
   );
 }

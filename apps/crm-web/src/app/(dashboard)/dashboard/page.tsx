@@ -18,6 +18,7 @@ import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
+import { getStaleOpenShifts } from "../crew/queries";
 import { ProjectStage, ProjectStatus } from "../projects/enums";
 import {
   getProjectsSummary,
@@ -91,6 +92,7 @@ export default async function DashboardPage() {
     overdueMilestones,
     bills,
     overduePaperwork,
+    staleShifts,
     summary,
     pipeline,
   ] = await Promise.all([
@@ -114,6 +116,9 @@ export default async function DashboardPage() {
     listPaymentMilestones({ overdue: true, limit: DEBT_FETCH_ROWS }),
     listBills({ status: BillStatus.SENT, limit: DEBT_FETCH_ROWS }),
     listAllPaperworkItems({ overdue: true, limit: PANEL_ROWS }),
+    // Shifts clocked in on an earlier day and never closed. Nothing sweeps them
+    // and no notification goes out, so this panel is how an operator finds out.
+    getStaleOpenShifts(),
     // The totals: aggregated in Postgres over every row, so the figure is the
     // same whatever page a table is on. This is what the old
     // "no Tổng công nợ" comment was waiting for.
@@ -199,6 +204,38 @@ export default async function DashboardPage() {
               detail={(p) => formatDate(p?.follow_up_date) || null}
               empty="Không có công trình nào cần theo dõi."
             />
+            {staleShifts.length > 0 ? (
+              <div className="space-y-2 border-t pt-3">
+                <p className="text-muted-foreground text-xs font-medium">
+                  Đang làm quá hạn
+                </p>
+                <ul className="space-y-2 text-sm">
+                  {staleShifts.map((s) => (
+                    <li
+                      key={s?.id}
+                      className="flex items-center justify-between gap-4"
+                    >
+                      <Link
+                        href="/crew?tab=timekeeping"
+                        className="hover:underline"
+                      >
+                        <span className="font-medium">
+                          {s?.crew_member?.name ?? `#${s?.crew_member_id}`}
+                        </span>{" "}
+                        · {s?.project?.code ?? `#${s?.project_id}`}
+                      </Link>
+                      <span className="text-muted-foreground flex items-center gap-2 whitespace-nowrap">
+                        {s?.work_date ? formatDate(s.work_date) : null}
+                        {s?.start_time ? ` ${s.start_time}` : null}
+                        <Badge variant={OVERDUE_LABEL.variant}>
+                          {OVERDUE_LABEL.label}
+                        </Badge>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {overduePaperwork.length > 0 ? (
               <div className="space-y-2 border-t pt-3">
                 <p className="text-xs font-medium text-muted-foreground">

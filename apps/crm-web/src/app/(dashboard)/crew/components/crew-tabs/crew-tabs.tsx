@@ -10,7 +10,10 @@ import {
 import { FIELDS } from "@/constants/labels";
 import { useTabParam } from "@/hooks/use-tab-param/use-tab-param";
 
-import type { CrewMember, CrewRole } from "../../types";
+import type { Project } from "../../../projects/types";
+import type { CrewMember, CrewRole, TimekeepingRecord } from "../../types";
+import { OpenShifts } from "../open-shifts/open-shifts";
+import { PendingApprovals } from "../pending-approvals/pending-approvals";
 import { RolesTab } from "../roles-tab/roles-tab";
 import { RosterTab } from "../roster-tab/roster-tab";
 import { TimekeepingTab } from "../timekeeping-tab/timekeeping-tab";
@@ -26,9 +29,15 @@ const TAB_LABELS: Record<(typeof TABS)[number], string> = {
 export function CrewTabs({
   crew,
   roles,
+  projects,
+  pendingTimekeeping,
+  openShifts,
 }: {
   crew: CrewMember[];
   roles: CrewRole[];
+  projects: Project[];
+  pendingTimekeeping: TimekeepingRecord[];
+  openShifts: TimekeepingRecord[];
 }) {
   const [tab, setTab] = useTabParam(TABS, "roster");
 
@@ -52,7 +61,17 @@ export function CrewTabs({
         {tab === "roles" ? <RolesTab roles={roles} /> : null}
       </TabsPanel>
       <TabsPanel value="timekeeping">
-        {tab === "timekeeping" ? <TimekeepingTab crew={crew} /> : null}
+        {tab === "timekeeping" ? (
+          <div className="space-y-4">
+            <OpenShifts shifts={openShifts} />
+            <PendingApprovals
+              pending={pendingTimekeeping}
+              crew={crew}
+              projects={projects}
+            />
+            <TimekeepingTab crew={crew} />
+          </div>
+        ) : null}
       </TabsPanel>
     </Tabs>
   );

@@ -48,3 +48,6 @@ next-env.d.ts
 
 # turbo
 .turbo
+
+# zalo mini app build output (deployed via zmp-cli, never committed)
+apps/zalo-timekeeping/www/

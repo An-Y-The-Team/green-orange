@@ -1,0 +1,15 @@
+{
+  "app": {
+    "title": "Chấm công",
+    "headerTitle": "Chấm công",
+    "headerColor": "#16a34a",
+    "textColor": "white",
+    "leftButton": "back",
+    "statusBar": "normal",
+    "actionBarHidden": false
+  },
+  "debug": false,
+  "listCSS": ["assets/index.css"],
+  "listSyncJS": ["assets/index.module.js"],
+  "listAsyncJS": []
+}

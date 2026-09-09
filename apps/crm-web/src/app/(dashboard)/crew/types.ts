@@ -3,7 +3,9 @@
 import type {
   CrewMemberStatus,
   EmploymentType,
+  TimekeepingFlag,
   TimekeepingSource,
+  TimekeepingStatus,
 } from "./enums";
 
 /** Vị trí — user-managed name list (DB rows, not an enum). */
@@ -12,7 +14,10 @@ export interface CrewRole {
   name: string;
 }
 
-/** Lightweight project ref the API embeds on assignment includes. */
+/**
+ * Lightweight project ref the API embeds on assignment includes — and on each
+ * GET /timekeeping row, so a timesheet can name its own công trình.
+ */
 export interface ProjectRef {
   id: number;
   code: string;
@@ -57,5 +62,24 @@ export interface TimekeepingRecord {
   work_date: string;
   hours: number;
   source: TimekeepingSource; // manual is source of truth
-  note?: string | null;
+  status: TimekeepingStatus; // only zalo_app rows are ever open/pending/rejected
+  start_time?: string | null; // "HH:mm" — mini-app submissions only
+  end_time?: string | null; // null while status is OPEN (shift in progress)
+  note?: string | null; // the worker's ghi chú
+  // Non-null ⟺ đơn bù công: the worker CLAIMED these times after the fact
+  // instead of clocking them, and this is their lý do. The discriminator the
+  // operator decides on — a stamped shift and a claimed one both arrive pending.
+  remedy_reason?: string | null;
+  flag?: TimekeepingFlag | null; // clocked out past the cap — hours were clamped
+  created_at: string; // full ISO
+  // GET /timekeeping includes both, so a row can name itself without the page
+  // having to hold the whole roster in memory.
+  project?: ProjectRef | null;
+  crew_member?: CrewMemberRef | null;
+}
+
+/** The subset of CrewMember GET /timekeeping embeds in each row. */
+export interface CrewMemberRef {
+  id: number;
+  name: string;
 }

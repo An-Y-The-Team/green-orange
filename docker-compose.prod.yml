@@ -116,8 +116,9 @@ services:
 
   # ── CRM API — NestJS (INTERNAL ONLY) — the production-default backend ───────
   # Same HTTP contract as crm-api, its own `crm_nest` database. No `ports:` block
-  # — reached only on the internal network at http://crm-api-nest:8001. crm-web
-  # points at this by default; switch back to Python by repointing CRM_API_URL to
+  # — crm-web reaches it on the internal network at http://crm-api-nest:8001,
+  # and the Zalo mini app reaches it publicly at CRM_API_DOMAIN (via Caddy).
+  # Switch crm-web back to Python by repointing CRM_API_URL to
   # http://crm-api:8000 below (both stay running). Entrypoint runs
   # `prisma migrate deploy` before starting the server.
   crm-api-nest:
@@ -132,7 +133,14 @@ services:
       AUTH_MODE: oidc
       OIDC_ISSUER: https://${AUTH_DOMAIN}/application/o/green-orange/
       OIDC_AUDIENCE: ${CRM_OIDC_CLIENT_ID}
-      CORS_ORIGINS: https://${CRM_DOMAIN}
+      # h5.zdn.vn = Zalo Mini App webview origin (the Chấm công worker app).
+      CORS_ORIGINS: https://${CRM_DOMAIN},https://h5.zdn.vn
+      # Crew (mini-app worker) JWTs are ALWAYS HS256 with this secret, even in
+      # oidc mode — see src/auth/jwt.guard.ts. Secret lives in Dockhand.
+      JWT_SECRET: ${CRM_JWT_SECRET}
+      # Converts zmp-sdk getPhoneNumber tokens via graph.zalo.me (POST
+      # /auth/zalo-token). From the Zalo Developers console; secret in Dockhand.
+      ZALO_APP_SECRET: ${ZALO_APP_SECRET}
     networks: [internal]
 
   # ── CRM dashboard — Next.js (published at CRM_DOMAIN) ───────────────────────
@@ -240,6 +248,10 @@ services:
       - '3000:3000'
       - '3001:3001'
       - '3002:3002'
+      # CRM API for the Zalo mini app (Zalo-hosted, must reach us over the
+      # internet). Every route is JWT-guarded; worker tokens only unlock
+      # /worker/*. The Python crm-api stays internal-only.
+      - '8001:8001'
       - '8055:8055'
       - '9000:9000'
     environment:
@@ -247,6 +259,7 @@ services:
       SITE_DOMAIN: ${SITE_DOMAIN}
       CMS_DOMAIN: ${CMS_DOMAIN}
       CRM_DOMAIN: ${CRM_DOMAIN}
+      CRM_API_DOMAIN: ${CRM_API_DOMAIN}
       AUTH_DOMAIN: ${AUTH_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:

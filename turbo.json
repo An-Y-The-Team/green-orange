@@ -29,7 +29,9 @@
         "OIDC_ISSUER",
         "OIDC_AUDIENCE",
         "CORS_ORIGINS",
-        "PORT"
+        "PORT",
+        "ZALO_APP_SECRET",
+        "VITE_API_BASE"
       ]
     },
     "test": {
