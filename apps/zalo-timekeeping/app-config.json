@@ -2,7 +2,7 @@
   "app": {
     "title": "Chấm công",
     "headerTitle": "Chấm công",
-    "headerColor": "#16a34a",
+    "headerColor": "#177a3a",
     "textColor": "white",
     "leftButton": "back",
     "statusBar": "normal",

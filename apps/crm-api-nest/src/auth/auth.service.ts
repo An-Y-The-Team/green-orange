@@ -88,7 +88,7 @@ export class AuthService {
     });
     if (!member || member.status === "left") {
       throw new UnauthorizedException(
-        "Số điện thoại chưa được đăng ký với công ty"
+        "Số điện thoại chưa được đăng ký với công ty. Báo văn phòng để được thêm vào danh sách."
       );
     }
 

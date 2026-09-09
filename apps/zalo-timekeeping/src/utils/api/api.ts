@@ -3,6 +3,16 @@ import { getAccessToken, getPhoneNumber } from "zmp-sdk/apis";
 import { API_BASE, TOKEN_STORAGE_KEY } from "../../constants/config";
 import type { CrewMe } from "../../types";
 
+// Every sentence a failure can produce on the worker's phone lives here. A site
+// has patchy signal, so the network path is the most common failure — it must
+// never surface as the browser's English "Failed to fetch".
+export const NETWORK_ERROR_MESSAGE =
+  "Không có mạng. Kiểm tra kết nối rồi thử lại.";
+const GENERIC_ERROR_MESSAGE = "Có lỗi xảy ra, vui lòng thử lại";
+const LOGIN_FAILED_MESSAGE = "Đăng nhập Zalo thất bại, vui lòng thử lại";
+const PHONE_PERMISSION_MESSAGE =
+  "Bạn chưa cho phép Zalo chia sẻ số điện thoại. Bấm đăng nhập lại và chọn Cho phép.";
+
 export class ApiError extends Error {
   status: number;
 
@@ -25,6 +35,34 @@ const errorMessage = (body: unknown, fallback: string): string => {
   return typeof message === "string" && message ? message : fallback;
 };
 
+// The one place fetch is called: a thrown fetch (offline, DNS, CORS) and a
+// non-JSON body both become an ApiError with a Vietnamese message, so callers
+// can show `error.message` to the worker without checking what kind it is.
+async function fetchJson({
+  url,
+  init,
+  fallback,
+}: {
+  url: string;
+  init: RequestInit;
+  fallback: string;
+}): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetch(url, init);
+  } catch {
+    throw new ApiError({ status: 0, message: NETWORK_ERROR_MESSAGE });
+  }
+  const data: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new ApiError({
+      status: response.status,
+      message: errorMessage(data, fallback),
+    });
+  }
+  return data;
+}
+
 /**
  * JSON fetch against the CRM API with the crew Bearer attached. A 401 clears
  * the stored token — the caller's error path routes back to the login screen.
@@ -38,23 +76,24 @@ export async function apiFetch<T>({
   method?: "GET" | "POST";
   body?: unknown;
 }): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${getToken() ?? ""}`,
-      ...(body ? { "Content-Type": "application/json" } : {}),
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-  if (!response.ok) {
-    if (response.status === 401) clearToken();
-    const parsed: unknown = await response.json().catch(() => null);
-    throw new ApiError({
-      status: response.status,
-      message: errorMessage(parsed, "Có lỗi xảy ra, vui lòng thử lại"),
+  try {
+    const data = await fetchJson({
+      url: `${API_BASE}${path}`,
+      init: {
+        method,
+        headers: {
+          Authorization: `Bearer ${getToken() ?? ""}`,
+          ...(body ? { "Content-Type": "application/json" } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      },
+      fallback: GENERIC_ERROR_MESSAGE,
     });
+    return data as T;
+  } catch (caught) {
+    if (caught instanceof ApiError && caught.status === 401) clearToken();
+    throw caught;
   }
-  return (await response.json()) as T;
 }
 
 /**
@@ -63,24 +102,25 @@ export async function apiFetch<T>({
  * this client. 401 messages are shown to the worker verbatim.
  */
 export async function login(): Promise<CrewMe["id"]> {
-  const accessToken = await getAccessToken({});
-  const { token } = await getPhoneNumber({});
-  const response = await fetch(`${API_BASE}/auth/zalo-token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, access_token: accessToken }),
-  });
-  const parsed: unknown = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new ApiError({
-      status: response.status,
-      message: errorMessage(
-        parsed,
-        "Đăng nhập Zalo thất bại, vui lòng thử lại"
-      ),
-    });
+  let accessToken: string;
+  let token: string | undefined;
+  try {
+    accessToken = await getAccessToken({});
+    ({ token } = await getPhoneNumber({}));
+  } catch {
+    // The SDK rejects with its own object when the worker taps "Không cho phép";
+    // its text is not for them — say what to do instead.
+    throw new ApiError({ status: 0, message: PHONE_PERMISSION_MESSAGE });
   }
-  const data = parsed as { access_token: string; crew_member: { id: number } };
+  const data = (await fetchJson({
+    url: `${API_BASE}/auth/zalo-token`,
+    init: {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, access_token: accessToken }),
+    },
+    fallback: LOGIN_FAILED_MESSAGE,
+  })) as { access_token: string; crew_member: { id: number } };
   localStorage.setItem(TOKEN_STORAGE_KEY, data.access_token);
   return data.crew_member.id;
 }

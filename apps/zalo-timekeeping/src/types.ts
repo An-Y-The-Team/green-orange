@@ -49,3 +49,9 @@ export interface OpenShift {
 export interface ShiftResponse {
   shift: OpenShift | null;
 }
+
+/** Opens đơn bù công with the day and công trình of a rejected row filled in. */
+export interface RemedyPrefill {
+  projectId: number;
+  workDate: string;
+}

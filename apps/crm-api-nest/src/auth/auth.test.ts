@@ -678,7 +678,7 @@ describe("AuthService.zaloToken", () => {
     const { auth } = service(ok, []);
     await refused(
       auth.zaloToken("t", "a"),
-      "Số điện thoại chưa được đăng ký với công ty"
+      "Số điện thoại chưa được đăng ký với công ty. Báo văn phòng để được thêm vào danh sách."
     );
   });
 
@@ -686,7 +686,7 @@ describe("AuthService.zaloToken", () => {
     const { auth } = service(ok, [{ ...kim, status: "left" }]);
     await refused(
       auth.zaloToken("t", "a"),
-      "Số điện thoại chưa được đăng ký với công ty"
+      "Số điện thoại chưa được đăng ký với công ty. Báo văn phòng để được thêm vào danh sách."
     );
   });
 

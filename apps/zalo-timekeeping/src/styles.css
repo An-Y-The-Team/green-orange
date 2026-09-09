@@ -1,5 +1,29 @@
-/* Thumb-first, one-column. The Zalo webview provides the app chrome
-   (app-config.json); this only styles the content area. */
+/* Thumb-first, one-column, read outdoors on a mid-range Android. The Zalo
+   webview provides the app chrome (app-config.json); this styles the content.
+
+   Palette is the company's two colours doing the two jobs the app has:
+   green = recorded / working / approved, orange = needs the worker's or the
+   office's attention. Neutrals are green-biased so they read as chosen, not
+   inherited. Single light theme on purpose: Zalo paints the chrome. */
+:root {
+  --green: #177a3a;
+  --green-soft: #e3f2e7;
+  --green-deep: #125e2d;
+  --orange: #b4520c;
+  --orange-soft: #fff0e3;
+  --red: #b3261e;
+  --red-soft: #fde8e6;
+  --blue: #1d4f8a;
+  --blue-soft: #e4eefa;
+  --ink: #16211a;
+  --muted: #566158;
+  --paper: #f5f7f3;
+  --card: #ffffff;
+  --line: #d6ddd6;
+  --radius: 12px;
+  --control: 52px; /* minimum tap height for every control */
+}
+
 * {
   box-sizing: border-box;
 }
@@ -12,36 +36,80 @@ body {
     "Segoe UI",
     Roboto,
     sans-serif;
-  font-size: 16px;
-  color: #1f2937;
-  background: #f9fafb;
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+}
+
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
 }
 
 .page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   max-width: 28rem;
   margin: 0 auto;
-  padding: 16px;
+  padding: 16px 16px 32px;
 }
 
 .screen-message {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   max-width: 28rem;
   margin: 0 auto;
   padding: 48px 24px;
   text-align: center;
 }
 
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+/* The hero of the no-shift screen: what day and roughly what time is about to
+   be recorded. Tabular digits so the clock does not jitter as it ticks. */
+.today {
+  padding: 8px 0;
+  text-align: center;
+}
+
+.today-date {
+  color: var(--muted);
+}
+
+.clock {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Fields ---- */
+
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 14px;
-  font-weight: 500;
+  gap: 6px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.field-label {
+  padding: 0;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .field-row {
@@ -56,50 +124,225 @@ body {
 select,
 input,
 textarea {
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  min-height: var(--control);
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   font: inherit;
   font-weight: 400;
-  background: #fff;
+  color: var(--ink);
+  background: var(--card);
 }
 
-.btn {
-  padding: 12px;
+/* Công trình choice: native radios styled as big tap cards. State is carried
+   by the checked radio itself, colour only echoes it. */
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
   border: none;
-  border-radius: 8px;
-  background: #16a34a;
+}
+
+.project-list legend {
+  margin-bottom: 6px;
+}
+
+.project-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--control);
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-weight: 600;
+}
+
+.project-card:has(:checked) {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.project-card input {
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--green);
+}
+
+/* Tap-to-fill lý do. aria-pressed carries the state; colour echoes it. */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-btn {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.chip-btn[aria-pressed="true"] {
+  border-color: var(--green);
+  background: var(--green-soft);
+  font-weight: 600;
+}
+
+/* ---- Buttons ---- */
+
+.btn {
+  min-height: var(--control);
+  padding: 12px 16px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--green);
   color: #fff;
   font: inherit;
   font-weight: 600;
 }
 
-.btn:disabled {
-  opacity: 0.6;
+.btn:active {
+  background: var(--green-deep);
 }
 
-.btn.ghost {
-  background: transparent;
-  color: #16a34a;
+/* The one thing to tap on the screen. */
+.btn.primary {
+  min-height: 80px;
+  font-size: 22px;
+  font-weight: 700;
 }
+
+.btn:disabled {
+  background: var(--line);
+  color: var(--muted);
+}
+
+/* Secondary actions read as links, so they never compete with the primary. */
+.btn.link {
+  min-height: 44px;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.btn.link:active {
+  background: var(--green-soft);
+}
+
+.btn.link.back {
+  align-self: flex-start;
+  padding-left: 0;
+}
+
+.btn.link.inline {
+  align-self: flex-start;
+  min-height: 40px;
+  margin-top: 4px;
+  padding: 6px 0;
+  font-size: 16px;
+}
+
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 20px;
+  margin-top: 8px;
+}
+
+/* ---- Messages ---- */
 
 .hint {
-  margin: 0;
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .error {
-  margin: 0;
-  font-size: 14px;
-  color: #dc2626;
+  padding: 12px 14px;
+  border: 1px solid var(--red);
+  border-radius: var(--radius);
+  background: var(--red-soft);
+  font-weight: 600;
+  color: var(--red);
 }
 
-.success {
-  margin: 0;
-  font-size: 14px;
-  color: #16a34a;
+/* "It recorded." Shown once at the top of Home after a successful write. */
+.flash {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--green-soft);
+  font-weight: 700;
+  color: var(--green-deep);
 }
+
+/* Not an error — the worker did nothing wrong, but they must act. */
+.warning {
+  padding: 12px 14px;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius);
+  background: var(--orange-soft);
+  font-weight: 600;
+  color: var(--orange);
+}
+
+/* ---- Cards ---- */
+
+/* The shift in progress, the single assigned công trình, and the read-only
+   header of a đơn bù công closing a shift. The stamped time is the hero. */
+.shift-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.stamp {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.shift-project {
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.shift-detail {
+  margin-top: 4px;
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.summary {
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--green-soft);
+}
+
+.summary-main {
+  margin-top: 2px;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- History ---- */
 
 .log-list {
   list-style: none;
@@ -114,85 +357,55 @@ textarea {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.log-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .log-title {
-  margin: 0;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .log-detail {
-  margin: 2px 0 0;
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 16px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .chip {
   flex-shrink: 0;
-  padding: 2px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.chip.pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.chip.approved {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.chip.rejected {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-/* The shift in progress, and the read-only header of a đơn bù công closing it. */
-.shift-card {
-  padding: 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.shift-project {
-  margin: 2px 0 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.shift-detail {
-  margin: 2px 0 0;
-  font-size: 14px;
-  color: #6b7280;
-}
-
-/* Not an error — the worker did nothing wrong, but they must act (đơn bù công). */
-.warning {
-  margin: 0;
-  padding: 10px 12px;
-  border: 1px solid #fcd34d;
-  border-radius: 8px;
-  background: #fffbeb;
-  font-size: 14px;
-  color: #92400e;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .chip.open {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.chip.pending {
+  background: var(--orange-soft);
+  color: var(--orange);
+}
+
+.chip.approved {
+  background: var(--green-soft);
+  color: var(--green-deep);
+}
+
+.chip.rejected {
+  background: var(--red-soft);
+  color: var(--red);
 }

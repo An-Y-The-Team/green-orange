@@ -4,7 +4,8 @@ import { login } from "../../utils/api/api";
 import { invalidate } from "../../utils/query-cache/query-cache";
 
 // getPhoneNumber() must run from a user gesture, so login is a button, not an
-// auto-redirect. The purpose text is required by Zalo Mini App policy 3.3.4.
+// auto-redirect. The purpose text is required by Zalo Mini App policy 3.3.4 —
+// written in plain words, not policy words.
 export function LoginPage({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,20 +30,24 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: () => void }) {
 
   return (
     <div className="screen-message">
-      <h1>Chấm công</h1>
+      <h1 className="page-title">Chấm công</h1>
       <p>
-        Ứng dụng dùng số điện thoại Zalo của bạn để nhận diện nhân sự đã đăng ký
-        với công ty — không dùng cho mục đích nào khác.
+        Ứng dụng cần số điện thoại Zalo của bạn để biết bạn là ai trong công ty.
+        Không dùng vào việc khác.
       </p>
       <button
         type="button"
-        className="btn"
+        className="btn primary"
         disabled={busy}
         onClick={handleLogin}
       >
         {busy ? "Đang đăng nhập…" : "Đăng nhập bằng Zalo"}
       </button>
-      {error ? <p className="error">{error}</p> : null}
+      {error ? (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

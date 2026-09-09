@@ -1,7 +1,8 @@
+import { MAX_SHIFT_HOURS } from "../../constants/timekeeping-flags";
+
 // Display-only mirror of the server's computeShiftHours (worker.module.ts) —
-// the API recomputes and is the source of truth; this only feeds the "≈ X giờ"
+// the API recomputes and is the source of truth; this only feeds the hours
 // preview, so out-of-range pairs return null instead of throwing.
-export const MAX_SHIFT_HOURS = 16;
 
 // Same shape the API's DTO accepts (HH_MM in worker.module.ts) — an empty or
 // half-typed <input type="time"> must read as null, not NaN, or the submit

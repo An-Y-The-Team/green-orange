@@ -7,7 +7,7 @@ The happy path is a stamped clock: pick an assigned công trình, tap **Chấm c
 vào** on arrival and **Chấm công ra** on leaving. The times are stamped by the
 **API**, not by this device — the app sends no time at all, so a wrong or
 tampered phone clock cannot change what is recorded. The device clock is shown
-once as `Bây giờ ~14:32`, purely so the worker knows roughly what they are about
+as a ticking `14:32`, purely so the worker knows roughly what they are about
 to record; after clocking in the screen shows the server's own stamp.
 
 One continuous shift per worker per công trình per day (lunch is inside it), and
@@ -15,7 +15,7 @@ one shift running at a time. A finished shift lands as a **pending**
 `TimekeepingRecord` (`source: zalo_app`) for the operator to duyệt/từ chối on the
 Nhân sự → Chấm công tab.
 
-Typing times by hand is the exception path: **đơn bù công** (`Tôi quên chấm
+Typing times by hand is the exception path: **đơn bù công** (`Báo quên chấm
 công`), which requires a lý do and lands pending for the same review. It is not
 available for a day already clocked in _and_ out — the office corrects those — and
 a giờ vào the server stamped is never overwritten by a claim. Those times

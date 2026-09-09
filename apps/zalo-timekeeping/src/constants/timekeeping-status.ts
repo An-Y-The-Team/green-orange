@@ -14,3 +14,12 @@ export const TIMEKEEPING_STATUS_LABELS: Record<TimekeepingStatus, string> = {
   [TimekeepingStatus.APPROVED]: "Đã duyệt",
   [TimekeepingStatus.REJECTED]: "Từ chối",
 };
+
+// Status is never carried by colour alone (WCAG 1.4.1) — and a glyph reads
+// faster than a word for a worker skimming a month of rows.
+export const TIMEKEEPING_STATUS_GLYPHS: Record<TimekeepingStatus, string> = {
+  [TimekeepingStatus.OPEN]: "●",
+  [TimekeepingStatus.PENDING]: "…",
+  [TimekeepingStatus.APPROVED]: "✓",
+  [TimekeepingStatus.REJECTED]: "✕",
+};
