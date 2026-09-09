@@ -550,7 +550,13 @@ unattended without comment. These two don't:
   migration is recorded as failed — the app is down until it's fixed. Merge the
   duplicates by hand (keep the signed/latest settlement, delete the others with their
   bills), then let the container restart. If Prisma still refuses because of the failed
-  entry: `docker exec <crm-api-nest> npx prisma migrate resolve --rolled-back 20260725010000_settlement_one_per_project`.
+  entry: `docker exec <crm-api-nest> node /app/node_modules/prisma/build/index.js migrate resolve --rolled-back 20260725010000_settlement_one_per_project`.
+  Run the CLI by path, **never** `npx prisma`: npx fetches `latest` when the
+  local binary is missing, and npm's `latest` is now Prisma 8, which rejects this
+  v6 schema with "datasource property `url` is no longer supported". `bunx` is
+  not an option inside this container either — the runtime image is node:22-slim
+  and has no bun. A "Cannot find module" here means the CLI moved in the image;
+  `docker exec <crm-api-nest> ls /app/node_modules/prisma/build` to confirm.
   Pre-flight check (safe to run any time):
 
   ```bash

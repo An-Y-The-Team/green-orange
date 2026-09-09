@@ -131,11 +131,15 @@ services:
     # Seeding here (and ONLY here) keeps that out of prod: this is a `command:`
     # override local to this file, and docker-compose.prod.yml declares none, so
     # prod keeps the migrate-only CMD and cannot inherit the extra step.
-    # `node`, not `bun run seed` — the runtime image is node:22-bookworm-slim.
+    # `node`, not `bun run seed` — the runtime image is node:22-bookworm-slim,
+    # which is also why the migrate step is not `bunx prisma`: there is no bun
+    # here. It resolves the locked 6.x CLI the way `require` would and throws if
+    # it is missing, rather than `npx` quietly fetching Prisma 8 from the network
+    # and running it against a v6 schema. Keep in step with the image's CMD.
     # The seed upserts on stable ids, so every restart converges instead of
     # duplicating.
     command: >
-      sh -c "npx prisma migrate deploy &&
+      sh -c "node \"$$(node -p \"require.resolve('prisma/build/index.js')\")\" migrate deploy &&
              node dist/seed.js &&
              node dist/main"
     environment:

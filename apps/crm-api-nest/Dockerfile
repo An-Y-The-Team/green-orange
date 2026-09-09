@@ -35,4 +35,14 @@ COPY --from=builder /app ./
 WORKDIR /app/apps/crm-api-nest
 EXPOSE 8001
 ENV PORT=8001
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+# Runs the Prisma CLI that `bun install` locked (6.x), resolved the way `require`
+# would — so it works wherever Bun hoisted the package, and THROWS if it is
+# missing from the image.
+#
+# Never `npx prisma`: npx silently falls back to fetching `latest` when the local
+# binary is absent, and npm's `latest` is now Prisma 8. That would apply a
+# major-version-newer CLI to a v6 schema on container start, failing with
+# "datasource property `url` is no longer supported" — a crash loop caused by a
+# network fetch, on a schema nobody touched. Not `bunx` either: this runtime
+# stage is node:22-slim and has no bun (see the base stage above).
+CMD ["sh", "-c", "node \"$(node -p \"require.resolve('prisma/build/index.js')\")\" migrate deploy && node dist/main"]
