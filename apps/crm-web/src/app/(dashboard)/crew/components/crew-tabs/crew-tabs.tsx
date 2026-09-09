@@ -12,6 +12,7 @@ import { useTabParam } from "@/hooks/use-tab-param/use-tab-param";
 
 import type { Project } from "../../../projects/types";
 import type { CrewMember, CrewRole, TimekeepingRecord } from "../../types";
+import { OpenShifts } from "../open-shifts/open-shifts";
 import { PendingApprovals } from "../pending-approvals/pending-approvals";
 import { RolesTab } from "../roles-tab/roles-tab";
 import { RosterTab } from "../roster-tab/roster-tab";
@@ -30,11 +31,13 @@ export function CrewTabs({
   roles,
   projects,
   pendingTimekeeping,
+  openShifts,
 }: {
   crew: CrewMember[];
   roles: CrewRole[];
   projects: Project[];
   pendingTimekeeping: TimekeepingRecord[];
+  openShifts: TimekeepingRecord[];
 }) {
   const [tab, setTab] = useTabParam(TABS, "roster");
 
@@ -60,6 +63,7 @@ export function CrewTabs({
       <TabsPanel value="timekeeping">
         {tab === "timekeeping" ? (
           <div className="space-y-4">
+            <OpenShifts shifts={openShifts} />
             <PendingApprovals
               pending={pendingTimekeeping}
               crew={crew}

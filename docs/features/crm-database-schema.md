@@ -348,29 +348,54 @@ stage-5 worker list are generated from these rows.
 
 ### timekeeping_record
 
-| column         | type             | notes                                                     |
-| -------------- | ---------------- | --------------------------------------------------------- |
-| id             | bigserial PK     |                                                           |
-| crew_member_id | FK → crew_member |                                                           |
-| project_id     | FK → project     |                                                           |
-| work_date      | date             |                                                           |
-| hours          | numeric          | raw hours worked that day                                 |
-| source         | text             | `manual` \| `zalo_app` — manual is source of truth        |
-| status         | text             | `pending` \| `approved` \| `rejected`, default `approved` |
-| start_time     | text null        | `"HH:mm"` — zalo_app rows only                            |
-| end_time       | text null        | `"HH:mm"`, before start = overnight (+24h)                |
-| created_at     | timestamptz      | default now()                                             |
-| note           | text null        |                                                           |
+| column         | type             | notes                                                               |
+| -------------- | ---------------- | ------------------------------------------------------------------- |
+| id             | bigserial PK     |                                                                     |
+| crew_member_id | FK → crew_member |                                                                     |
+| project_id     | FK → project     |                                                                     |
+| work_date      | date             |                                                                     |
+| hours          | numeric          | raw hours worked that day                                           |
+| source         | text             | `manual` \| `zalo_app` — manual is source of truth                  |
+| status         | text             | `open` \| `pending` \| `approved` \| `rejected`, default `approved` |
+| start_time     | text null        | `"HH:mm"` — zalo_app rows only                                      |
+| end_time       | text null        | `"HH:mm"`, null while `open`; before start = overnight              |
+| remedy_reason  | text null        | non-null ⟺ đơn bù công — times claimed, not stamped                 |
+| flag           | text null        | `over_cap` — clock-out past 16h, hours clamped                      |
+| created_at     | timestamptz      | default now()                                                       |
+| note           | text null        | the worker's ghi chú                                                |
 
 Unique `(crew_member_id, project_id, work_date, source)` — a manual row and
 a zalo_app row may coexist for the same day; conflicts resolved in UI.
 
 `status` defaults to `approved`, so manual rows and the operator's
-`POST /timekeeping` upsert behave as they always did; only the Zalo mini app
-(`POST /worker/timekeeping`) writes `pending`, and only `pending` rows can be
-decided (`POST /timekeeping/:id/decide`). Summaries and the weekly grid count
-`approved` hours only. `start_time`/`end_time` are plain text, not `time` — the
-API's serializer would render a `time` column as a 1970 ISO timestamp.
+`POST /timekeeping` upsert behave as they always did. The mini app writes the
+other three:
+
+- **`open`** — clocked in (`POST /worker/clock-in`), not yet out. `hours` is 0
+  and `end_time` null. Counted nowhere and not decidable, so it is inert until
+  closed. One per worker at a time, one per worker+công trình+day.
+- **`pending`** — a finished shift (`POST /worker/clock-out`) or an đơn bù công
+  (`POST /worker/remedy`), awaiting duyệt.
+- **`rejected`** — the worker may resubmit, which returns it to `pending`.
+
+Only `pending` rows can be decided (`POST /timekeeping/:id/decide`); summaries
+and the weekly grid count `approved` hours only.
+
+`start_time`/`end_time` are plain text, not `time` — the API's serializer would
+render a `time` column as a 1970 ISO timestamp.
+
+Both times on a clocked shift are stamped by the **server** in
+`Asia/Ho_Chi_Minh`; the client never sends a time, so a wrong or tampered phone
+clock cannot change what is recorded. A clock-out computes hours from the two
+stamps' full dates, not from the `"HH:mm"` pair, which is the only way to tell an
+8-hour overnight from a shift abandoned for a day — over 16 hours it clamps to 16
+and sets `flag = over_cap`. Nothing sweeps an abandoned shift: it stays `open`
+until the worker closes it, and the operator sees it on Nhân sự → Chấm công and
+(once dated before today) on the dashboard.
+
+`remedy_reason` is the discriminator, not merely a note: a stamped shift and a
+claimed one both arrive `pending`, so it is the only thing telling the operator
+these times were typed after the fact — and it holds the lý do they decide on.
 
 ### attachment
 
@@ -430,7 +455,8 @@ crew role names, quote units) is data, stays Vietnamese as typed.
 | crew_member.employment_type   | permanent / day_hire                            | Chính thức / Thời vụ                          |
 | crew_member.status            | working / on_leave / left                       | Đang làm / Tạm nghỉ / Nghỉ việc               |
 | timekeeping_record.source     | manual / zalo_app                               | Thủ công / Zalo app                           |
-| timekeeping_record.status     | pending / approved / rejected                   | Chờ duyệt / Đã duyệt / Từ chối                |
+| timekeeping_record.status     | open / pending / approved / rejected            | Đang làm / Chờ duyệt / Đã duyệt / Từ chối     |
+| timekeeping_record.flag       | over_cap                                        | Quá 16 giờ                                    |
 
 ## Cost module — sketch only (own design session pending)
 

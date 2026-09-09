@@ -3,6 +3,7 @@
 import type {
   CrewMemberStatus,
   EmploymentType,
+  TimekeepingFlag,
   TimekeepingSource,
   TimekeepingStatus,
 } from "./enums";
@@ -58,9 +59,31 @@ export interface TimekeepingRecord {
   work_date: string;
   hours: number;
   source: TimekeepingSource; // manual is source of truth
-  status: TimekeepingStatus; // only zalo_app rows are ever pending/rejected
+  status: TimekeepingStatus; // only zalo_app rows are ever open/pending/rejected
   start_time?: string | null; // "HH:mm" — mini-app submissions only
-  end_time?: string | null;
-  note?: string | null;
+  end_time?: string | null; // null while status is OPEN (shift in progress)
+  note?: string | null; // the worker's ghi chú
+  // Non-null ⟺ đơn bù công: the worker CLAIMED these times after the fact
+  // instead of clocking them, and this is their lý do. The discriminator the
+  // operator decides on — a stamped shift and a claimed one both arrive pending.
+  remedy_reason?: string | null;
+  flag?: TimekeepingFlag | null; // clocked out past the cap — hours were clamped
   created_at: string; // full ISO
+  // GET /timekeeping includes both, so a row can name itself without the page
+  // having to hold the whole roster in memory.
+  project?: ProjectRef | null;
+  crew_member?: CrewMemberRef | null;
+}
+
+/** The subset of Project GET /timekeeping embeds in each row. */
+export interface ProjectRef {
+  id: number;
+  code: string;
+  name: string;
+}
+
+/** The subset of CrewMember GET /timekeeping embeds in each row. */
+export interface CrewMemberRef {
+  id: number;
+  name: string;
 }

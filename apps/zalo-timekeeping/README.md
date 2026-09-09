@@ -1,11 +1,31 @@
 # @yan/zalo-timekeeping — Zalo Mini App "Chấm công"
 
 Worker time tracking inside Zalo. Login = the worker's Zalo phone number
-(must match a pre-registered `CrewMember.phone` in the CRM); they pick an
-assigned công trình, enter ngày + giờ vào/ra (odd hours, overnight supported),
-and the log lands in the CRM as a **pending** `TimekeepingRecord`
-(`source: zalo_app`) for the operator to duyệt/từ chối on the Nhân sự → Chấm
-công tab.
+(must match a pre-registered `CrewMember.phone` in the CRM).
+
+The happy path is a stamped clock: pick an assigned công trình, tap **Chấm công
+vào** on arrival and **Chấm công ra** on leaving. The times are stamped by the
+**API**, not by this device — the app sends no time at all, so a wrong or
+tampered phone clock cannot change what is recorded. The device clock is shown
+once as `Bây giờ ~14:32`, purely so the worker knows roughly what they are about
+to record; after clocking in the screen shows the server's own stamp.
+
+One continuous shift per worker per công trình per day (lunch is inside it), and
+one shift running at a time. A finished shift lands as a **pending**
+`TimekeepingRecord` (`source: zalo_app`) for the operator to duyệt/từ chối on the
+Nhân sự → Chấm công tab.
+
+Typing times by hand is the exception path: **đơn bù công** (`Tôi quên chấm
+công`), which requires a lý do and lands pending for the same review. Those times
+are _claimed_, so the row carries `remedy_reason` — the only thing that tells the
+operator a pending row was not stamped.
+
+Nothing sweeps a shift the worker abandoned. It stays open at 0 giờ (counted
+nowhere) until they act: clocking out late is accepted but clamped to 16 giờ and
+flagged `over_cap`, and once the shift is a day old the app hides Chấm công ra
+and routes them to đơn bù công with the real stamped giờ vào fixed — only the giờ
+ra is theirs to claim. Meanwhile the operator sees it under Đang làm, and on the
+dashboard once it is dated before today.
 
 A plain Vite + React app following Zalo's "convert web app to mini app" guide
 (relative `base`, `.module.js` chunk names, `app-config.json`, output in

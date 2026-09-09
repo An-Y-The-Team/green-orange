@@ -440,10 +440,16 @@ model TimekeepingRecord {
   work_date      DateTime @db.Date
   hours          Decimal // raw hours worked that day
   source         String // manual | zalo_app — manual is source of truth
-  status         String   @default("approved") // pending | approved | rejected — manual rows are born approved
+  // open = clocked in, not yet out (hours 0 until clock-out); manual rows are born approved
+  status         String   @default("approved") // open | pending | approved | rejected
   start_time     String? // "HH:mm", zalo_app rows only (String, not @db.Time: interceptor would emit 1970 ISO)
-  end_time       String? // "HH:mm"; end <= start means overnight (+24h)
-  note           String?
+  end_time       String? // "HH:mm"; null while status=open. end <= start means overnight (+24h)
+  note           String? // the worker's ghi chú
+  // Non-null ⟺ the times were CLAIMED after the fact (đơn bù công), not stamped by the
+  // server — the discriminator the operator needs, since clocked and claimed rows are
+  // both pending. Holds the worker's lý do.
+  remedy_reason  String?
+  flag           String? // "over_cap" — clock-out past MAX_SHIFT_HOURS, clamped and flagged
   created_at     DateTime @default(now())
 
   crew_member CrewMember @relation(fields: [crew_member_id], references: [id])

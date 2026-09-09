@@ -1048,6 +1048,60 @@ export const TIMEKEEPING: Seeded<Prisma.TimekeepingRecordUncheckedCreateInput>[]
       start_time: "07:30",
       end_time: "16:30",
     },
+    // A shift running right now: member 1 is the local mini-app login, so the
+    // app opens on "Đang làm … Chấm công ra". hours 0 until clock-out, and
+    // `open` is counted nowhere, so this changes no summary total.
+    {
+      id: 7,
+      crew_member_id: 1,
+      project_id: 2,
+      work_date: day(0),
+      hours: 0,
+      source: "zalo_app",
+      status: "open",
+      start_time: "07:30",
+    },
+    // Forgot to clock out two days ago — feeds the Đang làm card's stale row and
+    // the dashboard's "Đang làm quá hạn" block. Nothing sweeps it; it waits for
+    // the worker.
+    {
+      id: 8,
+      crew_member_id: 2,
+      project_id: 2,
+      work_date: day(-2),
+      hours: 0,
+      source: "zalo_app",
+      status: "open",
+      start_time: "08:00",
+    },
+    // Đơn bù công — times CLAIMED, not stamped, hence remedy_reason. Feeds the
+    // approvals card's Đơn bù công badge and its lý do line.
+    {
+      id: 9,
+      crew_member_id: 2,
+      project_id: 2,
+      work_date: day(-3),
+      hours: 8.5,
+      source: "zalo_app",
+      status: "pending",
+      start_time: "07:30",
+      end_time: "16:00",
+      remedy_reason: "Quên chấm công vào, tổ trưởng xác nhận có mặt cả ngày.",
+    },
+    // Clocked out a day late: the real span was over MAX_SHIFT_HOURS, so the
+    // hours are clamped to the cap and flagged for the operator to question.
+    {
+      id: 10,
+      crew_member_id: 2,
+      project_id: 2,
+      work_date: day(-4),
+      hours: 16,
+      source: "zalo_app",
+      status: "pending",
+      start_time: "07:30",
+      end_time: "06:00",
+      flag: "over_cap",
+    },
   ];
 
 // Metadata only — no upload. s3_key doubles as the display filename.

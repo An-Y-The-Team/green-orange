@@ -33,13 +33,11 @@ import {
   loadProjectAssignments,
   loadProjectTimekeeping,
 } from "../../actions/timekeeping";
-import {
-  CrewMemberStatus,
-  TimekeepingSource,
-  TimekeepingStatus,
-} from "../../enums";
+import { CrewMemberStatus } from "../../enums";
 import type { CrewMember, TimekeepingRecord } from "../../types";
 import { TimekeepingCell } from "./components/timekeeping-cell/timekeeping-cell";
+import { cellFor } from "./utils/cell-for/cell-for";
+import { hoursFor } from "./utils/hours-for/hours-for";
 
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
@@ -129,30 +127,17 @@ export function TimekeepingTab({ crew }: { crew: CrewMember[] }) {
   const dropRecord = (id: number) =>
     setRecords((prev) => prev.filter((r) => r.id !== id));
 
-  // Manual wins over a zalo_app row for the same member+day — it never sums,
-  // matching the backend's timekeepingSummary.
-  const cellFor = (memberId: number, date: string) => {
-    const cell = records.filter(
-      (r) => r.crew_member_id === memberId && r.work_date === date
-    );
-    return {
-      manual: cell.find((r) => r.source === TimekeepingSource.MANUAL),
-      zalo: cell.find((r) => r.source === TimekeepingSource.ZALO_APP),
-    };
-  };
-  // A lone zalo row only counts once duyệt — pending/rejected submissions are
-  // claims, not công (mirrors the server's summary rule).
-  const hoursFor = (memberId: number, date: string) => {
-    const { manual, zalo } = cellFor(memberId, date);
-    const zaloHours =
-      zalo?.status === TimekeepingStatus.APPROVED ? zalo.hours : 0;
-    return manual?.hours ?? zaloHours;
-  };
+  // Both pickers are pure and shared with their tests — see
+  // utils/hours-for/hours-for.test.ts for the rules they encode.
+  const cellOf = (memberId: number, date: string) =>
+    cellFor({ records, memberId, date });
+  const hoursOf = (memberId: number, date: string) =>
+    hoursFor({ records, memberId, date });
 
   const dayTotal = (date: string) =>
-    rows.reduce((sum, m) => sum + hoursFor(m.id, date), 0);
+    rows.reduce((sum, m) => sum + hoursOf(m.id, date), 0);
   const rowTotal = (memberId: number) =>
-    days.reduce((sum, d) => sum + hoursFor(memberId, d), 0);
+    days.reduce((sum, d) => sum + hoursOf(memberId, d), 0);
   const weekTotal = days.reduce((sum, d) => sum + dayTotal(d), 0);
 
   return (
@@ -269,7 +254,7 @@ export function TimekeepingTab({ crew }: { crew: CrewMember[] }) {
                       <TableRow key={m.id}>
                         <TableCell className="font-medium">{m.name}</TableCell>
                         {days.map((d, i) => {
-                          const { manual, zalo } = cellFor(m.id, d);
+                          const { manual, zalo } = cellOf(m.id, d);
                           return (
                             <TimekeepingCell
                               // Keyed on the WINDOW, not the record: a save must

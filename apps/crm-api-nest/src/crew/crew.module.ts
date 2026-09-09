@@ -53,6 +53,9 @@ export const TIMEKEEPING_SOURCE_ZALO = "zalo_app";
 const TIMEKEEPING_SOURCE = [TIMEKEEPING_SOURCE_MANUAL, TIMEKEEPING_SOURCE_ZALO];
 // Rows are born approved (manual entry by the operator IS the approval);
 // only the mini-app ingest writes "pending", and only "pending" can be decided.
+// "open" is a shift clocked in but not yet out: hours 0, not decidable, counted
+// nowhere until clock-out flips it to pending.
+export const TIMEKEEPING_STATUS_OPEN = "open";
 export const TIMEKEEPING_STATUS_PENDING = "pending";
 export const TIMEKEEPING_STATUS_APPROVED = "approved";
 export const TIMEKEEPING_STATUS_REJECTED = "rejected";
@@ -544,6 +547,14 @@ export class TimekeepingController {
       res,
       this.prisma.timekeepingRecord.findMany({
         where,
+        // Same shape GET /worker/timekeeping returns. The approvals and Đang làm
+        // cards name a member and a công trình per row; without this they can
+        // only resolve names against whatever list the page happened to load,
+        // and fall back to "Nhân sự #7" for anyone outside that window.
+        include: {
+          project: { select: { id: true, code: true, name: true } },
+          crew_member: { select: { id: true, name: true } },
+        },
         // Several members share a work_date — id breaks the tie.
         orderBy: [{ work_date: "desc" }, { id: "desc" }],
         ...pageArgs(page),

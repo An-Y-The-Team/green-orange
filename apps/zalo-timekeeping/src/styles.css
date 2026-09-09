@@ -154,3 +154,45 @@ textarea {
   background: #fee2e2;
   color: #991b1b;
 }
+
+.page-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* The shift in progress, and the read-only header of a đơn bù công closing it. */
+.shift-card {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.shift-project {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.shift-detail {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Not an error — the worker did nothing wrong, but they must act (đơn bù công). */
+.warning {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  background: #fffbeb;
+  font-size: 14px;
+  color: #92400e;
+}
+
+.chip.open {
+  background: #dbeafe;
+  color: #1e40af;
+}

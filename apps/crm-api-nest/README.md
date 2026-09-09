@@ -159,12 +159,32 @@ other route rejects them. A worker sees exactly their own rows.
 
 - `GET /worker/me`, `GET /worker/projects` — projects they're assigned to today,
   excluding closed ones.
-- `POST /worker/timekeeping` — `{project_id, work_date, start_time, end_time,
-note?}`. Refuses a day they aren't assigned to (403), a locked project (409)
-  and a shift over 16h (400); `end_time` at-or-before `start_time` is an
-  overnight shift (+24h). Upserts as `pending`; an already-`approved` row is
-  locked (409), pending/rejected rows are overwritable so a rejected day can be
-  resubmitted. Errors are Vietnamese — the app shows them verbatim.
+- `GET /worker/shift` — `{shift: {...} | null}`, always an envelope: a bare
+  `null` is an empty 200 body the app cannot parse. `stale` means the shift
+  started on an earlier business day, i.e. they forgot to chấm công ra.
+- `POST /worker/clock-in` — `{project_id}`, and no time: the **server** stamps
+  `start_time` in `Asia/Ho_Chi_Minh`, so a wrong or tampered phone clock cannot
+  change what is recorded. Writes `hours: 0`, `status: open`. Refuses a day they
+  aren't assigned to (403), a locked project (409), a shift already running even
+  on another công trình (409), and a second clock-in the same day (409, pointing
+  at đơn bù công).
+- `POST /worker/clock-out` — no body; the open shift is found by the token.
+  Hours come from the two stamps' **full dates**, not the `"HH:mm"` pair — that
+  is what distinguishes an 8-hour overnight from a shift abandoned for a day.
+  Past 16h the hours clamp to 16 and `flag` becomes `over_cap`. `work_date` is
+  never recomputed: a 01:00 clock-out belongs to the day it started, and moving
+  it would move the row off its composite key. Flips the row to `pending`.
+  Retrying after a lost response returns today's already-closed row, not a 404.
+- `POST /worker/remedy` — đơn bù công: `{project_id, work_date, start_time,
+end_time, reason, note?}` with `reason` required. The CLAIMED-times path, so
+  hours come from the pair (`end_time` at-or-before `start_time` is overnight,
+  +24h) and a span over 16h is a 400. Upserts as `pending` with `remedy_reason`
+  set — the discriminator that tells the operator these times were typed, not
+  stamped. Refuses an unassigned day (403) and a locked project (409); an
+  already-`approved` row is locked (409), pending/rejected rows are overwritable
+  so a rejected day can be resubmitted. Closing an `open` shift keeps the
+  server's `start_time` — only the giờ ra is the worker's to claim.
+  Errors are Vietnamese — the app shows them verbatim.
 - `GET /worker/timekeeping` (`?from&to`, 31-day default window).
 
 ### Auth & health

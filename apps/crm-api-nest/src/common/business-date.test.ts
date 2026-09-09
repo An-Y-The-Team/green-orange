@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   businessDateString,
   businessDayRange,
+  businessTimeString,
   businessToday,
 } from "./business-date";
 
@@ -60,5 +61,34 @@ describe("businessDayRange (filtering a timestamp by a local date)", () => {
   test("the range is exactly 24 hours, half-open", () => {
     const { gte, lt } = businessDayRange("2026-01-01");
     expect(lt.getTime() - gte.getTime()).toBe(24 * 60 * 60 * 1000);
+  });
+});
+
+// businessTimeString is the server's clock-in/out stamp. The bug this guards: reading
+// the hour in UTC (or with hourCycle h24) put a 00:30 ICT stamp at "17:30" the previous
+// day, or wrote "24:30" — which the HH_MM validator on the way back in rejects.
+describe("businessTimeString (the stamp for a clock-in/out)", () => {
+  test("reads the wall clock in Vietnam, not UTC", () => {
+    // 07:30 ICT is 00:30Z the same day.
+    expect(businessTimeString(new Date("2026-07-29T00:30:00.000Z"))).toBe(
+      "07:30"
+    );
+  });
+
+  test("just after midnight ICT is 00:mm, never 24:mm", () => {
+    // 00:30 on the 29th in Vietnam is 17:30Z on the 28th.
+    const justAfterMidnight = new Date("2026-07-28T17:30:00.000Z");
+    expect(businessTimeString(justAfterMidnight)).toBe("00:30");
+    // …and it belongs to the 29th, so a shift stamped here is dated correctly.
+    expect(businessDateString(justAfterMidnight)).toBe("2026-07-29");
+  });
+
+  test("always two-digit, so it satisfies the HH_MM validator", () => {
+    expect(businessTimeString(new Date("2026-07-29T02:05:00.000Z"))).toBe(
+      "09:05"
+    );
+    expect(businessTimeString(new Date("2026-07-29T16:00:00.000Z"))).toBe(
+      "23:00"
+    );
   });
 });

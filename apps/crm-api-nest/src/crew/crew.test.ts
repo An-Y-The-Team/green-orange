@@ -170,6 +170,16 @@ describe("timekeepingSummary (manual wins over zalo_app)", () => {
     expect(summary.total_hours).toBe(8);
   });
 
+  // A shift still running has hours 0 and status "open", so the groupBy's
+  // `status: approved` filter never returns it. This asserts the filter is what
+  // reaches Postgres — if it were dropped, an in-progress shift would start
+  // contributing 0-hour days to recorded_days and inflate the count.
+  test("the groupBy only ever asks Postgres for approved rows", async () => {
+    const { prisma, calls } = fakeTimekeeping([]);
+    await timekeepingSummary(prisma, 42);
+    expect(calls[0]?.where).toEqual({ project_id: 42, status: "approved" });
+  });
+
   // A lone zalo_app row is what the grid shows read-only — it is real work.
   test("a lone zalo_app row counts in full", async () => {
     const summary = await summarize([
@@ -253,6 +263,15 @@ describe("POST /timekeeping/:id/decide", () => {
   // Manual rows are born approved, so this same guard covers them.
   test("a rejected row cannot be flipped by decide (worker resubmits instead)", async () => {
     await expect(decide({ status: "rejected" }, "approved")).rejects.toThrow(
+      /only pending records/
+    );
+  });
+
+  // A shift still running has no end time and no hours — approving it would
+  // bank a day that has not finished. The pending-only guard covers it, which is
+  // why the Đang làm card has no Duyệt button.
+  test("a shift still open cannot be decided", async () => {
+    await expect(decide({ status: "open" }, "approved")).rejects.toThrow(
       /only pending records/
     );
   });
