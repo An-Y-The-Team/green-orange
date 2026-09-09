@@ -80,6 +80,23 @@ def test_send_freezes_the_version_and_decide_stamps_the_date(
     assert decided.json()["decided_date"] is not None
 
 
+def test_project_detail_carries_the_send_logs(client: TestClient, project: dict):
+    """The stage-2 panel prints "Gửi: Zalo …" from the nested quote.
+
+    ProjectDetail.quotes used to be a columns-only shape, so `send_logs` was
+    absent from the payload (not empty) and the panel rendered a bare "Gửi:"
+    label. Mirrored by projects.test.ts in crm-api-nest.
+    """
+    quote = make_quote(client, project["id"])
+    client.post(
+        f"/quotes/{quote['id']}/send", json={"channel": "zalo", "sent_by": "admin"}
+    )
+
+    nested = client.get(f"/projects/{project['id']}").json()["quotes"][0]
+    assert [log["channel"] for log in nested["send_logs"]] == ["zalo"]
+    assert nested["send_logs"][0]["sent_at"]
+
+
 def test_revise_opens_a_new_version_and_supersedes_the_old_one(
     client: TestClient, project: dict
 ):

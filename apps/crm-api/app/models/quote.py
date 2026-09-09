@@ -167,6 +167,18 @@ class QuoteBasic(SQLModel):
     rep_title: str | None
 
 
+class QuoteInProject(QuoteBasic):
+    """A quote nested in GET /projects/{id}.
+
+    Carries the send logs so the stage-2 panel can print the "Gửi: Zalo
+    08/09 · Email 09/09" history. Without them the panel rendered a bare
+    "Gửi:" label with nothing after it, because the field was absent rather
+    than empty. Mirrors the NestJS project include (projects.module.ts).
+    """
+
+    send_logs: list[QuoteSendLogPublic]
+
+
 class QuotePublic(QuoteBasic):
     project: ProjectRef | None
 

@@ -268,3 +268,26 @@ describe("GET /projects/summary (pipeline rollup)", () => {
     expect(out.reduce((sum, r) => sum + r.deal_total, 0)).toBe(0);
   });
 });
+
+describe("project detail — nested quotes carry their send logs", () => {
+  // The stage-2 panel prints "Gửi: Zalo 08/09" off project.quotes[].send_logs.
+  // Prisma omits a relation that isn't included, so dropping the include makes
+  // the field absent rather than empty and the panel renders a bare "Gửi:"
+  // label. Mirrored by test_quotes.py::test_project_detail_carries_the_send_logs.
+  test("the detail include selects send_logs", async () => {
+    let args: any;
+    const prisma = {
+      project: {
+        findUnique: async (a: any) => {
+          args = a;
+          return { id: 1, quotes: [] };
+        },
+      },
+    } as unknown as PrismaService;
+
+    await new ProjectsController(prisma).get(1);
+
+    expect(args.include.quotes.include.send_logs).toBeDefined();
+    expect(args.include.quotes.orderBy).toEqual({ version: "desc" });
+  });
+});

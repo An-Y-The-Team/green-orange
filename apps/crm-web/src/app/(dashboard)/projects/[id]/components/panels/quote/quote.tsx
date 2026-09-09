@@ -25,7 +25,7 @@ import {
   type QuoteDecision as QuoteDecisionStatus,
   QuoteStatus,
 } from "@/app/(dashboard)/quotes/enums";
-import type { Quote } from "@/app/(dashboard)/quotes/types";
+import type { Quote, QuoteSendLog } from "@/app/(dashboard)/quotes/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { EmptyState } from "@/components/empty-state/empty-state";
 import {
@@ -36,24 +36,86 @@ import {
 } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
+import { formatTime } from "@/utils/format-time/format-time";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import type { Project } from "../../../../types";
 import { StageCard } from "../../stage-card/stage-card";
 
+/**
+ * When and how this version reached the client, written by POST /quotes/:id/send.
+ *
+ * Only the newest send shows inline, with its date and clock time. The line
+ * used to concatenate every one of them, so a quote chased four times wrapped
+ * across the card and buried the actions under it; the earlier sends — with
+ * who sent each one, and where to chase the reply — live one click away.
+ *
+ * The dialog link appears from the second send on. A single send has no
+ * history to browse, so the link would open a dialog restating the line.
+ *
+ * The guard tests the array itself, not `length === 0`: `send_logs` can be
+ * absent rather than empty (an older payload, a shape that doesn't select it),
+ * and `undefined === 0` is false — which is exactly how this rendered a bare
+ * "Gửi:" label with nothing after it.
+ */
 function SendHistory({ quote }: { quote: Quote }) {
-  if (quote.send_logs?.length === 0) return null;
+  const [open, setOpen] = useState(false);
+  const logs = quote.send_logs ?? [];
+  if (logs.length === 0) return null;
+
+  // Both backends order the logs by id ascending (quotes.module.ts /
+  // Quote.send_logs), so the newest send is the last row.
+  const latest = logs[logs.length - 1];
+  const channelOf = (l: QuoteSendLog) => QUOTE_CHANNELS[l.channel] ?? l.channel;
+
   return (
-    <p className="text-xs text-muted-foreground">
-      Gửi:{" "}
-      {quote.send_logs
-        ?.map(
-          (l) =>
-            `${QUOTE_CHANNELS[l.channel] ?? l.channel} ${formatDate(l.sent_at)}`
-        )
-        .join(" · ")}
-    </p>
+    <div className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+      <span>
+        Gửi: {channelOf(latest)} {formatDate(latest.sent_at)}{" "}
+        {formatTime(latest.sent_at)}
+      </span>
+      {/* Inside running text, so a link rather than a box — and only from the
+          second send on, when there is actually a history to open. */}
+      {logs.length > 1 ? (
+        <Button variant="link" size="xs" onClick={() => setOpen(true)}>
+          Lịch sử gửi ({logs.length})
+        </Button>
+      ) : null}
+
+      {/* Read-only detail, not an edit form — a dialog is the right shape. */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lịch sử gửi · v{quote.version}</DialogTitle>
+          </DialogHeader>
+          <ul className="space-y-3 text-sm">
+            {/* Newest first: the last chase is what the operator is acting on. */}
+            {[...logs].reverse().map((l) => (
+              <li key={l.id} className="space-y-0.5">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="tabular-nums">
+                    {formatDate(l.sent_at)} {formatTime(l.sent_at)}
+                  </span>
+                  <Badge variant="outline">{channelOf(l)}</Badge>
+                  <span className="text-muted-foreground">{l.sent_by}</span>
+                </span>
+                {l.follow_up_ref ? (
+                  <span className="block text-xs text-muted-foreground">
+                    {l.follow_up_ref}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              {ACTIONS.close}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 

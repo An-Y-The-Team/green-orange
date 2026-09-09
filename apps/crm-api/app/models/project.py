@@ -22,7 +22,7 @@ from app.models.client import (
     utcnow,
 )
 from app.models.paperwork import PaperworkItem, PaperworkItemPublic
-from app.models.quote import Quote, QuoteBasic
+from app.models.quote import Quote, QuoteInProject
 from app.models.refs import ContactRef
 
 PROJECT_STATUSES = ("active", "on_hold", "cancelled")
@@ -325,7 +325,7 @@ class ProjectDetail(ProjectWithRelations):
     working_contact: ContactPublic | None
     decision_maker: ContactPublic | None
     paperwork_items: list[PaperworkItemPublic]
-    quotes: list[QuoteBasic]
+    quotes: list[QuoteInProject]
     notes: list[ProjectNotePublic]
 
 

@@ -347,7 +347,13 @@ export class ProjectsController {
         working_contact: true,
         decision_maker: true,
         paperwork_items: true,
-        quotes: { orderBy: { version: "desc" } },
+        // send_logs so the stage-2 panel can print the "Gửi: Zalo 08/09" history
+        // (crm-api ProjectDetail.quotes carries the same shape). Omitting them
+        // rendered a bare "Gửi:" label: the field was absent, not empty.
+        quotes: {
+          orderBy: { version: "desc" },
+          include: { send_logs: { orderBy: { id: "asc" } } },
+        },
         notes: { orderBy: { created_at: "desc" } },
       },
     });
