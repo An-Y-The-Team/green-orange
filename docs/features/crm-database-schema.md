@@ -375,8 +375,11 @@ other three:
   and `end_time` null. Counted nowhere and not decidable, so it is inert until
   closed. One per worker at a time, one per worker+công trình+day.
 - **`pending`** — a finished shift (`POST /worker/clock-out`) or an đơn bù công
-  (`POST /worker/remedy`), awaiting duyệt.
-- **`rejected`** — the worker may resubmit, which returns it to `pending`.
+  (`POST /worker/remedy`), awaiting duyệt. A **stamped** one (clocked in _and_ out,
+  `remedy_reason` null) is not remediable: the mini app is refused with a 409 and
+  the office corrects it via the manual row in the weekly grid.
+- **`rejected`** — the worker may resubmit, which returns it to `pending`. Their
+  claimed times apply, but a start the server stamped still survives.
 
 Only `pending` rows can be decided (`POST /timekeeping/:id/decide`); summaries
 and the weekly grid count `approved` hours only.
@@ -395,7 +398,20 @@ until the worker closes it, and the operator sees it on Nhân sự → Chấm c�
 
 `remedy_reason` is the discriminator, not merely a note: a stamped shift and a
 claimed one both arrive `pending`, so it is the only thing telling the operator
-these times were typed after the fact — and it holds the lý do they decide on.
+these times were typed after the fact — and it holds the lý do they decide on. It
+is also what makes a row's times the worker's to edit: a `start_time` the server
+stamped is preserved through every remedy, so the guarantee above holds even after
+an operator rejects a shift and the worker resubmits.
+
+Closing an already-open shift never consults the project's stage. A công trình
+closed mid-shift would otherwise leave the worker unable to clock out, unable to
+remedy, and — because the one-shift-at-a-time rule is global — unable to log time
+on any other project either.
+
+The correction path for a stamped shift is the operator's manual row in the
+Chấm công grid, so that cell must stay writable; the input there is the **manual
+override field** (empty means no override) and the chip beside it describes the
+Zalo row.
 
 ### attachment
 

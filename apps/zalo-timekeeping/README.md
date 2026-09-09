@@ -16,7 +16,9 @@ one shift running at a time. A finished shift lands as a **pending**
 Nhân sự → Chấm công tab.
 
 Typing times by hand is the exception path: **đơn bù công** (`Tôi quên chấm
-công`), which requires a lý do and lands pending for the same review. Those times
+công`), which requires a lý do and lands pending for the same review. It is not
+available for a day already clocked in _and_ out — the office corrects those — and
+a giờ vào the server stamped is never overwritten by a claim. Those times
 are _claimed_, so the row carries `remedy_reason` — the only thing that tells the
 operator a pending row was not stamped.
 

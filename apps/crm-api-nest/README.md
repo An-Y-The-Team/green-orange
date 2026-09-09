@@ -175,8 +175,14 @@ other route rejects them. A worker sees exactly their own rows.
   never recomputed: a 01:00 clock-out belongs to the day it started, and moving
   it would move the row off its composite key. Flips the row to `pending`.
   Retrying after a lost response returns today's already-closed row, not a 404.
+  Deliberately does **not** check the project's stage: a công trình closed
+  mid-shift must not leave the worker unable to close the shift.
 - `POST /worker/remedy` — đơn bù công: `{project_id, work_date, start_time,
-end_time, reason, note?}` with `reason` required. The CLAIMED-times path, so
+end_time, reason, note?}` with `reason` required. **Refused (409) for a shift
+  already clocked in AND out** while it is still `pending` — that one is the
+  office's to correct, not the worker's — and a `start_time` the server stamped
+  survives every remedy, so rejecting a shift does not make its stamps editable.
+  The CLAIMED-times path, so
   hours come from the pair (`end_time` at-or-before `start_time` is overnight,
   +24h) and a span over 16h is a 400. Upserts as `pending` with `remedy_reason`
   set — the discriminator that tells the operator these times were typed, not

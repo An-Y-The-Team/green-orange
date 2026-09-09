@@ -11,8 +11,11 @@
 //   • one shift at a time per worker, and one shift per công trình per day;
 //   • a remedy closing an open shift may claim the END only — the server's
 //     start stamp is not the worker's to rewrite;
-//   • a worker can only log days an assignment covers (403), and an approved day
-//     is locked against resubmission (409) while pending/rejected reset to pending.
+//   • a worker can only log days an assignment covers (403); an approved day AND a
+//     fully-stamped shift are both locked (409), while a rejected row and a
+//     previous remedy reset to pending;
+//   • a project closed mid-shift must not trap the worker — closing an already
+//     open shift never consults the project's stage.
 import { describe, expect, test } from "bun:test";
 
 import type { PrismaService } from "../prisma/prisma.service";
@@ -20,6 +23,7 @@ import {
   clockIn,
   clockOut,
   computeShiftHours,
+  isStampedShift,
   stampedShiftHours,
   submitRemedy,
 } from "./worker.module";
@@ -103,12 +107,60 @@ describe("stampedShiftHours (two server stamps)", () => {
   });
 });
 
+// The one condition three code paths must agree on: the remedy guard, clock-in's
+// message, and clock-out's lost-response retry. If they ever drift, a worker is
+// told to use a path that refuses them.
+describe("isStampedShift", () => {
+  const shift = (over: Record<string, unknown> = {}) => ({
+    status: "pending",
+    remedy_reason: null,
+    end_time: "16:30",
+    ...over,
+  });
+
+  test("a completed, undecided clock-in/clock-out is stamped", () => {
+    expect(isStampedShift(shift())).toBe(true);
+  });
+
+  test("a shift still open is not (no end yet)", () => {
+    expect(isStampedShift(shift({ status: "open", end_time: null }))).toBe(
+      false
+    );
+  });
+
+  test("a claimed row is not, however complete", () => {
+    expect(isStampedShift(shift({ remedy_reason: "Quên chấm công" }))).toBe(
+      false
+    );
+  });
+
+  test("a decided row is not — approved and rejected have their own rules", () => {
+    expect(isStampedShift(shift({ status: "approved" }))).toBe(false);
+    expect(isStampedShift(shift({ status: "rejected" }))).toBe(false);
+  });
+
+  // The reason it is `!remedy_reason` and not `=== null`: Prisma returns null but
+  // a partial fixture returns undefined, and `=== null` would make every guard
+  // built on this silently inert in exactly the tests meant to prove it.
+  test("an absent remedy_reason counts as unclaimed whether null or undefined", () => {
+    expect(isStampedShift({ status: "pending", end_time: "16:30" })).toBe(true);
+  });
+});
+
 // One shared fixture: worker 1 is assigned to project 2 for days -10…+10
 // around 2026-08-05, the project is open, and one zalo_app row already exists
 // per scenario's `existing`.
 const day = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 
-const fake = (existing: { status: string; start_time?: string } | null) => {
+type Row = {
+  status: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  remedy_reason?: string | null;
+  flag?: string | null;
+};
+
+const fake = (existing: Row | null) => {
   const upserts: unknown[] = [];
   const prisma = {
     assignment: {
@@ -215,15 +267,77 @@ describe("submitRemedy (đơn bù công)", () => {
     expect(args.update.hours).toBe(9.5); // 07:30 → 17:00, not 11 from 06:00
   });
 
-  test("a resubmission clears a previous over-cap flag", async () => {
-    const { prisma, upserts } = fake({ status: "pending" });
+  // over_cap is only ever set by clockOut, i.e. on a stamped row — which is now
+  // refused while it is still pending. A REJECTED one is the only path where the
+  // flag can legitimately be cleared: the operator has already seen it and
+  // pushed back, so the worker's explanation supersedes the marker.
+  test("resubmitting a rejected over-cap shift clears the flag", async () => {
+    const { prisma, upserts } = fake({
+      status: "rejected",
+      start_time: "07:30",
+      end_time: "06:00",
+      remedy_reason: null,
+      flag: "over_cap",
+    });
+    await submitRemedy(prisma, 1, dto({ end_time: "17:00" }) as never);
+    const [args] = upserts as [{ update: Record<string, unknown> }];
+    expect(args.update.flag).toBeNull();
+  });
+
+  // The hole the OPEN-only rule left: an operator rejecting a stamped shift let
+  // the resubmission rewrite BOTH stamps, so "the server owns the clock" was
+  // still false via one click.
+  test("a rejected shift's server-stamped start survives resubmission", async () => {
+    const { prisma, upserts } = fake({
+      status: "rejected",
+      start_time: "07:30",
+      end_time: "16:30",
+      remedy_reason: null,
+    });
+    // The worker claims an earlier start than they actually clocked.
     await submitRemedy(
       prisma,
       1,
-      dto({ start_time: "07:30", end_time: "17:00" }) as never
+      dto({ start_time: "06:00", end_time: "17:00" }) as never
     );
     const [args] = upserts as [{ update: Record<string, unknown> }];
-    expect(args.update.flag).toBeNull();
+    expect(args.update.start_time).toBe("07:30");
+    expect(args.update.hours).toBe(9.5); // 07:30→17:00, not 11 from 06:00
+  });
+
+  // A fully-clocked shift is not the worker's to revise. Without this they could
+  // replace both stamps with a claim and null an over_cap flag — deleting the
+  // prompt that tells the operator to question the hours.
+  test("a fully-stamped shift is refused — 409, no write", async () => {
+    const { prisma, upserts } = fake({
+      status: "pending",
+      start_time: "08:00",
+      end_time: "12:00",
+      remedy_reason: null,
+    });
+    await expect(submitRemedy(prisma, 1, dto() as never)).rejects.toThrow(
+      /đã chấm công vào\/ra/
+    );
+    expect(upserts).toHaveLength(0);
+  });
+
+  // …but a worker may still correct their OWN previous claim.
+  test("a previous remedy is correctable", async () => {
+    const { prisma, upserts } = fake({
+      status: "pending",
+      start_time: "08:00",
+      end_time: "12:00",
+      remedy_reason: "Quên chấm công",
+    });
+    await submitRemedy(
+      prisma,
+      1,
+      dto({ start_time: "07:00", end_time: "16:00" }) as never
+    );
+    expect(upserts).toHaveLength(1);
+    const [args] = upserts as [{ update: Record<string, unknown> }];
+    // Its times were claimed, not stamped, so the correction takes effect.
+    expect(args.update.start_time).toBe("07:00");
   });
 });
 
@@ -285,6 +399,35 @@ describe("clockIn", () => {
     });
     await expect(clockIn(prisma, 1, 2)).rejects.toThrow(/đơn bù công/);
     expect(writes).toHaveLength(0);
+  });
+
+  // The advice must match what đơn bù công will actually accept. A stamped shift
+  // is refused there, so the old blanket "dùng đơn bù công" sent the worker
+  // through the whole form — date, times, a 5-char lý do — to be turned away.
+  test("today's stamped shift points at the office, not at đơn bù công", async () => {
+    const { prisma } = clockFake({
+      today: {
+        id: 6,
+        status: "pending",
+        start_time: "07:30",
+        end_time: "16:30",
+        remedy_reason: null,
+      },
+    });
+    await expect(clockIn(prisma, 1, 2)).rejects.toThrow(/liên hệ văn phòng/);
+  });
+
+  // …while a rejected row or a previous remedy genuinely is remediable.
+  test("today's rejected row still points at đơn bù công", async () => {
+    const { prisma } = clockFake({
+      today: {
+        id: 6,
+        status: "rejected",
+        start_time: "07:30",
+        end_time: "16:30",
+      },
+    });
+    await expect(clockIn(prisma, 1, 2)).rejects.toThrow(/đơn bù công/);
   });
 
   test("an unassigned worker is a 403 before anything is read or written", async () => {
@@ -356,6 +499,41 @@ describe("clockOut", () => {
     const data = writes[0]?.args.data as Record<string, unknown>;
     expect(Number(data.hours)).toBe(16);
     expect(data.flag).toBe("over_cap");
+  });
+
+  // A project closed mid-shift used to 409 here, and because clock-in's guard is
+  // global the worker then could not log time on ANY project. Closing a shift the
+  // server opened records what happened; it does not edit the công trình.
+  test("a closed project does not block closing an open shift", async () => {
+    const writes: { op: string; args: Record<string, unknown> }[] = [];
+    const prisma = {
+      project: {
+        findUnique: async () => {
+          throw new Error("clock-out must not consult the project's stage");
+        },
+      },
+      timekeepingRecord: {
+        findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+          where.status === "open"
+            ? {
+                id: 7,
+                project_id: 2,
+                status: "open",
+                work_date: day("2026-08-05"),
+                start_time: "07:30",
+              }
+            : null,
+        update: async (args: Record<string, unknown>) => {
+          writes.push({ op: "update", args });
+          return { id: 7, ...(args.data as object) };
+        },
+      },
+    } as unknown as PrismaService;
+    await clockOut(prisma, 1);
+    expect(writes).toHaveLength(1);
+    expect((writes[0]?.args.data as Record<string, unknown>).status).toBe(
+      "pending"
+    );
   });
 
   test("with no shift at all it is a 404", async () => {

@@ -460,6 +460,12 @@ model TimekeepingRecord {
   // crew_member_id leads the @@unique above, so only project_id needs its own.
   // work_date trails it to serve the from/to range + `orderBy work_date desc`.
   @@index([project_id, work_date])
+  // The operator's Đang làm / Chờ duyệt cards and the dashboard's overdue panel
+  // all filter on status with NO project_id, so neither index above applies and
+  // the table (one row per member per work day per source — the fastest-growing
+  // one here) was seq-scanned on every /crew and /dashboard render, both of which
+  // are force-dynamic. work_date trails status to serve their `orderBy` too.
+  @@index([status, work_date])
 }
 
 model Attachment {

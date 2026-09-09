@@ -14,7 +14,10 @@ export interface CrewRole {
   name: string;
 }
 
-/** Lightweight project ref the API embeds on assignment includes. */
+/**
+ * Lightweight project ref the API embeds on assignment includes — and on each
+ * GET /timekeeping row, so a timesheet can name its own công trình.
+ */
 export interface ProjectRef {
   id: number;
   code: string;
@@ -73,13 +76,6 @@ export interface TimekeepingRecord {
   // having to hold the whole roster in memory.
   project?: ProjectRef | null;
   crew_member?: CrewMemberRef | null;
-}
-
-/** The subset of Project GET /timekeeping embeds in each row. */
-export interface ProjectRef {
-  id: number;
-  code: string;
-  name: string;
 }
 
 /** The subset of CrewMember GET /timekeeping embeds in each row. */

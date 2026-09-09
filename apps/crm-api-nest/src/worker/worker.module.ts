@@ -116,6 +116,32 @@ export const computeShiftHours = (start: string, end: string): number => {
 // and they have to decide on it. Extracted so the DTO and its test agree.
 export const MIN_REMEDY_REASON_LENGTH = 5;
 
+// Vietnamese, because a 409 from a worker route reaches a worker's phone
+// verbatim — the shared default in project-lock.ts tells them to reopen a stage
+// only the office can touch.
+const PROJECT_CLOSED_MESSAGE =
+  "Công trình đã đóng, liên hệ văn phòng nếu cần chấm công cho ngày này";
+
+/**
+ * A shift the SERVER stamped at both ends and nobody has decided yet — i.e. a
+ * completed clock-in/clock-out. Exported for the unit test.
+ *
+ * The one condition, in one place. It decides three things that must agree:
+ * whether a remedy may touch the row at all, what clock-in says when today is
+ * already recorded, and which row a lost-response clock-out retry may return.
+ * `!remedy_reason` rather than `=== null` on purpose — Prisma returns null but a
+ * partial test fixture returns undefined, and `=== null` would make the guard
+ * silently inert under exactly the fixtures it is tested with.
+ */
+export const isStampedShift = (row: {
+  status: string;
+  remedy_reason?: string | null;
+  end_time?: string | null;
+}): boolean =>
+  row.status === TIMEKEEPING_STATUS_PENDING &&
+  !row.remedy_reason &&
+  Boolean(row.end_time);
+
 class ClockInDto {
   @IsInt() project_id: number;
 }
@@ -137,13 +163,17 @@ class RemedyDto {
  * The whole remedy path, exported for the unit test (fake-prisma pattern):
  * 1. an Assignment must cover work_date — being on the roster is not enough,
  *    the worker must be phân công on that project that day (403 otherwise);
- * 2. the project must be open (409 via assertProjectOpen);
+ * 2. the project must be open (409), EXCEPT when closing a shift that is already
+ *    open — otherwise a project closed mid-shift traps the worker completely;
  * 3. hours come from the start/end pair, never from the client;
- * 4. an OPEN row's start_time was stamped by the server, so a remedy closing it
- *    may only claim the end — the stamp is not the worker's to rewrite;
- * 5. upsert on the same 4-col key as POST /timekeeping: pending and rejected
- *    rows are overwritten back to pending (resubmission after rejection), an
- *    approved day is locked (409) — chỉ văn phòng sửa được công đã duyệt.
+ * 4. a server-stamped start survives any remedy: it is preserved whenever the
+ *    row's own times were not themselves claimed, so the stamp is never the
+ *    worker's to rewrite;
+ * 5. a fully-stamped shift (clocked in AND out, undecided) is refused outright —
+ *    the office corrects those in the grid;
+ * 6. upsert on the same 4-col key as POST /timekeeping: a rejected row and a
+ *    previous remedy are overwritten back to pending (resubmission), an approved
+ *    day is locked (409) — chỉ văn phòng sửa được công đã duyệt.
  */
 export const submitRemedy = async (
   prisma: PrismaService,
@@ -166,8 +196,6 @@ export const submitRemedy = async (
     );
   }
 
-  await assertProjectOpen(prisma, dto.project_id);
-
   const key = {
     crew_member_id: crewMemberId,
     project_id: dto.project_id,
@@ -177,14 +205,38 @@ export const submitRemedy = async (
   const existing = await prisma.timekeepingRecord.findUnique({
     where: { crew_member_id_project_id_work_date_source: key },
   });
+
+  // Read the row BEFORE the project lock: closing a shift the server already
+  // opened is not editing the công trình, and a project closed mid-shift used to
+  // leave the worker unable to clock out, unable to remedy, and — because the
+  // clock-in guard is global — unable to log time on any other project either.
+  if (existing?.status !== TIMEKEEPING_STATUS_OPEN) {
+    await assertProjectOpen(prisma, dto.project_id, PROJECT_CLOSED_MESSAGE);
+  }
+
   if (existing?.status === TIMEKEEPING_STATUS_APPROVED) {
     throw new ConflictException("Công đã được duyệt, liên hệ văn phòng để sửa");
   }
 
-  // Closing an open shift keeps the server's stamp; only a day with no clock-in
-  // at all takes the claimed start.
+  // A shift the server stamped at both ends is not the worker's to revise.
+  // Without this, "Tôi quên chấm công" could replace both stamps with claimed
+  // times and clear an over_cap flag — deleting the very prompt that tells the
+  // operator to question the hours. The office corrects these in the grid.
+  if (existing && isStampedShift(existing)) {
+    throw new ConflictException(
+      "Ca này đã chấm công vào/ra, liên hệ văn phòng nếu cần sửa"
+    );
+  }
+
+  // A stamp survives every remedy: preserved whenever the row's times were not
+  // themselves claimed. Keying this on status === OPEN (as it first did) left a
+  // hole — an operator rejecting a stamped shift let the resubmission rewrite
+  // both stamps, so the times were still mutable via one click.
+  // ponytail: two successive remedies can still rewrite a start, since remedy #1
+  // sets remedy_reason and #2 then sees a claimed row. Closing that needs a
+  // create-only rule for start_time or a separate column — do it if it matters.
   const startTime =
-    existing?.status === TIMEKEEPING_STATUS_OPEN && existing.start_time
+    existing?.start_time && !existing.remedy_reason
       ? existing.start_time
       : dto.start_time;
   const hours = computeShiftHours(startTime, dto.end_time);
@@ -238,7 +290,7 @@ export const clockIn = async (
     );
   }
 
-  await assertProjectOpen(prisma, projectId);
+  await assertProjectOpen(prisma, projectId, PROJECT_CLOSED_MESSAGE);
 
   const open = await prisma.timekeepingRecord.findFirst({
     where: { crew_member_id: crewMemberId, status: TIMEKEEPING_STATUS_OPEN },
@@ -259,9 +311,14 @@ export const clockIn = async (
     where: { crew_member_id_project_id_work_date_source: key },
   });
   // One continuous shift per worker per công trình per day: lunch is inside it.
+  // The advice has to match what đơn bù công will actually accept — a stamped
+  // shift is refused there, so pointing at it would send the worker through the
+  // whole form to be turned away.
   if (existing) {
     throw new ConflictException(
-      "Đã chấm công hôm nay — dùng đơn bù công nếu cần sửa"
+      isStampedShift(existing)
+        ? `Đã chấm công hôm nay (${existing.start_time}–${existing.end_time}), liên hệ văn phòng nếu cần sửa`
+        : "Đã chấm công hôm nay — dùng đơn bù công nếu cần sửa"
     );
   }
 
@@ -294,6 +351,8 @@ export const clockOut = async (prisma: PrismaService, crewMemberId: number) => {
     // A lost response on a site connection makes the worker tap again. If today's
     // shift is already closed, that retry succeeded the first time — reporting an
     // error would send them to the office over a network blip.
+    // The same row shape isStampedShift() describes, expressed as a query —
+    // today's completed, server-stamped, undecided shift.
     const closed = await prisma.timekeepingRecord.findFirst({
       where: {
         crew_member_id: crewMemberId,
@@ -301,13 +360,16 @@ export const clockOut = async (prisma: PrismaService, crewMemberId: number) => {
         work_date: businessToday(),
         status: TIMEKEEPING_STATUS_PENDING,
         remedy_reason: null,
+        end_time: { not: null },
       },
     });
     if (closed) return closed;
     throw new NotFoundException("Bạn chưa chấm công vào");
   }
 
-  await assertProjectOpen(prisma, open.project_id);
+  // Deliberately NO assertProjectOpen here: a project closed while this shift
+  // was open must not trap the worker. Closing a shift the server itself opened
+  // records what already happened; it does not edit the công trình.
 
   const now = new Date();
   const { hours, flag } = stampedShiftHours({

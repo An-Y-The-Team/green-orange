@@ -9,6 +9,11 @@ import { verify } from "@node-rs/argon2";
 import { normalizePhone } from "../common/phone";
 import { PrismaService } from "../prisma/prisma.service";
 
+// Matches the house pattern in crm-web's utils/http/http.ts (a named constant +
+// AbortSignal.timeout). Shorter than that 30s budget: a worker is standing on
+// site waiting for a login, and Zalo answers in well under a second normally.
+const ZALO_FETCH_TIMEOUT_MS = 5_000;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -61,6 +66,12 @@ export class AuthService {
           code: token,
           secret_key: secret,
         },
+        // Bounded, because this route is @Public() and now internet-reachable:
+        // without it each request holds an outbound connection to Zalo for as
+        // long as Zalo takes, so a loop exhausts sockets here and hammers Zalo
+        // with our app secret attached. The catch below already turns a failure
+        // into the right Vietnamese 401 — it simply never fired.
+        signal: AbortSignal.timeout(ZALO_FETCH_TIMEOUT_MS),
       });
       if (!res.ok) throw failed;
       const body = (await res.json()) as { data?: { number?: string } };
