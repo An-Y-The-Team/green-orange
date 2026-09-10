@@ -125,7 +125,7 @@ export function QuoteList() {
                   <TableHead>{FIELDS.project}</TableHead>
                   <TableHead>{FIELDS.client}</TableHead>
                   <SortableTableHeader
-                    label="Tổng (trước VAT)"
+                    label="Tổng (sau VAT)"
                     sortKey="grand_total"
                     sortBy={params.sortBy}
                     sortOrder={params.sortOrder}

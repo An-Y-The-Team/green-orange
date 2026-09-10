@@ -130,8 +130,23 @@ def test_grand_total_is_after_vat_and_sortable(client: TestClient):
     low = make_quote(client, vat_rate=0.0)
     high = make_quote(client, vat_rate=0.1)
     assert low["grand_total"] == low["total_amount"]
-    assert high["grand_total"] == round(high["total_amount"] * 1.1)
+    assert high["grand_total"] == high["total_amount"] + high["total_amount"] // 10
     res = client.get("/quotes", params={"sort_by": "grand_total", "sort_order": "desc"})
     assert res.status_code == 200, res.text
     ids = [q["id"] for q in res.json()]
     assert ids.index(high["id"]) < ids.index(low["id"])
+
+
+def test_grand_total_rounds_vat_half_up_like_the_screens(client: TestClient):
+    """6.000.005 × 10% = 600.000,5 → 600.001, as `Math.round` prints it. The
+    Postgres expression rounds in NUMERIC for the same reason: round(double
+    precision) goes to even there and would store one đồng less."""
+    from app.models.quote import Quote
+
+    quote = make_quote(
+        client,
+        items=[{"description": "Trọn gói", "quantity": 1, "unit_price": 6_000_005}],
+        vat_rate=0.1,
+    )
+    assert quote["grand_total"] == 6_600_006
+    assert "AS NUMERIC" in Quote.__table__.c.grand_total.computed.sqltext.text

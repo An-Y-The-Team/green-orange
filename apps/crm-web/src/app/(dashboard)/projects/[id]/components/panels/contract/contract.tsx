@@ -44,6 +44,7 @@ import {
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
+import { storedTotals } from "@/utils/quote-totals/quote-totals";
 import { todayISO } from "@/utils/today-iso/today-iso";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
@@ -112,7 +113,8 @@ export function ContractPanel({
               dealQuote ? (
                 <span className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground">
-                    v{dealQuote.version} · {formatVND(dealQuote.total_amount)}
+                    v{dealQuote.version} ·{" "}
+                    {formatVND(storedTotals(dealQuote).total)}
                   </span>
                   <Badge variant={dealBadge?.variant}>{dealBadge?.label}</Badge>
                 </span>
