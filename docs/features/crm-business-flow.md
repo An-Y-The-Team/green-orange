@@ -147,6 +147,14 @@ Default checklist (the most common requirements):
    rarely waived.
 3. **Danh sách nhân sự** (worker list).
 4. **Danh sách thiết bị** (equipment list).
+5. **Hợp đồng** (signed contract copy, submitted alongside the permit file).
+6. **Đề nghị thanh toán** (payment request).
+7. **Biên bản nghiệm thu khối lượng** (quantity acceptance minutes).
+8. **Biên bản quyết toán** (settlement minutes).
+
+Items 5–8 are later-stage documents seeded up front so the checklist is the
+single place to track the whole paper trail; the stage-4 gate is soft, so they
+do not block Thi công while unapproved (added 2026-09-10).
 
 - Entry: cọc received (stage 3 done) — though paperwork may have started in
   parallel (sent along with the contract).

@@ -25,6 +25,10 @@ DEFAULT_PAPERWORK = (
     "PCCC",
     "Danh sách nhân sự",
     "Danh sách thiết bị",
+    "Hợp đồng",
+    "Đề nghị thanh toán",
+    "Biên bản nghiệm thu khối lượng",
+    "Biên bản quyết toán",
 )
 
 

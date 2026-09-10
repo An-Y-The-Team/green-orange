@@ -95,7 +95,7 @@ def create_paperwork_item(
 def seed_defaults(
     session: SessionDep, payload: PaperworkSeedDefaults
 ) -> list[PaperworkItem]:
-    """Seed the four default checklist items, skipping names the project already
+    """Seed the default checklist items, skipping names the project already
     has, and answer with the project's full list."""
     assert_project_open(session, payload.project_id)
     existing = {

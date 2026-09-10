@@ -310,7 +310,7 @@ model ContractTemplate {
 model PaperworkItem {
   id         Int       @id @default(autoincrement())
   project_id Int
-  name       String // user-facing Vietnamese; seeded: Giấy phép thi công, PCCC, Danh sách nhân sự, Danh sách thiết bị
+  name       String // user-facing Vietnamese; seeded with the 8 DEFAULT_PAPERWORK names (see paperwork.module.ts)
   status     String    @default("preparing") // preparing | submitted | approved
   due_date   DateTime? @db.Date // permits have lead times; overdue is DERIVED (due_date < today && != approved), never stored
   note       String?

@@ -231,12 +231,12 @@ Multiple contracts on one Công Trình happen in practice.
 | ---------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
 | id         | bigserial PK |                                                                                                                                  |
 | project_id | FK → project |                                                                                                                                  |
-| name       | text         | user-facing, stays Vietnamese: seeded with Giấy phép thi công, PCCC, Danh sách nhân sự, Danh sách thiết bị; freely added/removed |
+| name       | text         | user-facing, stays Vietnamese: seeded with the 8 `DEFAULT_PAPERWORK` names (crm-business-flow §4); freely added/removed                |
 | status     | text         | `preparing` \| `submitted` \| `approved`                                                                                         |
 | due_date   | date null    | permits have lead times; overdue DERIVED (`due_date < today && != approved`), never stored (2026-07-23 UI deltas)                |
 | note       | text null    |                                                                                                                                  |
 
-The 4 default items are **auto-created with the project** (2026-07-23 UI
+The 8 default items are **auto-created with the project** (2026-07-23 UI
 deltas); `POST /paperwork-items/defaults` stays as a re-seed.
 
 ### settlement (Quyết toán) — **0..1 per project** (1:1, 2026-07-25)

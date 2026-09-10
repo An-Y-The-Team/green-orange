@@ -390,7 +390,7 @@ parking chore.
 
 ```text
 ┌ GIAI ĐOẠN 4 · CHUẨN BỊ HỒ SƠ ──────────────────┐
-│ Hồ sơ (2/4 đã duyệt)                [+ Thêm mục]│
+│ Hồ sơ (2/8 đã duyệt)                [+ Thêm mục]│
 │                                                 │
 │ Giấy phép thi công   ●──●──●  Đã duyệt          │
 │ PCCC · hạn 30/07     ●──●──○  Đã nộp   [Duyệt]  │
@@ -402,7 +402,7 @@ parking chore.
 
 - Rows: name, one-way single-tap status stepper (`Chưa xong → Đã nộp →
 Đã duyệt`), expandable note + attachment (metadata). ✕ deletes.
-- **Auto-seeded**: the 4 default items are created automatically with the
+- **Auto-seeded**: the 8 default items are created automatically with the
   project (backend delta — was a manual button). Zero-paperwork jobs just
   delete them (or ignore: gate is vacuous with zero items — "Không cần
   hồ sơ").
@@ -561,7 +561,7 @@ owning its bill and that bill's milestones:
 | Project        | `referral_source String?`                                                                                                                                                                                            | 1          |
 | Project        | `survey_items Json?` — `{name, quantity, unit, note}[]` (scratch input for quote prefill; JSON, not a table — never queried across projects)                                                                         | 1          |
 | PaperworkItem  | `due_date DateTime? @db.Date` — overdue derived, never stored                                                                                                                                                        | 4          |
-| (behavior)     | `POST /projects` auto-creates the 4 default paperwork items (replaces the manual `/paperwork-items/defaults` call; endpoint can stay for re-seeding)                                                                 | 4          |
+| (behavior)     | `POST /projects` auto-creates the 8 default paperwork items (replaces the manual `/paperwork-items/defaults` call; endpoint can stay for re-seeding)                                                                 | 4          |
 | (behavior)     | `execution_sub_status`: allow `kickoff → works` directly (Dựng rào skippable) — verify current PATCH validation permits it                                                                                           | 5          |
 | Project        | `acceptance_passed_date DateTime? @db.Date` — stamped on sub-status → `passed`                                                                                                                                       | 6          |
 | SettlementItem | new table mirroring QuoteItem (`settlement_id`, `description`, `unit`, `quantity`, `unit_price`, `amount`, `sort_order`) — prefilled from quote items, quantities adjusted to actuals; server computes amounts/total | 7          |

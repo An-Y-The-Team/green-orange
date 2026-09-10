@@ -120,7 +120,7 @@ Business codes (`CT-…` projects, `HD-…` contracts) are server-assigned.
 
 - `GET|POST /paperwork-items`, `GET|PATCH|DELETE /paperwork-items/:id` —
   status `preparing | submitted | approved`.
-- `POST /paperwork-items/defaults` — seeds the four default checklist items
+- `POST /paperwork-items/defaults` — seeds the default checklist items
   for a project, skipping ones it already has.
 
 ### Receivables (`src/receivables/`)

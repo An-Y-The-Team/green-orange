@@ -725,7 +725,7 @@ const CONTRACTS: Seeded<Prisma.ContractUncheckedCreateInput>[] = [
   },
 ];
 
-// Stage-4 checklist for CT-2026-006 — the 4 auto-seeded defaults. "PCCC" is
+// Stage-4 checklist for CT-2026-006 — the 8 auto-seeded defaults. "PCCC" is
 // submitted with a past due_date: the derived overdue badge and the dashboard's
 // "Hồ sơ quá hạn" panel (GET /paperwork-items?overdue=true) both hang off it.
 export const PAPERWORK: Seeded<Prisma.PaperworkItemUncheckedCreateInput>[] = [
@@ -753,6 +753,15 @@ export const PAPERWORK: Seeded<Prisma.PaperworkItemUncheckedCreateInput>[] = [
     due_date: day(6),
     note: "Chờ hợp đồng thuê xe nâng",
   },
+  { id: 5, project_id: 6, name: "Hợp đồng", status: "preparing" },
+  { id: 6, project_id: 6, name: "Đề nghị thanh toán", status: "preparing" },
+  {
+    id: 7,
+    project_id: 6,
+    name: "Biên bản nghiệm thu khối lượng",
+    status: "preparing",
+  },
+  { id: 8, project_id: 6, name: "Biên bản quyết toán", status: "preparing" },
 ];
 
 export const SETTLEMENTS: Seeded<Prisma.SettlementUncheckedCreateInput>[] = [
