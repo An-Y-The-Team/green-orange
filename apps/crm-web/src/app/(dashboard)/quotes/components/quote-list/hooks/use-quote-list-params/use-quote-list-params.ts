@@ -16,6 +16,7 @@ export const QUOTE_SORT_KEYS = [
   "id",
   "version",
   "total_amount",
+  "grand_total",
   "decided_date",
 ] as const;
 export type QuoteSortKey = (typeof QUOTE_SORT_KEYS)[number];

@@ -167,15 +167,16 @@ unique pair — a project carries 1..n type tags.
 
 ### quote (Báo giá)
 
-| column       | type         | notes                                         |
-| ------------ | ------------ | --------------------------------------------- |
-| id           | bigserial PK |                                               |
-| project_id   | FK → project |                                               |
-| version      | int          | 1, 2, … — bargaining = new row                |
-| status       | text         | `draft` `waiting` `deal` `on_hold` `rejected` |
-| total_amount | bigint       | VND                                           |
-| decided_date | date null    | deal/on_hold/rejected date                    |
-| note         | text null    |                                               |
+| column       | type         | notes                                                                   |
+| ------------ | ------------ | ----------------------------------------------------------------------- |
+| id           | bigserial PK |                                                                         |
+| project_id   | FK → project |                                                                         |
+| version      | int          | 1, 2, … — bargaining = new row                                          |
+| status       | text         | `draft` `waiting` `deal` `on_hold` `rejected`                           |
+| total_amount | bigint       | VND                                                                     |
+| grand_total  | bigint       | generated: total_amount + round(total_amount × vat_rate); list sort key |
+| decided_date | date null    | deal/on_hold/rejected date                                              |
+| note         | text null    |                                                                         |
 
 - Unique `(project_id, version)`.
 - Sent versions are never edited; **latest version carries the live

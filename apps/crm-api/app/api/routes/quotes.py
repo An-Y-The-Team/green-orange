@@ -128,7 +128,8 @@ def list_quotes(
     status_: Annotated[str | None, Query(alias="status")] = None,
     search: Annotated[str | None, Query(max_length=300)] = None,
     sort_by: Annotated[
-        Literal["id", "version", "total_amount", "decided_date"] | None, Query()
+        Literal["id", "version", "total_amount", "grand_total", "decided_date"] | None,
+        Query(),
     ] = None,
     sort_order: Annotated[Literal["asc", "desc"] | None, Query()] = None,
 ) -> list[Any]:
@@ -159,6 +160,7 @@ def list_quotes(
                     "id": Quote.id,
                     "version": Quote.version,
                     "total_amount": Quote.total_amount,
+                    "grand_total": Quote.grand_total,
                     "decided_date": Quote.decided_date,
                 },
                 sort_by,

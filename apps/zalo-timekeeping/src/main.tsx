@@ -1,6 +1,6 @@
 import "./styles.css";
-import "dayjs/locale/vi";
 import dayjs from "dayjs";
+import "dayjs/locale/vi";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./app";

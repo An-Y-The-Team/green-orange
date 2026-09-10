@@ -43,6 +43,7 @@ import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 import { labelOf } from "@/utils/label-of/label-of";
+import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
 import type { Assignment, CrewMember, CrewRole } from "../../../../crew/types";
 import { MilestoneStatus } from "../../../../receivables/enums";
@@ -174,7 +175,7 @@ function QuotesTab({ project }: { project: Project }) {
               <span className="font-medium">
                 {project.code} · v{q.version}
               </span>
-              <span>{formatVND(q.total_amount)}</span>
+              <span>{formatVND(storedTotals(q).total)}</span>
               <Badge variant={badge.variant}>{badge.label}</Badge>
             </Link>
           </li>

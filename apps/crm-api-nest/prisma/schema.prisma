@@ -184,6 +184,15 @@ model Quote {
   status       String    @default("draft") // draft | waiting | deal | on_hold | rejected — latest version carries live status
   total_amount BigInt // VND
   vat_rate     Float     @default(0.08) // kept from v1 (printable A4 shows VAT)
+  /// Σ items + VAT — the figure every screen prints — maintained by Postgres as
+  /// a STORED GENERATED column (migration 20260912000000_quote_grand_total) so
+  /// GET /quotes?sort_by=grand_total pages by what the user sees. NEVER write
+  /// it — Postgres rejects that; nullable here only so `create` may omit it,
+  /// the column itself is NOT NULL. Same trap as `name_norm`: regenerating this
+  /// table from schema.prisma alone (`db push`) would create it as a plain
+  /// column and it would silently stop updating; the expression lives in that
+  /// migration.
+  grand_total  BigInt?
   decided_date DateTime? @db.Date
   note         String?
   // Signature footer (per-quote signer); falls back to the company

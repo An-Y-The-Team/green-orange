@@ -33,6 +33,7 @@ import { useRowNavigation } from "@/hooks/use-row-navigation/use-row-navigation"
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
+import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
 import { QuoteStatus } from "../../enums";
 import type { QuoteListRow } from "../../types";
@@ -124,8 +125,8 @@ export function QuoteList() {
                   <TableHead>{FIELDS.project}</TableHead>
                   <TableHead>{FIELDS.client}</TableHead>
                   <SortableTableHeader
-                    label="Tổng (trước VAT)"
-                    sortKey="total_amount"
+                    label="Tổng (sau VAT)"
+                    sortKey="grand_total"
                     sortBy={params.sortBy}
                     sortOrder={params.sortOrder}
                     onSort={onSort}
@@ -209,7 +210,7 @@ export function QuoteList() {
                           {quote?.project?.client?.name ?? "—"}
                         </TableCell>
                         <TableCell className="text-right">
-                          {formatVND(quote.total_amount)}
+                          {formatVND(storedTotals(quote).total)}
                         </TableCell>
                         <TableCell>
                           <Badge variant={badge.variant}>{badge.label}</Badge>

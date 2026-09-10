@@ -14,6 +14,7 @@ import { QuoteStatus } from "@/app/(dashboard)/quotes/enums";
 import { listQuotes } from "@/app/(dashboard)/quotes/queries";
 import { EmptyState } from "@/components/empty-state/empty-state";
 import { MAX_PAGE_SIZE } from "@/constants/pagination";
+import { storedTotals } from "@/utils/quote-totals/quote-totals";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { FieldAppointmentCard } from "../components/field-appointment-card/field-appointment-card";
@@ -100,7 +101,7 @@ export default async function FieldPage() {
                 projectId={project?.id}
                 code={project?.code}
                 version={quote?.version}
-                total={quote?.total_amount}
+                total={storedTotals(quote).total}
               />
             ))
           )}

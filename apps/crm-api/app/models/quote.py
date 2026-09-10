@@ -8,7 +8,7 @@ Bargaining is versioned: a sent version is frozen and a revision is a new row
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Literal, Optional
 
-from sqlalchemy import BigInteger, DateTime, UniqueConstraint
+from sqlalchemy import BigInteger, Column, Computed, DateTime, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.client import utcnow
@@ -42,6 +42,25 @@ class Quote(SQLModel, table=True):
     status: str = Field(default="draft", index=True)
     total_amount: int = Field(sa_type=BigInteger)  # VND
     vat_rate: float = 0.08
+    # Σ items + VAT — the figure every screen prints — as a STORED generated
+    # column so GET /quotes?sort_by=grand_total pages by what the user sees.
+    # Mirrors crm-api-nest migration 20260912000000_quote_grand_total and the
+    # Alembic revision e5f3c2d41b76 (create_all only serves the SQLite tests).
+    # Ties round half up like `Math.round` in crm-web: Postgres round() on double
+    # precision goes to even, so the product is rounded as NUMERIC. SQLite's
+    # round() is already half away from zero.
+    grand_total: int | None = Field(
+        default=None,
+        sa_column=Column(
+            BigInteger,
+            Computed(
+                "CAST(total_amount + round(CAST(total_amount * vat_rate AS NUMERIC))"
+                " AS BIGINT)",
+                persisted=True,
+            ),
+            nullable=False,
+        ),
+    )
     decided_date: date | None = None
     note: str | None = None
     # Per-quote signer; unset falls back to the company representative.
@@ -160,6 +179,7 @@ class QuoteBasic(SQLModel):
     version: int
     status: str
     total_amount: int
+    grand_total: int
     vat_rate: float
     decided_date: date | None
     note: str | None
