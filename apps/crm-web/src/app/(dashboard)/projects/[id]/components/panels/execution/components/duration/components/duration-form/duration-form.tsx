@@ -129,6 +129,19 @@ export function DurationForm({
     startTransition(() => formAction({ [field]: n }));
   };
 
+  // End date is the same field seen from the other side: it is stored as
+  // `est_duration_days`, so picking a date writes back a day count. Both sides
+  // are plain `YYYY-MM-DD`, so the UTC-midnight diff is an exact whole number.
+  const handleEstEndChange = (value: string) => {
+    if (!value || !start) return;
+    const days = Math.round(
+      (new Date(value).getTime() - new Date(start).getTime()) / 86_400_000
+    );
+    if (days < 0) return;
+    setEst(String(days));
+    commitInt(DurationField.ESTIMATED)(String(days));
+  };
+
   // Start date — mirrors it locally and patches immediately. Clearing the field
   // only empties the input; no patch is sent (same guard as commitInt).
   const handleStartDateChange = (value: string) => {
@@ -177,11 +190,21 @@ export function DurationForm({
           />
         </div>
         {fieldStatus(DurationField.ESTIMATED)}
-        {estEnd ? (
-          <span className="flex items-center gap-2 pb-1.5 text-muted-foreground">
-            → {formatDate(estEnd)}
-            {late ? <Badge variant={OVERDUE_LABEL.variant}>⚠ trễ</Badge> : null}
-          </span>
+        <div className="space-y-1.5">
+          <Label htmlFor="est-end">Kết thúc (dự kiến)</Label>
+          <DateInput
+            id="est-end"
+            value={estEnd ?? ""}
+            // Needs a start date to turn into a day count.
+            disabled={!start || busyField === DurationField.ESTIMATED}
+            className="h-8 w-auto"
+            onChange={handleEstEndChange}
+          />
+        </div>
+        {late ? (
+          <Badge variant={OVERDUE_LABEL.variant} className="mb-2">
+            ⚠ trễ
+          </Badge>
         ) : null}
       </div>
 
