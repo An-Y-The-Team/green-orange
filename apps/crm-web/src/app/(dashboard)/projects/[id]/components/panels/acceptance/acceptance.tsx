@@ -102,6 +102,18 @@ export function AcceptancePanel({ project }: { project: Project }) {
               </Link>
             }
           />
+          <Button
+            variant="outline"
+            render={
+              <Link
+                href={`/projects/${project.id}/print/acceptance-request?to=building`}
+                target="_blank"
+              >
+                <Printer className="size-4" />
+                In thư gửi BQL tòa nhà
+              </Link>
+            }
+          />
           {sub === AcceptanceSubStatus.INSPECTING ? (
             <ConfirmAction
               trigger={

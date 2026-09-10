@@ -227,14 +227,14 @@ Multiple contracts on one Công Trình happen in practice.
 
 ### paperwork_item (Hồ sơ — stage-4 checklist)
 
-| column     | type         | notes                                                                                                                            |
-| ---------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| id         | bigserial PK |                                                                                                                                  |
-| project_id | FK → project |                                                                                                                                  |
-| name       | text         | user-facing, stays Vietnamese: seeded with the 8 `DEFAULT_PAPERWORK` names (crm-business-flow §4); freely added/removed                |
-| status     | text         | `preparing` \| `submitted` \| `approved`                                                                                         |
-| due_date   | date null    | permits have lead times; overdue DERIVED (`due_date < today && != approved`), never stored (2026-07-23 UI deltas)                |
-| note       | text null    |                                                                                                                                  |
+| column     | type         | notes                                                                                                                   |
+| ---------- | ------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| id         | bigserial PK |                                                                                                                         |
+| project_id | FK → project |                                                                                                                         |
+| name       | text         | user-facing, stays Vietnamese: seeded with the 8 `DEFAULT_PAPERWORK` names (crm-business-flow §4); freely added/removed |
+| status     | text         | `preparing` \| `submitted` \| `approved`                                                                                |
+| due_date   | date null    | permits have lead times; overdue DERIVED (`due_date < today && != approved`), never stored (2026-07-23 UI deltas)       |
+| note       | text null    |                                                                                                                         |
 
 The 8 default items are **auto-created with the project** (2026-07-23 UI
 deltas); `POST /paperwork-items/defaults` stays as a re-seed.

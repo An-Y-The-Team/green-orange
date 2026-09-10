@@ -172,6 +172,8 @@ class UpdateProjectDto {
   @IsOptional() @IsInt() @Min(0) est_duration_days?: number;
   @IsOptional() @IsInt() @Min(0) actual_duration_days?: number;
   @IsOptional() @IsString() approaches?: string;
+  @IsOptional() @IsString() acceptance_letter_body?: string;
+  @IsOptional() @IsString() building_letter_body?: string;
   @IsOptional() @IsDateString() works_done_at?: string;
   @IsOptional() @IsIn(ACCEPTANCE_SUB) acceptance_sub_status?: string;
 }

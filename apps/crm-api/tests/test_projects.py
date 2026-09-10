@@ -254,3 +254,14 @@ def test_today_filters_are_applied_by_the_server_not_the_page(
         json={"status": "on_hold", "follow_up_date": today.isoformat()},
     )
     assert codes("follow_up_due=true") == [project["code"]]
+
+
+def test_patch_letter_bodies(client: TestClient, project: dict):
+    pid = project["id"]
+    res = client.patch(
+        f"/projects/{pid}",
+        json={"acceptance_letter_body": "Kính đề nghị…", "building_letter_body": ""},
+    )
+    assert res.status_code == 200
+    assert res.json()["acceptance_letter_body"] == "Kính đề nghị…"
+    assert res.json()["building_letter_body"] == ""

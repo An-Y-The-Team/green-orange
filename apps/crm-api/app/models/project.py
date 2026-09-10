@@ -130,6 +130,9 @@ class Project(SQLModel, table=True):
     # at read time (GET /timekeeping/summary).
     actual_duration_days: int | None = None
     approaches: str | None = None  # free text until a structure emerges
+    # Stage-7 letters, plain text; None/blank = crm-web's built-in wording.
+    acceptance_letter_body: str | None = None
+    building_letter_body: str | None = None
     works_done_at: datetime | None = Field(
         default=None, sa_type=DateTime(timezone=True)
     )
@@ -245,6 +248,8 @@ class ProjectUpdate(SQLModel):
     est_duration_days: int | None = Field(default=None, ge=0)
     actual_duration_days: int | None = Field(default=None, ge=0)
     approaches: str | None = None
+    acceptance_letter_body: str | None = None
+    building_letter_body: str | None = None
     works_done_at: datetime | None = None
     acceptance_sub_status: AcceptanceSubStatus | None = None
 
@@ -293,6 +298,8 @@ class ProjectPublic(SQLModel):
     est_duration_days: int | None
     actual_duration_days: int | None
     approaches: str | None
+    acceptance_letter_body: str | None
+    building_letter_body: str | None
     works_done_at: datetime | None
     acceptance_sub_status: str | None
     acceptance_passed_date: date | None

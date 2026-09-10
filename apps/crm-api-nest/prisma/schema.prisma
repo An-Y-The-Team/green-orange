@@ -142,6 +142,10 @@ model Project {
   est_duration_days         Int?
   actual_duration_days      Int? // manual = source of truth; timekeeping-derived computed at read time
   approaches                String? // free text until a structure emerges
+  // Stage-7 letters, per project, plain text. NULL/blank = the web app's
+  // built-in wording; the operator edits the body on the print page.
+  acceptance_letter_body    String? // "Thư yêu cầu nghiệm thu" to the client
+  building_letter_body      String? // same letter addressed to the BQL tòa nhà
   works_done_at             DateTime? // stage-6 exit button
   acceptance_sub_status     String? // request_sent | inspecting | rework | passed
   acceptance_passed_date    DateTime? @db.Date // stamped when acceptance_sub_status → passed

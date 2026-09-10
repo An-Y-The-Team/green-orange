@@ -49,6 +49,8 @@ const updateProjectSchema = z.object({
   est_duration_days: z.number().optional(),
   actual_duration_days: z.number().optional(),
   approaches: z.string().optional(),
+  acceptance_letter_body: z.string().optional(),
+  building_letter_body: z.string().optional(),
   works_done_at: z.string().optional(),
   acceptance_sub_status: z.nativeEnum(AcceptanceSubStatus).optional(),
 });

@@ -81,6 +81,9 @@ export interface Project {
   est_duration_days?: number | null;
   actual_duration_days?: number | null;
   approaches?: string | null;
+  /** Stage-7 letter bodies (plain text). null/blank = built-in wording. */
+  acceptance_letter_body?: string | null;
+  building_letter_body?: string | null;
   works_done_at?: string | null; // stage-6 exit (full ISO)
   acceptance_sub_status?: AcceptanceSubStatus | null; // stage 7
   acceptance_passed_date?: string | null; // stamped on passed
