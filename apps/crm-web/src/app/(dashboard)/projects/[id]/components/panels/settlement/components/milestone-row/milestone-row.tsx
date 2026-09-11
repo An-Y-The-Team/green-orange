@@ -7,11 +7,15 @@ import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Label } from "@yan/ui/components/label";
 
-import { markMilestonePaid } from "@/app/(dashboard)/receivables/actions/milestones";
+import {
+  markMilestonePaid,
+  updateMilestone,
+} from "@/app/(dashboard)/receivables/actions/milestones";
 import { MilestoneStatus } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import {
+  ACTIONS,
   FIELDS,
   MILESTONE_STATUSES,
   MILESTONE_TYPES,
@@ -43,6 +47,11 @@ export function MilestoneRow({
   const [pending, run] = useRun(
     markMilestonePaid.bind(null, milestone.id, projectId, milestone.status)
   );
+  // Hạn thu is otherwise only settable when the đợt is created.
+  const [dueDate, setDueDate] = useState(milestone.due_date ?? "");
+  const [duePending, runDue] = useRun(
+    updateMilestone.bind(null, milestone.id, projectId)
+  );
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -66,7 +75,30 @@ export function MilestoneRow({
       {!paid ? (
         <ConfirmAction
           trigger={
-            <Button variant="outline" size="sm" className="ml-auto">
+            <Button variant="ghost" size="sm" className="ml-auto">
+              {ACTIONS.editDueDate}
+            </Button>
+          }
+          title={ACTIONS.editDueDate}
+          consequence={`Đổi ${FIELDS.dueDate.toLowerCase()} của đợt ${type} · ${formatVND(milestone.amount)}.`}
+          pending={duePending}
+          confirmDisabled={!dueDate}
+          onConfirm={() => runDue({ due_date: dueDate })}
+        >
+          <div className="space-y-1">
+            <Label htmlFor={`due-${milestone.id}`}>{FIELDS.dueDate}</Label>
+            <DateInput
+              id={`due-${milestone.id}`}
+              value={dueDate}
+              onChange={setDueDate}
+            />
+          </div>
+        </ConfirmAction>
+      ) : null}
+      {!paid ? (
+        <ConfirmAction
+          trigger={
+            <Button variant="outline" size="sm">
               Ghi nhận đã thu
             </Button>
           }

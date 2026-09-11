@@ -168,8 +168,10 @@ export default async function BillDocumentPage({
                 const paid = m.status === MilestoneStatus.PAID;
                 const late = isOverdue(m.due_date, paid);
                 const label = late
-                  ? OVERDUE_LABEL
-                  : labelOf(MILESTONE_STATUSES, m.status);
+                  ? OVERDUE_LABEL.label
+                  : paid
+                    ? MILESTONE_STATUSES[MilestoneStatus.PAID].label
+                    : DOCUMENT_TEXT.milestoneUnpaid;
                 return (
                   <tr key={m.id} className="border-b border-zinc-200">
                     <td className="px-2 py-2">{index + 1}</td>
@@ -179,7 +181,7 @@ export default async function BillDocumentPage({
                     <td className="px-2 py-2">
                       {m.due_date ? formatDate(m.due_date) : "—"}
                     </td>
-                    <td className="px-2 py-2">{label.label}</td>
+                    <td className="px-2 py-2">{label}</td>
                     <td className="px-2 py-2 text-right">
                       {formatVND(m.amount)}
                     </td>

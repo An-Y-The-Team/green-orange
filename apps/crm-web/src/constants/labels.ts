@@ -289,6 +289,7 @@ export const ACTIONS = {
   send: "Gửi",
   addRow: "+ Thêm dòng",
   deleteRow: "Xóa dòng",
+  editDueDate: "Sửa hạn",
 } as const;
 
 /**
@@ -352,4 +353,7 @@ export const DOCUMENT_TEXT = {
   signHint: "(Ký, ghi rõ họ tên)",
   subtotal: "Tạm tính",
   grandTotal: "Tổng cộng",
+  /** Customer-facing đợt status: collected or not — the internal not-due /
+   *  awaiting split is not the client's concern. */
+  milestoneUnpaid: "Chưa thu",
 } as const;
