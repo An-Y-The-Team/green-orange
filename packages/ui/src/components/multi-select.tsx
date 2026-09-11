@@ -1,7 +1,7 @@
 "use client";
 
 import { Select as SelectPrimitive } from "@base-ui/react/select";
-import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, ListFilterIcon } from "lucide-react";
 
 import { cn } from "../lib/utils";
 import { selectClass } from "./select";
@@ -10,9 +10,10 @@ export type MultiSelectOption = { value: string; label: string };
 
 /**
  * Multi-value filter dropdown (Base UI Select with `multiple`). Closed state
- * shows the placeholder, one selected label, or "N đã chọn". No in-list
- * search — every current option list fits a screen; port the searchable
- * variant the day one doesn't.
+ * always leads with a filter icon and the field name — "Trạng thái: Tất cả",
+ * "Trạng thái: Đã thu", "Trạng thái: 3 đã chọn" — because a bare "3 đã chọn"
+ * read as a mystery counter, not a filter. No in-list search — every current
+ * option list fits a screen; port the searchable variant the day one doesn't.
  */
 function MultiSelect({
   options,
@@ -31,12 +32,16 @@ function MultiSelect({
    *  filter while "chỉ quá hạn" is on, since `overdue` replaces `status`. */
   disabled?: boolean;
 }) {
-  const summary =
-    value.length === 0
-      ? placeholder
-      : value.length === 1
-        ? (options.find((o) => o.value === value[0])?.label ?? value[0])
-        : `${value.length} đã chọn`;
+  // Nothing or everything selected both mean "no constraint".
+  const all = value.length === 0 || value.length === options.length;
+  const labels = value.map(
+    (v) => options.find((o) => o.value === v)?.label ?? v
+  );
+  const detail = all
+    ? "Tất cả"
+    : labels.length <= 2
+      ? labels.join(", ")
+      : `${labels.length} đã chọn`;
 
   return (
     <SelectPrimitive.Root
@@ -53,12 +58,15 @@ function MultiSelect({
           // filter toolbar mixing the two lines up by construction.
           selectClass,
           "flex items-center justify-between gap-1.5 select-none",
-          value.length === 0 && "text-muted-foreground",
+          all && "text-muted-foreground",
           disabled && "opacity-50",
           className
         )}
       >
-        <span className="truncate">{summary}</span>
+        <ListFilterIcon className="size-4 shrink-0 text-muted-foreground" />
+        <span className="truncate">
+          {placeholder}: {detail}
+        </span>
         <SelectPrimitive.Icon>
           <ChevronDownIcon className="size-4 text-muted-foreground" />
         </SelectPrimitive.Icon>

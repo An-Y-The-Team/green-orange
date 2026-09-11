@@ -87,7 +87,7 @@ export function MilestoneTable() {
           variant={params.overdue ? "default" : "outline"}
           onClick={() => setListParams({ overdue: !params.overdue })}
         >
-          Chỉ quá hạn
+          Lọc theo Quá hạn
         </Button>
         {params.overdue ? (
           <span className="text-xs text-muted-foreground">
