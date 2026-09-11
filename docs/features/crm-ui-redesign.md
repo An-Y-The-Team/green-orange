@@ -424,7 +424,7 @@ parking chore.
 │                    [→ Bắt đầu thi công]         │
 │                                                 │
 │ Bắt đầu: 25/07 · Dự kiến 10 ngày (→ 04/08) ⚠trễ │
-│ Thực tế: [ 12 ] ngày (nhập tay — nguồn chính)   │
+│ Thực tế: [ 12 ] ngày (nhập tay)   │
 │   Chấm công: 96 giờ / 11 ngày có ghi nhận  ⚠    │
 │   [Xem chênh lệch]                              │
 │                                                 │

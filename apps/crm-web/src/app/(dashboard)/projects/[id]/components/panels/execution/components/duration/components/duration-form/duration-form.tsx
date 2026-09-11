@@ -210,7 +210,7 @@ export function DurationForm({
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="actual-days">Thực tế (ngày · nguồn chính)</Label>
+          <Label htmlFor="actual-days">Thực tế (ngày)</Label>
           <Input
             id="actual-days"
             inputMode="numeric"
