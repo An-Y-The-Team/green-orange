@@ -47,7 +47,7 @@ export function MilestoneRow({
   const [pending, run] = useRun(
     markMilestonePaid.bind(null, milestone.id, projectId, milestone.status)
   );
-  // Hạn thu is otherwise only settable when the đợt is created.
+  // Hạn thanh toán is otherwise only settable when the đợt is created.
   const [dueDate, setDueDate] = useState(milestone.due_date ?? "");
   const [duePending, runDue] = useRun(
     updateMilestone.bind(null, milestone.id, projectId)

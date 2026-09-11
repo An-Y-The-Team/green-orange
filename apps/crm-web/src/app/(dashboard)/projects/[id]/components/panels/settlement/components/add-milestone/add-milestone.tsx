@@ -65,7 +65,7 @@ export function AddMilestone({
               ) : null}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="dot-due">Hạn thu (tùy chọn)</Label>
+              <Label htmlFor="dot-due">{FIELDS.dueDate} (tùy chọn)</Label>
               <DateInput id="dot-due" value={dueDate} onChange={setDueDate} />
             </div>
           </div>

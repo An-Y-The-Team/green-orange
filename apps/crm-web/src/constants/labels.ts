@@ -242,7 +242,7 @@ export const FIELDS = {
   signDate: "Ngày ký",
   createdDate: "Ngày tạo",
   collectDate: "Ngày thu",
-  dueDate: "Hạn thu",
+  dueDate: "Hạn thanh toán",
   fromDate: "Từ ngày",
   toDate: "Đến ngày",
   contractTemplate: "Mẫu hợp đồng",
