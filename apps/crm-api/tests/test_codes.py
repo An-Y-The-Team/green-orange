@@ -10,7 +10,6 @@ The last step of the task deletes the `pytestmark` line below, so from then on
 they run with the rest of the suite.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.core.rules import (
@@ -19,8 +18,6 @@ from app.core.rules import (
     next_sequence,
     parse_sequence,
 )
-
-pytestmark = pytest.mark.exercise
 
 
 # ── The pure part: no database, no clock ────────────────────────────────────
