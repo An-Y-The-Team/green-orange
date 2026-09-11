@@ -26,8 +26,6 @@ import { createPortal } from "react-dom";
 const GAP = 32;
 /** On-screen page height derived from the sheet's width (A4 = 210×297mm). */
 const A4_RATIO = 297 / 210;
-/** Interior top/bottom page padding, matching the sheet's `p-10` (2.5rem). */
-const PAD = 40;
 
 export function PaginationPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -45,6 +43,9 @@ export function PaginationPlugin() {
     const layout = () => {
       setSheet(sheetEl);
       const pageHeight = Math.round(sheetEl.offsetWidth * A4_RATIO);
+      // Interior page padding, read from the sheet so screen pages and the
+      // print @page margin (globals.css) stay the same 20mm by construction.
+      const pad = parseFloat(getComputedStyle(sheetEl).paddingTop);
       const stride = pageHeight + GAP;
 
       // Blocks that may be pushed: the editor's top-level blocks, then the
@@ -88,12 +89,12 @@ export function PaginationPlugin() {
         const r = el.getBoundingClientRect();
         const top = r.top - sheetTop;
         const page = Math.floor(top / stride);
-        const contentBottom = page * stride + pageHeight - PAD;
+        const contentBottom = page * stride + pageHeight - pad;
         if (
           top + r.height > contentBottom &&
-          r.height <= pageHeight - 2 * PAD
+          r.height <= pageHeight - 2 * pad
         ) {
-          el.style.marginTop = `${(page + 1) * stride + PAD - top}px`;
+          el.style.marginTop = `${(page + 1) * stride + pad - top}px`;
           el.classList.add("page-push");
         }
         lastBottom = Math.max(
@@ -106,7 +107,7 @@ export function PaginationPlugin() {
       // absolutely positioned children of this sheet, so they keep scrollHeight
       // at the tallest size the document has ever been — a second ratchet that
       // would strand the blank pages this is meant to remove.
-      const pages = Math.max(1, Math.ceil((lastBottom + PAD) / stride));
+      const pages = Math.max(1, Math.ceil((lastBottom + pad) / stride));
       sheetEl.style.minHeight = `${pages * stride - GAP}px`;
 
       const next = Array.from(

@@ -55,51 +55,79 @@ export function DocumentShell({
         </Button>
       </div>
 
-      <div className="print-sheet mx-auto bg-white p-10 text-sm text-zinc-900 shadow-sm ring-1 ring-border">
-        {/* Two independent blocks from settings → Thông tin công ty. Official
+      <div className="print-sheet mx-auto w-[210mm] max-w-full bg-white p-[20mm] text-sm text-zinc-900 shadow-sm ring-1 ring-border">
+        {/* Print-only page frame. `@page { margin: 0 }` is the only thing that stops
+            Chrome printing its own title/URL header, so the top and bottom page
+            margins come from this table instead: browsers repeat `thead` and
+            `tfoot` on every printed page. On screen every part is `contents`,
+            so the frame has no layout of its own (globals.css @media print). */}
+        <table
+          role="presentation"
+          className="print-frame contents print:table print:w-full print:table-fixed"
+        >
+          <thead className="contents print:table-header-group">
+            <tr className="contents print:table-row">
+              <td className="contents p-0 print:table-cell print:h-[20mm]" />
+            </tr>
+          </thead>
+          <tbody className="contents print:table-row-group">
+            <tr className="contents print:table-row">
+              <td className="contents p-0 print:table-cell">
+                {/* Two independent blocks from settings → Thông tin công ty. Official
             Vietnamese paperwork carries the Quốc hiệu with the letterhead above
             it, so both print by default; a template may switch either off. */}
-        {headerBlocks.letterhead && (
-          <header className="border-b border-zinc-300 pb-5">
-            <div className="flex items-start gap-3">
-              {company.logo ? (
-                /* A stored data URL; next/image would need a loader it cannot
+                {headerBlocks.letterhead && (
+                  <header className="border-b border-zinc-300 pb-5">
+                    <div className="flex items-start gap-3">
+                      {company.logo ? (
+                        /* A stored data URL; next/image would need a loader it cannot
                  apply here. */
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={company.logo}
-                  alt=""
-                  className="h-12 w-auto max-w-32 shrink-0 object-contain"
-                />
-              ) : null}
-              <LexicalDocument
-                body={company.letterhead_body}
-                ctx={companyContext(company)}
-                className="flex-1 space-y-0.5 text-xs leading-relaxed text-zinc-900"
-              />
-            </div>
-          </header>
-        )}
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={company.logo}
+                          alt=""
+                          className="h-12 w-auto max-w-32 shrink-0 object-contain"
+                        />
+                      ) : null}
+                      <LexicalDocument
+                        body={company.letterhead_body}
+                        ctx={companyContext(company)}
+                        className="flex-1 space-y-0.5 text-xs leading-relaxed text-zinc-900"
+                      />
+                    </div>
+                  </header>
+                )}
 
-        {headerBlocks.national && (
-          <div className="pt-5">
-            <LexicalDocument
-              body={company.national_body}
-              ctx={companyContext(company)}
-              className="space-y-1 text-xs leading-relaxed text-zinc-900"
-            />
-          </div>
-        )}
+                {headerBlocks.national && (
+                  <div className="pt-5">
+                    <LexicalDocument
+                      body={company.national_body}
+                      ctx={companyContext(company)}
+                      className="space-y-1 text-xs leading-relaxed text-zinc-900"
+                    />
+                  </div>
+                )}
 
-        {/* Document title */}
-        <div className="py-6 text-center">
-          <TitleTag className="font-heading text-xl font-bold uppercase tracking-wide">
-            {title}
-          </TitleTag>
-          {subtitle && <p className="mt-1 text-xs text-zinc-600">{subtitle}</p>}
-        </div>
+                {/* Document title */}
+                <div className="py-6 text-center">
+                  <TitleTag className="font-heading text-xl font-bold uppercase tracking-wide">
+                    {title}
+                  </TitleTag>
+                  {subtitle && (
+                    <p className="mt-1 text-xs text-zinc-600">{subtitle}</p>
+                  )}
+                </div>
 
-        {children}
+                {children}
+              </td>
+            </tr>
+          </tbody>
+          <tfoot className="contents print:table-footer-group">
+            <tr className="contents print:table-row">
+              <td className="contents p-0 print:table-cell print:h-[20mm]" />
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </div>
   );

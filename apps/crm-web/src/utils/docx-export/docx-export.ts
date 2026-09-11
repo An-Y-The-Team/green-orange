@@ -66,6 +66,7 @@ export async function exportDocx({
     TableRow,
     TextRun,
     WidthType,
+    convertMillimetersToTwip,
   } = await import("docx");
 
   // Collected while walking, checked once the whole body is built and before a
@@ -269,6 +270,21 @@ export async function exportDocx({
     },
     sections: [
       {
+        // Same A4 / 20mm geometry as the printed sheet (globals.css @page).
+        properties: {
+          page: {
+            size: {
+              width: convertMillimetersToTwip(210),
+              height: convertMillimetersToTwip(297),
+            },
+            margin: {
+              top: convertMillimetersToTwip(20),
+              right: convertMillimetersToTwip(20),
+              bottom: convertMillimetersToTwip(20),
+              left: convertMillimetersToTwip(20),
+            },
+          },
+        },
         children: [
           new Paragraph({
             text: title,

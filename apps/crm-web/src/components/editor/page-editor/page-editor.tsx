@@ -89,7 +89,7 @@ export function PageEditor({
         {status && <div className="ml-auto pr-1">{status}</div>}
       </div>
 
-      <div className="mt-4 rounded-lg bg-muted px-2 py-8 sm:px-8">
+      <div className="mt-4 rounded-lg bg-muted px-2 py-8 sm:px-8 print:m-0 print:bg-white print:p-0">
         <DocumentShell
           // The editor page owns the h1; the sheet's title is a section of it.
           titleAs="h2"

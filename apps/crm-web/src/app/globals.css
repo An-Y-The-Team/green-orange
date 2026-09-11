@@ -32,26 +32,30 @@ html {
 }
 
 /* Printing a Báo giá / Hợp đồng: the dashboard chrome is hidden via `print:hidden`
-   utilities in the layout. Here we force a clean white A4 surface and let the
-   document sheet flow naturally across pages. The printable sheet itself is
-   marked with `.print-sheet` (see document-shell). */
+   utilities in the layout. The on-screen sheet (`.print-sheet`, see
+   document-shell) is a real A4 page: 210mm wide with 20mm padding. In print the
+   @page margin is 0 — the only way to stop Chrome printing its own title/URL
+   header — so the sheet keeps 20mm of side padding and the top/bottom 20mm come
+   from the `.print-frame` table's thead/tfoot, which the browser repeats on
+   every page. Content box (170mm wide), rem base, line wraps and page breaks are
+   therefore identical on screen and on paper. Change the three 20mm values
+   (sheet padding, side padding here, frame row height) together. */
 @media print {
   html,
   body {
     background: #fff !important;
     height: auto !important;
   }
-  /* A4 documents keep the original 16px base — the zoom is for on-screen use. */
-  html {
-    font-size: 100%;
-  }
   .print-sheet {
     box-shadow: none !important;
     margin: 0 !important;
     border: none !important;
+    padding: 0 20mm !important;
     max-width: none !important;
-    width: 100% !important;
+    width: auto !important;
     min-height: 0 !important;
+    /* Table-head tints etc. print as seen, not blank. */
+    print-color-adjust: exact;
   }
   /* Undo the on-screen pagination pushes (editor page breaks) — the browser
      paginates for itself in print. */
@@ -59,7 +63,7 @@ html {
     margin-top: 0 !important;
   }
   /* Keep a row together, and repeat table headers, when a table spans pages. */
-  .print-sheet tr,
+  .print-frame table tr,
   .print-sheet img {
     break-inside: avoid;
   }
@@ -67,6 +71,7 @@ html {
     display: table-header-group;
   }
   @page {
-    margin: 16mm;
+    size: A4;
+    margin: 0;
   }
 }
