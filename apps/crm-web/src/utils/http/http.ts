@@ -91,8 +91,23 @@ async function fetchWithAuth(
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
-  const res = await call(await getBearer());
-  if (res.status === 401 && canRemint()) return call(await getBearer(true));
+  // undici hides ECONNREFUSED / ENOTFOUND / "other side closed" behind a bare
+  // "fetch failed"; put the cause on the message so the overlay and the server
+  // log say WHY (usually: crm-api-nest on :8001 is not up yet).
+  const send = async (token?: string) => {
+    try {
+      return await call(token);
+    } catch (err) {
+      const cause = (err as { cause?: { code?: string; message?: string } })
+        .cause;
+      const why = cause?.code ?? cause?.message ?? (err as Error).message;
+      const line = `crm-api unreachable at ${API_URL}: ${why}`;
+      console.error(`[crm-web] ${line}`);
+      throw new Error(line, { cause: err });
+    }
+  };
+  const res = await send(await getBearer());
+  if (res.status === 401 && canRemint()) return send(await getBearer(true));
   // Live auth + 401 → the session's token is dead (expired or revoked). Fail with
   // a human message here so all ~40 server actions surface "log in again" from
   // their existing catch instead of a raw "401 Unauthorized"; reloading the page

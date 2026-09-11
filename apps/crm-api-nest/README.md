@@ -22,7 +22,13 @@ bun run dev                          # http://localhost:8001
 ```
 
 Or from the repo root, `turbo run dev` starts everything (crm-web on 3002, this
-on 8001). Smoke test:
+on 8001). Next is ready in a second or two; this app needs 10–20 s (`prisma
+generate`, tsc watch, Prisma connect), so open the UI only after the turbo TUI
+prints `Nest application successfully started` — before that every page fails
+with `crm-api unreachable at http://localhost:8001: ECONNREFUSED`. Start the
+Postgres/Authentik containers first, too: if `$connect` fails on boot,
+`nest start --watch` sits idle with :8001 closed until the next file save.
+Smoke test:
 
 ```bash
 curl -s http://localhost:8001/health

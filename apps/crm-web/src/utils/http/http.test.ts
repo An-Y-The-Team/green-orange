@@ -34,12 +34,19 @@ describe("apiFetchSafe", () => {
     );
   });
 
-  it("rethrows a network failure", async () => {
+  it("rethrows a network failure, naming undici's hidden cause", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
       "fetch",
-      vi.fn(() => Promise.reject(new TypeError("fetch failed")))
+      vi.fn(() =>
+        Promise.reject(
+          Object.assign(new TypeError("fetch failed"), {
+            cause: { code: "ECONNREFUSED" },
+          })
+        )
+      )
     );
-    await expect(apiFetchSafe("/projects", [])).rejects.toThrow("fetch failed");
+    await expect(apiFetchSafe("/projects", [])).rejects.toThrow("ECONNREFUSED");
   });
 
   it("passes a 200 through", async () => {
