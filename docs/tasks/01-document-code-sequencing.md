@@ -125,6 +125,7 @@ Decisions block, and a refreshed `ponytail:` comment naming what's still true.
 > choice.
 
 - **Gap policy after a delete:** The next sequence is based on the highest code
+<<<<<<< HEAD
   currently stored, so a deleted tail number may be reused because there is no
   issuance ledger to distinguish it from a number that was never issued. Lower
   gaps are not filled because the allocator always returns `max + 1`.
@@ -135,6 +136,18 @@ Decisions block, and a refreshed `ponytail:` comment naming what's still true.
 - **What happens past 999** (`CT-2026-1000`?): The sequence continues past 999.
   The three-digit format is a minimum width, so `CT-2026-1000` is valid and no
   issued document number is lost just because the display width was exceeded.
+=======
+   currently stored, so a deleted tail number may be reused because there is no
+   issuance ledger to distinguish it from a number that was never issued. Lower
+   gaps are not filled because the allocator always returns `max + 1`.
+- **What happens on a race, and why we're leaving it:** Two concurrent requests
+   may calculate the same next code, but the unique code constraint allows only
+   one insert and rejects the other. A retryable, transaction-safe allocator is
+   possible, but this low-frequency edge case is outside the scope of this task.
+- **What happens past 999** (`CT-2026-1000`?): The sequence continues past 999.
+   The three-digit format is a minimum width, so `CT-2026-1000` is valid and no
+   issued document number is lost just because the display width was exceeded.
+>>>>>>> 80bbae11de9e1424a71296edcce31b5ddcdd8b10
 
 ## Task
 
