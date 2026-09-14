@@ -10,6 +10,7 @@ import { AppTopbar } from "@/components/app-topbar/app-topbar";
 import { CompanyProvider } from "@/components/company-provider/company-provider";
 import { LoginOverlay } from "@/components/login-overlay/login-overlay";
 import { SessionWatch } from "@/components/session-watch/session-watch";
+import { usersEnabled } from "@/utils/authentik-admin/authentik-admin";
 
 // CRM_API_URL is runtime-only, but the data layer reads it at module load.
 // Without this, Next prerenders every dashboard page at BUILD time — where
@@ -78,10 +79,10 @@ export default async function DashboardLayout({
         Bỏ qua thanh điều hướng
       </a>
       <div className="print:hidden">
-        <AppSidebar footer={footer} />
+        <AppSidebar footer={footer} showUsers={usersEnabled} />
       </div>
       <div className="flex flex-1 flex-col overflow-hidden print:overflow-visible">
-        <AppTopbar footer={footer} />
+        <AppTopbar footer={footer} showUsers={usersEnabled} />
         <main
           id="main"
           // Focusable only as a skip-link target, never a tab stop of its own.

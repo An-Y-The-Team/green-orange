@@ -13,11 +13,17 @@ import { NavBrand, NavList } from "./nav-list";
  * ("Thông tin công ty") and hands 54px back to the tables, which were losing
  * columns off the right edge at 1440px, not just on phones.
  */
-export function AppSidebar({ footer }: { footer?: React.ReactNode }) {
+export function AppSidebar({
+  footer,
+  showUsers,
+}: {
+  footer?: React.ReactNode;
+  showUsers?: boolean;
+}) {
   return (
     <aside className="hidden h-full w-48 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
       <NavBrand />
-      <NavList />
+      <NavList showUsers={showUsers} />
       <SidebarFooter footer={footer} />
     </aside>
   );
@@ -30,7 +36,7 @@ export function AppSidebar({ footer }: { footer?: React.ReactNode }) {
  */
 export function SidebarFooter({ footer }: { footer?: React.ReactNode }) {
   return (
-    <div className="space-y-2 border-t border-sidebar-border p-3 text-xs text-muted-foreground">
+    <div className="shrink-0 space-y-2 border-t border-sidebar-border p-3 text-xs text-muted-foreground">
       <Link
         href="/field"
         className="flex items-center gap-2 rounded-md px-1 py-1 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"

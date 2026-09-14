@@ -16,6 +16,7 @@ import { ContractStatus } from "@/app/(dashboard)/contracts/enums";
 import { MAX_SHIFT_HOURS } from "@/app/(dashboard)/crew/constants";
 import {
   CrewMemberStatus,
+  CrewTab,
   EmploymentType,
   TimekeepingFlag,
   TimekeepingSource,
@@ -248,6 +249,17 @@ export const FIELDS = {
   contractTemplate: "Mẫu hợp đồng",
   paymentMilestone: "Đợt thanh toán",
 } as const;
+
+/**
+ * The /crew tab bar — also the Nhân sự sub-items in the sidebar, which deep-link
+ * at `?tab=`. One map, so a tab cannot be called one thing in the nav and
+ * another on the page.
+ */
+export const CREW_TABS: Record<CrewTab, string> = {
+  [CrewTab.ROSTER]: "Danh sách",
+  [CrewTab.ROLES]: FIELDS.role,
+  [CrewTab.TIMEKEEPING]: "Chấm công",
+};
 
 /**
  * Quote/settlement line-item table columns, rendered by the on-screen

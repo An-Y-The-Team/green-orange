@@ -34,3 +34,15 @@ export enum TimekeepingStatus {
 export enum TimekeepingFlag {
   OVER_CAP = "over_cap", // clocked out past the 16h cap — hours clamped, needs a look
 }
+
+/**
+ * Tabs on /crew. Not a contract value — this is UI state, held in `?tab=` by
+ * `useTabParam`. It lives here rather than inside the tab bar because the
+ * sidebar links straight at these tabs (`src/config/nav.ts`), and a renamed
+ * value would otherwise leave those links silently landing on the first tab.
+ */
+export enum CrewTab {
+  ROSTER = "roster",
+  ROLES = "roles",
+  TIMEKEEPING = "timekeeping",
+}

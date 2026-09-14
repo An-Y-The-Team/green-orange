@@ -10,7 +10,7 @@ import { ThemeSwitcher } from "@yan/ui/components/theme-switcher";
 
 import { SidebarFooter } from "@/components/app-sidebar/app-sidebar";
 import { NavBrand, NavList } from "@/components/app-sidebar/nav-list";
-import { activeNavItem } from "@/config/nav";
+import { activeNav } from "@/config/nav";
 
 /**
  * The dashboard header: nav trigger (below `md`) + the current page's name +
@@ -18,18 +18,25 @@ import { activeNavItem } from "@/config/nav";
  *
  * It used to spend its whole 56px on the static string "Quản lý quan hệ khách
  * hàng" — no title, no breadcrumb, nothing. The title comes from the same
- * longest-prefix match that highlights the sidebar (`activeNavItem`), so the two
- * cannot disagree; a deep route like `/projects/12/quotes/new` still reads
- * "Công trình", which is the orientation a topbar owes the reader.
+ * longest-prefix match that highlights the sidebar (`activeNav`), so the two
+ * cannot disagree.
  *
  * Base UI's `Drawer` (already a dependency) brings the focus trap, Esc, scroll
  * lock and swipe-to-dismiss; `swipeDirection="left"` matches a panel anchored to
  * the left edge.
  */
-export function AppTopbar({ footer }: { footer?: React.ReactNode }) {
+export function AppTopbar({
+  footer,
+  showUsers,
+}: {
+  footer?: React.ReactNode;
+  showUsers?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const title = activeNavItem(pathname)?.label;
+  // The SECTION, not the leaf: a deep route like /projects/12/quotes/new still
+  // reads "Công trình", which is the orientation a topbar owes the reader.
+  const title = activeNav(pathname)?.section.label;
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 md:px-6 print:hidden">
@@ -51,7 +58,10 @@ export function AppTopbar({ footer }: { footer?: React.ReactNode }) {
                 <NavBrand />
                 {/* Closing on navigate: the drawer would otherwise stay over the
                     page the user just asked for. */}
-                <NavList onNavigate={() => setOpen(false)} />
+                <NavList
+                  onNavigate={() => setOpen(false)}
+                  showUsers={showUsers}
+                />
                 <SidebarFooter footer={footer} />
               </Drawer.Popup>
             </Drawer.Viewport>
