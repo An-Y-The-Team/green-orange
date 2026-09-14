@@ -91,6 +91,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: seo.metaTitle,
     description: seo.metaDescription,
     alternates: { canonical: "/" },
+    other: {
+      "zalo-platform-site-verification": "EF6Z8jxS0W5QsT0PdlzOD7ZTrnIKgmrFE3Kq",
+    },
     openGraph: {
       title: seo.metaTitle,
       description: seo.metaDescription,
