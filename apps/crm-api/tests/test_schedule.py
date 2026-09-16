@@ -1,23 +1,12 @@
 """Double-booking: whose phân công windows share a day.
 
-STUDENT EXERCISE — docs/tasks/02-crew-double-booking.md. These tests are the
-spec: they ship red, and the task is to make them green.
-
-    uv run pytest -m exercise        # just these
-    uv run pytest -q                 # everything else (these are deselected)
-
-The last step of the task deletes the `pytestmark` line below, so from then on
-they run with the rest of the suite.
 """
 
 from datetime import date
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.core.schedule import overlapping_ids, ranges_overlap
-
-pytestmark = pytest.mark.exercise
 
 
 def d(iso: str) -> date:

@@ -11,17 +11,6 @@ Double-booking is ALLOWED and common (docs/features/crm-business-flow.md, "Crew
 from collections.abc import Iterable
 from datetime import date
 
-# ── Double-booking ──────────────────────────────────────────────────────────
-# STUDENT EXERCISE — docs/tasks/02-crew-double-booking.md.
-#
-# Both functions below are stubs, and both are pure: no session, no ORM row, no
-# clock. That is the whole point — every interesting case (open-ended windows,
-# windows that merely touch) is one line in a test instead of a fixture.
-#
-# They exist as stubs rather than as an empty file so the test module imports
-# cleanly: a missing name is a collection error, which fails CI on every
-# unrelated pull request too.
-
 
 def ranges_overlap(
     a_from: date, a_to: date | None, b_from: date, b_to: date | None
@@ -32,7 +21,9 @@ def ranges_overlap(
     end pencilled in, so the window runs forever. Two open-ended windows always
     clash.
     """
-    raise NotImplementedError("student exercise: docs/tasks/02-…")
+    return (a_to is None or b_from <= a_to) and (
+        b_to is None or a_from <= b_to
+    )
 
 
 def overlapping_ids(
@@ -45,4 +36,13 @@ def overlapping_ids(
     itself. Feed this ONE member's assignments; comparing two different people
     is meaningless.
     """
-    raise NotImplementedError("student exercise: docs/tasks/02-…")
+    assignments = list(windows)
+    overlaps = {assignment_id: [] for assignment_id, _, _ in assignments}
+
+    for index, (assignment_id, from_date, to_date) in enumerate(assignments):
+        for other_id, other_from, other_to in assignments[index + 1 :]:
+            if ranges_overlap(from_date, to_date, other_from, other_to):
+                overlaps[assignment_id].append(other_id)
+                overlaps[other_id].append(assignment_id)
+
+    return overlaps

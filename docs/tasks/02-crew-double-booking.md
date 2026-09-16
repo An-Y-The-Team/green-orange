@@ -149,12 +149,23 @@ changes what they should assert, say so in the PR.
 
 ## Decisions (fill this in — this is part of the deliverable)
 
-> Replace this block. One short paragraph each, with the reason, not just the
-> choice.
-
-- **Why a touching day counts as a clash:** …
-- **One definition of the rule or two, and why:** …
-- **Whether a closed công trình still warns:** …
+- **Why a touching day counts as a clash:** A phân công ending on the same day
+  another begins shares that calendar day, so it counts as an overlap. This
+  matches the existing `with_overlaps` SQL predicates (`>=` and `<=`), keeping
+  POST and GET consistent; otherwise one path would show a warning while the
+  other silently cleared it.
+- **One definition of the rule or two, and why:** The rule has one meaning but
+  two implementations: SQL in `with_overlaps` keeps the query indexed and
+  efficient, while `ranges_overlap` keeps the pure logic independently
+  testable. They must remain equivalent, with the shared tests guarding the
+  boundary and open-ended cases; duplicating the predicate in application code
+  would risk the kind of drift `overdue_clauses()` is intended to prevent.
+- **Whether a closed công trình still warns:** Yes. The warning describes an
+  overlap in the assignment record and preserves the existing write-path
+  behavior; the current SQL predicate does not filter by project stage. A
+  closed project can therefore remain useful scheduling history, and changing
+  this would require applying the same stage rule to both POST and GET so they
+  cannot disagree.
 
 ## Task
 
