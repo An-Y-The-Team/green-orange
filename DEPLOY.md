@@ -751,6 +751,51 @@ maintained in crm-web (Nhân sự page).
 
 ---
 
+## 6f. Attachment storage (S3 bucket)
+
+CRM attachments — khảo sát photos, signed contracts, biên bản nghiệm thu, ảnh
+hoàn công — live in an S3 bucket, not on the VPS disk. The API only ever hands
+out presigned URLs; bytes go browser ↔ bucket directly and never touch the 1–2 GB
+box (`crm-api-nest/src/common/storage.ts`, `crm-api/app/core/storage.py`).
+
+**Use a Vietnamese provider.** Bizfly Simple Storage (~1,000đ/GB/month) or
+Viettel Cloud Object Storage (~800đ/GB/month). Cloudflare R2 is ~2–3× cheaper
+with free egress, and is still the wrong choice here: contracts carry customer
+names, addresses, phones and MST, so a foreign bucket makes every upload a
+cross-border transfer under **Luật BVDLCN 91/2025/QH15 + NĐ 356/2025** (in force
+2026-01-01), which requires a Mẫu số 09 impact filing within 60 days of the first
+transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
+
+**Setup (provider console — the operator does this once):**
+
+1. Create bucket `greenorange-crm`, **private**, no public read.
+2. Create an access key scoped to that bucket; put the pair in Dockhand as
+   `S3_ACCESS_KEY` / `S3_SECRET_KEY`, plus `S3_ENDPOINT`, `S3_REGION`,
+   `S3_BUCKET` (see `.env.production.example`).
+3. **CORS** — the browser PUTs directly, so without this every upload fails with
+   an opaque network error:
+
+   ```json
+   [{ "AllowedOrigins": ["https://crm.dichvuyan.com"],
+      "AllowedMethods": ["GET", "PUT"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3000 }]
+   ```
+
+   Replace the origin with the real `CRM_DOMAIN`. Do **not** use `*`.
+4. Create a second bucket `greenorange-backups` for §8a, with its **own** key.
+
+**Verify** after deploy: open a project → Khảo sát → upload a small .pdf → the
+row appears → click it → the file downloads. Then confirm the object exists in
+the console under `projects/<id>/<uuid>/`. A 403 on the PUT is almost always CORS
+or a clock skew on the VPS (`timedatectl` — signatures are time-sensitive).
+
+Unset `S3_*` is not fatal: the API boots and every other page works; only the
+upload button fails, saying storage is not configured.
+
+---
+
 ## 7. Ongoing deploys
 
 Just cut a new tag. The repo uses `vX.Y.Z` tags, and pushing one triggers the
@@ -836,6 +881,27 @@ Restore: `gunzip -c dump.sql.gz | docker exec -i "green-orange-postgres-1" psql 
 > These labels are set by Compose on every container/volume it creates, so they
 > hold regardless of the project name. Sanity-check with `docker ps` /
 > `docker volume ls` if a match comes back empty.
+
+### 8a. Get the backups OFF the box
+
+Everything above writes to `/root/backups` **on the same VPS it is backing up**.
+One disk failure takes the databases and the backups together, which is not a
+backup — it is a copy. Since §6f the stack already has an offsite bucket and
+credentials, so use it:
+
+```bash
+# One-time: rclone reads the same keys the CRM uses (S3-compatible remote).
+apt install -y rclone
+rclone config create backups s3 provider=Other \
+  endpoint="$S3_ENDPOINT" access_key_id="$S3_ACCESS_KEY" secret_access_key="$S3_SECRET_KEY"
+
+# Nightly, after the dumps above have finished.
+30 3 * * * rclone sync /root/backups backups:greenorange-backups/vps/ >> /var/log/rclone-backup.log 2>&1
+```
+
+Use a **separate bucket** from the attachments one, so a credential leak on the
+app side cannot rewrite the backups. Verify with `rclone ls backups:greenorange-backups/vps/`
+a day later — an untested backup is a guess.
 
 ---
 
