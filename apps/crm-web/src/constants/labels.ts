@@ -333,8 +333,8 @@ export const APP_NAME = "Quản lý công trình & nhân sự Ý Ân" as const;
  * upload and saved text, which is worse than saying so.
  */
 export const PHOTO_TEXT = {
-  add: "+ Ghi tên ảnh",
-  hint: "Chưa tải ảnh lên được — ghi tên tệp để đối chiếu với ảnh gửi qua Zalo.",
+  add: "+ Thêm tệp",
+  hint: "Ảnh và tài liệu (.pdf, .docx, .xlsx), tối đa 25 MB mỗi tệp.",
 } as const;
 
 /** "Quay lại …" back-links out of a detail page. */

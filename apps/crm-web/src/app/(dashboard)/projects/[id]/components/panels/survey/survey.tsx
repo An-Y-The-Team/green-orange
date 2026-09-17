@@ -13,6 +13,11 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
+import {
+  AttachmentDownload,
+  AttachmentUpload,
+  attachmentName,
+} from "@/components/attachment-upload/attachment-upload";
 import { EmptyState } from "@/components/empty-state/empty-state";
 import {
   ACTIONS,
@@ -25,10 +30,7 @@ import {
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
 
-import {
-  addAttachment,
-  deleteAttachment,
-} from "../../../../actions/attachments";
+import { deleteAttachment } from "../../../../actions/attachments";
 import { updateProject } from "../../../../actions/update-project";
 import { AttachmentKind, ProjectStage } from "../../../../enums";
 import type { Attachment, Project, SurveyItem } from "../../../../types";
@@ -70,23 +72,6 @@ export function SurveyPanel({
   // --- attachments (kind=survey) ----------------------------------------
   const [rows, setRows] = useState<Attachment[]>(attachments);
   const [showAdd, setShowAdd] = useState(false);
-  const [newFilename, setNewFilename] = useState("");
-  const [newNote, setNewNote] = useState("");
-
-  const [addState, addAction] = useActionState(
-    addAttachment.bind(null, project.id),
-    INITIAL_ACTION_STATE
-  );
-  const [addPending, startAdd] = useTransition();
-  useServerAction(addState, addPending, {
-    ...ACTION_TOAST_TITLES,
-    onSuccess: (data: Attachment) => {
-      setRows((prev) => [data, ...prev]);
-      setNewFilename("");
-      setNewNote("");
-      setShowAdd(false);
-    },
-  });
 
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [delState, delAction] = useActionState(
@@ -244,10 +229,10 @@ export function SurveyPanel({
           <ul className="space-y-1 text-sm">
             {rows.map((a) => (
               <li key={a.id} className="flex items-center gap-2">
-                <span>
-                  · {a.s3_key}
-                  {a.note ? ` — "${a.note}"` : ""}
-                </span>
+                <AttachmentDownload id={a.id} name={attachmentName(a.s3_key)} />
+                {a.note ? (
+                  <span className="text-muted-foreground">{`— "${a.note}"`}</span>
+                ) : null}
                 <Button
                   variant="destructive"
                   size="sm"
@@ -265,35 +250,16 @@ export function SurveyPanel({
         {showAdd ? (
           <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
             <p className="text-xs text-muted-foreground">{PHOTO_TEXT.hint}</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                className="min-w-40 flex-1"
-                placeholder="tên-tệp.jpg"
-                value={newFilename}
-                onChange={(e) => setNewFilename(e.target.value)}
-              />
-              <Input
-                className="min-w-40 flex-1"
-                placeholder={FIELDS.note}
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-              />
-              <Button
-                size="sm"
-                disabled={addPending || !newFilename.trim()}
-                onClick={() =>
-                  startAdd(() =>
-                    addAction({
-                      kind: AttachmentKind.SURVEY,
-                      filename: newFilename.trim(),
-                      note: newNote.trim() || undefined,
-                    })
-                  )
-                }
-              >
-                {ACTIONS.add}
-              </Button>
-            </div>
+            <AttachmentUpload
+              projectId={project.id}
+              kind={AttachmentKind.SURVEY}
+              withNote
+              buttonLabel={ACTIONS.add}
+              onUploaded={(a) => {
+                setRows((prev) => [a, ...prev]);
+                setShowAdd(false);
+              }}
+            />
           </div>
         ) : null}
       </div>

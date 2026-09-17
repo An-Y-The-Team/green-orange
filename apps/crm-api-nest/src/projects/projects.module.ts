@@ -44,6 +44,16 @@ import {
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { STAGE_ORDER } from "../common/stage";
+import {
+  ALLOWED_CONTENT_TYPES,
+  MAX_UPLOAD_BYTES,
+  PRESIGN_TTL_SECONDS,
+  basename,
+  buildKey,
+  deleteObject,
+  presignGet,
+  presignPut,
+} from "../common/storage";
 import { DEFAULT_PAPERWORK } from "../paperwork/paperwork.module";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -581,7 +591,7 @@ class ProjectNotesController {
   }
 }
 
-// ── Attachments (S3 metadata rows only; storage TBD) ───────────────────────
+// ── Attachments (metadata rows + presigned S3 upload/download) ─────────────
 class CreateAttachmentDto {
   @IsInt() project_id: number;
   @IsIn(ATTACHMENT_KIND) kind: string;
@@ -590,9 +600,53 @@ class CreateAttachmentDto {
   @IsOptional() @IsString() note?: string;
 }
 
+class PresignAttachmentDto {
+  @IsInt() project_id: number;
+  @IsString() @MinLength(1) filename: string;
+  @IsString() @MinLength(1) content_type: string;
+  @IsInt() @Min(1) content_length: number;
+}
+
 @Controller("attachments")
 export class AttachmentsController {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Hands out a short-lived signed PUT; the browser uploads straight to the
+   * bucket and then POSTs the returned `s3_key` to `POST /attachments` as it
+   * always has. Bytes never pass through this process.
+   *
+   * The content type and length are signed into the URL, so the checks below are
+   * not the only line of defence — a client that lies about either is refused by
+   * the bucket. They run here to fail fast with a sentence instead of a 403.
+   */
+  @Post("presign")
+  @HttpCode(200)
+  async presign(@Body() dto: PresignAttachmentDto) {
+    await assertProjectOpen(this.prisma, dto.project_id);
+    if (!ALLOWED_CONTENT_TYPES.has(dto.content_type))
+      throw new BadRequestException(`Unsupported file type: ${dto.content_type}`);
+    if (dto.content_length > MAX_UPLOAD_BYTES)
+      throw new BadRequestException(
+        `File is larger than ${Math.floor(MAX_UPLOAD_BYTES / 1024 / 1024)} MB`
+      );
+    const s3_key = buildKey(dto.project_id, dto.filename);
+    const upload_url = await presignPut(
+      s3_key,
+      dto.content_type,
+      dto.content_length
+    );
+    return { upload_url, s3_key, expires_in: PRESIGN_TTL_SECONDS };
+  }
+
+  /** Short-lived signed GET for one row — the download link the UI opens. */
+  @Get(":id/url")
+  async downloadUrl(@Param("id", ParseIntPipe) id: number) {
+    const row = await this.prisma.attachment.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException("Attachment not found");
+    const download_url = await presignGet(row.s3_key, basename(row.s3_key));
+    return { download_url, expires_in: PRESIGN_TTL_SECONDS };
+  }
 
   @Get()
   list(
@@ -648,6 +702,9 @@ export class AttachmentsController {
     if (!row) throw new NotFoundException("Attachment not found");
     await assertProjectOpen(this.prisma, row.project_id);
     await this.prisma.attachment.delete({ where: { id } });
+    // After the row, and best-effort: a bucket hiccup must not resurrect a file
+    // the user just deleted from the UI.
+    await deleteObject(row.s3_key);
   }
 }
 
