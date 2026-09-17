@@ -13,7 +13,7 @@ def test_create_assigns_a_code_and_advances_the_stage(
         json={"project_id": project["id"], "body": "{}", "rep_a_name": "An"},
     )
     assert res.status_code == 201
-    assert res.json()["code"] == "HD-2026-001"
+    assert res.json()["code"] == f"HD-{business_today().year}-001"
     assert res.json()["status"] == "draft"
     assert res.json()["project"]["code"] == project["code"]
     assert client.get(f"/projects/{project['id']}").json()["stage"] == "contract"

@@ -12,7 +12,6 @@ from typing import get_args
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
-from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models.project import Project, ProjectStage
@@ -89,23 +88,13 @@ def assert_project_open(session: Session, project_id: int | None) -> None:
 
 
 # ── Document codes ──────────────────────────────────────────────────────────
-# STUDENT EXERCISE — docs/tasks/01-document-code-sequencing.md.
-#
-# The three functions below are stubs. They are the shape `next_code` is meant
-# to be rebuilt on: two pure functions that know nothing about a database, plus
-# one thin wrapper that does the query. `tests/test_codes.py` is the spec —
-# run it with `uv run pytest -m exercise`.
-#
-# They exist as stubs rather than as an empty file so the test module imports
-# cleanly: a missing name is a collection error, which fails CI on every
-# unrelated pull request too.
-
+# `tests/test_codes.py` is the spec.
 
 def format_code(prefix: str, year: int, sequence: int) -> str:
     """`("CT", 2026, 1)` → `"CT-2026-001"`. The only place the wire format
     lives — a code that is read back by `parse_sequence` must be written here.
     """
-    raise NotImplementedError("student exercise: docs/tasks/01-…")
+    return f"{prefix}-{year}-{sequence:03d}"
 
 
 def parse_sequence(code: str, prefix: str, year: int) -> int | None:
@@ -116,25 +105,48 @@ def parse_sequence(code: str, prefix: str, year: int) -> int | None:
     and codes predate this function, so junk must not raise: a bad row somewhere
     in the table cannot be allowed to block creating a new công trình.
     """
-    raise NotImplementedError("student exercise: docs/tasks/01-…")
+    expected_prefix = f"{prefix}-{year}-"
+    if not code.startswith(expected_prefix):
+        return None
+
+    suffix = code.removeprefix(expected_prefix)
+    if not suffix.isdecimal():
+        return None
+    return int(suffix)
 
 
 def next_sequence(existing_codes: Iterable[str], prefix: str, year: int) -> int:
     """The next number for this prefix in this year, given every code already
     issued. `1` when the year has none yet — that is how January restarts.
+
+    The sequence is based on the highest code currently stored. If the highest
+    code is deleted, that tail number can be reused because there is no issuance
+    ledger to distinguish it from a number that was never issued. Lower gaps are
+    not filled: the next value remains one greater than the current maximum.
     """
-    raise NotImplementedError("student exercise: docs/tasks/01-…")
+    sequences = [
+        seq
+        for code in existing_codes
+        if (seq := parse_sequence(code, prefix, year)) is not None
+    ]
+    return max(sequences, default=0) + 1
 
 
 def next_code(session: Session, model: type, prefix: str) -> str:
-    """Server-assigned document code: CT-2026-001, BG-…, HD-…, QT-….
+    """Server-assigned document code for the real code families: CT-2026-001,
+    HD-2026-004.
 
-    ponytail: sequence number is max(id) + 1 and the year is hardcoded — not
-    race-safe under concurrent inserts, fine for this app. The NestJS backend
-    carries the identical caveat on purpose so both emit the same codes.
+    ponytail: sequence allocation is based on existing codes and is not
+    race-safe. Concurrent creates can calculate the same code; the unique
+    code constraint makes the loser fail with an integrity conflict, which
+    the API maps to 409. A transactional/retry-based allocator is deferred.
+    Keep this behavior aligned with crm-api-nest/src/common/code.ts.
     """
-    highest = session.exec(select(func.max(model.id))).one()
-    return f"{prefix}-2026-{(highest or 0) + 1:03d}"
+    year = business_today().year
+    existing = session.exec(
+        select(model.code).where(model.code.startswith(f"{prefix}-{year}-"))
+    ).all()
+    return format_code(prefix, year, next_sequence(existing, prefix, year))
 
 
 def assert_step(order: tuple[str, ...], current: str, target: str) -> None:

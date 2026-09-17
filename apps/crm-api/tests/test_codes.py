@@ -1,16 +1,7 @@
 """Document codes: {PREFIX}-{year}-{NNN}, restarting each January.
-
-STUDENT EXERCISE — docs/tasks/01-document-code-sequencing.md. These tests are
-the spec: they ship red, and the task is to make them green.
-
-    uv run pytest -m exercise        # just these
-    uv run pytest -q                 # everything else (these are deselected)
-
-The last step of the task deletes the `pytestmark` line below, so from then on
-they run with the rest of the suite.
+The year is a parameter, so the January rollover is testable without a clock.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.core.rules import (
@@ -19,8 +10,6 @@ from app.core.rules import (
     next_sequence,
     parse_sequence,
 )
-
-pytestmark = pytest.mark.exercise
 
 
 # ── The pure part: no database, no clock ────────────────────────────────────
@@ -76,11 +65,9 @@ def test_next_sequence_is_not_a_row_count():
 
 
 def test_next_sequence_after_a_deleted_tail_matches_your_documented_policy():
-    # THE ONE TEST YOU MAY EDIT. CT-2026-002 was created and then deleted.
-    # Shipped asserting that its number is NOT handed out again. If you decide
-    # gaps are reusable, change this to 3 — and say why in the ticket's
-    # Decisions block. There is no right answer here, only a defended one.
-    assert next_sequence(["CT-2026-001", "CT-2026-003"], "CT", 2026) == 4
+    # THE ONE TEST YOU MAY EDIT. CT-2026-003 was created and then deleted.
+    # A deleted tail is reused because the database stores no issuance ledger.
+    assert next_sequence(["CT-2026-001", "CT-2026-002"], "CT", 2026) == 3
 
 
 # ── The wired-up part: two tests, just enough to prove the seam ─────────────
