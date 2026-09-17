@@ -179,8 +179,12 @@ class AssignmentWithProject(AssignmentBasic):
     project: ProjectNameRef
 
 
+class AssignmentWithOverlaps(AssignmentWithProject):
+    overlaps: list[AssignmentWithProject]
+
+
 class CrewMemberDetail(CrewMemberPublic):
-    assignments: list[AssignmentWithProject]
+    assignments: list[AssignmentWithOverlaps]
 
 
 class AssignmentListItem(AssignmentBasic):

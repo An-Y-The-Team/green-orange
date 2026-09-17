@@ -10,6 +10,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, or_, select
 
 from app.api.common import (
@@ -22,6 +23,7 @@ from app.api.common import (
 )
 from app.api.deps import SessionDep, get_current_user
 from app.core.rules import assert_project_open, business_today
+from app.core.schedule import overlapping_ids
 from app.models.crew import (
     CREW_STATUS_WORKING,
     CREW_STATUSES,
@@ -32,6 +34,7 @@ from app.models.crew import (
     AssignmentListItem,
     AssignmentPublic,
     AssignmentUpdate,
+    AssignmentWithOverlaps,
     AssignmentWithProject,
     CrewCreate,
     CrewMember,
@@ -234,8 +237,45 @@ def list_crew(
 
 
 @router.get("/{member_id}", response_model=CrewMemberDetail)
-def get_crew_member(session: SessionDep, member_id: int) -> CrewMember:
-    return get_member_or_404(session, member_id)
+def get_crew_member(session: SessionDep, member_id: int) -> CrewMemberDetail:
+    member = session.exec(
+        select(CrewMember)
+        .where(CrewMember.id == member_id)
+        .options(
+            selectinload(CrewMember.default_role),
+            selectinload(CrewMember.assignments).selectinload(Assignment.project),
+        )
+    ).one_or_none()
+    if member is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Crew member not found")
+
+    assignments_by_id = {
+        assignment.id: assignment
+        for assignment in member.assignments
+        if assignment.id is not None
+    }
+    overlap_ids = overlapping_ids(
+        (
+            assignment.id,
+            assignment.from_date,
+            assignment.to_date,
+        )
+        for assignment in member.assignments
+        if assignment.id is not None
+    )
+    return CrewMemberDetail(
+        **CrewMemberPublic.model_validate(member).model_dump(),
+        assignments=[
+            AssignmentWithOverlaps(
+                **AssignmentWithProject.model_validate(assignment).model_dump(),
+                overlaps=[
+                    AssignmentWithProject.model_validate(assignments_by_id[other_id])
+                    for other_id in overlap_ids[assignment.id]
+                ],
+            )
+            for assignment in member.assignments
+        ],
+    )
 
 
 @router.post("", response_model=CrewMemberPublic, status_code=status.HTTP_201_CREATED)
