@@ -190,7 +190,7 @@ class Attachment(SQLModel, table=True):
     paperwork_item_id: int | None = Field(
         default=None, foreign_key="paperworkitem.id", index=True
     )
-    s3_key: str  # S3 architecture TBD — the shape is stable regardless
+    s3_key: str  # object key in the attachments bucket; see app/core/storage.py
     note: str | None = None
     created_at: datetime = Field(
         default_factory=utcnow, sa_type=DateTime(timezone=True)
@@ -266,6 +266,16 @@ class AttachmentCreate(SQLModel):
     paperwork_item_id: int | None = None
     s3_key: str = Field(min_length=1)
     note: str | None = None
+
+
+class AttachmentPresign(SQLModel):
+    """Request for a signed upload URL — the browser PUTs to the bucket itself,
+    then POSTs the returned s3_key to /attachments as it always has."""
+
+    project_id: int
+    filename: str = Field(min_length=1)
+    content_type: str = Field(min_length=1)
+    content_length: int = Field(gt=0)
 
 
 # ── Response schemas ────────────────────────────────────────────────────────
@@ -344,6 +354,17 @@ class AttachmentPublic(SQLModel):
     s3_key: str
     note: str | None
     created_at: datetime
+
+
+class AttachmentPresignPublic(SQLModel):
+    upload_url: str
+    s3_key: str
+    expires_in: int
+
+
+class AttachmentDownloadPublic(SQLModel):
+    download_url: str
+    expires_in: int
 
 
 class ProjectStageSummary(SQLModel):

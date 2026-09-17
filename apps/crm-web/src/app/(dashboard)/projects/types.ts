@@ -141,6 +141,13 @@ export interface Attachment {
   created_at: string;
 }
 
+/** `POST /attachments/presign` — a signed URL the browser PUTs the bytes to. */
+export interface AttachmentPresign {
+  upload_url: string;
+  s3_key: string;
+  expires_in: number;
+}
+
 /**
  * One column of the dashboard's Pipeline block — `GET /projects/summary`.
  * All eight stages are always present, in pipeline order, so the block renders

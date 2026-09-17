@@ -294,9 +294,9 @@ unit, note}[]`) — inline-editable rows; they **prefill quote line items**
   (name → description, quantity + unit carried over, price left empty).
 - **One free-text note** (`survey_note`) for everything else: access hours,
   safety constraints, site conditions.
-- **Photos: metadata-only is fine for launch** — attachments record
-  filename + note, actual files stay on the phone/Zalo until the S3
-  session. No upload work pulled forward.
+- **Photos upload for real** — the picker presigns against the attachments
+  bucket, PUTs the bytes from the browser, then records the row. Shared
+  `AttachmentUpload` component; same one serves nghiệm thu and hoàn công.
 - Exit button moves to stage 2 **and** navigates to the quote-builder page
   prefilled from the measurement rows.
 
@@ -764,8 +764,9 @@ pages (which remain usable, just not optimized, on mobile).
   pill (proposal: pill below `md` breakpoint).
 - Quote print letterhead variants — reuse existing `letterhead/national`
   as-is? (assumed yes)
-- Attachments stay metadata-only until the S3 design session; UI shows file
-  name + note, no preview. (assumed yes)
+- ~~Attachments stay metadata-only until the S3 design session.~~ Resolved
+  2026-09-17: real uploads to a Vietnamese bucket, presigned both ways. UI
+  shows filename + note as a download button; still no preview.
 
 ## Changelog
 
@@ -779,7 +780,8 @@ pages (which remain usable, just not optimized, on mobile).
   reschedule = edit-in-place, no history; backend-deltas section added.
 - 2026-07-23 — stage 2 confirmed: structured measurement rows
   (`survey_items` JSON) prefill quote items; everything else in
-  `survey_note`; photos metadata-only at launch (S3 not pulled forward).
+  `survey_note`; photos metadata-only at launch (S3 not pulled forward —
+  superseded 2026-09-17, uploads now live).
 - 2026-07-23 — stage 3 confirmed: versions rail + per-state actions;
   chained Hoãn/Hủy (one prompt flips quote AND project together); VAT
   editable in builder (default 8%); terms block = existing `Quote.note`.

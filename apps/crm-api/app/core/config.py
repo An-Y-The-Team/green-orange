@@ -23,6 +23,17 @@ class Settings(BaseSettings):
     oidc_issuer: str = ""  # e.g. https://auth.example.com/application/o/crm/
     oidc_audience: str = ""  # the client_id configured in Authentik
 
+    # --- Object storage (attachments) --------------------------------------
+    # A Vietnamese S3 bucket (Bizfly / Viettel), so CRM documents never leave the
+    # country: a foreign bucket would make this a cross-border transfer under
+    # Luật BVDLCN 91/2025/QH15. Unset, the API still boots — only the presign
+    # endpoints fail, and they say why. NestJS mirror: src/common/storage.ts.
+    s3_endpoint: str = ""
+    s3_region: str = "hn"
+    s3_bucket: str = ""
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+
     # CORS — the crm-web dev origin. Comma-separated in the env var.
     cors_origins: str = "http://localhost:3002"
 
