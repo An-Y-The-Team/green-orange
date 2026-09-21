@@ -39,6 +39,7 @@ import {
 } from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
+import { overlappingIds } from "../common/schedule";
 import { PrismaService } from "../prisma/prisma.service";
 
 const EMPLOYMENT_TYPE = ["permanent", "day_hire"];
@@ -221,11 +222,36 @@ export class CrewController {
           include: {
             project: { select: { id: true, code: true, name: true } },
           },
+          // Ascending by id, matching the Python relationship's order_by: the
+          // roster table and the `overlaps` arrays below are then in the same
+          // order whichever backend answered.
+          orderBy: { id: "asc" },
         },
       },
     });
     if (!row) throw new NotFoundException("Crew member not found");
-    return row;
+
+    // The roster's "Trùng lịch" column. `withOverlaps` only runs on create and
+    // update, so reading a member back used to drop the warning entirely — the
+    // column rendered blank and looked like "no clash". One pass over the
+    // assignments already loaded, never a query per row.
+    const overlaps = overlappingIds(
+      row.assignments.map(
+        (a) => [a.id, a.from_date, a.to_date] as [number, Date, Date | null]
+      )
+    );
+    const byId = new Map(row.assignments.map((a) => [a.id, a]));
+    return {
+      ...row,
+      assignments: row.assignments.map((a) => ({
+        ...a,
+        // The nested ones stay plain — overlaps inside overlaps forever is not
+        // a shape anyone can render.
+        overlaps: (overlaps.get(a.id) ?? []).map(
+          (otherId) => byId.get(otherId)!
+        ),
+      })),
+    };
   }
 
   @Post()

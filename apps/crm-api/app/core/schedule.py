@@ -1,7 +1,8 @@
 """Assignment windows: does one person's phân công clash with another?
 
-The NestJS twin will be `crm-api-nest/src/crew/crew.module.ts` (`withOverlaps`),
-where the same rule currently lives as an inline Prisma `where`. Keep the two in
+The NestJS twin is `crm-api-nest/src/common/schedule.ts`. The same rule also
+lives as an inline Prisma `where` in `crm-api-nest/src/crew/crew.module.ts`
+(`withOverlaps`), which is what that backend's write path uses. Keep all three in
 step — this decides the "Trùng lịch" warning the roster prints.
 
 Double-booking is ALLOWED and common (docs/features/crm-business-flow.md, "Crew

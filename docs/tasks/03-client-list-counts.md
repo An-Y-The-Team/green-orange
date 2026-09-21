@@ -123,8 +123,8 @@ Every id gets a key. An absent client is `0` — a real "none" — never a missi
 key the caller has to guess about. There is already a function in this codebase
 that makes exactly that promise for exactly that reason: `_by_status` in
 [`app/api/routes/receivables.py`](../../apps/crm-api/app/api/routes/receivables.py),
-whose comment reads *"Every status present, so a consumer never has to handle a
-missing key — an absent bucket is a real zero, not unknown."* Read it.
+whose comment reads _"Every status present, so a consumer never has to handle a
+missing key — an absent bucket is a real zero, not unknown."_ Read it.
 
 Then `list_clients` fetches the page as it does now, and resolves both counts
 with **two grouped queries over the page's ids** instead of two hundred
@@ -269,8 +269,8 @@ true forever — and what would have to change for you to switch sides.
   (`client_id` on both `Location` and `Project`), so one helper covers both —
   same as `_count_by_client` managed with its `model: type` parameter.
 - **The N+1 rule is written down**:
-  [`.claude/code-review.md`](../../.claude/code-review.md) lists *"N+1 queries:
-  Per-row queries inside a loop without batching"* under what blocks a merge.
+  [`.claude/code-review.md`](../../.claude/code-review.md) lists _"N+1 queries:
+  Per-row queries inside a loop without batching"_ under what blocks a merge.
   This is that, in the codebase, with a comment admitting it.
 - **The NestJS twin** is
   [`crm-api-nest/src/clients/clients.module.ts`](../../apps/crm-api-nest/src/clients/clients.module.ts).

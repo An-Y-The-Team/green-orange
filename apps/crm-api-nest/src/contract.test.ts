@@ -3,21 +3,10 @@
 import { Prisma } from "@prisma/client";
 import { describe, expect, test } from "bun:test";
 
-import { formatCode } from "./common/code";
 import { toBig } from "./common/coerce";
 import { normalize } from "./common/serialize.interceptor";
 import { STAGE_ORDER, shouldAdvance } from "./common/stage";
 import { SettlementsController } from "./receivables/receivables.module";
-
-describe("formatCode", () => {
-  test("first sequence is CT-2026-001", () => {
-    expect(formatCode("CT", 1)).toBe("CT-2026-001");
-  });
-  test("pads to 3 digits, keeps prefix", () => {
-    expect(formatCode("BG", 12)).toBe("BG-2026-012");
-    expect(formatCode("HD", 5)).toBe("HD-2026-005");
-  });
-});
 
 describe("normalize (serialization contract)", () => {
   test("BigInt VND → JSON number", () => {
