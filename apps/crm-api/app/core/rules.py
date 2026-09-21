@@ -90,6 +90,7 @@ def assert_project_open(session: Session, project_id: int | None) -> None:
 # ── Document codes ──────────────────────────────────────────────────────────
 # `tests/test_codes.py` is the spec.
 
+
 def format_code(prefix: str, year: int, sequence: int) -> str:
     """`("CT", 2026, 1)` → `"CT-2026-001"`. The only place the wire format
     lives — a code that is read back by `parse_sequence` must be written here.

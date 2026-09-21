@@ -1,6 +1,4 @@
-"""Double-booking: whose phân công windows share a day.
-
-"""
+"""Double-booking: whose phân công windows share a day."""
 
 from datetime import date
 

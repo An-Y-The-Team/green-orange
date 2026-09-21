@@ -22,9 +22,7 @@ def ranges_overlap(
     end pencilled in, so the window runs forever. Two open-ended windows always
     clash.
     """
-    return (a_to is None or b_from <= a_to) and (
-        b_to is None or a_from <= b_to
-    )
+    return (a_to is None or b_from <= a_to) and (b_to is None or a_from <= b_to)
 
 
 def overlapping_ids(
