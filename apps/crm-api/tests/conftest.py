@@ -6,6 +6,7 @@ Postgres and without a real login (per the SQLModel testing docs).
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
@@ -48,6 +49,42 @@ def client_without_auth_fixture(session: Session):
     test_client = TestClient(app)
     yield test_client
     app.dependency_overrides.clear()
+
+
+class QueryCounter:
+    """Counts the SQL statements an endpoint actually sends to the driver.
+
+    `before_cursor_execute` fires once per statement, which is the number that
+    matters for an N+1: ORM cleverness that still round-trips once per row shows
+    up here, and a `selectinload` or a grouped count does not. Asserting on it
+    is the difference between "we think this is batched" and knowing.
+    """
+
+    def __init__(self, engine) -> None:
+        self._engine = engine
+        self.count = 0
+
+    def _on_execute(self, *_args) -> None:
+        self.count += 1
+
+    def reset(self) -> None:
+        """Zero the tally — call it right before the request under test, so
+        fixture inserts are not counted as part of the read."""
+        self.count = 0
+
+    def __enter__(self) -> "QueryCounter":
+        event.listen(self._engine, "before_cursor_execute", self._on_execute)
+        return self
+
+    def __exit__(self, *_exc) -> None:
+        event.remove(self._engine, "before_cursor_execute", self._on_execute)
+
+
+@pytest.fixture(name="query_counter")
+def query_counter_fixture(session: Session):
+    """A live statement tally for the test's engine. See `QueryCounter`."""
+    with QueryCounter(session.get_bind()) as counter:
+        yield counter
 
 
 @pytest.fixture(name="fixtures")

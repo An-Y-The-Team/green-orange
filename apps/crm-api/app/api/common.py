@@ -5,6 +5,7 @@ the client controls — page size, filters, sort, search — goes through here s
 hostile or mangled query string cannot turn a list read into a full-table scan.
 """
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Annotated, Any
 
@@ -140,3 +141,32 @@ def order_by(
     column = columns[sort_by]
     direction = column.desc() if sort_order == "desc" else column.asc()
     return [direction.nulls_last() if nulls_last else direction, tiebreak.desc()]
+
+
+# ── Relation counts ─────────────────────────────────────────────────────────
+# STUDENT EXERCISE — docs/tasks/03-client-list-counts.md.
+#
+# The function below is a stub, and it is pure: no session, no ORM row, no
+# query. That is the whole point — every interesting case (an id with no rows,
+# a row for an id nobody asked about, an empty page) is one line in a test
+# instead of a fixture.
+#
+# It exists as a stub rather than as an absent name so the test module imports
+# cleanly: a missing name is a collection error, which fails CI on every
+# unrelated pull request too.
+
+
+def counts_by_id(rows: Iterable[tuple[int, int]], ids: Iterable[int]) -> dict[int, int]:
+    """A grouped `(foreign_key, COUNT(*))` result, reshaped for a list response.
+
+    `[(3, 2), (7, 1)]` with ids `[3, 7, 9]` gives `{3: 2, 7: 1, 9: 0}`.
+
+    Every id in `ids` gets a key, so a caller never has to handle a missing one
+    — `0` is a real "none", not "unknown". That is the case worth caring about:
+    a khách hàng with no công trình is absent from a grouped count entirely,
+    and the column still has to print a number.
+
+    Rows whose id is not in `ids` are ignored, so one grouped query can be
+    reused across pages without being re-filtered first.
+    """
+    raise NotImplementedError("student exercise: docs/tasks/03-…")
