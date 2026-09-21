@@ -24,15 +24,17 @@ suite, and the interesting part is the reasoning, not the typing.
 
 ## The backlog
 
-| #                                    | Task                                                      | Issue | Shape                                  |
-| ------------------------------------ | --------------------------------------------------------- | ----- | -------------------------------------- |
-| [01](01-document-code-sequencing.md) | Fix document code sequencing / Đánh số hồ sơ theo năm     | #70   | pure logic + one judgement call        |
-| [02](02-crew-double-booking.md)      | Light up the double-booking warning / Cảnh báo trùng lịch | #71   | interval logic + three judgement calls |
-| [03](03-client-list-counts.md)       | Batch the client list counts / Đếm địa điểm và công trình | #78   | query batching + three judgement calls |
+| #                                    | Task                                                          | Issue | Shape                                  |
+| ------------------------------------ | ------------------------------------------------------------- | ----- | -------------------------------------- |
+| [01](01-document-code-sequencing.md) | Fix document code sequencing / Đánh số hồ sơ theo năm         | #70   | pure logic + one judgement call        |
+| [02](02-crew-double-booking.md)      | Light up the double-booking warning / Cảnh báo trùng lịch     | #71   | interval logic + three judgement calls |
+| [03](03-client-list-counts.md)       | Batch the client list counts / Đếm địa điểm và công trình     | #78   | query batching + three judgement calls |
+| [04](04-code-allocation-race.md)     | Stop losing the race for a document code / Cấp mã không trượt | #80   | transactions + three judgement calls   |
 
-Work them in order where they depend on each other — 02 depends on 01. 03 is
-independent of both and can run in parallel. More get added one at a time, as
-the one in flight lands.
+Work them in order where they depend on each other — 02 and 04 both depend on
+01, and 04 finishes the question 01 deliberately left open. 03 is independent of
+all of them and can run in parallel. More get added one at a time, as the one in
+flight lands.
 
 ## How a task works
 
