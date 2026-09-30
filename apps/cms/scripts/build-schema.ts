@@ -370,8 +370,19 @@ const main = async (): Promise<void> => {
     str('navigation_header_cta_label'),
     str('navigation_mobile_cta_label'),
     // Typography
-    dropdown('typography_heading_font', ['barlow-condensed', 'be-vietnam-pro', 'manrope', 'playfair-display', 'lora']),
-    dropdown('typography_hero_display_font', ['barlow-condensed', 'playfair-display', 'lora', 'dm-serif-display']),
+    dropdown('typography_heading_font', [
+      'barlow-condensed',
+      'be-vietnam-pro',
+      'manrope',
+      'playfair-display',
+      'lora',
+    ]),
+    dropdown('typography_hero_display_font', [
+      'barlow-condensed',
+      'playfair-display',
+      'lora',
+      'dm-serif-display',
+    ]),
     dropdown('typography_body_font', ['be-vietnam-pro', 'inter', 'lexend', 'nunito-sans', 'lora']),
     // Color theme
     dropdown('color_theme', ['green-orange', 'ocean', 'royal', 'crimson', 'forest']),
