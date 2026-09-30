@@ -4232,6 +4232,8 @@ fields:
       note: null
       options:
         choices:
+          - text: barlow-condensed
+            value: barlow-condensed
           - text: be-vietnam-pro
             value: be-vietnam-pro
           - text: manrope
@@ -4281,6 +4283,8 @@ fields:
       note: null
       options:
         choices:
+          - text: barlow-condensed
+            value: barlow-condensed
           - text: playfair-display
             value: playfair-display
           - text: lora

@@ -189,9 +189,6 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
 
         {/* 5 step delivery process */}
         <div className="mt-16 bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl p-8 md:p-12 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-primary-500/20 rounded-full blur-3xl -z-0 animate-float-ambient" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-brand-secondary-500/20 rounded-full blur-3xl -z-0 animate-float-ambient-alt" />
-
           <div className="max-w-3xl mx-auto text-center mb-12 relative z-10">
             <span className="text-sm font-black text-brand-secondary-400 uppercase tracking-widest bg-brand-secondary-400/15 px-4 py-1.5 rounded-full inline-block scale-110 mb-2">
               {introduction.processEyebrow}

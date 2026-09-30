@@ -160,6 +160,7 @@ export interface SectionLink {
 }
 
 export type FontSlug =
+  | "barlow-condensed"
   | "be-vietnam-pro"
   | "inter"
   | "lexend"
@@ -336,9 +337,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     footerTagline: "Xây dựng & Dọn sạch",
   },
   typography: {
-    headingFont: "playfair-display",
-    heroDisplayFont: "lora",
-    bodyFont: "lora",
+    headingFont: "barlow-condensed",
+    heroDisplayFont: "barlow-condensed",
+    bodyFont: "be-vietnam-pro",
   },
   colorTheme: {
     theme: "green-orange",
@@ -555,6 +556,7 @@ const BRAND_ICONS = new Set<string>(["Wrench", "ShieldCheck", "Trees"]);
 const BRAND_ACCENTS = new Set<string>(["orange", "slate", "emerald"]);
 
 const FONT_SLUGS = new Set<string>([
+  "barlow-condensed",
   "be-vietnam-pro",
   "inter",
   "lexend",

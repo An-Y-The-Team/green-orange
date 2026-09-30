@@ -41,10 +41,6 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
         <div className="absolute inset-0 bg-linear-to-r from-brand-primary-950/20 via-transparent to-brand-secondary-950/20" />
       </div>
 
-      {/* Decorative floating blurred lights behind content for supreme depth perception */}
-      <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-brand-primary-500/25 rounded-full blur-3xl z-0 animate-float-ambient" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-brand-secondary-500/15 rounded-full blur-3xl z-0 animate-float-ambient-alt" />
-
       <div className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 w-full flex flex-col items-center">
         {/* 2. Concentrated centered box, custom premium styling, dark background, 75% opacity */}
         <div

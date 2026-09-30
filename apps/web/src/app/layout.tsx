@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import {
+  Barlow_Condensed,
   Be_Vietnam_Pro,
   DM_Serif_Display,
   Inter,
@@ -19,6 +20,14 @@ const beVietnamPro = Be_Vietnam_Pro({
   display: "swap",
   preload: false,
   variable: "--font-be-vietnam-pro",
+});
+// Condensed display face for the signboard-style headings.
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin", "vietnamese"],
+  weight: ["600", "700", "800"],
+  display: "swap",
+  preload: false,
+  variable: "--font-barlow-condensed",
 });
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -72,6 +81,7 @@ const dmSerif = DM_Serif_Display({
 
 const FONT_VARIABLES = [
   beVietnamPro.variable,
+  barlowCondensed.variable,
   inter.variable,
   lexend.variable,
   nunitoSans.variable,

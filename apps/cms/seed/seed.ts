@@ -362,9 +362,9 @@ const SITE_SETTINGS = {
     footerTagline: 'Xây dựng & Dọn sạch',
   },
   typography: {
-    headingFont: 'playfair-display',
-    heroDisplayFont: 'lora',
-    bodyFont: 'lora',
+    headingFont: 'barlow-condensed',
+    heroDisplayFont: 'barlow-condensed',
+    bodyFont: 'be-vietnam-pro',
   },
   colorTheme: 'green-orange',
   navigation: {
