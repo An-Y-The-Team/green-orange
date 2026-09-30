@@ -102,11 +102,16 @@ export default async function Page() {
         {/* Hero banner section */}
         <Hero settings={settings} />
 
+        {/* Measuring-tape divider (signboard look) */}
+        <div className="tape" aria-hidden />
+
         {/* Corporate introduction, values representation, and 5-step process */}
         <Introduction settings={settings} />
 
         {/* Service grid catalog */}
         <Services services={services} settings={settings} />
+
+        <div className="tape" aria-hidden />
 
         {/* Finished projects history case-study gallery */}
         <Projects projects={projects} settings={settings} />
@@ -114,11 +119,11 @@ export default async function Page() {
         {/* Professional customer ratings, testimonials layout */}
         <Testimonials testimonials={testimonials} settings={settings} />
 
-        {/* Interactive feedback submission with automated fields fill-in and LocalStorage inbox */}
+        {/* Contact / survey request form (posts to Directus) */}
         <Suspense
           fallback={
-            <div className="py-16 md:py-24 bg-white text-center">
-              Loading contact form...
+            <div className="py-16 md:py-24 bg-white text-center text-stone-500">
+              Đang tải biểu mẫu liên hệ…
             </div>
           }
         >

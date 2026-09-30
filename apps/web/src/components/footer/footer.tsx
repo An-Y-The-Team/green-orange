@@ -6,8 +6,6 @@ import {
   MessageCircle,
   MessageSquare,
   Phone,
-  Sparkles,
-  Wrench,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -15,6 +13,7 @@ import { SectionId } from "@/constants/section";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import { SiteSettings } from "../../data";
+import LogoMark from "../logo-mark/logo-mark";
 
 export default function Footer({ settings }: { settings: SiteSettings }) {
   const { company, social, branding, footer } = settings;
@@ -37,40 +36,35 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
     Boolean(s)
   );
   return (
-    <footer className="bg-slate-900 text-slate-300 pt-16 pb-8 border-t border-slate-800 relative">
-      <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-brand-primary-500/50 via-white/10 to-brand-secondary-500/50" />
+    <footer className="bg-sign-ink text-stone-300 pb-8">
+      <div className="tape" aria-hidden />
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-14">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12 mb-12">
           {/* Brand Presentation Footer Area */}
           <div className="lg:col-span-4 space-y-6">
             <Link
               href={`#${SectionId.HERO}`}
-              className="flex items-center gap-2.5 cursor-pointer"
+              className="flex items-center gap-2.5"
             >
-              <div className="flex items-center justify-center size-9 rounded-lg bg-linear-to-br from-brand-primary-500 via-white to-brand-secondary-400 p-[1.5px] shadow-sm">
-                <div className="flex items-center justify-center w-full h-full bg-slate-900 rounded-[7px] gap-[1px]">
-                  <Sparkles className="size-4 text-brand-primary-400 animate-pulse" />
-                  <Wrench className="size-4 text-brand-secondary-400" />
-                </div>
-              </div>
+              <LogoMark className="w-9 h-auto shrink-0" />
               <div>
-                <span className="text-lg font-black tracking-tight text-white flex items-center gap-1 leading-none">
+                <span className="text-lg font-extrabold tracking-tight flex items-center gap-1 leading-none">
                   <span className="text-brand-primary-400">
                     {branding.logoTextPrimary}
                   </span>
-                  <span className="text-brand-secondary-400">
+                  <span className="text-brand-secondary-500">
                     {branding.logoTextSecondary}
                   </span>
                 </span>
-                <span className="block text-[8px] font-bold uppercase tracking-widest text-slate-450 leading-none mt-1">
+                <span className="block text-[10px] font-semibold uppercase tracking-widest text-stone-400 leading-none mt-1">
                   {branding.footerTagline}
                 </span>
               </div>
             </Link>
 
             <p
-              className="text-slate-400 text-xs md:text-sm leading-relaxed font-semibold"
+              className="text-stone-400 text-sm leading-relaxed"
               data-directus={editAttr({
                 collection: "site_settings",
                 item: sid,
@@ -89,7 +83,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    className="flex items-center justify-center size-9 rounded-full bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                    className="flex items-center justify-center size-10 rounded-md ring-1 ring-inset ring-white/20 text-stone-300 hover:text-white hover:ring-white/50 transition-colors"
                   >
                     <Icon className="size-4" />
                   </a>
@@ -100,10 +94,10 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
 
           {/* Quick Links Anchors */}
           <div className="lg:col-span-2 space-y-4">
-            <h4 className="text-white text-xs font-black uppercase tracking-widest">
+            <h4 className="font-heading font-bold uppercase text-lg text-tape">
               {footer.quickLinksHeading}
             </h4>
-            <ul className="space-y-2.5 text-xs font-semibold text-slate-400">
+            <ul className="space-y-2.5 text-sm text-stone-400">
               {footer.quickLinks.map((link) => (
                 <li key={link.sectionId}>
                   <Link
@@ -113,7 +107,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                       item: link.id,
                       fields: ["label", "section_id"],
                     })}
-                    className="hover:text-brand-primary-400 hover:underline cursor-pointer transition-colors"
+                    className="hover:text-white hover:underline underline-offset-4 transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -124,14 +118,14 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
 
           {/* Branch & Coordinate Addresses */}
           <div className="lg:col-span-3 space-y-4">
-            <h4 className="text-white text-xs font-black uppercase tracking-widest">
+            <h4 className="font-heading font-bold uppercase text-lg text-tape">
               {footer.officesHeading}
             </h4>
-            <div className="space-y-3.5 text-xs font-semibold text-slate-400 leading-relaxed">
+            <div className="space-y-3.5 text-sm text-stone-400 leading-relaxed">
               <div className="flex gap-2.5 items-start">
-                <MapPin className="size-4 text-brand-secondary-400 shrink-0 mt-0.5" />
+                <MapPin className="size-4 text-brand-secondary-500 shrink-0 mt-0.5" />
                 <p>
-                  <span className="text-white font-bold block mb-0.5 text-[11px]">
+                  <span className="text-white font-semibold block mb-0.5">
                     {footer.headquartersLabel}
                   </span>
                   {company.address}
@@ -140,7 +134,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
               <div className="flex gap-2.5 items-start">
                 <MapPin className="size-4 text-brand-primary-400 shrink-0 mt-0.5" />
                 <p>
-                  <span className="text-white font-bold block mb-0.5 text-[11px]">
+                  <span className="text-white font-semibold block mb-0.5">
                     {footer.branchLabel}
                   </span>
                   {company.branch}
@@ -151,16 +145,16 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
 
           {/* Support Channels */}
           <div className="lg:col-span-3 space-y-4">
-            <h4 className="text-white text-xs font-black uppercase tracking-widest">
+            <h4 className="font-heading font-bold uppercase text-lg text-tape">
               {footer.supportHeading}
             </h4>
-            <div className="pt-2 space-y-3.5 text-xs font-semibold">
+            <div className="space-y-3.5 text-sm">
               {company.phone && (
                 <div className="flex items-center gap-2.5">
-                  <Phone className="size-4 text-brand-secondary-400" />
+                  <Phone className="size-4 text-brand-secondary-500" />
                   <a
                     href={`tel:${company.phone.replace(/\s+/g, "")}`}
-                    className="hover:text-brand-secondary-400 transition-colors text-slate-300"
+                    className="hover:text-white transition-colors text-stone-300"
                   >
                     {footer.hotlinePrefix} {company.phone}
                   </a>
@@ -171,7 +165,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                   <Mail className="size-4 text-brand-primary-400" />
                   <a
                     href={`mailto:${company.email}`}
-                    className="hover:text-brand-primary-400 transition-colors text-slate-300"
+                    className="hover:text-white transition-colors text-stone-300"
                   >
                     {footer.emailPrefix} {company.email}
                   </a>
@@ -182,7 +176,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
         </div>
 
         {/* Closing details and copy */}
-        <div className="border-t border-slate-800/80 pt-8 mt-8 flex flex-col md:flex-row items-center justify-between text-slate-500 text-[11px] font-bold">
+        <div className="border-t border-white/10 pt-8 mt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-stone-500 text-xs">
           <p>
             © {new Date().getFullYear()} {company.name}.{" "}
             {footer.copyrightSuffix}
@@ -190,7 +184,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
 
           <Link
             href={`#${SectionId.HERO}`}
-            className="flex items-center gap-1 hover:text-white cursor-pointer mt-4 md:mt-0"
+            className="flex items-center gap-1 hover:text-white"
           >
             <ArrowUpCircle className="size-4 text-brand-primary-400" />
             {footer.backToTopLabel}

@@ -4,9 +4,6 @@ import { Category } from "@/constants/category";
 
 import { ServiceCategoryOption } from "./types";
 
-// localStorage key used to persist contact submissions on the device.
-export const SUBMISSIONS_STORAGE_KEY = "greenorange_submissions";
-
 // How long the success banner stays visible after a submission (ms).
 export const SUCCESS_BANNER_DURATION_MS = 6000;
 
@@ -21,19 +18,19 @@ export const SEARCH_PARAM = {
 export const SERVICE_CATEGORY_OPTIONS: ServiceCategoryOption[] = [
   {
     id: Category.CLEANING,
-    label: "Vệ Sinh",
+    label: "Vệ sinh",
     icon: Sparkle,
     color: "text-brand-primary-600",
   },
   {
     id: Category.CONSTRUCTION,
-    label: "Thi Công",
+    label: "Thi công",
     icon: Wrench,
     color: "text-brand-secondary-500",
   },
   {
     id: Category.BOTH,
-    label: "Trọn Gói Cả Hai",
+    label: "Cả hai",
     icon: ClipboardCheck,
     color: "text-slate-700",
   },

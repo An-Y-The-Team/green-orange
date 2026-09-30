@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle } from "lucide-react";
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -15,11 +15,12 @@ import {
 } from "@yan/ui/components/dialog";
 
 import { Category, CategoryFilter } from "@/constants/category";
-import { renderLines } from "@/lib/text-lines";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import type { SiteSettings } from "../../data";
 import { Service } from "../../types";
+import FilterChips from "../filter-chips/filter-chips";
+import SectionHeading from "../section-heading/section-heading";
 import {
   FALLBACK_SERVICE_ICON,
   ICON_MAP,
@@ -41,67 +42,28 @@ export default function Services({
   );
 
   return (
-    <section id="services" className="py-16 md:py-24 bg-slate-50 relative">
-      <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-white to-transparent" />
-
+    <section id="services" className="py-16 md:py-24 bg-stone-100">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        {/* Section Title */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span
-            className="text-sm font-black text-brand-secondary-500 uppercase tracking-widest bg-brand-secondary-50 px-3.5 py-1 rounded-full"
-            data-directus={editAttr({
-              collection: "site_settings",
-              item: settings.cmsId,
-              fields: "services_section_eyebrow",
-            })}
-          >
-            {settings.servicesSection.eyebrow}
-          </span>
-          <h2
-            className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4"
-            data-directus={editAttr({
-              collection: "site_settings",
-              item: settings.cmsId,
-              fields: "services_section_heading",
-            })}
-          >
-            {renderLines(settings.servicesSection.heading)}
-          </h2>
-          <div className="h-1.5 w-24 bg-gradient-to-r from-brand-primary-500 to-brand-secondary-500 mx-auto rounded-full" />
-          <p
-            className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed"
-            data-directus={editAttr({
-              collection: "site_settings",
-              item: settings.cmsId,
-              fields: "services_section_description",
-            })}
-          >
-            {renderLines(settings.servicesSection.description)}
-          </p>
-        </div>
+        <SectionHeading
+          cmsId={settings.cmsId}
+          fields={[
+            "services_section_eyebrow",
+            "services_section_heading",
+            "services_section_description",
+          ]}
+          eyebrow={settings.servicesSection.eyebrow}
+          heading={settings.servicesSection.heading}
+          description={settings.servicesSection.description}
+        />
 
-        {/* Filter buttons */}
-        <div
-          id="service-filters"
-          className="flex justify-center items-center gap-4 mb-12 flex-wrap"
-        >
-          {SERVICE_FILTER_TABS.map((btn) => (
-            <button
-              key={btn.id}
-              onClick={() => setFilter(btn.id)}
-              className={`px-7 py-3.5 rounded-2xl font-black text-base transition-all duration-300 shadow-md active:scale-95 cursor-pointer transform hover:scale-108 hover:shadow-lg ${
-                filter === btn.id
-                  ? "bg-brand-primary-600 text-white shadow-brand-primary-600/20"
-                  : "bg-white text-slate-700 hover:text-slate-900 border border-gray-200"
-              }`}
-            >
-              {btn.label}
-            </button>
-          ))}
-        </div>
+        <FilterChips
+          label="Lọc dịch vụ"
+          tabs={SERVICE_FILTER_TABS}
+          value={filter}
+          onChange={setFilter}
+        />
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredServices.map((service) => {
             const IconComponent =
               ICON_MAP[service.iconName] || FALLBACK_SERVICE_ICON;
@@ -111,29 +73,26 @@ export default function Services({
               <div
                 key={service.id}
                 id={`card-${service.id}`}
-                className="group relative bg-white rounded-3xl border border-gray-100 p-8 flex flex-col items-start text-left shadow-xs transition-all duration-500 hover:shadow-2xl hover:translate-y-[-10px] hover:border-brand-primary-400"
+                className="relative bg-white rounded-[4px] ring-2 ring-sign-ink p-6 flex flex-col items-start text-left transition-shadow hover:shadow-[6px_6px_0_0_var(--color-sign-ink)]"
               >
-                {/* Popular Badge */}
                 {service.popular && (
-                  <span className="absolute -top-3 right-6 bg-gradient-to-r from-brand-secondary-500 to-amber-500 text-white font-extrabold text-xs uppercase tracking-widest px-4 py-1.5 rounded-full shadow-md scale-110 md:scale-115">
-                    Phổ Biến Nhất
+                  <span className="absolute -top-3 right-5 bg-tape text-sign-ink font-bold text-xs uppercase tracking-wider px-2.5 py-1 rounded-[3px] ring-2 ring-sign-ink">
+                    Được chọn nhiều
                   </span>
                 )}
 
-                {/* Service Icon with responsive colored backdrop */}
-                <div
-                  className={`p-3 rounded-2xl mb-6 transition-colors duration-300 ${
+                <span
+                  className={`grid place-items-center size-12 rounded-[4px] text-white mb-5 ${
                     isCleaning
-                      ? "bg-brand-primary-50 text-brand-primary-600 group-hover:bg-brand-primary-100"
-                      : "bg-brand-secondary-50 text-brand-secondary-500 group-hover:bg-brand-secondary-100"
+                      ? "bg-brand-primary-600"
+                      : "bg-brand-secondary-600"
                   }`}
                 >
-                  <IconComponent className="size-8 shrink-0" />
-                </div>
+                  <IconComponent className="size-6" />
+                </span>
 
-                {/* Service Title */}
                 <h3
-                  className="text-2xl font-black font-heading text-slate-800 mb-3 group-hover:text-brand-primary-700 transition-colors leading-tight"
+                  className="font-heading font-bold uppercase text-2xl leading-tight text-sign-ink mb-2"
                   data-directus={editAttr({
                     collection: "services",
                     item: service.cmsId,
@@ -143,9 +102,8 @@ export default function Services({
                   {service.title}
                 </h3>
 
-                {/* Short Desc */}
                 <p
-                  className="text-slate-500 text-base leading-relaxed mb-6 flex-grow"
+                  className="text-stone-600 text-sm md:text-base leading-relaxed mb-5 flex-grow"
                   data-directus={editAttr({
                     collection: "services",
                     item: service.cmsId,
@@ -156,46 +114,31 @@ export default function Services({
                   {service.description}
                 </p>
 
-                {/* Highlight list */}
-                <div className="w-full space-y-2.5 mb-6 border-t pt-4">
-                  <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider font-heading">
-                    Điểm mấu chốt:
-                  </div>
+                <ul className="w-full space-y-2 mb-6 border-t border-stone-200 pt-4">
                   {service.features.map((feat, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2.5 text-sm"
-                    >
-                      <div
-                        className={`p-0.5 rounded-full ${isCleaning ? "bg-brand-primary-100 text-brand-primary-700" : "bg-brand-secondary-100 text-brand-secondary-600"}`}
-                      >
-                        <CheckCircle className="size-3.5" />
-                      </div>
-                      <span className="text-slate-600 font-semibold">
-                        {feat}
-                      </span>
-                    </div>
+                    <li key={idx} className="flex gap-2 text-sm text-sign-ink">
+                      <Check
+                        className={`size-4 shrink-0 mt-0.5 ${isCleaning ? "text-brand-primary-600" : "text-brand-secondary-600"}`}
+                      />
+                      <span>{feat}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
 
-                {/* Actions */}
-                <div className="flex items-center justify-between w-full mt-auto pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between gap-3 w-full mt-auto">
                   <button
                     onClick={() => setSelectedService(service)}
-                    className="text-slate-600 hover:text-brand-primary-700 font-black text-base flex items-center gap-1.5 cursor-pointer transition-all duration-300 transform hover:scale-110"
+                    className="text-sm font-semibold text-sign-ink underline underline-offset-4 decoration-stone-300 hover:decoration-sign-ink cursor-pointer"
                   >
-                    Xem chi tiết →
+                    Xem chi tiết
                   </button>
                   <Link
                     href={`/?serviceId=${service.id}&category=${service.category}#contact`}
-                    className={
-                      buttonVariants({ variant: "default" }) +
-                      ` font-black text-sm h-11 px-6 rounded-xl cursor-pointer transition-all duration-300 transform hover:scale-110 hover:shadow-lg active:scale-95 ${
-                        isCleaning
-                          ? "bg-brand-primary-600 hover:bg-brand-primary-700 text-white shadow-brand-primary-600/10"
-                          : "bg-brand-secondary-500 hover:bg-brand-secondary-600 text-white shadow-brand-secondary-500/10"
-                      }`
-                    }
+                    className={`inline-flex items-center h-10 px-4 rounded-md text-white text-sm font-bold transition-colors ${
+                      isCleaning
+                        ? "bg-brand-primary-600 hover:bg-brand-primary-700"
+                        : "bg-brand-secondary-600 hover:bg-brand-secondary-700"
+                    }`}
                     onClick={() => setSelectedService(null)}
                   >
                     Báo giá ngay
@@ -212,13 +155,13 @@ export default function Services({
             open={!!selectedService}
             onOpenChange={(open) => !open && setSelectedService(null)}
           >
-            <DialogContent className="max-w-xl bg-white border border-gray-100">
+            <DialogContent className="max-w-xl bg-white rounded-[4px] ring-2 ring-sign-ink">
               <DialogHeader className="text-left">
                 <span
-                  className={`text-[10px] uppercase tracking-widest font-black px-2.5 py-1 rounded-full w-fit ${
+                  className={`text-xs uppercase tracking-widest font-bold px-2 py-1 rounded-[3px] w-fit text-white ${
                     selectedService.category === Category.CLEANING
-                      ? "bg-brand-primary-50 text-brand-primary-700"
-                      : "bg-brand-secondary-50 text-brand-secondary-600"
+                      ? "bg-brand-primary-600"
+                      : "bg-brand-secondary-600"
                   }`}
                 >
                   Dịch vụ{" "}
@@ -226,37 +169,33 @@ export default function Services({
                     ? "vệ sinh"
                     : "thi công"}
                 </span>
-                <DialogTitle className="text-2xl font-black text-slate-900 mt-2">
+                <DialogTitle className="font-heading font-extrabold uppercase text-3xl leading-none text-sign-ink mt-2">
                   {selectedService.title}
                 </DialogTitle>
-                <DialogDescription className="text-slate-500 font-medium text-sm mt-2">
+                <DialogDescription className="text-stone-600 text-sm mt-2">
                   {selectedService.description}
                 </DialogDescription>
               </DialogHeader>
 
               {/* Benefits breakdown */}
               <div className="space-y-4 my-4">
-                <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">
-                  Chất lượng & Lợi ích độc quyền:
+                <h4 className="text-sm font-bold text-sign-ink uppercase tracking-wider">
+                  Anh/chị nhận được gì
                 </h4>
                 <div className="space-y-2.5">
                   {selectedService.benefits.map((benefit, idx) => (
                     <div key={idx} className="flex gap-2.5 items-start">
-                      <div className="p-0.5 bg-brand-primary-100 text-brand-primary-700 rounded-full mt-0.5">
-                        <CheckCircle className="size-4 shrink-0" />
-                      </div>
-                      <p className="text-slate-600 text-xs md:text-sm leading-relaxed font-semibold">
+                      <Check className="size-4 shrink-0 mt-0.5 text-brand-primary-600" />
+                      <p className="text-stone-700 text-sm leading-relaxed">
                         {benefit}
                       </p>
                     </div>
                   ))}
                 </div>
 
-                <div className="p-3 bg-gray-50 rounded-xl border flex justify-between text-xs items-center">
-                  <span className="text-slate-500 font-bold">
-                    Thời gian hoàn thành ước tính:
-                  </span>
-                  <span className="font-extrabold text-slate-800 bg-white border px-2.5 py-1 rounded-md">
+                <div className="p-3 bg-stone-100 rounded-[4px] flex justify-between gap-3 text-sm items-center">
+                  <span className="text-stone-600">Thời gian làm dự kiến</span>
+                  <span className="font-bold text-sign-ink bg-tape px-2 py-0.5 rounded-[3px]">
                     {selectedService.duration}
                   </span>
                 </div>
@@ -266,19 +205,19 @@ export default function Services({
                 <Button
                   variant="outline"
                   onClick={() => setSelectedService(null)}
-                  className="w-full sm:w-auto h-9 font-bold text-xs"
+                  className="w-full sm:w-auto h-10 rounded-md font-semibold"
                 >
-                  Đóng lại
+                  Đóng
                 </Button>
                 <Link
                   href={`/?serviceId=${selectedService.id}&category=${selectedService.category}#contact`}
                   className={
                     buttonVariants({ variant: "default" }) +
-                    " w-full sm:w-auto h-9 bg-brand-secondary-500 hover:bg-brand-secondary-600 text-white font-bold text-xs flex items-center justify-center rounded-md"
+                    " w-full sm:w-auto h-10 bg-brand-secondary-600 hover:bg-brand-secondary-700 text-white font-bold flex items-center justify-center rounded-md"
                   }
                   onClick={() => setSelectedService(null)}
                 >
-                  Chọn phục vụ này
+                  Chọn gói này
                 </Link>
               </DialogFooter>
             </DialogContent>

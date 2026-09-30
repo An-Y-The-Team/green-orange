@@ -14,11 +14,12 @@ import {
 } from "@yan/ui/components/dialog";
 
 import { Category, CategoryFilter } from "@/constants/category";
-import { renderLines } from "@/lib/text-lines";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import type { SiteSettings } from "../../data";
 import { Project } from "../../types";
+import FilterChips from "../filter-chips/filter-chips";
+import SectionHeading from "../section-heading/section-heading";
 import { PROJECT_FILTER_TABS } from "./constants";
 
 export default function Projects({
@@ -37,67 +38,30 @@ export default function Projects({
   });
 
   return (
-    <section id="projects" className="py-16 md:py-24 bg-white relative">
+    <section id="projects" className="py-16 md:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span
-            className="text-sm font-black text-brand-primary-600 uppercase tracking-widest bg-brand-primary-50 px-3.5 py-1 rounded-full"
-            data-directus={editAttr({
-              collection: "site_settings",
-              item: settings.cmsId,
-              fields: "projects_section_eyebrow",
-            })}
-          >
-            {settings.projectsSection.eyebrow}
-          </span>
-          <h2
-            className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4"
-            data-directus={editAttr({
-              collection: "site_settings",
-              item: settings.cmsId,
-              fields: "projects_section_heading",
-            })}
-          >
-            {renderLines(settings.projectsSection.heading)}
-          </h2>
-          <div className="h-1.5 w-24 bg-gradient-to-r from-brand-primary-500 to-brand-secondary-500 mx-auto rounded-full" />
-          <p
-            className="text-slate-500 font-medium mt-6 text-base md:text-lg lg:text-xl leading-relaxed"
-            data-directus={editAttr({
-              collection: "site_settings",
-              item: settings.cmsId,
-              fields: "projects_section_description",
-            })}
-          >
-            {renderLines(settings.projectsSection.description)}
-          </p>
-        </div>
+        <SectionHeading
+          cmsId={settings.cmsId}
+          fields={[
+            "projects_section_eyebrow",
+            "projects_section_heading",
+            "projects_section_description",
+          ]}
+          eyebrow={settings.projectsSection.eyebrow}
+          heading={settings.projectsSection.heading}
+          description={settings.projectsSection.description}
+        />
 
-        {/* Filter controls */}
-        <div className="bg-slate-50 p-4 md:p-6 rounded-3xl border border-gray-100 flex justify-center mb-12">
-          {/* Categories Tab list */}
-          <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 w-full md:w-auto shadow-sm">
-            {PROJECT_FILTER_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setFilter(tab.id)}
-                className={`flex-1 md:flex-none px-6 py-3.5 text-sm font-black rounded-xl transition-all duration-300 cursor-pointer transform hover:scale-[1.03] active:scale-95 ${
-                  filter === tab.id
-                    ? "bg-brand-primary-600 text-white shadow-md shadow-brand-primary-600/10"
-                    : "text-slate-600 hover:text-slate-950"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <FilterChips
+          label="Lọc công trình"
+          tabs={PROJECT_FILTER_TABS}
+          value={filter}
+          onChange={setFilter}
+        />
 
-        {/* Projects Grid */}
         {filteredProjects.length > 0 ? (
           <div
-            className="grid grid-cols-1 md:grid-cols-2 gap-8"
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
             id="projects-grid"
           >
             {filteredProjects.map((proj) => (
@@ -119,88 +83,84 @@ export default function Projects({
                   ],
                   mode: "drawer",
                 })}
-                className="group relative bg-slate-50 border border-gray-100/50 rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:shadow-2xl hover:translate-y-[-10px] hover:border-brand-secondary-400"
+                className="group text-left bg-white rounded-[4px] ring-2 ring-sign-ink overflow-hidden cursor-pointer transition-shadow hover:shadow-[6px_6px_0_0_var(--color-sign-ink)]"
               >
-                {/* Product/Construction Shot */}
-                <div className="relative h-64 md:h-72 overflow-hidden bg-slate-900">
+                <div className="relative h-60 md:h-72 bg-stone-200">
                   <Image
                     src={proj.imageUrl}
                     alt={proj.title}
                     fill
                     unoptimized
-                    className="object-cover opacity-90 transition-transform duration-700 group-hover:scale-110"
+                    className="object-cover"
                   />
-
-                  {/* Overlay background on hover */}
-                  <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="bg-white/95 text-slate-800 p-3 rounded-full shadow-lg flex items-center gap-1 text-xs font-black animate-in zoom-in-50 duration-200">
-                      <ZoomIn className="size-4 text-brand-primary-600 font-bold" />
-                      <span>Xem chi tiết hồ sơ</span>
-                    </div>
-                  </div>
-
-                  {/* Project metadata badges on image card */}
-                  <div className="absolute top-4 left-4 flex gap-2">
-                    <span className="bg-white/95 backdrop-blur-xs text-slate-800 font-black text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-md shadow-xs">
+                  <div className="absolute top-3 left-3 flex gap-2">
+                    <span className="bg-sign-ink text-white font-bold text-xs uppercase tracking-wider px-2 py-1 rounded-[3px]">
                       {proj.category === Category.CLEANING
-                        ? "Vệ Sinh"
-                        : "Cải Tạo"}
+                        ? "Vệ sinh"
+                        : "Cải tạo"}
                     </span>
-                    <span className="bg-brand-primary-600 text-white font-bold text-[10px] px-2.5 py-1 rounded-md shadow-xs">
+                    <span className="bg-tape text-sign-ink font-bold text-xs px-2 py-1 rounded-[3px] tabular-nums">
                       {proj.area}
                     </span>
                   </div>
                 </div>
 
-                {/* Content body detail */}
-                <div className="p-8 text-left">
-                  <p className="text-sm font-bold text-slate-400 mb-1">
+                <div className="p-6">
+                  <p className="text-sm font-semibold text-stone-500">
                     {proj.client}
                   </p>
-                  <h3 className="text-2xl font-black font-heading text-slate-800 group-hover:text-brand-primary-700 transition-colors mb-3 leading-snug">
+                  <h3 className="mt-1 font-heading font-bold uppercase text-2xl leading-tight text-sign-ink group-hover:text-brand-secondary-700 transition-colors">
                     {proj.title}
                   </h3>
 
-                  {/* Coordinates info list */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-2 text-slate-500 text-sm font-semibold mb-4 border-b pb-4">
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-stone-600 text-sm">
                     <span className="flex items-center gap-1.5">
-                      <MapPin className="size-4 text-brand-primary-600" />
+                      <MapPin className="size-4 text-brand-secondary-600" />
                       {proj.location}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Calendar className="size-4 text-brand-secondary-500" />
+                      <Calendar className="size-4 text-brand-primary-600" />
                       {proj.completionTime}
                     </span>
                   </div>
 
-                  {/* Highlight tags list */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {proj.tags.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="bg-brand-primary-50 text-brand-primary-700 font-bold text-xs px-2.5 py-1 rounded-md"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
+                  {proj.tags.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                      {proj.tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="bg-stone-100 text-stone-700 font-medium text-xs px-2 py-1 rounded-[3px]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-sign-ink underline underline-offset-4 decoration-stone-300 group-hover:decoration-sign-ink cursor-pointer"
+                  >
+                    <ZoomIn className="size-4" />
+                    Xem hồ sơ công trình
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-16 bg-slate-50 rounded-3xl border border-dashed border-gray-300">
-            <p className="text-slate-450 font-bold text-sm">
-              Không tìm thấy dự án nào tương thích với bộ lọc.
+          <div className="text-center py-14 rounded-[4px] border-2 border-dashed border-stone-300">
+            <p className="text-stone-600 font-semibold">
+              Chưa có công trình nào trong mục này.
             </p>
-            <button
-              onClick={() => {
-                setFilter(CategoryFilter.ALL);
-              }}
-              className="mt-4 text-brand-primary-600 font-black text-xs hover:underline cursor-pointer"
-            >
-              Reset bộ lọc nâng cao
-            </button>
+            {filter !== CategoryFilter.ALL && (
+              <button
+                onClick={() => setFilter(CategoryFilter.ALL)}
+                className="mt-3 text-sm font-semibold text-brand-secondary-700 underline underline-offset-4 cursor-pointer"
+              >
+                Xem tất cả công trình
+              </button>
+            )}
           </div>
         )}
 
@@ -210,25 +170,25 @@ export default function Projects({
             open={!!selectedProject}
             onOpenChange={(open) => !open && setSelectedProject(null)}
           >
-            <DialogContent className="max-w-2xl bg-white border border-gray-100 overflow-y-auto max-h-[90vh]">
+            <DialogContent className="max-w-2xl bg-white rounded-[4px] ring-2 ring-sign-ink overflow-y-auto max-h-[90vh]">
               <DialogHeader className="text-left">
-                <span className="text-[10px] uppercase font-black text-brand-secondary-500 bg-brand-secondary-50 px-2.5 py-1 rounded-md w-fit">
-                  Hồ Sơ Dự Án Thực Tế
+                <span className="text-xs uppercase font-bold tracking-wider text-sign-ink bg-tape px-2 py-1 rounded-[3px] w-fit">
+                  Hồ sơ công trình
                 </span>
-                <DialogTitle className="text-2xl font-black text-slate-900 mt-2 leading-tight">
+                <DialogTitle className="font-heading font-extrabold uppercase text-3xl leading-none text-sign-ink mt-2">
                   {selectedProject.title}
                 </DialogTitle>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1.5 text-slate-400 text-xs font-bold mt-2 pb-4 border-b">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1.5 text-stone-600 text-sm mt-2 pb-4 border-b border-stone-200">
                   <span className="flex items-center gap-1">
-                    <MapPin className="size-3.5 text-brand-primary-600" />{" "}
+                    <MapPin className="size-4 text-brand-secondary-600" />{" "}
                     {selectedProject.location}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Calendar className="size-3.5 text-brand-secondary-500" />{" "}
+                    <Calendar className="size-4 text-brand-primary-600" />{" "}
                     {selectedProject.completionTime}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Scaling className="size-3.5 text-slate-500" /> Diện tích:{" "}
+                    <Scaling className="size-4 text-stone-500" /> Diện tích:{" "}
                     {selectedProject.area}
                   </span>
                 </div>
@@ -237,7 +197,7 @@ export default function Projects({
               {/* Case-study details */}
               <div className="space-y-6 my-4 text-left">
                 {/* Photo showcase */}
-                <div className="relative h-60 md:h-72 rounded-xl overflow-hidden bg-slate-900">
+                <div className="relative h-60 md:h-72 rounded-[4px] overflow-hidden bg-stone-200">
                   <Image
                     src={selectedProject.imageUrl}
                     alt={selectedProject.title}
@@ -245,35 +205,35 @@ export default function Projects({
                     unoptimized
                     className="object-cover"
                   />
-                  <div className="absolute inset-x-0 bottom-0 bg-slate-950/50 p-3 text-white text-xs font-black">
-                    Khách hàng ủy thác: {selectedProject.client}
+                  <div className="absolute inset-x-0 bottom-0 bg-sign-ink/85 p-3 text-white text-sm font-semibold">
+                    Khách hàng: {selectedProject.client}
                   </div>
                 </div>
 
                 {/* Scenario details */}
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-2">
-                    Mô Tả Hạng Mục Thi Công & Vệ Sinh:
+                  <h4 className="text-sm font-bold text-sign-ink uppercase tracking-wider mb-2">
+                    Hạng mục đã làm
                   </h4>
-                  <p className="text-slate-600 text-xs md:text-sm leading-relaxed font-semibold">
+                  <p className="text-stone-700 text-sm leading-relaxed">
                     {selectedProject.description}
                   </p>
                 </div>
 
                 {/* Achievement Highlight */}
-                <div className="bg-brand-primary-50 border border-brand-primary-100/50 rounded-2xl p-4.5">
-                  <div className="flex gap-2 items-center text-brand-primary-800 font-extrabold text-sm mb-1.5">
+                <div className="bg-brand-primary-50 rounded-[4px] p-4 border-l-4 border-brand-primary-600">
+                  <div className="flex gap-2 items-center text-brand-primary-800 font-bold text-sm mb-1.5">
                     <Trophy className="size-4 text-brand-primary-600" />
-                    <span>Thành Tựu Bàn Giao:</span>
+                    <span>Kết quả bàn giao</span>
                   </div>
-                  <p className="text-brand-primary-700 text-xs md:text-sm leading-relaxed font-semibold pl-6">
+                  <p className="text-brand-primary-900 text-sm leading-relaxed pl-6">
                     {selectedProject.achievement}
                   </p>
                 </div>
 
                 {/* Associated Real Review block */}
                 {selectedProject.testimonial && (
-                  <div className="bg-slate-50 border rounded-2xl p-5 relative">
+                  <div className="bg-stone-100 rounded-[4px] p-5 relative">
                     <div className="absolute top-5 right-5 flex gap-0.5">
                       {[...Array(selectedProject.testimonial.rating)].map(
                         (_, i) => (
@@ -284,21 +244,21 @@ export default function Projects({
                         )
                       )}
                     </div>
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                      Đánh giá thực tế từ chủ đầu tư:
+                    <div className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">
+                      Chủ đầu tư nói gì
                     </div>
-                    <blockquote className="text-slate-700 italic text-xs md:text-sm font-medium leading-relaxed mb-4">
+                    <blockquote className="text-stone-800 text-sm leading-relaxed mb-4">
                       &ldquo;{selectedProject.testimonial.content}&rdquo;
                     </blockquote>
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-brand-primary-100 flex items-center justify-center font-black text-xs text-brand-primary-800">
+                      <div className="size-9 rounded-full bg-brand-secondary-600 flex items-center justify-center font-bold text-sm text-white">
                         {selectedProject.testimonial.author[0]}
                       </div>
                       <div>
-                        <span className="block text-xs font-extrabold text-slate-800 leading-none">
+                        <span className="block text-sm font-bold text-sign-ink leading-none">
                           {selectedProject.testimonial.author}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-bold">
+                        <span className="text-xs text-stone-500">
                           {selectedProject.testimonial.role}
                         </span>
                       </div>
@@ -308,23 +268,23 @@ export default function Projects({
               </div>
 
               {/* Action */}
-              <div className="flex flex-col sm:flex-row justify-end gap-2 border-t pt-4">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 border-t border-stone-200 pt-4">
                 <Button
                   variant="outline"
                   onClick={() => setSelectedProject(null)}
-                  className="h-9 font-bold text-xs"
+                  className="h-10 rounded-md font-semibold"
                 >
-                  Đóng lại
+                  Đóng
                 </Button>
                 <Link
                   href={`/?quoteProject=${encodeURIComponent(selectedProject.title)}#contact`}
                   className={
                     buttonVariants({ variant: "default" }) +
-                    " h-9 bg-brand-secondary-500 hover:bg-brand-secondary-600 text-white font-bold text-xs px-4 rounded-md"
+                    " h-10 bg-brand-secondary-600 hover:bg-brand-secondary-700 text-white font-bold px-4 rounded-md"
                   }
                   onClick={() => setSelectedProject(null)}
                 >
-                  Yêu cầu báo giá
+                  Báo giá công trình tương tự
                 </Link>
               </div>
             </DialogContent>
