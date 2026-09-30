@@ -15,10 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@yan/ui/components/dialog";
-import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
+import { AttachmentUpload } from "@/components/attachment-upload/attachment-upload";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { ACCEPTANCE_SUB_STATUSES, ACTIONS } from "@/constants/labels";
 import {
@@ -28,7 +28,6 @@ import {
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
-import { addAttachment } from "../../../../actions/attachments";
 import { updateProject } from "../../../../actions/update-project";
 import { updateProjectWithNote } from "../../../../actions/update-project-with-note";
 import { AcceptanceSubStatus, AttachmentKind } from "../../../../enums";
@@ -259,46 +258,16 @@ export function AcceptancePanel({ project }: { project: Project }) {
   );
 }
 
-// Attach the signed biên bản (metadata only) after Đạt — kind acceptance_report.
+// Attach the signed biên bản after Đạt — kind acceptance_report.
 function AcceptanceReport({ projectId }: { projectId: number }) {
-  const [state, formAction] = useActionState(
-    addAttachment.bind(null, projectId),
-    INITIAL_ACTION_STATE
-  );
-  const [isPending, startTransition] = useTransition();
-  const [filename, setFilename] = useState("");
-  useServerAction(state, isPending, {
-    ...ACTION_TOAST_TITLES,
-    onSuccess: () => setFilename(""),
-  });
-
   return (
-    <div className="flex items-end gap-2 rounded-lg border p-3">
-      <div className="flex-1 space-y-1.5">
-        <Label htmlFor="acceptance-report">Biên bản nghiệm thu (tên tệp)</Label>
-        <Input
-          id="acceptance-report"
-          value={filename}
-          placeholder="bien-ban-nghiem-thu.pdf"
-          disabled={isPending}
-          onChange={(e) => setFilename(e.target.value)}
-        />
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={isPending || !filename.trim()}
-        onClick={() =>
-          startTransition(() =>
-            formAction({
-              kind: AttachmentKind.ACCEPTANCE_REPORT,
-              filename: filename.trim(),
-            })
-          )
-        }
-      >
-        Đính kèm
-      </Button>
+    <div className="rounded-lg border p-3">
+      <AttachmentUpload
+        projectId={projectId}
+        kind={AttachmentKind.ACCEPTANCE_REPORT}
+        label="Biên bản nghiệm thu đã ký"
+        buttonLabel="Đính kèm"
+      />
     </div>
   );
 }

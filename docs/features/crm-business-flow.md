@@ -198,8 +198,8 @@ entity section.
 
 - Entry: paperwork cleared (stage 4 done).
 - Exit: a **"works done" confirmation button** — confirms all works are
-  complete, optionally with **image logs** as evidence (photo upload; S3
-  architecture for this is still to be designed).
+  complete, optionally with **image logs** as evidence (photo upload, stored
+  in the attachments bucket).
 
 ### 6. Nghiệm thu
 
@@ -207,7 +207,7 @@ Starts by mailing a "Nghiệm thu" request to the host/client, requesting:
 
 1. Lịch nghiệm thu (acceptance schedule).
 2. Biên bản nghiệm thu (acceptance minutes — to be signed).
-3. Finish images (same S3 concern as stage 5 image logs).
+3. Finish images (same attachment upload as stage 5 image logs).
 
 Stage 6 sub-status, with a **rework loop**:
 

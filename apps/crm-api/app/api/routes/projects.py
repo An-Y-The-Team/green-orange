@@ -30,6 +30,16 @@ from app.core.rules import (
     business_today,
     next_code,
 )
+from app.core.storage import (
+    ALLOWED_CONTENT_TYPES,
+    MAX_UPLOAD_BYTES,
+    PRESIGN_TTL_SECONDS,
+    basename,
+    build_key,
+    delete_object,
+    presign_get,
+    presign_put,
+)
 from app.models.client import Client, Contact, Location
 from app.models.contract import Contract
 from app.models.crew import Assignment, TimekeepingRecord
@@ -39,6 +49,9 @@ from app.models.project import (
     PROJECT_STATUSES,
     Attachment,
     AttachmentCreate,
+    AttachmentDownloadPublic,
+    AttachmentPresign,
+    AttachmentPresignPublic,
     AttachmentPublic,
     Project,
     ProjectCreate,
@@ -482,7 +495,54 @@ def delete_project_note(session: SessionDep, note_id: int) -> None:
     session.commit()
 
 
-# ── Attachments (S3 metadata rows only; storage TBD) ────────────────────────
+# ── Attachments (metadata rows + presigned S3 upload/download) ─────────────
+@attachments_router.post("/presign", response_model=AttachmentPresignPublic)
+def presign_attachment(
+    session: SessionDep, payload: AttachmentPresign
+) -> AttachmentPresignPublic:
+    """Hand out a short-lived signed PUT; the browser uploads straight to the
+    bucket and then POSTs the returned s3_key to POST /attachments as it always
+    has. Bytes never pass through this process.
+
+    The content type and length are signed into the URL, so the checks below are
+    not the only line of defence — a client that lies about either is refused by
+    the bucket. They run here to fail fast with a sentence instead of a 403.
+    """
+    assert_project_open(session, payload.project_id)
+    if payload.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Unsupported file type: {payload.content_type}",
+        )
+    if payload.content_length > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"File is larger than {MAX_UPLOAD_BYTES // 1024 // 1024} MB",
+        )
+    key = build_key(payload.project_id, payload.filename)
+    return AttachmentPresignPublic(
+        upload_url=presign_put(key, payload.content_type, payload.content_length),
+        s3_key=key,
+        expires_in=PRESIGN_TTL_SECONDS,
+    )
+
+
+@attachments_router.get(
+    "/{attachment_id}/url", response_model=AttachmentDownloadPublic
+)
+def attachment_download_url(
+    session: SessionDep, attachment_id: int
+) -> AttachmentDownloadPublic:
+    """Short-lived signed GET for one row — the download link the UI opens."""
+    attachment = session.get(Attachment, attachment_id)
+    if not attachment:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Attachment not found")
+    return AttachmentDownloadPublic(
+        download_url=presign_get(attachment.s3_key, basename(attachment.s3_key)),
+        expires_in=PRESIGN_TTL_SECONDS,
+    )
+
+
 @attachments_router.get("", response_model=list[AttachmentPublic])
 def list_attachments(
     session: SessionDep,
@@ -530,5 +590,9 @@ def delete_attachment(session: SessionDep, attachment_id: int) -> None:
     if not attachment:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Attachment not found")
     assert_project_open(session, attachment.project_id)
+    key = attachment.s3_key
     session.delete(attachment)
     session.commit()
+    # After the row, and best-effort: a bucket hiccup must not resurrect a file
+    # the user just deleted from the UI.
+    delete_object(key)

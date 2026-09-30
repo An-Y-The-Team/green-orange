@@ -486,7 +486,7 @@ model Attachment {
   project_id        Int
   kind              String // survey | site_log | finish_image | signed_contract | acceptance_report | settlement | paperwork | other
   paperwork_item_id Int? // when kind = paperwork
-  s3_key            String // S3 architecture TBD — shape stable regardless
+  s3_key            String // object key in the attachments bucket; see src/common/storage.ts
   note              String?
   created_at        DateTime @default(now())
 

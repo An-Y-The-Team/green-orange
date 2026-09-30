@@ -1113,7 +1113,10 @@ export const TIMEKEEPING: Seeded<Prisma.TimekeepingRecordUncheckedCreateInput>[]
     },
   ];
 
-// Metadata only — no upload. s3_key doubles as the display filename.
+// Seed rows carry a bare filename as s3_key, with no object behind it: these
+// predate the bucket and exist so the lists render. The UI prints them fine
+// (it shows the key's last segment), but clicking one 404s from the bucket.
+// Real uploads write `projects/<id>/<uuid>/<filename>` — see common/storage.ts.
 const ATTACHMENTS: Seeded<Prisma.AttachmentUncheckedCreateInput>[] = [
   {
     id: 1,

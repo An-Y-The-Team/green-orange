@@ -416,8 +416,10 @@ Zalo row.
 
 ### attachment
 
-One generic table for every file in the flow (S3 architecture TBD — table
-shape is stable regardless).
+One generic table for every file in the flow. `s3_key` is the object key in
+the attachments bucket; the bytes are uploaded by the browser straight to the
+bucket via a presigned PUT, so no file ever passes through the API
+(`crm-api-nest/src/common/storage.ts`, `crm-api/app/core/storage.py`).
 
 | column            | type                      | notes                                                                                                                          |
 | ----------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
