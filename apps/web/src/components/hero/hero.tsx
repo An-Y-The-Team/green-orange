@@ -1,8 +1,6 @@
-import { ArrowRight, Check, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Phone, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-
-import { buttonVariants } from "@yan/ui/components/button";
 
 import { renderLines } from "@/lib/text-lines";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
@@ -10,60 +8,77 @@ import { editAttr } from "@/lib/visual-editor/edit-attr";
 import { HeadlineColor, SiteSettings } from "../../data";
 
 // Static map keeps Tailwind classes greppable for the JIT compiler. Never
-// build a className from a raw CMS string.
+// build a className from a raw CMS string. "white" is the CMS name for the
+// default ink color (it dates from the old dark hero).
 const HEADLINE_COLOR_CLASS: Record<HeadlineColor, string> = {
-  white: "text-white",
-  emerald:
-    "text-linear bg-linear-to-r from-brand-primary-400 to-brand-primary-500 bg-clip-text text-transparent",
-  orange:
-    "text-linear bg-linear-to-r from-brand-secondary-400 to-brand-secondary-500 bg-clip-text text-transparent",
+  white: "text-sign-ink",
+  emerald: "text-brand-primary-600",
+  orange: "text-brand-secondary-600",
 };
 
 export default function Hero({ settings }: { settings: SiteSettings }) {
-  const { stats, hero } = settings;
+  const { stats, hero, company, branding, footer } = settings;
   const sid = settings.cmsId;
+  const tel = company.phone.replace(/\s+/g, "");
   return (
-    <section
-      id="hero"
-      className="relative min-h-[90vh] md:min-h-screen pt-32 pb-20 overflow-hidden flex items-center justify-center bg-slate-950"
-    >
-      {/* 1. Large background image with high depth layer */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src={hero.backgroundImageUrl}
-          alt="Không gian thi công và vệ sinh chuyên nghiệp"
-          fill
-          unoptimized
-          className="object-cover opacity-60 scale-105 filter brightness-75 transition-transform duration-10000 uppercase"
-        />
-        {/* Subtle overlays to create intense contrast and premium style */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-slate-950/30" />
-        <div className="absolute inset-0 bg-linear-to-r from-brand-primary-950/20 via-transparent to-brand-secondary-950/20" />
+    <section id="hero" className="pt-16 bg-white">
+      {/* Shop signboard (biển hiệu): name, trade, phone, address */}
+      <div className="bg-brand-secondary-600 text-white border-b-[6px] border-brand-primary-600">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6 md:py-8 flex flex-col items-center text-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] opacity-90">
+            Từ năm {company.founded}
+          </span>
+          <span
+            className="font-heading font-extrabold uppercase text-5xl md:text-7xl leading-[0.9]"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: [
+                "branding_logo_text_primary",
+                "branding_logo_text_secondary",
+                "branding_header_tagline",
+              ],
+              mode: "popover",
+            })}
+          >
+            {branding.logoTextPrimary}
+            {branding.logoTextSecondary}
+          </span>
+          <span className="font-heading font-bold uppercase text-lg md:text-2xl bg-white text-brand-secondary-700 px-3 rounded-[3px]">
+            {branding.headerTagline}
+          </span>
+          {tel && (
+            <a
+              href={`tel:${tel}`}
+              className="font-heading font-extrabold text-3xl md:text-4xl tracking-wide mt-1 hover:underline"
+            >
+              <span className="text-lg md:text-xl font-semibold opacity-90">
+                {footer.hotlinePrefix}
+              </span>{" "}
+              {company.phone}
+            </a>
+          )}
+          <span className="text-xs md:text-sm opacity-90">
+            {company.address}
+          </span>
+        </div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 w-full flex flex-col items-center">
-        {/* 2. Concentrated centered box, custom premium styling, dark background, 75% opacity */}
-        <div
-          id="hero-main-card"
-          className="w-full max-w-5xl mx-auto bg-slate-950/75 backdrop-blur-md border border-white/10 rounded-3xl p-10 md:p-14 lg:p-16 text-center flex flex-col items-center shadow-2xl transition-all duration-500 hover:border-brand-primary-500/30 transform hover:scale-[1.01]"
-        >
-          {/* Trust badge with glowing element */}
-          <div className="inline-flex items-center gap-2 py-2 px-4 bg-white/10 border border-white/15 shadow-sm rounded-full text-brand-primary-300 text-sm font-bold mb-8 animate-fade-in">
-            <ShieldCheck className="size-5 text-brand-primary-400" />
-            <span
-              className="tracking-wide"
-              data-directus={editAttr({
-                collection: "site_settings",
-                item: sid,
-                fields: "hero_trust_badge",
-              })}
-            >
-              {hero.trustBadge}
-            </span>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12 md:py-16 grid gap-10 lg:grid-cols-12 items-center">
+        <div className="lg:col-span-7">
+          <span
+            className="inline-flex items-center gap-2 text-sm font-semibold text-brand-primary-700"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: "hero_trust_badge",
+            })}
+          >
+            <ShieldCheck className="size-4.5 shrink-0" />
+            {hero.trustBadge}
+          </span>
 
-          {/* 3. Luxury Headings using Serif font — joined from CMS segments */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif text-white tracking-normal leading-tight mb-8 max-w-4xl">
+          <h1 className="mt-4 font-serif font-extrabold uppercase text-5xl sm:text-6xl lg:text-7xl leading-[0.95] text-sign-ink">
             {hero.headlineSegments.map((seg, idx) => (
               <span key={seg.id ?? idx}>
                 {seg.newLineBefore && idx > 0 ? <br /> : idx > 0 ? " " : null}
@@ -81,9 +96,8 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
             ))}
           </h1>
 
-          {/* Subtext description conforming to core business details */}
           <p
-            className="text-slate-200 text-base md:text-lg lg:text-xl font-normal max-w-3xl leading-relaxed mb-10"
+            className="mt-6 text-stone-600 text-base md:text-lg leading-relaxed max-w-2xl"
             data-directus={editAttr({
               collection: "site_settings",
               item: sid,
@@ -93,37 +107,11 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
             {renderLines(hero.subheadline)}
           </p>
 
-          {/* Dynamic Core Benefits Grid (2x2) inside centered panel */}
-          <div
-            className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-10 mb-10 text-left border-t border-b border-white/10 py-8 w-full max-w-3xl"
-            data-directus={editAttr({
-              collection: "site_settings",
-              item: sid,
-              fields: "hero_benefits",
-              mode: "drawer",
-            })}
-          >
-            {hero.benefits.map((value, idx) => (
-              <div key={idx} className="flex items-center gap-3">
-                <div className="flex items-center justify-center size-6 bg-brand-primary-500/20 border border-brand-primary-500/40 rounded-full text-brand-primary-400">
-                  <Check className="size-4" />
-                </div>
-                <span className="text-slate-200 text-sm md:text-base font-medium">
-                  {value}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Call to action action buttons */}
-          <div className="flex flex-col sm:flex-row gap-5 w-full justify-center items-center">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <Link
               id="hero-primary-cta"
               href={hero.primaryCta.href}
-              className={
-                buttonVariants({ variant: "default" }) +
-                " w-full sm:w-auto bg-brand-secondary-500 hover:bg-brand-secondary-600 text-white font-bold px-8 py-5 rounded-2xl text-base shadow-xl shadow-brand-secondary-500/20 hover:shadow-brand-secondary-500/45 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
-              }
+              className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-md bg-brand-secondary-600 hover:bg-brand-secondary-700 text-white font-bold transition-colors"
             >
               <span
                 data-directus={editAttr({
@@ -133,16 +121,13 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
                 })}
               >
                 {hero.primaryCta.label}
-              </span>{" "}
-              <ArrowRight className="size-5 animate-bounce-horizontal" />
+              </span>
+              <ArrowRight className="size-5" />
             </Link>
             <Link
               id="hero-secondary-cta"
               href={hero.secondaryCta.href}
-              className={
-                buttonVariants({ variant: "outline" }) +
-                " w-full sm:w-auto border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold px-8 py-5 rounded-2xl text-base shadow-sm hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
-              }
+              className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-md bg-white text-sign-ink ring-2 ring-inset ring-sign-ink hover:bg-stone-100 font-bold transition-colors"
             >
               <span
                 data-directus={editAttr({
@@ -155,14 +140,12 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
                 })}
               >
                 {hero.secondaryCta.label}
-              </span>{" "}
-              <Sparkles className="size-5 text-brand-secondary-400" />
+              </span>
             </Link>
           </div>
 
-          {/* Mini trust label */}
-          <span
-            className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-8"
+          <p
+            className="mt-6 text-xs font-semibold uppercase tracking-widest text-stone-500"
             data-directus={editAttr({
               collection: "site_settings",
               item: sid,
@@ -170,32 +153,77 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
             })}
           >
             {hero.trustStrap}
-          </span>
+          </p>
         </div>
 
-        {/* Counters ribbon below with rich depth backdrop */}
-        <div className="mt-12 bg-slate-950/60 backdrop-blur-xs border border-white/10 rounded-2xl p-6 md:p-8 w-full max-w-4xl shadow-xl">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
-            {stats.map((stat, idx) => (
-              <div
-                key={stat.id ?? idx}
-                className={`flex flex-col items-center justify-center text-center ${idx > 1 ? "pt-4 lg:pt-0" : ""} ${idx === 1 ? "pt-0 lg:pt-0" : ""}`}
-                data-directus={editAttr({
-                  collection: "site_stats",
-                  item: stat.id,
-                  fields: ["value", "label", "color"],
-                  mode: "drawer",
-                })}
+        {/* Commitments panel: job-site photo + benefit checklist */}
+        <div className="lg:col-span-5 bg-sign-ink text-white rounded-[4px] overflow-hidden">
+          {hero.backgroundImageUrl && (
+            <div className="relative aspect-[16/9]">
+              <Image
+                src={hero.backgroundImageUrl}
+                alt="Đội thợ GreenOrange tại công trình"
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            </div>
+          )}
+          <div className="p-6 md:p-7">
+            <h2 className="font-heading font-bold uppercase text-2xl text-tape">
+              Cam kết với anh/chị
+            </h2>
+            <ul
+              className="mt-4 space-y-3"
+              data-directus={editAttr({
+                collection: "site_settings",
+                item: sid,
+                fields: "hero_benefits",
+                mode: "drawer",
+              })}
+            >
+              {hero.benefits.map((value, idx) => (
+                <li key={idx} className="flex gap-3 text-sm md:text-base">
+                  <Check className="size-5 shrink-0 text-brand-primary-400 mt-0.5" />
+                  <span>{value}</span>
+                </li>
+              ))}
+            </ul>
+            {tel && (
+              <a
+                href={`tel:${tel}`}
+                className="mt-6 flex items-center gap-2 text-sm font-semibold text-stone-300 hover:text-white"
               >
-                <span className="text-2xl md:text-3xl font-serif font-black text-white mb-1">
-                  {stat.value}
-                </span>
-                <span className="text-slate-400 text-[10px] md:text-xs font-bold leading-snug max-w-[160px]">
-                  {stat.label}
-                </span>
-              </div>
-            ))}
+                <Phone className="size-4" />
+                {footer.hotlinePrefix} {company.phone}
+              </a>
+            )}
           </div>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 pb-12 md:pb-16">
+        <div className="grid grid-cols-2 lg:grid-cols-4 border-y-2 border-sign-ink">
+          {stats.map((stat, idx) => (
+            <div
+              key={stat.id ?? idx}
+              className={`py-5 px-3 text-center ${idx % 2 === 1 ? "border-l border-stone-300" : ""} ${idx > 1 ? "border-t border-stone-300 lg:border-t-0 lg:border-l" : ""}`}
+              data-directus={editAttr({
+                collection: "site_stats",
+                item: stat.id,
+                fields: ["value", "label", "color"],
+                mode: "drawer",
+              })}
+            >
+              <span className="block font-heading font-extrabold text-4xl md:text-5xl text-brand-secondary-600 tabular-nums">
+                {stat.value}
+              </span>
+              <span className="block mt-1 text-xs md:text-sm font-medium text-stone-600">
+                {stat.label}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </section>

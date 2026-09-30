@@ -4,9 +4,6 @@ import { Category } from "@/constants/category";
 
 import { ServiceCategoryOption } from "./types";
 
-// localStorage key used to persist contact submissions on the device.
-export const SUBMISSIONS_STORAGE_KEY = "greenorange_submissions";
-
 // How long the success banner stays visible after a submission (ms).
 export const SUCCESS_BANNER_DURATION_MS = 6000;
 

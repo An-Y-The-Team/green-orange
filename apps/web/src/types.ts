@@ -1,5 +1,4 @@
 import { Category } from "@/constants/category";
-import { SubmissionStatus } from "@/constants/submission-status";
 
 export interface Service {
   id: string;
@@ -49,18 +48,4 @@ export interface Testimonial {
   rating: number;
   avatarUrl: string;
   category: Category;
-}
-
-export interface ContactSubmission {
-  id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  serviceCategory: Category;
-  serviceId: string;
-  companyName?: string;
-  address?: string;
-  message: string;
-  submittedAt: string;
-  status: SubmissionStatus;
 }

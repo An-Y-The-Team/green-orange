@@ -5,6 +5,7 @@ import { renderLines } from "@/lib/text-lines";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import { BrandValueAccent, BrandValueIcon, SiteSettings } from "../../data";
+import SectionHeading from "../section-heading/section-heading";
 
 // Static maps keep Tailwind classes greppable for the JIT compiler and let the
 // renderer reject any value the CMS shouldn't be able to send.
@@ -14,121 +15,73 @@ const ICON_BY_NAME: Record<BrandValueIcon, LucideIcon> = {
   Trees,
 };
 
-interface TriColors {
-  left: string;
-  right: string;
-  bottom: string;
-}
-
-const ACCENT_TRI_COLORS: Record<BrandValueAccent, TriColors> = {
-  orange: {
-    left: "fill-brand-secondary-500 stroke-brand-secondary-600",
-    right: "fill-brand-secondary-100 stroke-brand-secondary-200",
-    bottom: "fill-brand-secondary-300 stroke-brand-secondary-400",
-  },
-  slate: {
-    left: "fill-slate-400 stroke-slate-550",
-    right: "fill-slate-100 stroke-slate-200",
-    bottom: "fill-slate-300 stroke-slate-400",
-  },
-  emerald: {
-    left: "fill-brand-primary-600 stroke-brand-primary-700",
-    right: "fill-brand-primary-100 stroke-brand-primary-200",
-    bottom: "fill-brand-primary-300 stroke-brand-primary-400",
-  },
-};
-
-const ACCENT_DOT_CLASS: Record<BrandValueAccent, string> = {
-  orange: "bg-brand-secondary-500",
-  slate: "bg-slate-400",
-  emerald: "bg-brand-primary-500",
+// Each brand color is shown as a square sign tile; "slate" is the white of
+// Cam · Trắng · Xanh, so it gets an outlined white tile.
+const ACCENT_TILE_CLASS: Record<BrandValueAccent, string> = {
+  orange: "bg-brand-secondary-600 text-white",
+  slate: "bg-white text-sign-ink ring-2 ring-inset ring-sign-ink",
+  emerald: "bg-brand-primary-600 text-white",
 };
 
 export default function Introduction({ settings }: { settings: SiteSettings }) {
   const { company, introduction } = settings;
   const sid = settings.cmsId;
   return (
-    <section id="introduction" className="py-16 md:py-24 bg-white relative">
+    <section id="introduction" className="py-16 md:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span
-            className="text-sm font-black text-brand-primary-600 uppercase tracking-widest bg-brand-primary-50 px-3.5 py-1 rounded-full"
-            data-directus={editAttr({
-              collection: "site_settings",
-              item: sid,
-              fields: "introduction_eyebrow",
-            })}
-          >
-            {introduction.eyebrow}
-          </span>
-          <h2
-            className="text-4xl md:text-5xl lg:text-6xl font-black font-heading text-slate-900 tracking-tight mt-3 mb-4"
-            data-directus={editAttr({
-              collection: "site_settings",
-              item: sid,
-              fields: "introduction_heading",
-            })}
-          >
-            {renderLines(introduction.heading)}
-          </h2>
-          <div className="h-1.5 w-24 bg-gradient-to-r from-brand-primary-500 to-brand-secondary-500 mx-auto rounded-full" />
-          <p
-            className="text-slate-500 font-medium mt-6 text-base md:text-lg"
-            data-directus={editAttr({
-              collection: "site_settings",
-              item: sid,
-              fields: "introduction_narrative",
-              mode: "modal",
-            })}
-          >
-            {renderLines(
-              introduction.narrative.replace("{founded}", company.founded)
-            )}
-          </p>
-        </div>
+        <SectionHeading
+          cmsId={sid}
+          fields={[
+            "introduction_eyebrow",
+            "introduction_heading",
+            "introduction_narrative",
+          ]}
+          descriptionMode="modal"
+          eyebrow={introduction.eyebrow}
+          heading={introduction.heading}
+          description={introduction.narrative.replace(
+            "{founded}",
+            company.founded
+          )}
+        />
 
-        {/* Narrative & Brand Color Meanings */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-20">
-          <div className="lg:col-span-5 relative">
-            <div className="relative rounded-2xl overflow-hidden border border-gray-100 shadow-xl aspect-square">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+          {/* Team photo with the motto as a sign strip underneath */}
+          <figure className="lg:col-span-5 rounded-[4px] overflow-hidden ring-2 ring-sign-ink">
+            <div className="relative aspect-[4/3] bg-stone-200">
               <Image
                 src={introduction.imageUrl}
-                alt="Đội ngũ GreenOrange làm việc chuyên nghiệp"
+                alt="Đội ngũ GreenOrange tại công trình"
                 fill
                 unoptimized
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-primary-950/80 via-brand-primary-950/20 to-transparent" />
-
-              {/* Dynamic stats banner on top of image */}
-              <div className="absolute bottom-6 left-6 right-6 text-white text-left">
-                <span className="block text-xs font-bold text-brand-secondary-400 uppercase tracking-widest mb-1">
-                  {introduction.mottoEyebrow}
-                </span>
-                <span className="text-lg md:text-xl font-bold italic leading-tight">
-                  &ldquo;{company.motto}&rdquo;
-                </span>
-              </div>
             </div>
-          </div>
+            <figcaption className="bg-sign-ink text-white p-5">
+              <span className="block text-xs font-bold uppercase tracking-widest text-tape mb-1.5">
+                {introduction.mottoEyebrow}
+              </span>
+              <span className="text-base md:text-lg font-semibold leading-snug">
+                &ldquo;{company.motto}&rdquo;
+              </span>
+            </figcaption>
+          </figure>
 
-          <div className="lg:col-span-7 space-y-6">
-            <h3 className="text-3xl md:text-4xl font-black font-heading text-slate-800 tracking-tight">
+          <div className="lg:col-span-7">
+            <h3 className="font-heading font-extrabold uppercase text-3xl md:text-4xl leading-none text-sign-ink">
               {renderLines(introduction.brandStoryHeading)}
             </h3>
-            <p className="text-slate-500 text-sm md:text-base leading-relaxed">
+            <p className="mt-4 text-stone-600 text-base leading-relaxed">
               {renderLines(introduction.brandStoryIntro)}
             </p>
 
-            <div className="space-y-5">
+            <div className="mt-8 space-y-4">
               {introduction.brandValues.map((v, idx) => {
                 const IconComp = ICON_BY_NAME[v.icon];
-                const tri = ACCENT_TRI_COLORS[v.accent];
                 return (
                   <div
                     key={v.id ?? idx}
-                    className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl border border-gray-100 bg-linear-to-r from-gray-50/50 to-white hover:border-gray-200 transition-all shadow-xs hover:shadow-md"
+                    className="flex gap-4 items-start p-4 rounded-[4px] bg-stone-100"
                     data-directus={editAttr({
                       collection: "site_brand_values",
                       item: v.id,
@@ -136,47 +89,16 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                       mode: "drawer",
                     })}
                   >
-                    {/* The 3-Isosceles Equilateral Triangles rotating module */}
-                    <div className="relative flex items-center justify-center size-20 shrink-0 select-none">
-                      {/* Slow spinning background shape composed of 3 isosceles triangles */}
-                      <div className="absolute inset-0 animate-spin [animation-duration:10s] hover:[animation-duration:4s] transition-all">
-                        <svg
-                          viewBox="0 0 100 100"
-                          className="w-full h-full drop-shadow-sm overflow-visible"
-                        >
-                          {/* Isosceles 1 (Left) */}
-                          <path
-                            d="M 50 6 L 50 52 L 10 75 Z"
-                            className={`${tri.left} stroke-linejoin-round stroke-[6]`}
-                          />
-                          {/* Isosceles 2 (Right) */}
-                          <path
-                            d="M 50 6 L 50 52 L 90 75 Z"
-                            className={`${tri.right} stroke-linejoin-round stroke-[6]`}
-                          />
-                          {/* Isosceles 3 (Bottom) */}
-                          <path
-                            d="M 10 75 L 50 52 L 90 75 Z"
-                            className={`${tri.bottom} stroke-linejoin-round stroke-[6]`}
-                          />
-                        </svg>
-                      </div>
-
-                      {/* Magnified Glassmorphism Icon Layer on Top */}
-                      <div className="relative z-10 p-3.5 bg-slate-900/85 backdrop-blur-xs text-white rounded-full border border-white/20 shadow-md transform hover:scale-110 transition-transform duration-300">
-                        <IconComp className="size-7 text-white shrink-0 animate-pulse" />
-                      </div>
-                    </div>
-
-                    {/* Concise narrative text contents */}
-                    <div className="text-center sm:text-left flex-1">
-                      <h4 className="font-black font-heading text-slate-800 text-lg mb-1.5 flex items-center justify-center sm:justify-start gap-2">
-                        <span
-                          className={`inline-block size-2 rounded-full ${ACCENT_DOT_CLASS[v.accent]}`}
-                        />
+                    <span
+                      className={`grid place-items-center size-12 shrink-0 rounded-[4px] ${ACCENT_TILE_CLASS[v.accent]}`}
+                    >
+                      <IconComp className="size-6" />
+                    </span>
+                    <div>
+                      <h4 className="font-bold text-sign-ink text-base md:text-lg">
                         {v.title}
                       </h4>
-                      <p className="text-slate-500 text-sm md:text-base leading-relaxed max-w-xl">
+                      <p className="mt-1 text-stone-600 text-sm md:text-base leading-relaxed">
                         {v.description}
                       </p>
                     </div>
@@ -187,14 +109,14 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
           </div>
         </div>
 
-        {/* 5 step delivery process */}
-        <div className="mt-16 bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl p-8 md:p-12 relative overflow-hidden">
-          <div className="max-w-3xl mx-auto text-center mb-12 relative z-10">
-            <span className="text-sm font-black text-brand-secondary-400 uppercase tracking-widest bg-brand-secondary-400/15 px-4 py-1.5 rounded-full inline-block scale-110 mb-2">
+        {/* 5-step delivery process on the charcoal band */}
+        <div className="mt-16 md:mt-20 bg-sign-ink text-white rounded-[4px] p-6 md:p-10">
+          <div className="max-w-3xl mb-10">
+            <span className="text-sm font-bold uppercase tracking-[0.12em] text-tape">
               {introduction.processEyebrow}
             </span>
             <h3
-              className="text-3xl md:text-4xl font-black font-heading tracking-tight mt-3 mb-4 text-white"
+              className="mt-2 font-heading font-extrabold uppercase text-3xl md:text-4xl leading-none"
               data-directus={editAttr({
                 collection: "site_settings",
                 item: sid,
@@ -204,7 +126,7 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
               {renderLines(introduction.processHeading)}
             </h3>
             <p
-              className="text-slate-300 text-base md:text-lg"
+              className="mt-4 text-stone-300 text-base md:text-lg"
               data-directus={editAttr({
                 collection: "site_settings",
                 item: sid,
@@ -215,11 +137,11 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 relative z-10">
+          <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             {introduction.processSteps.map((step, idx) => (
-              <div
+              <li
                 key={step.id ?? idx}
-                className="relative bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 hover:border-white/20 transition-all flex flex-col items-start text-left"
+                className="border-t-2 border-white/20 pt-4"
                 data-directus={editAttr({
                   collection: "site_process_steps",
                   item: step.id,
@@ -227,21 +149,18 @@ export default function Introduction({ settings }: { settings: SiteSettings }) {
                   mode: "drawer",
                 })}
               >
-                <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-brand-secondary-400 to-brand-primary-400 leading-none mb-3 transform hover:scale-110 transition-transform">
+                <span className="inline-block font-heading font-extrabold text-2xl leading-none bg-tape text-sign-ink px-2 py-1 rounded-[3px] tabular-nums">
                   {step.num}
-                </div>
-                <h4 className="text-base font-black mb-2 text-white leading-snug">
+                </span>
+                <h4 className="mt-3 font-bold text-base leading-snug">
                   {step.title}
                 </h4>
-                <p className="text-sm text-slate-400 leading-normal mt-auto">
+                <p className="mt-2 text-sm text-stone-400 leading-relaxed">
                   {step.description}
                 </p>
-                {idx < introduction.processSteps.length - 1 && (
-                  <div className="hidden lg:block absolute top-[40px] -right-[15%] w-[30%] h-[1px] bg-gradient-to-r from-brand-secondary-400/40 to-brand-primary-400/40 z-20 pointer-events-none" />
-                )}
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </div>
     </section>
