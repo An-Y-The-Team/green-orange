@@ -1,24 +1,14 @@
 """Relation counts on a list read: how many địa điểm, how many công trình.
 
-STUDENT EXERCISE — docs/tasks/03-client-list-counts.md. These tests are the
-spec: they ship red, and the task is to make them green.
 
-    uv run pytest -m exercise        # just these
-    uv run pytest -q                 # everything else (these are deselected)
-
-The last step of the task deletes the `pytestmark` line below, so from then on
-they run with the rest of the suite.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.api.common import counts_by_id
 from app.models.client import Client, Location
 from app.models.project import Project
-
-pytestmark = pytest.mark.exercise
 
 
 # ── counts_by_id: no database, no query ─────────────────────────────────────
