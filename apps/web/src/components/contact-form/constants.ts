@@ -18,19 +18,19 @@ export const SEARCH_PARAM = {
 export const SERVICE_CATEGORY_OPTIONS: ServiceCategoryOption[] = [
   {
     id: Category.CLEANING,
-    label: "Vệ Sinh",
+    label: "Vệ sinh",
     icon: Sparkle,
     color: "text-brand-primary-600",
   },
   {
     id: Category.CONSTRUCTION,
-    label: "Thi Công",
+    label: "Thi công",
     icon: Wrench,
     color: "text-brand-secondary-500",
   },
   {
     id: Category.BOTH,
-    label: "Trọn Gói Cả Hai",
+    label: "Cả hai",
     icon: ClipboardCheck,
     color: "text-slate-700",
   },

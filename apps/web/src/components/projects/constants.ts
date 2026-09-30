@@ -4,7 +4,7 @@ import { ProjectFilterTab } from "./types";
 
 // Category filter tabs shown above the projects grid.
 export const PROJECT_FILTER_TABS: ProjectFilterTab[] = [
-  { id: CategoryFilter.ALL, label: "Tất cả công trình" },
-  { id: CategoryFilter.CLEANING, label: "Chuyên môn Vệ Sinh" },
-  { id: CategoryFilter.CONSTRUCTION, label: "Mảng Thi Công" },
+  { id: CategoryFilter.ALL, label: "Tất cả" },
+  { id: CategoryFilter.CLEANING, label: "Vệ sinh" },
+  { id: CategoryFilter.CONSTRUCTION, label: "Thi công" },
 ];

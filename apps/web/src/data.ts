@@ -333,8 +333,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   branding: {
     logoTextPrimary: "Green",
     logoTextSecondary: "Orange",
-    headerTagline: "Thi Công & Vệ Sinh",
-    footerTagline: "Xây dựng & Dọn sạch",
+    headerTagline: "Thi công & vệ sinh",
+    footerTagline: "Xây dựng & dọn sạch",
   },
   typography: {
     headingFont: "barlow-condensed",
@@ -346,177 +346,177 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   },
   navigation: {
     items: [
-      { label: "Giới Thiệu", sectionId: SectionId.INTRODUCTION },
-      { label: "Dịch Vụ", sectionId: SectionId.SERVICES },
-      { label: "Dự Án Đã Làm", sectionId: SectionId.PROJECTS },
-      { label: "Đánh Giá", sectionId: SectionId.TESTIMONIALS },
-      { label: "Liên Hệ", sectionId: SectionId.CONTACT },
+      { label: "Giới thiệu", sectionId: SectionId.INTRODUCTION },
+      { label: "Dịch vụ", sectionId: SectionId.SERVICES },
+      { label: "Dự án đã làm", sectionId: SectionId.PROJECTS },
+      { label: "Đánh giá", sectionId: SectionId.TESTIMONIALS },
+      { label: "Liên hệ", sectionId: SectionId.CONTACT },
     ],
     headerCtaLabel: "Đặt lịch khảo sát",
     mobileCtaLabel: "Yêu cầu khảo sát miễn phí",
   },
   hero: {
-    backgroundImageUrl:
-      "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1920&q=80",
-    trustBadge: "Tiêu chuẩn quốc tế ISO 9001:2015 & chuẩn Eco-Safe",
+    // Empty on purpose: without a real job-site photo from the CMS, the hero
+    // panel shows only the checklist (no stock photo).
+    backgroundImageUrl: "",
+    trustBadge: "Quản lý chất lượng theo chuẩn ISO 9001:2015",
     headlineSegments: [
-      { text: "Thi Công", color: "white", italic: false, newLineBefore: false },
-      { text: "Kiến Tạo", color: "orange", italic: true, newLineBefore: false },
-      { text: "Cửa Hiệu", color: "white", italic: false, newLineBefore: false },
       {
-        text: "Chuyên Nghiệp & Sạch Sẽ",
-        color: "emerald",
+        text: "Dựng xong là sạch,",
+        color: "white",
+        italic: false,
+        newLineBefore: false,
+      },
+      {
+        text: "sạch xong là mở cửa.",
+        color: "orange",
         italic: false,
         newLineBefore: true,
       },
     ],
     subheadline:
-      "Hợp tác toàn diện 2-trong-1 thiết kế, cải tạo trần vách, ánh sáng rọi, mặt dựng Alu cho chuỗi showroom toàn quốc. Kết hợp gói dọn dẹp vệ sinh sâu bóc bụi mịn sơn bả trước giờ cắt băng bàn giao, giúp bạn sở hữu cửa hiệu sang trọng, sạch bóng tươm tất nhanh chóng nhất.",
+      "Anh/chị chỉ cần gọi, GreenOrange lo trọn từ thi công, lắp biển hiệu đến dọn dẹp sạch sẽ trước ngày khai trương.",
     benefits: [
-      "Thi công chuẩn kỹ thuật, bảo hành 12 tháng",
-      "Công nghệ màng lọc bụi mịn HEPA 3 lớp",
-      "Khảo sát đo đạc hiện trạng trong ngày miễn phí",
-      "Cam kết chất tẩy rửa hữu cơ sinh học Eco-Safe",
+      "Khảo sát và báo giá trong ngày, không mất phí",
+      "Báo giá rõ từng hạng mục, đã ký là không phát sinh",
+      "Làm cả ca đêm để kịp ngày khai trương",
+      "Hoá chất an toàn cho nhân viên và khách, bảo hành 12 tháng",
     ],
-    primaryCta: { label: "Đặt lịch khảo sát ngay", href: "#contact" },
-    secondaryCta: { label: "Tìm hiểu dịch vụ", href: "#services" },
-    trustStrap:
-      "✓ Cam kết đồng hành tin cậy • Khảo sát lập phương án & báo giá trong ngày miễn phí",
+    primaryCta: { label: "Đặt lịch khảo sát miễn phí", href: "#contact" },
+    secondaryCta: { label: "Xem dịch vụ", href: "#services" },
+    trustStrap: "Hà Nội · TP. Hồ Chí Minh · Nhận công trình toàn quốc",
   },
   stats: [
     {
       value: "500+",
-      label: "Cửa hàng & Văn phòng Đã Bàn Giao",
+      label: "Cửa hàng & văn phòng đã bàn giao",
       color: "text-brand-primary-600",
     },
     {
       value: "120+",
-      label: "Dự án Thi Công Cải Tạo Trọn Gói",
+      label: "Công trình cải tạo trọn gói",
       color: "text-brand-secondary-600",
     },
     {
       value: "99.4%",
-      label: "Khách Hàng Đánh Giá Hài Lòng 5★",
+      label: "Khách hàng đánh giá 5★",
       color: "text-brand-primary-600",
     },
     {
       value: "35+",
-      label: "Trang thiết bị & Hóa chất Đạt Chuẩn",
+      label: "Loại thiết bị & hoá chất đạt chuẩn",
       color: "text-brand-secondary-600",
     },
   ],
   introduction: {
-    eyebrow: "Giới Thiệu Doanh Nghiệp",
-    heading: "Về GreenOrange Services",
+    eyebrow: "Về chúng mình",
+    heading: "Một đội lo cả dựng lẫn dọn",
     narrative:
-      "Được thành lập từ năm {founded}, **GreenOrange Services** tự hào là đơn vị tiên phong kết hợp hai dịch vụ cốt lõi: **Thi Công Cửa Hàng** sắc bén và **Vệ Sinh Công Nghiệp** chuẩn mực. Chúng tôi kiến tạo không gian kinh doanh đầy ấn tượng và bảo dưỡng sự khang trang đó vẹn nguyên theo thời gian.",
+      "Từ năm {founded}, GreenOrange làm hai việc cho các cửa hàng: thi công cải tạo và vệ sinh công nghiệp. Cùng một đội lo từ lúc dựng vách đến lúc lau sạch kính, nên anh/chị không phải tìm thêm bên dọn dẹp và cửa hàng luôn kịp ngày khai trương.",
     imageUrl:
       "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
     mottoEyebrow: "Phương châm làm nghề",
-    brandStoryHeading: "Ý Nghĩa Sứ Mệnh Qua Sắc Màu Nhận Diện",
+    brandStoryHeading: "Ba màu, ba lời hứa",
     brandStoryIntro:
-      "Chúng tôi không chọn màu ngẫu nhiên. Bộ nhận diện **Màu Cam - Trắng - Xanh lá** đại diện cho lời cam kết toàn diện của chúng tôi về năng lực kỹ thuật và chất lượng vệ sinh bảo dưỡng:",
+      "Cam, trắng và xanh lá không chỉ là màu logo. Mỗi màu là một điều chúng mình hứa với anh/chị:",
     brandValues: [
       {
-        title: "Màu Cam: Thi Công Nhiệt Huyết",
+        title: "Cam · Làm kỹ, làm nhiệt tình",
         description:
-          "Sáng tạo, tinh xảo trong từng đường điện, kệ tủ trưng bày và biển hiệu quảng cáo Alu nổi bật.",
+          "Chăm chút từng đường điện, kệ tủ trưng bày và biển hiệu Alu.",
         icon: "Wrench",
         accent: "orange",
       },
       {
-        title: "Màu Trắng: Sạch Sẽ & Minh Bạch",
-        description:
-          "Cam kết không gian sạch bóng chuyên sâu, bàn giao đúng tiến độ và minh bạch trong báo giá.",
+        title: "Trắng · Sạch và minh bạch",
+        description: "Bàn giao sạch bóng, đúng hẹn, báo giá rõ ràng từ đầu.",
         icon: "ShieldCheck",
         accent: "slate",
       },
       {
-        title: "Màu Xanh: Thân Thiện & An Toàn",
+        title: "Xanh lá · An toàn",
         description:
-          "Dọn dẹp bằng hóa chất sinh học sinh thái Organic tuyệt đối an toàn cho nhân viên và quý khách.",
+          "Dùng hoá chất sinh học, an toàn cho nhân viên và khách của anh/chị.",
         icon: "Trees",
         accent: "emerald",
       },
     ],
-    processEyebrow: "Khép kín & Hoàn hảo",
-    processHeading: "Quy Trình 5 Bước Phục Vụ Chuyên Nghiệp",
+    processEyebrow: "Quy trình",
+    processHeading: "5 bước, anh/chị không phải lo",
     processIntro:
-      "Tối ưu hóa thời gian mở showroom cho chủ đầu tư. Phối hợp nhịp nhàng giữa thi công hoàn thiện và dọn sạch tinh tươm.",
+      "Thi công và dọn dẹp nối tiếp nhau, mặt bằng không phải chờ, cửa hàng mở đúng ngày.",
     processSteps: [
       {
         num: "01",
-        title: "Khảo Sát & Đo Đạc Hiện Trạng",
+        title: "Khảo sát miễn phí",
         description:
-          "Chuyên viên của chúng tôi sẽ đến trực tiếp mặt bằng thô hoặc shop cũ của bạn trong 2 giờ kể từ khi tiếp nhận để khảo sát diện tích, đặc thù kết cấu và đo đạt chính xác.",
+          "Có mặt trong 2 giờ sau khi anh/chị gọi, đo đạc tận nơi và xem kỹ hiện trạng mặt bằng.",
       },
       {
         num: "02",
-        title: "Lên Dự Toán & Bản Vẽ Khớp Thật",
+        title: "Báo giá rõ ràng",
         description:
-          "Bóc tách chi tiết từng hạng mục: số lượng thạch cao, sàn nhựa, thiết bị điện, số lượng nhân công dọn dẹp và hóa chất cần dùng. Ký kết hợp đồng cam kết không phát sinh.",
+          "Bóc tách từng hạng mục: vật tư, thiết bị điện, nhân công, hoá chất. Đã ký hợp đồng là không phát sinh.",
       },
       {
         num: "03",
-        title: "Thi Công Lắp Đặt Gấp Rút",
+        title: "Thi công đúng hẹn",
         description:
-          "Tiến hành ốp Alu, dựng vách, sơn bả tường và đi dây nguồn điện rọi, điện trang trí. Hoạt động liên tục cả ca đêm nếu ban quản lý tòa nhà yêu cầu để kịp tiến độ.",
+          "Ốp Alu, dựng vách, sơn bả, đi điện chiếu sáng. Làm cả ca đêm nếu tòa nhà yêu cầu.",
       },
       {
         num: "04",
-        title: "Mài Sàn & Vệ Sinh Sâu Chi Tiết",
+        title: "Vệ sinh thật kỹ",
         description:
-          "Triển khai máy đánh sàn công nghiệp, hút bụi mịn, bóc tẩy mọi silicone còn dính trên kính, lau chùi biển hiệu, tẩy mốc khử mùi sơn mới bám trần vách.",
+          "Mài sàn, hút bụi mịn, tẩy silicone trên kính, lau biển hiệu và khử mùi sơn mới.",
       },
       {
         num: "05",
-        title: "Nghiệm Thu Khắt Khe & Bàn Giao",
+        title: "Nghiệm thu, bàn giao",
         description:
-          "Tiến hành nghiệm thu từng chi tiết cùng chủ đầu tư theo checklist kỹ thuật chuẩn mực. Bàn giao chìa khóa để chủ shop yên tâm khai trương và hưởng bảo hành 12 tháng.",
+          "Kiểm tra từng chi tiết cùng anh/chị theo checklist, giao chìa khoá và bảo hành 12 tháng.",
       },
     ],
   },
   servicesSection: {
-    eyebrow: "Danh Mục Giải Pháp",
-    heading: "Dịch Vụ Thi Công & Vệ Sinh Chuyên Sâu",
+    eyebrow: "Dịch vụ",
+    heading: "Chúng mình làm gì cho anh/chị",
     description:
-      "Hợp tác toàn diện giúp tối ưu chi phí, rút ngắn thời gian vàng trước khai trương. Chọn một hoặc kết hợp trọn gói để tận hưởng chiết khấu ưu đãi dành riêng cho doanh nghiệp hội viên.",
+      "Chọn riêng thi công, riêng vệ sinh, hoặc gộp trọn gói để tiết kiệm hơn và chỉ làm việc với một đầu mối.",
   },
   projectsSection: {
-    eyebrow: "Hồ Sơ Năng Lực Real",
-    heading: "Dự Án Đã Bàn Giao Thành Công",
+    eyebrow: "Công trình đã làm",
+    heading: "Cửa hàng đã bàn giao",
     description:
-      "Chúng tôi tự hào đồng hành cùng các thương hiệu lớn tại Hà Nội và TP. Hồ Chí Minh trong sứ mệnh làm đẹp cửa hiệu kinh doanh và cam kết độ an toàn sạch bóng 100% trước khai trương.",
+      "Một số showroom, quán cà phê và cửa hàng chúng mình đã thi công và dọn sạch ở Hà Nội và TP. Hồ Chí Minh.",
   },
   testimonialsSection: {
-    eyebrow: "Ý Kiến Đối Tác",
-    heading: "Đánh Giá Từ Khách Hàng Đã Trải Nghiệm",
-    description:
-      "Họ nói gì về năng lực thi công và cam kết sạch của chúng tôi? Sự hài lòng của các chủ thương hiệu là phần thưởng danh giá nhất.",
+    eyebrow: "Khách hàng nói gì",
+    heading: "Chủ cửa hàng kể lại",
+    description: "Ý kiến từ các chủ cửa hàng đã làm việc cùng GreenOrange.",
   },
   contactSection: {
-    eyebrow: "Liên Hệ Đăng Ký",
-    heading: "Đăng Ký Khảo Sát & Tư Vấn Miễn Phí",
+    eyebrow: "Liên hệ",
+    heading: "Đặt lịch khảo sát miễn phí",
     description:
-      "Chỉ với 1 phút điền thông tin, chúng tôi sẽ cử kỹ sư chuyên môn đến khảo sát đo đạc thực tế hoàn toàn miễn phí. Cam kết bảo mật thông tin tối đa.",
-    successHeading: "Gửi yêu cầu thành công!",
+      "Để lại tên và số điện thoại, chúng mình gọi lại và báo giá trong ngày. Thông tin của anh/chị chỉ dùng để liên hệ.",
+    successHeading: "Đã nhận yêu cầu của anh/chị",
     successBody:
-      "Đơn của bạn đã được chuyển đến phòng dự án GreenOrange. Chuyên viên kỹ sư sẽ liên hệ với bạn qua điện thoại trong vòng 15 phút tới.",
-    ctaLabel: "Gửi Đăng Ký Khảo Sát Ngay (Miễn Phí)",
-    labelFullName: "Họ và Tên Khách Hàng",
-    labelPhone: "Số Điện Thoại Liên Hệ",
-    labelEmail: "Địa Chỉ Email",
-    labelCompany: "Tên Doanh Nghiệp / Thương Hiệu",
-    labelAddress: "Địa Chỉ Mặt Bằng / Công Trình Cần Khảo Sát",
-    labelServiceGroup: "Nhóm Dịch Vụ Cần Đăng Ký",
-    labelServiceSelect: "Chọn Gói Dịch Vụ Cụ Thể (Bắt buộc)",
-    labelMessage:
-      "Mô Tả Yêu Cầu Chi Tiết (Kích thước mặt bằng, tình trạng hiện tại, thời gian bàn giao mong muốn)",
+      "Chúng mình sẽ gọi lại cho anh/chị trong vòng 15 phút để hẹn lịch khảo sát.",
+    ctaLabel: "Gửi yêu cầu khảo sát",
+    labelFullName: "Họ và tên",
+    labelPhone: "Số điện thoại",
+    labelEmail: "Email",
+    labelCompany: "Tên cửa hàng / thương hiệu",
+    labelAddress: "Địa chỉ mặt bằng cần khảo sát",
+    labelServiceGroup: "Anh/chị cần làm gì?",
+    labelServiceSelect: "Gói dịch vụ",
+    labelMessage: "Mô tả thêm (diện tích, hiện trạng, ngày muốn bàn giao)",
   },
   footer: {
     brandDescription:
-      "Đơn vị trọn gói uy tín hàng đầu cung cấp dịch vụ cải tạo, lắp đặt ánh sáng nội thất và vệ sinh bàn giao cho chuỗi retail, văn phòng và các thương hiệu cao cấp tại Việt Nam.",
-    quickLinksHeading: "Đường Dẫn Nhanh",
+      "Thi công, cải tạo và vệ sinh cửa hàng trọn gói cho chuỗi bán lẻ, showroom và văn phòng trên toàn quốc.",
+    quickLinksHeading: "Xem nhanh",
     quickLinks: [
       { label: "Về chúng tôi", sectionId: SectionId.INTRODUCTION },
       { label: "Giải pháp dịch vụ", sectionId: SectionId.SERVICES },
@@ -524,20 +524,19 @@ export const DEFAULT_SETTINGS: SiteSettings = {
       { label: "Phản hồi khách hàng", sectionId: SectionId.TESTIMONIALS },
       { label: "Yêu cầu khảo sát", sectionId: SectionId.CONTACT },
     ],
-    officesHeading: "Hệ Thống Văn Phòng",
+    officesHeading: "Văn phòng",
     headquartersLabel: "Trụ sở chính:",
-    branchLabel: "Chi Nhánh TP. HCM:",
-    supportHeading: "Hỗ Trợ Trực Tuyến",
+    branchLabel: "Chi nhánh TP. HCM:",
+    supportHeading: "Liên hệ",
     hotlinePrefix: "Hotline:",
     emailPrefix: "Email:",
     copyrightSuffix: "Tất cả các quyền được bảo lưu.",
     backToTopLabel: "Về đầu trang",
   },
   seo: {
-    metaTitle:
-      "GreenOrange - Dịch vụ Thi công, Cải tạo & Vệ sinh Cửa hàng Chuyên nghiệp",
+    metaTitle: "GreenOrange – Thi công, cải tạo & vệ sinh cửa hàng",
     metaDescription:
-      "Dịch vụ Thi công, Cải tạo & Vệ sinh Cửa hàng Chuyên nghiệp",
+      "Thi công, cải tạo và vệ sinh cửa hàng trọn gói. Khảo sát và báo giá trong ngày, miễn phí. Hà Nội, TP. Hồ Chí Minh và toàn quốc.",
     ogImageUrl: "",
   },
 };

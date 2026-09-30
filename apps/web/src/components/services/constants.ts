@@ -27,7 +27,7 @@ export const FALLBACK_SERVICE_ICON: LucideIcon = Sparkles;
 
 // Category filter buttons shown above the services grid.
 export const SERVICE_FILTER_TABS: ServiceFilterTab[] = [
-  { id: CategoryFilter.ALL, label: "Tất cả dịch vụ" },
-  { id: CategoryFilter.CLEANING, label: "Vệ Sinh Chuyên Sâu" },
-  { id: CategoryFilter.CONSTRUCTION, label: "Thi Công & Cải Tạo" },
+  { id: CategoryFilter.ALL, label: "Tất cả" },
+  { id: CategoryFilter.CLEANING, label: "Vệ sinh" },
+  { id: CategoryFilter.CONSTRUCTION, label: "Thi công & cải tạo" },
 ];

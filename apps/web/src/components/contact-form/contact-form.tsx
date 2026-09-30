@@ -102,7 +102,7 @@ export default function ContactForm({
 
     if (!fullName || !phone) {
       alert(
-        "Vui lòng điền đủ Họ và tên, Số điện thoại để chúng tôi có liên hệ sớm nhất."
+        "Anh/chị vui lòng điền họ tên và số điện thoại để chúng mình liên hệ."
       );
       return;
     }
@@ -131,7 +131,7 @@ export default function ContactForm({
     } catch (err) {
       console.error("Contact submission failed:", err);
       alert(
-        "Gửi yêu cầu thất bại. Vui lòng thử lại hoặc liên hệ trực tiếp qua hotline."
+        "Chưa gửi được yêu cầu. Anh/chị thử lại, hoặc gọi hotline giúp chúng mình."
       );
       return;
     }
@@ -304,7 +304,7 @@ export default function ContactForm({
                   <Input
                     id="company"
                     type="text"
-                    placeholder="Highlands, Highlands, EcoBeauty..."
+                    placeholder="Ví dụ: Highlands Coffee"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     className="bg-white border-stone-300 focus-visible:border-sign-ink rounded-md h-11 w-full"
@@ -419,7 +419,7 @@ export default function ContactForm({
                 </Label>
                 <Textarea
                   id="message"
-                  placeholder="Ví dụ: Cần vệ sinh gấp 150m2 sàn gỗ và kính mặt tiền shop quần áo tại Hoàn Kiếm, bàn giao trước 20/06 để khai trương..."
+                  placeholder="Ví dụ: shop quần áo 150m² ở Hoàn Kiếm, cần vệ sinh sàn gỗ và kính mặt tiền, khai trương ngày 20/06"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="bg-white border-stone-300 focus-visible:border-sign-ink rounded-md min-h-[110px] w-full"
