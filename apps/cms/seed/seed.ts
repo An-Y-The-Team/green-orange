@@ -389,8 +389,8 @@ const SITE_SETTINGS = {
     benefits: [
       { item: 'Khảo sát và báo giá trong ngày, không mất phí' },
       { item: 'Báo giá rõ từng hạng mục, đã ký là không phát sinh' },
-      { item: 'Làm cả ca đêm để kịp ngày khai trương' },
-      { item: 'Hoá chất an toàn cho nhân viên và khách, bảo hành 12 tháng' },
+      { item: 'Thi công chuẩn kỹ thuật, bảo hành 12 tháng' },
+      { item: 'Hoá chất an toàn cho nhân viên và khách' },
     ],
     primaryCta: { label: 'Đặt lịch khảo sát miễn phí', href: '#contact' },
     secondaryCta: { label: 'Xem dịch vụ', href: '#services' },
@@ -400,7 +400,7 @@ const SITE_SETTINGS = {
     { value: '500+', label: 'Cửa hàng & văn phòng đã bàn giao', color: 'text-green-600' },
     { value: '120+', label: 'Công trình cải tạo trọn gói', color: 'text-orange-600' },
     { value: '99.4%', label: 'Khách hàng đánh giá 5★', color: 'text-green-600' },
-    { value: '35+', label: 'Loại thiết bị & hoá chất đạt chuẩn', color: 'text-orange-600' },
+    { value: '35+', label: 'Trang thiết bị & hoá chất đạt chuẩn', color: 'text-orange-600' },
   ],
   introduction: {
     eyebrow: 'Về chúng mình',

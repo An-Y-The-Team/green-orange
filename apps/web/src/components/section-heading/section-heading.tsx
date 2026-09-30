@@ -10,7 +10,6 @@ export default function SectionHeading({
   heading,
   description,
   descriptionMode,
-  tone = "light",
 }: {
   cmsId?: number;
   /** site_settings field names for [eyebrow, heading, description]. */
@@ -19,23 +18,21 @@ export default function SectionHeading({
   heading: string;
   description: string;
   descriptionMode?: EditMode;
-  /** "dark" when the heading sits on the charcoal band. */
-  tone?: "light" | "dark";
 }) {
   const [eyebrowField, headingField, descriptionField] = fields;
-  const edit = (field: string, mode?: EditMode) =>
+  const edit = ({ field, mode }: { field: string; mode?: EditMode }) =>
     editAttr({ collection: "site_settings", item: cmsId, fields: field, mode });
   return (
     <div className="max-w-3xl mb-12">
       <span
-        className={`text-sm font-bold uppercase tracking-[0.12em] ${tone === "dark" ? "text-tape" : "text-brand-secondary-600"}`}
-        data-directus={edit(eyebrowField)}
+        className="text-sm font-bold uppercase tracking-[0.12em] text-brand-secondary-600"
+        data-directus={edit({ field: eyebrowField })}
       >
         {eyebrow}
       </span>
       <h2
-        className={`font-heading font-extrabold uppercase text-4xl md:text-5xl leading-none mt-2 ${tone === "dark" ? "text-white" : "text-sign-ink"}`}
-        data-directus={edit(headingField)}
+        className="font-heading font-extrabold uppercase text-4xl md:text-5xl leading-none mt-2 text-sign-ink"
+        data-directus={edit({ field: headingField })}
       >
         {renderLines(heading)}
       </h2>
@@ -44,8 +41,8 @@ export default function SectionHeading({
         <span className="flex-1 bg-brand-primary-600" />
       </div>
       <p
-        className={`mt-5 text-base md:text-lg leading-relaxed ${tone === "dark" ? "text-stone-300" : "text-stone-600"}`}
-        data-directus={edit(descriptionField, descriptionMode)}
+        className="mt-5 text-base md:text-lg leading-relaxed text-stone-600"
+        data-directus={edit({ field: descriptionField, mode: descriptionMode })}
       >
         {renderLines(description)}
       </p>

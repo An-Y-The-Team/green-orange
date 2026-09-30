@@ -29,6 +29,17 @@ import {
   SUCCESS_BANNER_DURATION_MS,
 } from "./constants";
 
+// The removed on-device "inbox" kept past submissions (name, phone, address…)
+// in localStorage. Clear what earlier visitors left behind, once per page load.
+// ponytail: one-off cleanup (added 2026-09-30); delete after a few months.
+if (typeof window !== "undefined") {
+  try {
+    localStorage.removeItem("greenorange_submissions");
+  } catch {
+    // Storage blocked (private mode etc.): nothing to clear.
+  }
+}
+
 export default function ContactForm({
   services,
   settings,

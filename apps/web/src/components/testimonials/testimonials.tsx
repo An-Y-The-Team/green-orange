@@ -47,6 +47,7 @@ export default function Testimonials({
         />
 
         <FilterChips
+          label="Lọc đánh giá"
           tabs={TESTIMONIAL_FILTER_TABS}
           value={activeFilter}
           onChange={setActiveFilter}
@@ -66,6 +67,7 @@ export default function Testimonials({
             >
               <div
                 className="flex gap-0.5 mb-4"
+                role="img"
                 aria-label={`${testi.rating}/5 sao`}
               >
                 {[...Array(testi.rating)].map((_, i) => (
@@ -121,7 +123,7 @@ export default function Testimonials({
             </h4>
             <p className="mt-1 text-sm text-stone-300">
               Công trình nào cũng được nghiệm thu kỹ. Nếu anh/chị thấy vết ố hay
-              mốc trong 3 ngày đầu, chúng mình cử đội xử lý miễn phí ngay.
+              mốc gỗ trong 3 ngày đầu, chúng mình cử đội xử lý miễn phí ngay.
             </p>
           </div>
           <span className="text-sm font-semibold text-tape whitespace-nowrap">

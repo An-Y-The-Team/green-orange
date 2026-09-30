@@ -57,6 +57,7 @@ export default function Services({
         />
 
         <FilterChips
+          label="Lọc dịch vụ"
           tabs={SERVICE_FILTER_TABS}
           value={filter}
           onChange={setFilter}

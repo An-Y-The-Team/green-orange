@@ -9,22 +9,7 @@ import { useScrollSpy } from "@/hooks/use-scroll-spy/use-scroll-spy";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import { SiteSettings } from "../../data";
-
-// Two overlapping brand circles (orange + green) — the logo mark.
-export function LogoMark({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 26 18" className={className} aria-hidden>
-      <circle cx="9" cy="9" r="8" className="fill-brand-secondary-600" />
-      <circle
-        cx="17"
-        cy="9"
-        r="8"
-        className="fill-brand-primary-600"
-        fillOpacity=".9"
-      />
-    </svg>
-  );
-}
+import LogoMark from "../logo-mark/logo-mark";
 
 export default function Header({ settings }: { settings: SiteSettings }) {
   const [isOpen, setIsOpen] = useState(false);

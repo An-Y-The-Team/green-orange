@@ -13,7 +13,7 @@ import { SectionId } from "@/constants/section";
 import { editAttr } from "@/lib/visual-editor/edit-attr";
 
 import { SiteSettings } from "../../data";
-import { LogoMark } from "../header/header";
+import LogoMark from "../logo-mark/logo-mark";
 
 export default function Footer({ settings }: { settings: SiteSettings }) {
   const { company, social, branding, footer } = settings;

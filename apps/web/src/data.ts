@@ -379,8 +379,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     benefits: [
       "Khảo sát và báo giá trong ngày, không mất phí",
       "Báo giá rõ từng hạng mục, đã ký là không phát sinh",
-      "Làm cả ca đêm để kịp ngày khai trương",
-      "Hoá chất an toàn cho nhân viên và khách, bảo hành 12 tháng",
+      "Thi công chuẩn kỹ thuật, bảo hành 12 tháng",
+      "Hoá chất an toàn cho nhân viên và khách",
     ],
     primaryCta: { label: "Đặt lịch khảo sát miễn phí", href: "#contact" },
     secondaryCta: { label: "Xem dịch vụ", href: "#services" },
@@ -404,7 +404,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     },
     {
       value: "35+",
-      label: "Loại thiết bị & hoá chất đạt chuẩn",
+      label: "Trang thiết bị & hoá chất đạt chuẩn",
       color: "text-brand-secondary-600",
     },
   ],

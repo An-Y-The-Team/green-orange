@@ -53,6 +53,7 @@ export default function Projects({
         />
 
         <FilterChips
+          label="Lọc công trình"
           tabs={PROJECT_FILTER_TABS}
           value={filter}
           onChange={setFilter}

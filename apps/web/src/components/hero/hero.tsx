@@ -25,18 +25,24 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
       {/* Shop signboard (biển hiệu): name, trade, phone, address */}
       <div className="bg-brand-secondary-600 text-white border-b-[6px] border-brand-primary-600">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6 md:py-8 flex flex-col items-center text-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] opacity-90">
+          <span
+            className="text-xs font-semibold uppercase tracking-[0.18em] opacity-90"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: "company_founded",
+            })}
+          >
             Từ năm {company.founded}
           </span>
           <span
-            className="font-heading font-extrabold uppercase text-5xl md:text-7xl leading-[0.9]"
+            className="font-heading font-extrabold uppercase text-4xl sm:text-5xl md:text-7xl leading-[0.9]"
             data-directus={editAttr({
               collection: "site_settings",
               item: sid,
               fields: [
                 "branding_logo_text_primary",
                 "branding_logo_text_secondary",
-                "branding_header_tagline",
               ],
               mode: "popover",
             })}
@@ -44,13 +50,25 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
             {branding.logoTextPrimary}
             {branding.logoTextSecondary}
           </span>
-          <span className="font-heading font-bold uppercase text-lg md:text-2xl bg-white text-brand-secondary-700 px-3 rounded-[3px]">
+          <span
+            className="font-heading font-bold uppercase text-lg md:text-2xl bg-white text-brand-secondary-700 px-3 rounded-[3px]"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: "branding_header_tagline",
+            })}
+          >
             {branding.headerTagline}
           </span>
           {tel && (
             <a
               href={`tel:${tel}`}
               className="font-heading font-extrabold text-3xl md:text-4xl tracking-wide mt-1 hover:underline"
+              data-directus={editAttr({
+                collection: "site_settings",
+                item: sid,
+                fields: ["company_phone", "footer_hotline_prefix"],
+              })}
             >
               <span className="text-lg md:text-xl font-semibold opacity-90">
                 {footer.hotlinePrefix}
@@ -58,7 +76,14 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
               {company.phone}
             </a>
           )}
-          <span className="text-xs md:text-sm opacity-90">
+          <span
+            className="text-xs md:text-sm opacity-90"
+            data-directus={editAttr({
+              collection: "site_settings",
+              item: sid,
+              fields: "company_address",
+            })}
+          >
             {company.address}
           </span>
         </div>
@@ -216,7 +241,7 @@ export default function Hero({ settings }: { settings: SiteSettings }) {
                 mode: "drawer",
               })}
             >
-              <span className="block font-heading font-extrabold text-4xl md:text-5xl text-brand-secondary-600 tabular-nums">
+              <span className="block font-serif font-extrabold text-4xl md:text-5xl text-brand-secondary-600 tabular-nums">
                 {stat.value}
               </span>
               <span className="block mt-1 text-xs md:text-sm font-medium text-stone-600">

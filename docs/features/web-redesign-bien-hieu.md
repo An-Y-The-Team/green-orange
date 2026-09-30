@@ -77,6 +77,8 @@ Paste each value below over the current one. A field left empty falls back to th
 
 ### `hero_headline_segments` (replace all rows)
 
+The `color` choice still carries its old name from the dark hero: `white` now renders as the default dark ink, and `orange` / `emerald` render as the brand colors.
+
 1. text **Dựng xong là sạch,** · color `white` · italic off · new line before: off
 2. text **sạch xong là mở cửa.** · color `orange` · italic off · new line before: on
 
@@ -118,7 +120,7 @@ Paste each value below over the current one. A field left empty falls back to th
 
 ## 4. Empty lists on prod
 
-On dichvuyan.com (checked 2026-09-30), the services, projects and testimonials sections render **empty** ("Không tìm thấy dự án nào…"). The site reads them server-side with `DIRECTUS_STATIC_TOKEN`, or as the public role if that variable is empty, and shows only `published` items. Any failed read renders as an empty list rather than an error. Check:
+On dichvuyan.com (checked 2026-09-30), the services, projects and testimonials sections render **empty**. Before this redesign the projects grid said "Không tìm thấy dự án nào…"; after it, projects says "Chưa có công trình nào trong mục này." and services and testimonials show only their heading and filter buttons. The site reads them server-side with `DIRECTUS_STATIC_TOKEN`, or as the public role if that variable is empty, and shows only `published` items. Any failed read renders as an empty list rather than an error. Check:
 
 - the web container logs for `CMS fetch error for services` / `projects` / `testimonials`, which point to a bad token, an unreachable CMS URL, or a permissions problem;
 - the three collections have items with status `published`;
