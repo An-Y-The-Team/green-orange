@@ -22,10 +22,12 @@ from sqlmodel import Session, select
 from app.api.common import PageDep, csv_filter, ilike, order_by, paged
 from app.api.deps import SessionDep, get_current_user
 from app.core.rules import (
+    advance_if_paperwork_ready,
     advance_stage,
     assert_project_open,
     assert_step,
     business_today,
+    close_if_fully_paid,
 )
 from app.models.project import Project
 from app.models.receivable import (
@@ -235,10 +237,11 @@ def create_settlement(session: SessionDep, payload: SettlementCreate) -> Settlem
             total_amount=0,  # the bill gets the real total on sign
         )
     )
+    # Starting a settlement means the project has reached stage 8 — same
+    # commit as the settlement and its bill.
+    advance_stage(session, payload.project_id, "settlement")
     session.commit()
     session.refresh(settlement)
-    # Starting a settlement means the project has reached stage 8.
-    advance_stage(session, payload.project_id, "settlement")
     return settlement
 
 
@@ -321,6 +324,9 @@ def sign(session: Session, settlement: Settlement) -> Settlement:
                     amount=remainder,
                 )
             )
+    # A cọc that already covers the whole payable leaves nothing to collect —
+    # the job is done the moment it's signed. One commit for all of it.
+    close_if_fully_paid(session, settlement.project_id)
     session.commit()
     session.refresh(settlement)
     return settlement
@@ -498,6 +504,11 @@ def update_bill(session: SessionDep, bill_id: int, payload: BillUpdate) -> Bill:
             bill.sent_date = business_today()
         if target == "paid" and bill.paid_date is None:
             bill.paid_date = business_today()
+        # Only on an actual transition — same as Nest, where re-sending "paid"
+        # on an already-paid bill (a reopened job) must not close it again.
+        if target == "paid":
+            session.add(bill)
+            close_if_fully_paid(session, bill.project_id)
     session.add(bill)
     session.commit()
     session.refresh(bill)
@@ -604,11 +615,12 @@ def create_milestone(session: SessionDep, payload: MilestoneCreate) -> PaymentMi
     if payload.status is not None:
         milestone.status = payload.status
     session.add(milestone)
+    # Cọc received closes stage 4 → paperwork; the last đợt closes the job.
+    # Same commit as the đợt itself.
+    if payload.status == "paid":
+        after_paid(session, payload.project_id, payload.type)
     session.commit()
     session.refresh(milestone)
-    # Cọc received closes stage 4 → paperwork.
-    if payload.status == "paid" and payload.type == "deposit":
-        advance_stage(session, payload.project_id, "paperwork")
     return milestone
 
 
@@ -637,12 +649,22 @@ def update_milestone(
         if target == "paid" and milestone.paid_date is None:
             milestone.paid_date = business_today()
     session.add(milestone)
+    # Cọc received (deposit milestone paid) closes stage 4 → paperwork. Same
+    # commit as the đợt itself.
+    if target == "paid" and was_status != "paid":
+        after_paid(session, milestone.project_id, was_type)
     session.commit()
     session.refresh(milestone)
-    # Cọc received (deposit milestone paid) closes stage 4 → paperwork.
-    if target == "paid" and was_status != "paid" and was_type == "deposit":
-        advance_stage(session, milestone.project_id, "paperwork")
     return milestone
+
+
+def after_paid(session: Session, project_id: int, milestone_type: str) -> None:
+    """Money in moves the job: the cọc closes stage 3 (→ paperwork, and on to
+    Thi công if the hồ sơ were already cleared); the last đợt closes it."""
+    if milestone_type == "deposit":
+        advance_stage(session, project_id, "paperwork")
+        advance_if_paperwork_ready(session, project_id)
+    close_if_fully_paid(session, project_id)
 
 
 @milestones_router.delete("/{milestone_id}", status_code=status.HTTP_204_NO_CONTENT)

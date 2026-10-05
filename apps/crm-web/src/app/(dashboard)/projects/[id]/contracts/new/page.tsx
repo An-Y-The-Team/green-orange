@@ -9,6 +9,7 @@ import {
   getContract,
   listContractTemplates,
 } from "@/app/(dashboard)/contracts/queries";
+import { contractHref } from "@/app/(dashboard)/contracts/utils/contract-href/contract-href";
 import { getProject } from "@/app/(dashboard)/projects/queries";
 import { getDealQuote } from "@/app/(dashboard)/quotes/queries";
 import { BackLink } from "@/components/back-link/back-link";
@@ -61,7 +62,7 @@ export default async function NewContractPage({
             size="sm"
             variant="outline"
             render={
-              <Link href={`/contracts/${contract.id}`}>
+              <Link href={contractHref(contract)}>
                 <Printer className="size-4" />
                 Xem / In hợp đồng
               </Link>

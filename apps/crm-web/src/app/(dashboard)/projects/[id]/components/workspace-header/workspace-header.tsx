@@ -40,17 +40,22 @@ import {
   updateProject,
 } from "../../../actions/update-project";
 import { TypeChips } from "../../../components/type-chips/type-chips";
-import { ProjectStatus } from "../../../enums";
+import { ProjectStage, ProjectStatus } from "../../../enums";
 import type { Project, ProjectContact, ProjectType } from "../../../types";
+import type { StageGate } from "../../utils/stage-gates/stage-gates";
+import { MoveStageDialog } from "./components/move-stage-dialog/move-stage-dialog";
 
 export function WorkspaceHeader({
   project,
   contacts,
   projectTypes,
+  gates,
 }: {
   project: Project;
   contacts: ProjectContact[];
   projectTypes: ProjectType[];
+  /** The current stage's gates — the manual move warns with the open ones. */
+  gates: StageGate[];
 }) {
   const [state, formAction] = useActionState(
     updateProject.bind(null, project.id),
@@ -133,7 +138,13 @@ export function WorkspaceHeader({
   const frozen = parked || project.status === ProjectStatus.CANCELLED;
 
   // Same key both places it's shown — the header badge and the frozen banner.
-  const statusBadge = labelOf(PROJECT_STATUSES, project.status);
+  // A closed job is locked server-side: only the reopen move (Chuyển giai
+  // đoạn… → Quyết toán) is accepted, so the badge says Đã đóng and the edits
+  // the server would refuse with a 409 are not offered.
+  const closed = project.stage === ProjectStage.CLOSED;
+  const statusBadge = closed
+    ? labelOf(PROJECT_STAGES, ProjectStage.CLOSED)
+    : labelOf(PROJECT_STATUSES, project.status);
 
   const shownContacts = [
     project.working_contact,
@@ -297,7 +308,7 @@ export function WorkspaceHeader({
             ) : null}
 
             {/* Hoãn — pick a follow-up date; while parked, move that date */}
-            {project.status !== ProjectStatus.CANCELLED ? (
+            {project.status !== ProjectStatus.CANCELLED && !closed ? (
               <Dialog open={holdOpen} onOpenChange={setHoldOpen}>
                 <Button variant="outline" onClick={openHold}>
                   {parked ? "Dời ngày hẹn" : "Hoãn"}
@@ -338,7 +349,7 @@ export function WorkspaceHeader({
               </Dialog>
             ) : null}
 
-            {frozen ? null : (
+            {frozen || closed ? null : (
               <>
                 {/* Hủy — reason required */}
                 <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
@@ -382,16 +393,23 @@ export function WorkspaceHeader({
                 </Dialog>
               </>
             )}
-            <Button variant="ghost" onClick={openEdit}>
-              <Pencil className="size-4" />
-              {ACTIONS.edit}
-            </Button>
+            {/* Manual move replaces the old stepper buttons; a frozen job
+                is reactivated first, so it's hidden then. */}
+            {frozen ? null : (
+              <MoveStageDialog project={project} gates={gates} />
+            )}
+            {closed ? null : (
+              <Button variant="ghost" onClick={openEdit}>
+                <Pencil className="size-4" />
+                {ACTIONS.edit}
+              </Button>
+            )}
           </div>
         </div>
       )}
 
       {frozen ? (
-        <div className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-2 text-sm">
+        <div className="rounded-lg border border-waiting/40 bg-waiting-soft px-4 py-2 text-sm">
           <span className="font-medium">{statusBadge.label}</span>
           {" — đóng băng ở giai đoạn "}
           <span className="font-medium">

@@ -13,7 +13,11 @@ from sqlmodel import Session, select
 
 from app.api.common import PageDep, paged
 from app.api.deps import SessionDep, get_current_user
-from app.core.rules import assert_project_open, business_today
+from app.core.rules import (
+    advance_if_paperwork_ready,
+    assert_project_open,
+    business_today,
+)
 from app.models.paperwork import (
     DEFAULT_PAPERWORK,
     PaperworkItem,
@@ -80,6 +84,7 @@ def create_paperwork_item(
         status=payload.status or "preparing",
         due_date=payload.due_date,
         note=payload.note,
+        needed_for=payload.needed_for or "execution",
     )
     session.add(item)
     session.commit()
@@ -107,9 +112,13 @@ def seed_defaults(
             )
         ).all()
     }
-    for name in DEFAULT_PAPERWORK:
+    for name, needed_for in DEFAULT_PAPERWORK.items():
         if name not in existing:
-            session.add(PaperworkItem(project_id=payload.project_id, name=name))
+            session.add(
+                PaperworkItem(
+                    project_id=payload.project_id, name=name, needed_for=needed_for
+                )
+            )
     session.commit()
     return list(
         session.exec(
@@ -126,8 +135,13 @@ def update_paperwork_item(
 ) -> PaperworkItem:
     item = get_item_or_404(session, item_id)
     assert_project_open(session, item.project_id)
-    item.sqlmodel_update(payload.model_dump(exclude_unset=True))
+    fields = payload.model_dump(exclude_unset=True)
+    item.sqlmodel_update(fields)
     session.add(item)
+    # Only a status / needed_for change can complete the checklist. A note,
+    # date or name edit must not undo a manual backward stage move. Same commit.
+    if "status" in fields or "needed_for" in fields:
+        advance_if_paperwork_ready(session, item.project_id)
     session.commit()
     session.refresh(item)
     return item
@@ -137,5 +151,8 @@ def update_paperwork_item(
 def delete_paperwork_item(session: SessionDep, item_id: int) -> None:
     item = get_item_or_404(session, item_id)
     assert_project_open(session, item.project_id)
+    project_id = item.project_id
     session.delete(item)
+    # Removing the last unapproved item can complete the checklist.
+    advance_if_paperwork_ready(session, project_id)
     session.commit()

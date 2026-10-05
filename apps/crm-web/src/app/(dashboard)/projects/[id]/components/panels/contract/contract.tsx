@@ -20,236 +20,75 @@ import { Label } from "@yan/ui/components/label";
 
 import { signContract } from "@/app/(dashboard)/contracts/actions/sign-contract";
 import type { Contract } from "@/app/(dashboard)/contracts/types";
-import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
+import { contractHref } from "@/app/(dashboard)/contracts/utils/contract-href/contract-href";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
-import { recordDeposit } from "@/app/(dashboard)/receivables/actions/record-deposit";
 import {
   MilestoneStatus,
   MilestoneType,
 } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
-import { ChecklistRow } from "@/components/checklist-row/checklist-row";
 import { EmptyState } from "@/components/empty-state/empty-state";
-import { MoneyInput } from "@/components/money-input/money-input";
-import {
-  ACTIONS,
-  CONTRACT_STATUSES,
-  FIELDS,
-  QUOTE_STATUSES,
-} from "@/constants/labels";
+import { ACTIONS, CONTRACT_STATUSES, FIELDS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
-import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
-import { storedTotals } from "@/utils/quote-totals/quote-totals";
 import { todayISO } from "@/utils/today-iso/today-iso";
-import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
+import { GateKey, ProjectStage } from "../../../../enums";
 import type { Project } from "../../../../types";
+import type { StageGate } from "../../../utils/stage-gates/stage-gates";
+import { viewHref } from "../../../utils/view-href/view-href";
+import { RecordClientSigned } from "../../gate-actions/record-client-signed/record-client-signed";
+import { RecordDeposit } from "../../gate-actions/record-deposit/record-deposit";
+import {
+  type GateActions,
+  GateChecklist,
+} from "../../gate-checklist/gate-checklist";
 
 export function ContractPanel({
   project,
   contracts,
   milestones,
   dealQuote,
+  gates,
 }: {
   project: Project;
   contracts: Contract[];
   milestones: PaymentMilestone[];
   dealQuote?: Quote;
+  gates: StageGate[];
 }) {
-  // getDealQuote is deal-only, so its presence IS the chốt condition.
-  const quoteDeal = Boolean(dealQuote);
-  const dealBadge = dealQuote && labelOf(QUOTE_STATUSES, dealQuote.status);
   const clientSigned = Boolean(project.client_signed_date);
   const depositPaid = milestones.some(
     (m) => m.type === MilestoneType.DEPOSIT && m.status === MilestoneStatus.PAID
   );
 
-  // Khách ký xác nhận — stamp client_signed_date.
-  const [signState, signAction] = useActionState(
-    updateProject.bind(null, project.id),
-    INITIAL_ACTION_STATE
-  );
-  const [signPending, startSign] = useTransition();
-  const [signOpen, setSignOpen] = useState(false);
-  const [signedDate, setSignedDate] = useState(todayISO);
-  useServerAction(signState, signPending, {
-    ...ACTION_TOAST_TITLES,
-    onSuccess: () => setSignOpen(false),
-  });
-
-  // Nhận cọc — record a paid deposit milestone.
-  const [depState, depAction] = useActionState(
-    recordDeposit.bind(null, project.id),
-    INITIAL_ACTION_STATE
-  );
-  const [depPending, startDep] = useTransition();
-  const [depOpen, setDepOpen] = useState(false);
-  // 60% of the chốt quote — blank when there is none, never a number from a
-  // quote the client did not agree to.
-  const [depAmount, setDepAmount] = useState<number | null>(
-    dealQuote ? Math.round(dealQuote.total_amount * 0.6) : null
-  );
-  const [depDate, setDepDate] = useState(todayISO);
-  useServerAction(depState, depPending, {
-    ...ACTION_TOAST_TITLES,
-    onSuccess: () => setDepOpen(false),
-  });
+  // Gate = task: each open row carries the button that completes it.
+  const actions: GateActions = {
+    [GateKey.CLIENT_SIGNED]: clientSigned
+      ? undefined
+      : (primary) => <RecordClientSigned project={project} primary={primary} />,
+    [GateKey.DEPOSIT]: depositPaid
+      ? undefined
+      : (primary) => (
+          <RecordDeposit
+            project={project}
+            dealQuote={dealQuote}
+            primary={primary}
+          />
+        ),
+  };
 
   return (
     <div className="space-y-6">
-      {/* Điều kiện hoàn thành */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium">Điều kiện hoàn thành</h3>
-        <div className="space-y-2 rounded-lg border p-4">
-          <ChecklistRow
-            done={quoteDeal}
-            label="Báo giá đã chốt"
-            detail={
-              dealQuote ? (
-                <span className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">
-                    v{dealQuote.version} ·{" "}
-                    {formatVND(storedTotals(dealQuote).total)}
-                  </span>
-                  <Badge variant={dealBadge?.variant}>{dealBadge?.label}</Badge>
-                </span>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  Chưa có báo giá chốt
-                </span>
-              )
-            }
-          />
-
-          <ChecklistRow
-            done={clientSigned}
-            label="Khách ký xác nhận"
-            detail={
-              clientSigned ? (
-                <span className="text-sm text-muted-foreground">
-                  {formatDate(project.client_signed_date!)}
-                </span>
-              ) : undefined
-            }
-            action={
-              clientSigned ? undefined : (
-                <Dialog open={signOpen} onOpenChange={setSignOpen}>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSignOpen(true)}
-                  >
-                    Ghi nhận đã ký
-                  </Button>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Ghi nhận khách đã ký</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="client-signed-date">
-                        {FIELDS.signDate}
-                      </Label>
-                      <DateInput
-                        id="client-signed-date"
-                        value={signedDate}
-                        onChange={setSignedDate}
-                      />
-                    </div>
-                    <DialogFooter>
-                      <DialogClose
-                        render={
-                          <Button variant="outline">{ACTIONS.close}</Button>
-                        }
-                      />
-                      <Button
-                        disabled={signPending || !signedDate}
-                        onClick={() =>
-                          startSign(() =>
-                            signAction({ client_signed_date: signedDate })
-                          )
-                        }
-                      >
-                        {ACTIONS.confirm}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              )
-            }
-          />
-
-          <ChecklistRow
-            done={depositPaid}
-            label="Nhận cọc (tạm ứng)"
-            action={
-              depositPaid ? undefined : (
-                <Dialog open={depOpen} onOpenChange={setDepOpen}>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setDepOpen(true)}
-                  >
-                    Ghi nhận cọc
-                  </Button>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Ghi nhận cọc (tạm ứng)</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-3">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="deposit-amount">Số tiền (VND)</Label>
-                        <MoneyInput
-                          id="deposit-amount"
-                          value={depAmount}
-                          onChange={setDepAmount}
-                        />
-                        {depAmount ? (
-                          <p className="text-xs text-muted-foreground">
-                            {vndInWords(depAmount)}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="deposit-date">Ngày nhận</Label>
-                        <DateInput
-                          id="deposit-date"
-                          value={depDate}
-                          onChange={setDepDate}
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <DialogClose
-                        render={
-                          <Button variant="outline">{ACTIONS.close}</Button>
-                        }
-                      />
-                      <Button
-                        disabled={depPending || !depAmount || !depDate}
-                        onClick={() =>
-                          startDep(() =>
-                            depAction({
-                              amount: depAmount ?? 0,
-                              received_date: depDate,
-                            })
-                          )
-                        }
-                      >
-                        {ACTIONS.confirm}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              )
-            }
-          />
-        </div>
-      </section>
+      <GateChecklist
+        stage={ProjectStage.CONTRACT}
+        gates={gates}
+        actions={actions}
+      />
 
       {/* Hợp đồng (không bắt buộc) */}
       <section className="space-y-3">
@@ -262,7 +101,10 @@ export function ContractPanel({
               variant="outline"
               size="sm"
               render={
-                <Link href={`/projects/${project.id}/contracts/new`}>
+                <Link
+                  data-edit-link
+                  href={`/projects/${project.id}/contracts/new`}
+                >
                   <Plus className="size-4" />
                   Tạo hợp đồng
                 </Link>
@@ -277,7 +119,13 @@ export function ContractPanel({
             action={
               <Button
                 size="sm"
-                render={<Link href={`/projects/${project.id}/contracts/new`} />}
+                variant="outline"
+                render={
+                  <Link
+                    data-edit-link
+                    href={`/projects/${project.id}/contracts/new`}
+                  />
+                }
               >
                 Tạo hợp đồng
               </Button>
@@ -292,10 +140,19 @@ export function ContractPanel({
         )}
       </section>
 
-      <p className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-        <Info className="size-4 shrink-0" />
-        Hồ sơ có thể chuẩn bị song song → tab Hồ sơ.
-      </p>
+      {/* Only while the job is here — opened later from the nav, it's history. */}
+      {project.stage === ProjectStage.CONTRACT ? (
+        <p className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          <Info className="size-4 shrink-0" />
+          Hồ sơ có thể chuẩn bị song song —{" "}
+          <Link
+            href={viewHref({ project, view: ProjectStage.PAPERWORK })}
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            mở Chuẩn bị hồ sơ
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -340,6 +197,7 @@ function ContractRow({
             variant="outline"
             render={
               <Link
+                data-edit-link
                 href={`/projects/${project.id}/contracts/new?edit=${contract.id}`}
               >
                 {ACTIONS.edit}
@@ -351,7 +209,7 @@ function ContractRow({
           size="sm"
           variant="outline"
           render={
-            <Link href={`/contracts/${contract.id}`}>
+            <Link href={contractHref(contract)}>
               <Printer className="size-4" />
               In
             </Link>
@@ -359,7 +217,7 @@ function ContractRow({
         />
         {signed ? null : (
           <Dialog open={open} onOpenChange={setOpen}>
-            <Button size="sm" onClick={() => setOpen(true)}>
+            <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
               Đánh dấu đã ký
             </Button>
             <DialogContent>

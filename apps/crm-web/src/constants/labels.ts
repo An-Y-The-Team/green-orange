@@ -28,6 +28,7 @@ import {
   PaperworkStatus,
   ProjectStage,
   ProjectStatus,
+  WorkspacePane,
 } from "@/app/(dashboard)/projects/enums";
 import { QuoteChannel, QuoteStatus } from "@/app/(dashboard)/quotes/enums";
 import {
@@ -57,34 +58,61 @@ type Label = { label: string; variant: BadgeVariant };
  */
 export const PROJECT_STAGE_ORDER: ProjectStage[] = Object.values(ProjectStage);
 
+// What opens each stage — shown on a future stage's preview and under the
+// current stage's progress, so "why can't I do this yet" is answered on screen.
+// Mirrors the server's auto-advance rules (crm-api-nest common/stage.ts).
+export const STAGE_OPENS: Record<ProjectStage, string> = {
+  [ProjectStage.REQUEST]: "Bắt đầu khi khách gọi tới",
+  [ProjectStage.QUOTE]: "Mở khi lập báo giá đầu tiên",
+  [ProjectStage.CONTRACT]: "Mở khi khách chốt báo giá",
+  [ProjectStage.PAPERWORK]:
+    "Mở khi nhận cọc — làm song song được từ giai đoạn Hợp đồng",
+  [ProjectStage.EXECUTION]:
+    "Mở khi hồ sơ cần cho thi công đã duyệt và đã nhận cọc",
+  [ProjectStage.ACCEPTANCE]: "Mở khi xác nhận hoàn tất thi công",
+  [ProjectStage.SETTLEMENT]: "Mở khi nghiệm thu đạt",
+  [ProjectStage.CLOSED]: "Tự đóng khi thu đủ tiền",
+};
+
+// One-word stage names for tight spots — the workspace's mobile chip row.
+export const STAGE_SHORT_LABELS: Record<ProjectStage, string> = {
+  [ProjectStage.REQUEST]: "Yêu cầu",
+  [ProjectStage.QUOTE]: "Báo giá",
+  [ProjectStage.CONTRACT]: "Hợp đồng",
+  [ProjectStage.PAPERWORK]: "Hồ sơ",
+  [ProjectStage.EXECUTION]: "Thi công",
+  [ProjectStage.ACCEPTANCE]: "Nghiệm thu",
+  [ProjectStage.SETTLEMENT]: "Quyết toán",
+  [ProjectStage.CLOSED]: "Đã đóng",
+};
+
+export const WORKSPACE_PANES: Record<WorkspacePane, string> = {
+  [WorkspacePane.DOCUMENTS]: "Giấy tờ",
+  [WorkspacePane.CREW]: "Nhân sự",
+};
+
 export const PROJECT_STAGES: Record<ProjectStage, Label> = {
-  // Colour follows the PHASE, monotonically along the pipeline:
-  // grey (bán hàng) → amber (chuẩn bị) → solid (đang làm) → green (kết thúc).
-  //
-  // It used to be grey, solid, solid, amber, amber, solid, solid, green — the
-  // same solid-black pill on four *non-adjacent* stages, so the column grouped
-  // unrelated stages and had to be read word by word (measured in plan 00: 5 of
-  // 8 rendered identically). Four phases is the granularity a list column can
-  // carry; the label distinguishes the two stages inside each phase.
-  // `destructive` stays reserved for failure (Hủy, Quá hạn).
-  [ProjectStage.REQUEST]: {
-    label: "Yêu cầu & Khảo sát",
-    variant: "secondary",
-  },
-  [ProjectStage.QUOTE]: { label: "Báo giá", variant: "secondary" },
-  [ProjectStage.CONTRACT]: { label: "Hợp đồng", variant: "warning" },
-  [ProjectStage.PAPERWORK]: { label: "Chuẩn bị hồ sơ", variant: "warning" },
+  // A stage is where the job IS, so every open stage reads "happening now"
+  // (purple) and only Đã đóng reads "done" (blue). The tones have one meaning
+  // each (docs/features/crm-ui-redesign.md, "Buttons vs badges", 2026-10-05):
+  // the old phase colouring painted Quyết toán blue-green as if it were
+  // finished and Hợp đồng amber as if it were waiting. The word carries the
+  // stage; Hoãn / Hủy are the project's STATUS badge, never a stage colour.
+  [ProjectStage.REQUEST]: { label: "Yêu cầu & Khảo sát", variant: "default" },
+  [ProjectStage.QUOTE]: { label: "Báo giá", variant: "default" },
+  [ProjectStage.CONTRACT]: { label: "Hợp đồng", variant: "default" },
+  [ProjectStage.PAPERWORK]: { label: "Chuẩn bị hồ sơ", variant: "default" },
   [ProjectStage.EXECUTION]: { label: "Thi công", variant: "default" },
   [ProjectStage.ACCEPTANCE]: { label: "Nghiệm thu", variant: "default" },
   [ProjectStage.SETTLEMENT]: {
     label: "Quyết toán & Thanh toán",
-    variant: "success",
+    variant: "default",
   },
   [ProjectStage.CLOSED]: { label: "Đã đóng", variant: "success" },
 };
 
 export const PROJECT_STATUSES: Record<ProjectStatus, Label> = {
-  [ProjectStatus.ACTIVE]: { label: "Đang hoạt động", variant: "success" },
+  [ProjectStatus.ACTIVE]: { label: "Đang hoạt động", variant: "default" },
   [ProjectStatus.ON_HOLD]: { label: "Hoãn", variant: "warning" },
   [ProjectStatus.CANCELLED]: { label: "Hủy", variant: "destructive" },
 };
@@ -94,16 +122,18 @@ export const CLIENT_TYPES: Record<ClientType, string> = {
   [ClientType.INDIVIDUAL]: "Cá nhân",
 };
 
+// The badge shows the step the crew is on right now — always "happening now".
 export const EXECUTION_SUB_STATUSES: Record<ExecutionSubStatus, Label> = {
-  [ExecutionSubStatus.KICKOFF]: { label: "Khởi công", variant: "secondary" },
+  [ExecutionSubStatus.KICKOFF]: { label: "Khởi công", variant: "default" },
   [ExecutionSubStatus.HOARDING]: { label: "Dựng rào", variant: "default" },
-  [ExecutionSubStatus.WORKS]: { label: "Thi công", variant: "warning" },
+  [ExecutionSubStatus.WORKS]: { label: "Thi công", variant: "default" },
 };
 
 export const ACCEPTANCE_SUB_STATUSES: Record<AcceptanceSubStatus, Label> = {
+  // Waiting on the client to name a date.
   [AcceptanceSubStatus.REQUEST_SENT]: {
     label: "Gửi yêu cầu",
-    variant: "secondary",
+    variant: "warning",
   },
   [AcceptanceSubStatus.INSPECTING]: {
     label: "Nghiệm thu",
@@ -146,13 +176,13 @@ export const CONTRACT_STATUSES: Record<ContractStatus, Label> = {
 
 export const SETTLEMENT_STATUSES: Record<SettlementStatus, Label> = {
   [SettlementStatus.DRAFT]: { label: "Nháp", variant: "secondary" },
-  [SettlementStatus.SENT]: { label: "Đã gửi", variant: "default" },
+  [SettlementStatus.SENT]: { label: "Đã gửi", variant: "warning" }, // waiting on the client to sign
   [SettlementStatus.SIGNED]: { label: "Đã ký", variant: "success" },
 };
 
 export const BILL_STATUSES: Record<BillStatus, Label> = {
   [BillStatus.DRAFT]: { label: "Nháp", variant: "secondary" },
-  [BillStatus.OFFICIAL]: { label: "Chính thức", variant: "default" },
+  [BillStatus.OFFICIAL]: { label: "Chính thức", variant: "success" },
   [BillStatus.SENT]: { label: "Đã gửi", variant: "warning" },
   [BillStatus.PAID]: { label: "Đã thanh toán", variant: "success" },
 };
@@ -184,8 +214,8 @@ export const EMPLOYMENT_TYPES: Record<EmploymentType, string> = {
 };
 
 export const CREW_MEMBER_STATUSES: Record<CrewMemberStatus, Label> = {
-  [CrewMemberStatus.WORKING]: { label: "Đang làm", variant: "success" },
-  [CrewMemberStatus.ON_LEAVE]: { label: "Tạm nghỉ", variant: "warning" },
+  [CrewMemberStatus.WORKING]: { label: "Đang làm", variant: "default" },
+  [CrewMemberStatus.ON_LEAVE]: { label: "Tạm nghỉ", variant: "secondary" },
   [CrewMemberStatus.LEFT]: { label: "Nghỉ việc", variant: "secondary" },
 };
 

@@ -56,7 +56,7 @@ export default async function UserPage({
         description={`Tên đăng nhập: ${user.username}`}
         action={
           user.is_active ? (
-            <Badge variant="success">Đang hoạt động</Badge>
+            <Badge variant="default">Đang hoạt động</Badge>
           ) : (
             <Badge variant="secondary">Đã khóa</Badge>
           )

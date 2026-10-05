@@ -28,6 +28,7 @@ import {
   Query,
   Res,
 } from "@nestjs/common";
+import type { Prisma } from "@prisma/client";
 import { Type } from "class-transformer";
 import {
   IsArray,
@@ -54,7 +55,11 @@ import {
 } from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
-import { advanceStage } from "../common/stage";
+import {
+  advanceIfPaperworkReady,
+  advanceStage,
+  closeIfFullyPaid,
+} from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 import {
   assertDiscountWithin,
@@ -209,13 +214,14 @@ export class SettlementsController {
           total_amount: 0, // the bill gets the real total on sign
         },
       });
+      // Starting a settlement means the project has reached Quyết toán —
+      // same transaction as the rows that prove it.
+      await advanceStage(tx, dto.project_id, "settlement");
       return tx.settlement.findUnique({
         where: { id: settlement.id },
         include: SETTLEMENT_INCLUDE,
       });
     });
-    // Starting a settlement means the project has reached stage 8.
-    await advanceStage(this.prisma, dto.project_id, "settlement");
     return created;
   }
 
@@ -310,6 +316,10 @@ export class SettlementsController {
                 amount: remainder,
               },
             });
+          // A cọc that already covers the whole payable means nothing is
+          // left to collect — the job is done the moment it's signed, in the
+          // same transaction as the signature.
+          await closeIfFullyPaid(tx, signed.project_id);
         });
         return this.get(id);
       }
@@ -413,7 +423,8 @@ class ListBillsQuery extends ListQueryDto {
 }
 
 @Controller("bills")
-class BillsController {
+// Exported for receivables.test.ts (not routed anywhere else).
+export class BillsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
@@ -482,15 +493,41 @@ class BillsController {
       if (dto.status === "sent") data.sent_date ??= businessToday();
       if (dto.status === "paid") data.paid_date ??= businessToday();
     }
-    return this.prisma.bill.update({
-      where: { id },
-      data,
-      include: { milestones: true },
+    // Only an actual transition to paid (data.status is set only when it
+    // changes) runs the close — and in the same transaction as the flip.
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.bill.update({
+        where: { id },
+        data,
+        include: { milestones: true },
+      });
+      if (data.status !== "paid") return updated;
+      await closeIfFullyPaid(tx, row.project_id);
+      // Re-read: closing may have just paid this bill's open đợt.
+      return tx.bill.findUniqueOrThrow({
+        where: { id },
+        include: { milestones: true },
+      });
     });
   }
 }
 
 // ── Payment milestones (Đợt thanh toán) ─────────────────────────────────────
+
+// Money in moves the job: the cọc closes stage 3 (→ paperwork, and straight on
+// to Thi công if the hồ sơ were already cleared); the last đợt closes it. Runs
+// on the caller's transaction so the đợt and the moves commit together.
+async function afterPaid(
+  tx: Prisma.TransactionClient,
+  projectId: number,
+  type: string
+) {
+  if (type === "deposit") {
+    await advanceStage(tx, projectId, "paperwork");
+    await advanceIfPaperworkReady(tx, projectId);
+  }
+  await closeIfFullyPaid(tx, projectId);
+}
 // A đợt's bill must belong to the same công trình: the printed "Đề nghị thanh
 // toán" joins on bill_id alone, so a foreign bill renders one client's payment
 // schedule on another's request (and corrupts unsign's "already collected").
@@ -629,25 +666,25 @@ export class PaymentMilestonesController {
     // never stored. An explicit initial status is NOT a transition, so no
     // assertStep — recording an already-received cọc has to be one write, or a
     // failed follow-up PATCH leaves an orphan the operator's retry duplicates.
-    const created = await this.prisma.paymentMilestone.create({
-      data: {
-        project_id: dto.project_id,
-        bill_id: dto.bill_id,
-        type: dto.type,
-        amount: toBig(dto.amount)!,
-        status: dto.status,
-        due_date: toDate(dto.due_date),
-        // The operator can backdate a cọc that arrived last week; the server
-        // stamp is only the fallback.
-        paid_date:
-          toDate(dto.paid_date) ??
-          (dto.status === "paid" ? businessToday() : undefined),
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.paymentMilestone.create({
+        data: {
+          project_id: dto.project_id,
+          bill_id: dto.bill_id,
+          type: dto.type,
+          amount: toBig(dto.amount)!,
+          status: dto.status,
+          due_date: toDate(dto.due_date),
+          // The operator can backdate a cọc that arrived last week; the server
+          // stamp is only the fallback.
+          paid_date:
+            toDate(dto.paid_date) ??
+            (dto.status === "paid" ? businessToday() : undefined),
+        },
+      });
+      if (dto.status === "paid") await afterPaid(tx, dto.project_id, dto.type);
+      return created;
     });
-    // Same rule as PATCH: cọc received closes stage 4 → paperwork.
-    if (dto.status === "paid" && dto.type === "deposit")
-      await advanceStage(this.prisma, dto.project_id, "paperwork");
-    return created;
   }
 
   @Patch(":id")
@@ -673,18 +710,15 @@ export class PaymentMilestonesController {
       data.status = dto.status;
       if (dto.status === "paid") data.paid_date ??= businessToday();
     }
-    const updated = await this.prisma.paymentMilestone.update({
-      where: { id },
-      data,
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.paymentMilestone.update({
+        where: { id },
+        data,
+      });
+      if (dto.status === "paid" && row.status !== "paid")
+        await afterPaid(tx, row.project_id, row.type);
+      return updated;
     });
-    // Cọc received (deposit milestone paid) closes stage 4 → paperwork.
-    if (
-      dto.status === "paid" &&
-      row.status !== "paid" &&
-      row.type === "deposit"
-    )
-      await advanceStage(this.prisma, row.project_id, "paperwork");
-    return updated;
   }
 
   @Delete(":id")

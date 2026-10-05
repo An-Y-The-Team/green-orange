@@ -18,7 +18,7 @@ import type { Quote } from "../../types";
 import { QuoteTerms } from "./quote-terms/quote-terms";
 
 /**
- * The customer-facing sheet — what /quotes/[id]/print shows, and what a frozen
+ * The customer-facing sheet — what the print route shows, and what a frozen
  * (sent/decided) quote shows on its own page since there is nothing to edit.
  */
 export function QuoteDocument({

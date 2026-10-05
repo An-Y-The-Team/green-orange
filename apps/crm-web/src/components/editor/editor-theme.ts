@@ -17,7 +17,7 @@ export const EDITOR_THEME: EditorThemeClasses = {
     ol: "list-decimal pl-5 mb-2 text-xs text-zinc-700",
     listitem: "mb-0.5",
   },
-  link: "text-emerald-700 underline",
+  link: "text-zinc-800 underline underline-offset-2",
   text: {
     bold: "font-semibold",
     italic: "italic",

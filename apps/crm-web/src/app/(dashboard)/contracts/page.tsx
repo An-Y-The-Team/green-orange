@@ -20,6 +20,7 @@ import { labelOf } from "@/utils/label-of/label-of";
 
 import { ContractStatus } from "./enums";
 import { listContracts } from "./queries";
+import { contractHref } from "./utils/contract-href/contract-href";
 
 export default async function ContractsPage() {
   const contracts = await listContracts();
@@ -67,7 +68,7 @@ export default async function ContractsPage() {
                 <TableRow key={contract.id}>
                   <TableCell className="font-medium">
                     <Link
-                      href={`/contracts/${contract.id}`}
+                      href={contractHref(contract)}
                       className="hover:underline"
                     >
                       {contract.code}

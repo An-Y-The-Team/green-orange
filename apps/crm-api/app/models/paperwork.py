@@ -17,19 +17,25 @@ if TYPE_CHECKING:  # avoids a circular import; SQLAlchemy resolves it by name
 
 PAPERWORK_STATUSES = ("preparing", "submitted", "approved")
 PaperworkStatus = Literal["preparing", "submitted", "approved"]
+# The stage that needs the item approved. Only "execution" items gate the
+# auto-advance to Thi công (app/core/rules.py `paperwork_ready`).
+PaperworkNeededFor = Literal["execution", "acceptance", "settlement"]
 
-# Stage-5 checklist defaults. These names are DATA, not an enum, so they stay
-# Vietnamese; POST /projects seeds them on every new công trình.
-DEFAULT_PAPERWORK = (
-    "Giấy phép thi công",
-    "PCCC",
-    "Danh sách nhân sự",
-    "Danh sách thiết bị",
-    "Hợp đồng",
-    "Đề nghị thanh toán",
-    "Biên bản nghiệm thu khối lượng",
-    "Biên bản quyết toán",
-)
+# Stage-4 checklist defaults, name → needed_for. The names are DATA, not an
+# enum, so they stay Vietnamese; POST /projects seeds them on every new công
+# trình. The last three are later-stage documents seeded up front so the
+# checklist holds the whole paper trail; their tag keeps them from blocking
+# Thi công.
+DEFAULT_PAPERWORK: dict[str, str] = {
+    "Giấy phép thi công": "execution",
+    "PCCC": "execution",
+    "Danh sách nhân sự": "execution",
+    "Danh sách thiết bị": "execution",
+    "Hợp đồng": "execution",
+    "Đề nghị thanh toán": "settlement",
+    "Biên bản nghiệm thu khối lượng": "acceptance",
+    "Biên bản quyết toán": "settlement",
+}
 
 
 class PaperworkItem(SQLModel, table=True):
@@ -39,6 +45,7 @@ class PaperworkItem(SQLModel, table=True):
     status: str = "preparing"  # preparing | submitted | approved
     due_date: date | None = None  # permits have lead times
     note: str | None = None
+    needed_for: str = "execution"  # execution | acceptance | settlement
 
     project: "Project" = Relationship(back_populates="paperwork_items")
 
@@ -49,6 +56,7 @@ class PaperworkItemCreate(SQLModel):
     status: PaperworkStatus | None = None
     due_date: date | None = None
     note: str | None = None
+    needed_for: PaperworkNeededFor | None = None
 
 
 class PaperworkItemUpdate(SQLModel):
@@ -56,6 +64,7 @@ class PaperworkItemUpdate(SQLModel):
     status: PaperworkStatus | None = None
     due_date: date | None = None
     note: str | None = None
+    needed_for: PaperworkNeededFor | None = None
 
 
 class PaperworkSeedDefaults(SQLModel):
@@ -69,6 +78,7 @@ class PaperworkItemPublic(SQLModel):
     status: str
     due_date: date | None
     note: str | None
+    needed_for: str
 
 
 class PaperworkItemListItem(PaperworkItemPublic):

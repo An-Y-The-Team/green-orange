@@ -1,14 +1,24 @@
 import { notFound } from "next/navigation";
 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@yan/ui/components/card";
+
 import { getProjectContracts } from "@/app/(dashboard)/contracts/queries";
-import type { Contract } from "@/app/(dashboard)/contracts/types";
 import {
   getProjectAssignments,
   getProjectTimekeeping,
   listCrew,
   listCrewRoles,
 } from "@/app/(dashboard)/crew/queries";
-import type { TimekeepingRecord } from "@/app/(dashboard)/crew/types";
+import type {
+  CrewMember,
+  CrewRole,
+  TimekeepingRecord,
+} from "@/app/(dashboard)/crew/types";
 import { getDealQuote } from "@/app/(dashboard)/quotes/queries";
 import type { Quote } from "@/app/(dashboard)/quotes/types";
 import {
@@ -16,62 +26,67 @@ import {
   getProjectMilestones,
   getProjectSettlements,
 } from "@/app/(dashboard)/receivables/queries";
-import type { Settlement } from "@/app/(dashboard)/receivables/types";
 import { BackLink } from "@/components/back-link/back-link";
-import { BACK_TO } from "@/constants/labels";
+import {
+  BACK_TO,
+  PROJECT_STAGE_ORDER,
+  WORKSPACE_PANES,
+} from "@/constants/labels";
 import { localDateOf, todayISO } from "@/utils/today-iso/today-iso";
 
 import { loadClient } from "../../clients/actions/load-client";
-import { ProjectStage } from "../enums";
+import { ProjectStage, WorkspacePane } from "../enums";
 import {
   getProject,
   listPaperworkItems,
   listProjectAttachments,
   listProjectTypes,
 } from "../queries";
-import type { Attachment } from "../types";
+import { AssignmentsTab } from "./components/assignments-tab/assignments-tab";
+import { ContextPane } from "./components/context-pane/context-pane";
+import { DocumentsView } from "./components/documents-view/documents-view";
+import { StageNav } from "./components/stage-nav/stage-nav";
 import { StagePanel } from "./components/stage-panel/stage-panel";
-import { StageStepper } from "./components/stage-stepper/stage-stepper";
 import { WorkspaceHeader } from "./components/workspace-header/workspace-header";
-import { WorkspaceTabs } from "./components/workspace-tabs/workspace-tabs";
-import { stageGates } from "./utils/stage-gates/stage-gates";
+import { isStageView, parseView } from "./utils/parse-view/parse-view";
+import { type StageGate, stageGates } from "./utils/stage-gates/stage-gates";
 
-// Guided "Công Trình workspace" — header (Zone 1), stage rail (Zone 2),
-// stage panel + tabs (Zone 3). Only the current stage's panel renders, so
-// its supporting data is fetched only for the stage that needs it.
+// The Công Trình record (option C, docs/features/crm-ui-redesign.md): header,
+// then three panes — stage nav | the viewed stage's work | context (people,
+// money, upcoming, notes). `?view=` picks the middle pane and defaults to the
+// current stage; only that view's supporting data is fetched.
 export default async function ProjectDetailPage({
   params,
+  searchParams,
 }: {
-  // Next 16 route params are async.
+  // Next 16 route params and search params are async.
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string | string[] }>;
 }) {
-  const { id } = await params;
+  const [{ id }, { view: rawView }] = await Promise.all([params, searchParams]);
   const project = await getProject(Number(id));
 
   if (!project) {
     notFound();
   }
 
+  const view = parseView({ raw: rawView, currentStage: project.stage });
+  const viewStage = isStageView(view) ? view : null;
+
   const paperworkItems =
     project.paperwork_items ?? (await listPaperworkItems(project.id));
 
-  const { stage } = project;
-  // Stage 1 owns the survey half now, so its attachments load there.
-  const isRequest = stage === ProjectStage.REQUEST;
-  const isContract = stage === ProjectStage.CONTRACT;
-  const isExecution = stage === ProjectStage.EXECUTION;
-  const isSettlement = stage === ProjectStage.SETTLEMENT;
-  const isClosed = stage === ProjectStage.CLOSED;
+  // The checklists that ask for the cọc prefill 60% of the chốt quote.
+  const needsDealQuote =
+    viewStage === ProjectStage.CONTRACT ||
+    viewStage === ProjectStage.PAPERWORK ||
+    viewStage === ProjectStage.SETTLEMENT;
+  const needsCrewLists = view === WorkspacePane.CREW;
 
-  const needsContracts = isContract || isClosed;
-  // Milestones and bills are NOT stage-gated any more: the Thanh toán tab is
-  // available at every stage, and gating them meant a project at Thi công —
-  // which cannot have got there without a collected cọc — showed "no payments".
-  // Two extra reads on a page that already fans out a dozen, in exchange for a
-  // tab that does not lie.
-  const needsDealQuote = isContract || isSettlement;
-  const needsMoneyDocs = isSettlement || isClosed;
-
+  // Milestones, bills, settlements, survey attachments and assignments are read
+  // on every view: the nav marks every stage from them and the context pane
+  // shows the money. A handful of small reads in exchange for a nav that can
+  // say "done" about a stage you aren't looking at.
   const [
     attachments,
     contracts,
@@ -86,17 +101,15 @@ export default async function ProjectDetailPage({
     projectTypes,
     clientDetail,
   ] = await Promise.all([
-    isRequest
-      ? listProjectAttachments(project.id, "survey")
-      : Promise.resolve<Attachment[]>([]),
-    needsContracts
-      ? getProjectContracts(project.id)
-      : Promise.resolve<Contract[]>([]),
+    listProjectAttachments(project.id, "survey"),
+    // Always: the nav's Giấy tờ count includes them, and a count that changes
+    // with the view you're on reads as data appearing and vanishing.
+    getProjectContracts(project.id),
     getProjectMilestones(project.id),
     needsDealQuote
       ? getDealQuote(project.id)
       : Promise.resolve<Quote | undefined>(undefined),
-    isExecution
+    viewStage === ProjectStage.EXECUTION
       ? // The execution panel totals a project's hours, so it asks for the
         // project's own lifetime — GET /timekeeping would otherwise answer with
         // its default last-31-days window and undercount.
@@ -109,26 +122,32 @@ export default async function ProjectDetailPage({
         })
       : Promise.resolve<TimekeepingRecord[]>([]),
     getProjectAssignments(project.id),
-    needsMoneyDocs
-      ? getProjectSettlements(project.id)
-      : Promise.resolve<Settlement[]>([]),
+    getProjectSettlements(project.id),
     getProjectBills(project.id),
-    listCrew(),
-    listCrewRoles(),
+    needsCrewLists ? listCrew() : Promise.resolve<CrewMember[]>([]),
+    needsCrewLists ? listCrewRoles() : Promise.resolve<CrewRole[]>([]),
     listProjectTypes(),
     loadClient(project.client_id),
   ]);
 
-  // One derivation for the whole workspace: the rail shows the count, the panel
-  // shows the rows. Computing it in both would be two chances to disagree.
-  const gates = stageGates({
+  // One derivation for the whole workspace: the nav marks every stage, the
+  // panel renders the viewed stage's rows, the header's manual move lists the
+  // current stage's open ones. Computing it twice would be two chances to
+  // disagree.
+  const gateInput = {
     project,
     paperworkItems,
     attachments,
     milestones,
     bills,
     settlements,
-  });
+  };
+  const gatesByStage = Object.fromEntries(
+    PROJECT_STAGE_ORDER.map((s) => [s, stageGates({ ...gateInput, stage: s })])
+  ) as Record<ProjectStage, StageGate[]>;
+
+  const documentCount =
+    (project.quotes?.length ?? 0) + contracts.length + settlements.length;
 
   return (
     <>
@@ -138,30 +157,80 @@ export default async function ProjectDetailPage({
         project={project}
         contacts={clientDetail?.contacts ?? []}
         projectTypes={projectTypes}
+        gates={gatesByStage[project.stage]}
       />
-      <StageStepper project={project} gates={gates} />
-      <StagePanel
-        gates={gates}
-        project={project}
-        attachments={attachments}
-        contracts={contracts}
-        milestones={milestones}
-        bills={bills}
-        settlements={settlements}
-        dealQuote={dealQuote}
-        timekeeping={timekeeping}
-        assignments={assignments}
-        paperworkItems={paperworkItems}
-      />
-      <WorkspaceTabs
-        project={project}
-        paperworkItems={paperworkItems}
-        assignments={assignments}
-        crew={crew}
-        roles={roles}
-        milestones={milestones}
-        bills={bills}
-      />
+
+      <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)_18rem]">
+        <StageNav
+          project={project}
+          view={view}
+          gatesByStage={gatesByStage}
+          documentCount={documentCount}
+          crewCount={assignments.length}
+        />
+
+        <div className="min-w-0">
+          {viewStage ? (
+            <StagePanel
+              stage={viewStage}
+              gates={gatesByStage[viewStage]}
+              project={project}
+              attachments={attachments}
+              contracts={contracts}
+              milestones={milestones}
+              bills={bills}
+              settlements={settlements}
+              dealQuote={dealQuote}
+              timekeeping={timekeeping}
+              assignments={assignments}
+              paperworkItems={paperworkItems}
+            />
+          ) : view === WorkspacePane.DOCUMENTS ? (
+            <DocumentsView
+              project={project}
+              contracts={contracts}
+              settlements={settlements}
+              bills={bills}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle as="h2">
+                  {WORKSPACE_PANES[WorkspacePane.CREW]}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Same lock as a closed job's past stages (StagePanel): the
+                    server 409s every assignment edit, so the roster is shown
+                    but its buttons are disabled natively. */}
+                {project.stage === ProjectStage.CLOSED ? (
+                  <p className="text-sm text-muted-foreground">
+                    Công trình đã đóng — chỉ xem.
+                  </p>
+                ) : null}
+                <fieldset
+                  disabled={project.stage === ProjectStage.CLOSED}
+                  className="min-w-0"
+                >
+                  <AssignmentsTab
+                    projectId={project.id}
+                    assignments={assignments}
+                    crew={crew}
+                    roles={roles}
+                  />
+                </fieldset>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <ContextPane
+          project={project}
+          milestones={milestones}
+          bills={bills}
+          paperworkItems={paperworkItems}
+        />
+      </div>
     </>
   );
 }

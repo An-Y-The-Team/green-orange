@@ -18,6 +18,12 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
+import type { Quote } from "@/app/(dashboard)/quotes/types";
+import {
+  MilestoneStatus,
+  MilestoneType,
+} from "@/app/(dashboard)/receivables/enums";
+import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { FIELDS, OVERDUE_LABEL, PAPERWORK_STATUSES } from "@/constants/labels";
 import {
@@ -33,8 +39,14 @@ import {
   deletePaperworkItem,
   updatePaperworkItem,
 } from "../../../../actions/paperwork";
-import { PaperworkStatus } from "../../../../enums";
+import { GateKey, PaperworkStatus, ProjectStage } from "../../../../enums";
 import type { PaperworkItem, Project } from "../../../../types";
+import type { StageGate } from "../../../utils/stage-gates/stage-gates";
+import { RecordDeposit } from "../../gate-actions/record-deposit/record-deposit";
+import {
+  type GateActions,
+  GateChecklist,
+} from "../../gate-checklist/gate-checklist";
 import { StageCard } from "../../stage-card/stage-card";
 
 // One-way stepper: preparing→submitted→approved. approved is terminal.
@@ -96,7 +108,7 @@ function PaperworkRow({
                 </Button>
               }
               title={`Duyệt "${item.name}"?`}
-              consequence="Đã duyệt là trạng thái cuối — không có nút quay lại. Khi mọi hồ sơ đã duyệt, công trình được phép sang Thi công."
+              consequence="Đã duyệt là trạng thái cuối — không có nút quay lại. Khi hồ sơ cần cho thi công đã duyệt hết và đã nhận cọc, công trình tự chuyển sang Thi công."
               confirmLabel="Đã duyệt"
               pending={isPending}
               onConfirm={() =>
@@ -224,18 +236,41 @@ function AddPaperworkRow({ projectId }: { projectId: number }) {
 export function PaperworkPanel({
   project,
   paperworkItems,
+  milestones,
+  dealQuote,
+  gates,
 }: {
   project: Project;
   paperworkItems: PaperworkItem[];
+  milestones: PaymentMilestone[];
+  dealQuote?: Quote;
+  gates: StageGate[];
 }) {
   const total = paperworkItems.length;
   const approved = paperworkItems.filter(
     (i) => i.status === PaperworkStatus.APPROVED
   ).length;
+  const depositPaid = milestones.some(
+    (m) => m.type === MilestoneType.DEPOSIT && m.status === MilestoneStatus.PAID
+  );
+
+  // Gate = task. The hồ sơ row has no single button — the table below is that
+  // work — but a missing cọc is asked for again here, with its own button.
+  const actions: GateActions = {
+    [GateKey.DEPOSIT]: depositPaid
+      ? undefined
+      : (primary) => (
+          <RecordDeposit
+            project={project}
+            dealQuote={dealQuote}
+            primary={primary}
+          />
+        ),
+  };
 
   return (
     <StageCard
-      project={project}
+      stage={ProjectStage.PAPERWORK}
       aside={
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
@@ -255,10 +290,30 @@ export function PaperworkPanel({
         </div>
       }
     >
-      <>
+      <div className="space-y-4">
+        {project.stage === ProjectStage.CONTRACT ? (
+          // Opened from the nav while the job is still at Hợp đồng: hồ sơ is
+          // prepared in parallel (crm-business-flow.md §3).
+          <p className="text-sm text-muted-foreground">
+            Đang làm song song với Hợp đồng. Hồ sơ cần cho thi công duyệt xong
+            và đã nhận cọc thì công trình tự chuyển sang Thi công.
+          </p>
+        ) : null}
+
+        <GateChecklist
+          stage={ProjectStage.PAPERWORK}
+          gates={gates}
+          actions={actions}
+        />
+
         {total === 0 ? (
-          // Vacuous gate — nothing to approve, execution isn't blocked on paperwork.
-          <p className="mb-3 text-sm text-muted-foreground">Không cần hồ sơ</p>
+          // The server's auto-advance wants at least one hồ sơ needed for Thi
+          // công (common/stage.ts paperworkReady), so an empty checklist never
+          // moves the job by itself — say how to move on.
+          <p className="mb-3 text-sm text-muted-foreground">
+            Chưa có mục hồ sơ nào. Không cần hồ sơ thì chuyển giai đoạn thủ công
+            ở đầu trang.
+          </p>
         ) : null}
 
         <Table>
@@ -278,7 +333,7 @@ export function PaperworkPanel({
             <AddPaperworkRow projectId={project.id} />
           </TableBody>
         </Table>
-      </>
+      </div>
     </StageCard>
   );
 }

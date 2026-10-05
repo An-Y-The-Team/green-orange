@@ -139,25 +139,28 @@ class ContractsController {
   async create(@Body() dto: CreateContractDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
     const code = await nextCode(this.prisma.contract, "HD");
-    const contract = await this.prisma.contract.create({
-      data: {
-        code,
-        project_id: dto.project_id ?? null,
-        template_id: dto.template_id ?? null,
-        body: dto.body ?? null,
-        note: dto.note ?? null,
-        rep_a_label: dto.rep_a_label ?? null,
-        rep_a_name: dto.rep_a_name ?? null,
-        rep_a_title: dto.rep_a_title ?? null,
-        rep_b_label: dto.rep_b_label ?? null,
-        rep_b_name: dto.rep_b_name ?? null,
-        rep_b_title: dto.rep_b_title ?? null,
-        print_snapshot: dto.print_snapshot ?? null,
-      },
-      include: PROJECT_INCLUDE,
+    // The contract and the stage move it triggers commit together.
+    return this.prisma.$transaction(async (tx) => {
+      const contract = await tx.contract.create({
+        data: {
+          code,
+          project_id: dto.project_id ?? null,
+          template_id: dto.template_id ?? null,
+          body: dto.body ?? null,
+          note: dto.note ?? null,
+          rep_a_label: dto.rep_a_label ?? null,
+          rep_a_name: dto.rep_a_name ?? null,
+          rep_a_title: dto.rep_a_title ?? null,
+          rep_b_label: dto.rep_b_label ?? null,
+          rep_b_name: dto.rep_b_name ?? null,
+          rep_b_title: dto.rep_b_title ?? null,
+          print_snapshot: dto.print_snapshot ?? null,
+        },
+        include: PROJECT_INCLUDE,
+      });
+      await advanceStage(tx, dto.project_id, "contract");
+      return contract;
     });
-    await advanceStage(this.prisma, dto.project_id, "contract");
-    return contract;
   }
 
   @Patch(":id")

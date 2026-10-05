@@ -49,6 +49,9 @@ export async function sendQuote(
     revalidatePath("/projects/[id]", "page");
     revalidatePath("/quotes");
     revalidatePath(`/quotes/${id}`);
+    // A project quote's own page and sheet live inside the công trình.
+    revalidatePath("/projects/[id]/quotes/[quoteId]", "page");
+    revalidatePath("/projects/[id]/quotes/[quoteId]/print", "page");
 
     return {
       success: true,

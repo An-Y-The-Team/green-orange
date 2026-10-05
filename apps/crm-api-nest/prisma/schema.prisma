@@ -318,6 +318,7 @@ model PaperworkItem {
   status     String    @default("preparing") // preparing | submitted | approved
   due_date   DateTime? @db.Date // permits have lead times; overdue is DERIVED (due_date < today && != approved), never stored
   note       String?
+  needed_for String    @default("execution") // execution | acceptance | settlement — the stage that needs it approved; only "execution" items gate the auto-advance to Thi công
 
   project     Project      @relation(fields: [project_id], references: [id])
   attachments Attachment[]

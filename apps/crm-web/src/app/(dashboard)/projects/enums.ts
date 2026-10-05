@@ -46,6 +46,45 @@ export enum PaperworkStatus {
   APPROVED = "approved", // Đã duyệt
 }
 
+// The workspace's non-stage views (`?view=` on /projects/[id]). A stage view is
+// just its ProjectStage value; these two sit under the stage list in the nav.
+export enum WorkspacePane {
+  DOCUMENTS = "documents",
+  CREW = "crew",
+}
+
+// One row of a stage's "Việc cần làm" checklist (utils/stage-gates). The same
+// key can appear in two stages (the cọc is asked for in Hợp đồng and again in
+// Hồ sơ); the action that satisfies it is the same either way.
+export enum GateKey {
+  APPOINTMENT = "appointment",
+  VISIT = "visit",
+  SURVEY_DATA = "survey_data",
+  QUOTE_FROM_SURVEY = "quote_from_survey",
+  QUOTE_EXISTS = "quote_exists",
+  QUOTE_SENT = "quote_sent",
+  QUOTE_DEAL = "quote_deal",
+  CLIENT_SIGNED = "client_signed",
+  DEPOSIT = "deposit",
+  PAPERWORK_APPROVED = "paperwork_approved",
+  START_DATE = "start_date",
+  WORKS_DONE = "works_done",
+  ACCEPTANCE_PASSED = "acceptance_passed",
+  SETTLEMENT_EXISTS = "settlement_exists",
+  SETTLEMENT_SIGNED = "settlement_signed",
+  BILL_OFFICIAL = "bill_official",
+  MILESTONES_PAID = "milestones_paid",
+}
+
+// The stage that needs a hồ sơ item approved. Only EXECUTION items gate the
+// auto-advance to Thi công; the later-stage documents seeded up front (đề nghị
+// thanh toán, biên bản nghiệm thu / quyết toán) wait for their own stage.
+export enum PaperworkNeededFor {
+  EXECUTION = "execution",
+  ACCEPTANCE = "acceptance",
+  SETTLEMENT = "settlement",
+}
+
 // Stage-5 numeric duration columns a PATCH can target. The VALUES are real
 // `projects` column names (see types.ts / update-project.ts) — renaming a column
 // means editing them here too, which is the point: one place, not two call sites.

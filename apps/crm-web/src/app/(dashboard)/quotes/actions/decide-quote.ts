@@ -22,7 +22,7 @@ import type { Quote } from "../types";
  * A); when the chain fails the action says so instead of claiming success:
  *   • on_hold  → project on_hold + follow-up date
  *   • rejected → project cancelled + cancel reason
- *   • deal     → nothing extra (the stage stepper advances to Hợp đồng)
+ *   • deal     → nothing extra (the server auto-advances the project to Hợp đồng)
  */
 export async function decideQuote(
   id: number,
@@ -57,6 +57,9 @@ export async function decideQuote(
     // chained failure still shows the new quote state.
     revalidatePath("/projects/[id]", "page");
     revalidatePath("/quotes");
+    // A project quote's own page and sheet live inside the công trình.
+    revalidatePath("/projects/[id]/quotes/[quoteId]", "page");
+    revalidatePath("/projects/[id]/quotes/[quoteId]/print", "page");
 
     let chained: ServerActionState | undefined;
     if (status === QuoteStatus.ON_HOLD) {

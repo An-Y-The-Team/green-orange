@@ -37,6 +37,7 @@ import {
   type QuoteFormValues,
   quoteFormSchema,
 } from "@/app/(dashboard)/quotes/schema";
+import { quoteHref } from "@/app/(dashboard)/quotes/utils/quote-href/quote-href";
 import { useCompany } from "@/components/company-provider/company-provider";
 import { TemplateBlock } from "@/components/editor/template-block/template-block";
 import { fieldError } from "@/components/form-bits/form-bits";
@@ -132,7 +133,7 @@ export function QuoteBuilderForm({
   // mock data isn't persisted).
   const done = (savedId: number | null) =>
     initial.editId && savedId
-      ? `/quotes/${savedId}`
+      ? quoteHref({ id: savedId, project_id: projectId ?? null })
       : projectId
         ? `/projects/${projectId}`
         : "/quotes";

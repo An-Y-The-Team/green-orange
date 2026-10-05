@@ -10,7 +10,8 @@ import type { ReactNode } from "react";
  * stage). Promoted so every stage can render the same row.
  *
  * The tick is not the only cue: an unmet row is also muted, so the state does
- * not rest on colour alone.
+ * not rest on colour alone. Done is blue (`text-done`), never green — green
+ * means "press this" (crm-ui-redesign.md, "Buttons vs badges").
  */
 export function ChecklistRow({
   done,
@@ -24,12 +25,9 @@ export function ChecklistRow({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 text-sm">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
       {done ? (
-        <CircleCheckBig
-          aria-hidden
-          className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-        />
+        <CircleCheckBig aria-hidden className="size-4 shrink-0 text-done" />
       ) : (
         <Circle aria-hidden className="size-4 shrink-0 text-muted-foreground" />
       )}

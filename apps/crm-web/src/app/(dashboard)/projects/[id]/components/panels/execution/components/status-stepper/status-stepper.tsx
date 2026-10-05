@@ -54,7 +54,11 @@ export function StatusStepper({ project }: { project: Project }) {
   });
 
   // At kickoff both "→ Dựng rào" and "→ Thi công" are offered (skip allowed).
-  const nextTargets = EXECUTION_STEPS.filter((_, i) => i > currentIndex);
+  // None once the works are confirmed done — the panel can be opened from the
+  // nav as a past stage, and a finished job has no sub-step left to move to.
+  const nextTargets = project.works_done_at
+    ? []
+    : EXECUTION_STEPS.filter((_, i) => i > currentIndex);
 
   return (
     <section className="space-y-3">

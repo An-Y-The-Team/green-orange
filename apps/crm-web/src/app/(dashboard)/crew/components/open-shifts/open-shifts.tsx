@@ -41,7 +41,7 @@ export function OpenShifts({ shifts }: { shifts: TimekeepingRecord[] }) {
         <CardTitle>Đang làm</CardTitle>
         <Badge variant="secondary">{shifts.length}</Badge>
         {staleCount > 0 ? (
-          <Badge variant="warning">{staleCount} quá hạn</Badge>
+          <Badge variant="destructive">{staleCount} quá hạn</Badge>
         ) : null}
       </CardHeader>
       <CardContent>
@@ -64,8 +64,8 @@ export function OpenShifts({ shifts }: { shifts: TimekeepingRecord[] }) {
                 {/* The word carries the state, not the badge colour. */}
                 {stale ? (
                   <p className="text-muted-foreground text-sm">
-                    <Badge variant="warning">Quá hạn</Badge> Chưa chấm công ra —
-                    nhân sự cần gửi đơn bù công để chốt giờ ra.
+                    <Badge variant="destructive">Quá hạn</Badge> Chưa chấm công
+                    ra — nhân sự cần gửi đơn bù công để chốt giờ ra.
                   </p>
                 ) : null}
               </li>

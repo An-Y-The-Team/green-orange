@@ -287,24 +287,28 @@ export class QuotesController {
   async create(@Body() dto: CreateQuoteDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
     const { rows, total } = computeItems(dto.items);
-    const quote = await this.prisma.quote.create({
-      data: {
-        project_id: dto.project_id ?? null,
-        version: await this.nextVersion(dto.project_id),
-        total_amount: total,
-        ...(dto.vat_rate !== undefined && { vat_rate: dto.vat_rate }),
-        note: dto.note,
-        // Blank normalizes to null — the printable falls back to the company
-        // representative only when the signer was never set.
-        rep_name: dto.rep_name?.trim() || null,
-        rep_title: dto.rep_title?.trim() || null,
-        items: { create: rows },
-        // status defaults to "draft" in the schema
-      },
-      include: DETAIL_INCLUDE,
+    const version = await this.nextVersion(dto.project_id);
+    // The quote and the stage move it triggers commit together.
+    return this.prisma.$transaction(async (tx) => {
+      const quote = await tx.quote.create({
+        data: {
+          project_id: dto.project_id ?? null,
+          version,
+          total_amount: total,
+          ...(dto.vat_rate !== undefined && { vat_rate: dto.vat_rate }),
+          note: dto.note,
+          // Blank normalizes to null — the printable falls back to the company
+          // representative only when the signer was never set.
+          rep_name: dto.rep_name?.trim() || null,
+          rep_title: dto.rep_title?.trim() || null,
+          items: { create: rows },
+          // status defaults to "draft" in the schema
+        },
+        include: DETAIL_INCLUDE,
+      });
+      await advanceStage(tx, dto.project_id, "quote");
+      return quote;
     });
-    await advanceStage(this.prisma, dto.project_id, "quote");
-    return quote;
   }
 
   @Patch(":id")
@@ -374,10 +378,17 @@ export class QuotesController {
     await assertProjectOpen(this.prisma, quote.project_id);
     if (quote.status !== "waiting")
       throw new ConflictException("only waiting quotes can be decided");
-    return this.prisma.quote.update({
-      where: { id },
-      data: { status: dto.status, decided_date: businessToday() },
-      include: DETAIL_INCLUDE,
+    return this.prisma.$transaction(async (tx) => {
+      const decided = await tx.quote.update({
+        where: { id },
+        data: { status: dto.status, decided_date: businessToday() },
+        include: DETAIL_INCLUDE,
+      });
+      // Chốt → contract signing (stage 3), in the same transaction. Hoãn/Hủy
+      // change the project's status, not its stage — the UI sends that PATCH.
+      if (dto.status === "deal")
+        await advanceStage(tx, quote.project_id, "contract");
+      return decided;
     });
   }
 
@@ -387,31 +398,34 @@ export class QuotesController {
   async revise(@Param("id", ParseIntPipe) id: number) {
     const quote = await this.get(id);
     await assertProjectOpen(this.prisma, quote.project_id);
-    const revised = await this.prisma.quote.create({
-      data: {
-        project_id: quote.project_id,
-        version: await this.nextVersion(quote.project_id),
-        total_amount: quote.total_amount,
-        vat_rate: quote.vat_rate,
-        note: quote.note,
-        rep_name: quote.rep_name,
-        rep_title: quote.rep_title,
-        items: {
-          create: quote.items.map((it) => ({
-            category: it.category,
-            description: it.description,
-            unit: it.unit,
-            quantity: it.quantity,
-            unit_price: it.unit_price,
-            amount: it.amount,
-            sort_order: it.sort_order,
-          })),
+    const version = await this.nextVersion(quote.project_id);
+    return this.prisma.$transaction(async (tx) => {
+      const revised = await tx.quote.create({
+        data: {
+          project_id: quote.project_id,
+          version,
+          total_amount: quote.total_amount,
+          vat_rate: quote.vat_rate,
+          note: quote.note,
+          rep_name: quote.rep_name,
+          rep_title: quote.rep_title,
+          items: {
+            create: quote.items.map((it) => ({
+              category: it.category,
+              description: it.description,
+              unit: it.unit,
+              quantity: it.quantity,
+              unit_price: it.unit_price,
+              amount: it.amount,
+              sort_order: it.sort_order,
+            })),
+          },
         },
-      },
-      include: DETAIL_INCLUDE,
+        include: DETAIL_INCLUDE,
+      });
+      await advanceStage(tx, quote.project_id, "quote");
+      return revised;
     });
-    await advanceStage(this.prisma, quote.project_id, "quote");
-    return revised;
   }
 
   @Delete(":id")

@@ -152,15 +152,20 @@ Default checklist (the most common requirements):
 7. **Biên bản nghiệm thu khối lượng** (quantity acceptance minutes).
 8. **Biên bản quyết toán** (settlement minutes).
 
-Items 5–8 are later-stage documents seeded up front so the checklist is the
-single place to track the whole paper trail; the stage-4 gate is soft, so they
-do not block Thi công while unapproved (added 2026-09-10).
+Items 6–8 are later-stage documents seeded up front so the checklist is the
+single place to track the whole paper trail (added 2026-09-10). Each item
+carries a **`needed_for`** stage (2026-10-05): items 1–5 → `execution`,
+Biên bản nghiệm thu khối lượng → `acceptance`, Đề nghị thanh toán + Biên bản
+quyết toán → `settlement`. Items an operator adds default to `execution`. Only
+`execution` items count toward the stage-4 exit, so the later documents never
+hold up Thi công.
 
 - Entry: cọc received (stage 3 done) — though paperwork may have started in
   parallel (sent along with the contract).
 - Action: work the checklist — prepare each document, submit to the
   building/client, get it approved.
-- Exit: every checklist item on the project is cleared → Thi công can start.
+- Exit: every `needed_for: execution` item is approved **and** the cọc is in
+  → the project auto-advances to Thi công.
 - See "Paperwork item" entity below for per-item states.
 
 ### 5. Thi công (WIP — requirements still being gathered)
@@ -443,11 +448,19 @@ backfill let a job start at any stage.
 
 - Quote `chot` gates stage 3 (contract signing / quote-only agreement).
 - Cọc received (`tam_ung` milestone `da_thu`) closes stage 3.
-- All paperwork items `da_duyet` gates Thi công.
+- All `needed_for: execution` paperwork items `da_duyet` + cọc received gates
+  Thi công.
 - Biên bản nghiệm thu signed (stage-6 sub-status `dat`) gates stage 7.
 - Quyết toán `da_ky` turns the draft Bill `chinh_thuc` and defines the
   payment milestones.
-- Final milestone `da_thu` (Bill `da_thanh_toan`) closes the project.
+- Final milestone `da_thu` (Bill `da_thanh_toan`) closes the project — and
+  marks the Bill `da_thanh_toan` if it wasn't yet, since a closed project is
+  locked.
+
+**Implemented in both backends (2026-10-05):** every rule above now fires
+server-side — `crm-api-nest/src/common/stage.ts` (`paperworkReady`,
+`fullyPaid`, `advanceIfPaperworkReady`, `closeIfFullyPaid`) and its twin
+`crm-api/app/core/rules.py`.
 
 ## Changelog
 
@@ -492,3 +505,7 @@ backfill let a job start at any stage.
   records the real visit date — no sub-status enum. Stages renumbered: Báo giá
   2, Hợp đồng 3, Chuẩn bị hồ sơ 4, Thi công 5, Nghiệm thu 6, Quyết toán &
   Thanh toán 7, Đã đóng 8.
+- 2026-10-05 — all cross-entity auto-advance rules implemented in both backends
+  (chốt → 3, hồ sơ + cọc → 5, nghiệm thu đạt → 7, fully paid → 8; closing
+  marks the bill paid). Paperwork items gain `needed_for` (execution |
+  acceptance | settlement) so later-stage documents don't block Thi công.

@@ -31,8 +31,19 @@ import { labelOf } from "@/utils/label-of/label-of";
 import { addAttachment } from "../../../../actions/attachments";
 import { updateProject } from "../../../../actions/update-project";
 import { updateProjectWithNote } from "../../../../actions/update-project-with-note";
-import { AcceptanceSubStatus, AttachmentKind } from "../../../../enums";
+import {
+  AcceptanceSubStatus,
+  AttachmentKind,
+  GateKey,
+  ProjectStage,
+} from "../../../../enums";
 import type { Project } from "../../../../types";
+import { gateButtonProps } from "../../../utils/gate-button-props/gate-button-props";
+import type { StageGate } from "../../../utils/stage-gates/stage-gates";
+import {
+  type GateActions,
+  GateChecklist,
+} from "../../gate-checklist/gate-checklist";
 import { StageCard } from "../../stage-card/stage-card";
 
 // Sub-status progress line: Gửi yêu cầu → Nghiệm thu ⇄ Bổ sung → Đạt.
@@ -42,8 +53,14 @@ const PROGRESS: AcceptanceSubStatus[] = Object.values(AcceptanceSubStatus);
 // Notes tagged as acceptance events (only "rework" is produced by this panel).
 const ACCEPTANCE_TAGS = new Set(["rework"]);
 
-export function AcceptancePanel({ project }: { project: Project }) {
-  // Entering stage 7 already set request_sent; guard the null just in case.
+export function AcceptancePanel({
+  project,
+  gates,
+}: {
+  project: Project;
+  gates: StageGate[];
+}) {
+  // Entering stage 6 already set request_sent; guard the null just in case.
   const sub = project.acceptance_sub_status ?? AcceptanceSubStatus.REQUEST_SENT;
   const passed = sub === AcceptanceSubStatus.PASSED;
 
@@ -83,9 +100,31 @@ export function AcceptancePanel({ project }: { project: Project }) {
 
   const label = labelOf(ACCEPTANCE_SUB_STATUSES, sub);
 
+  // Đạt is only a real choice while the inspection is underway; before the
+  // schedule or during rework the body's transition buttons do the work.
+  const actions: GateActions =
+    sub === AcceptanceSubStatus.INSPECTING
+      ? {
+          [GateKey.ACCEPTANCE_PASSED]: (primary) => (
+            <ConfirmAction
+              trigger={
+                <Button {...gateButtonProps(primary)} disabled={statusPending}>
+                  <FileCheck2 className="size-4" />✓ Đạt — ký BB
+                </Button>
+              }
+              title="Nghiệm thu đạt?"
+              consequence="Ghi nhận nghiệm thu đạt hôm nay và mở Quyết toán & Thanh toán. Đây là trạng thái cuối của Nghiệm thu — muốn quay lại Bổ sung phải lùi giai đoạn thủ công."
+              confirmLabel="Nghiệm thu đạt"
+              pending={statusPending}
+              onConfirm={() => setStatus(AcceptanceSubStatus.PASSED)}
+            />
+          ),
+        }
+      : {};
+
   return (
     <StageCard
-      project={project}
+      stage={ProjectStage.ACCEPTANCE}
       contentClassName="space-y-5"
       aside={<Badge variant={label.variant}>{label.label}</Badge>}
       footer={
@@ -114,23 +153,14 @@ export function AcceptancePanel({ project }: { project: Project }) {
               </Link>
             }
           />
-          {sub === AcceptanceSubStatus.INSPECTING ? (
-            <ConfirmAction
-              trigger={
-                <Button disabled={statusPending}>
-                  <FileCheck2 className="size-4" />✓ Đạt — ký BB
-                </Button>
-              }
-              title="Nghiệm thu đạt?"
-              consequence="Ghi nhận nghiệm thu đạt hôm nay và mở Quyết toán & Thanh toán. Đây là trạng thái cuối của Nghiệm thu — muốn quay lại Bổ sung phải lùi giai đoạn thủ công."
-              confirmLabel="Nghiệm thu đạt"
-              pending={statusPending}
-              onConfirm={() => setStatus(AcceptanceSubStatus.PASSED)}
-            />
-          ) : null}
         </>
       }
     >
+      <GateChecklist
+        stage={ProjectStage.ACCEPTANCE}
+        gates={gates}
+        actions={actions}
+      />
       {/* Progress line */}
       <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
         {PROGRESS.map((s, i) => (

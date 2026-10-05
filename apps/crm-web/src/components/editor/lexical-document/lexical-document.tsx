@@ -110,7 +110,11 @@ function inline(children: LexNode[] | undefined, ctx: MergeContext): ReactNode {
       // reachable by nobody. Keep the text, drop the false affordance.
       const url = typeof child.url === "string" ? child.url : null;
       return url ? (
-        <a key={i} href={url} className="text-emerald-700 underline">
+        <a
+          key={i}
+          href={url}
+          className="text-zinc-800 underline underline-offset-2"
+        >
           {inline(child.children, ctx)}
         </a>
       ) : (

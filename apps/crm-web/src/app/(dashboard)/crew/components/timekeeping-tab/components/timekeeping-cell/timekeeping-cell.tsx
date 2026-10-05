@@ -138,7 +138,7 @@ export function TimekeepingCell({
             className={cn(
               "h-8 w-14 text-center",
               error && "border-destructive",
-              saved && !pending && "border-emerald-500"
+              saved && !pending && "border-done"
             )}
             onChange={(e) => setValue(e.target.value)}
             onBlur={commit}
@@ -147,7 +147,7 @@ export function TimekeepingCell({
             <Loader2 className="pointer-events-none absolute -right-4 top-2 size-3.5 animate-spin text-muted-foreground" />
           ) : null}
           {saved && !pending ? (
-            <Check className="pointer-events-none absolute -right-4 top-2 size-3.5 text-emerald-600" />
+            <Check className="pointer-events-none absolute -right-4 top-2 size-3.5 text-done" />
           ) : null}
         </div>
 

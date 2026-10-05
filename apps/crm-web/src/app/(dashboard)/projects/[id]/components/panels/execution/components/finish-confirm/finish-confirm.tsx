@@ -10,7 +10,7 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
-import { FIELDS, PHOTO_TEXT } from "@/constants/labels";
+import { FIELDS, PHOTO_TEXT, PROJECT_STAGE_ORDER } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -26,6 +26,7 @@ import {
   ProjectStage,
 } from "../../../../../../enums";
 import type { Project } from "../../../../../../types";
+import { gateButtonProps } from "../../../../../utils/gate-button-props/gate-button-props";
 
 /** Optional hoàn-công images — they attach independently of the exit. */
 export function FinishPhotos({ project }: { project: Project }) {
@@ -95,13 +96,24 @@ export function FinishPhotos({ project }: { project: Project }) {
 }
 
 /**
- * Stage 5's exit, rendered in the StageCard footer by ExecutionPanel.
+ * Stage 5's exit — the WORKS_DONE row's action in ExecutionPanel's checklist.
+ * `primary` when it is the next row (gate-button-props).
  *
  * One patch stamps `works_done_at` and moves to stage 6 with `request_sent`
  * (the backend does NOT auto-set it). It used to trail the photo form inside
  * the body, indistinguishable from the "Thêm ảnh" beside it.
+ *
+ * Viewed as a PAST stage (a job moved on by hand without the date), it only
+ * backfills `works_done_at`: sending `stage` / `acceptance_sub_status` would
+ * drag the job back to Nghiệm thu and overwrite a passed inspection.
  */
-export function FinishConfirm({ project }: { project: Project }) {
+export function FinishConfirm({
+  project,
+  primary,
+}: {
+  project: Project;
+  primary: boolean;
+}) {
   const [state, formAction] = useActionState(
     updateProject.bind(null, project.id),
     INITIAL_ACTION_STATE
@@ -115,27 +127,40 @@ export function FinishConfirm({ project }: { project: Project }) {
 
   useServerAction(state, isPending, ACTION_TOAST_TITLES);
 
-  // One patch closes out thi công and opens nghiệm thu.
+  const pastExecution =
+    PROJECT_STAGE_ORDER.indexOf(project.stage) >
+    PROJECT_STAGE_ORDER.indexOf(ProjectStage.EXECUTION);
+
+  // At Thi công: one patch closes it out and opens nghiệm thu. Past it: only
+  // the date, never a stage move (see the doc comment).
   const confirmFinished = () =>
     startTransition(() =>
-      formAction({
-        works_done_at: localISO(doneDate, nowHHmm()),
-        stage: ProjectStage.ACCEPTANCE,
-        acceptance_sub_status: AcceptanceSubStatus.REQUEST_SENT,
-      })
+      formAction(
+        pastExecution
+          ? { works_done_at: localISO(doneDate, nowHHmm()) }
+          : {
+              works_done_at: localISO(doneDate, nowHHmm()),
+              stage: ProjectStage.ACCEPTANCE,
+              acceptance_sub_status: AcceptanceSubStatus.REQUEST_SENT,
+            }
+      )
     );
 
   return (
     <>
       <ConfirmAction
         trigger={
-          <Button disabled={isPending}>
+          <Button {...gateButtonProps(primary)} disabled={isPending}>
             <CircleCheckBig className="size-4" />
             Xác nhận hoàn tất thi công
           </Button>
         }
         title="Xác nhận hoàn tất thi công"
-        consequence={`Đóng giai đoạn Thi công vào ngày ${formatDate(doneDate)} và mở Nghiệm thu (đã gửi yêu cầu). Không có nút quay lại — muốn sửa phải chuyển giai đoạn thủ công.`}
+        consequence={
+          pastExecution
+            ? `Ghi ngày hoàn tất thi công là ${formatDate(doneDate)}. Công trình giữ nguyên giai đoạn hiện tại.`
+            : `Đóng giai đoạn Thi công vào ngày ${formatDate(doneDate)} và mở Nghiệm thu (đã gửi yêu cầu). Không có nút quay lại — muốn sửa phải chuyển giai đoạn thủ công.`
+        }
         confirmLabel="Hoàn tất thi công"
         pending={isPending}
         confirmDisabled={!doneDate}

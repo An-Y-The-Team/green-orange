@@ -7,10 +7,7 @@ import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Label } from "@yan/ui/components/label";
 
-import {
-  markMilestonePaid,
-  updateMilestone,
-} from "@/app/(dashboard)/receivables/actions/milestones";
+import { updateMilestone } from "@/app/(dashboard)/receivables/actions/milestones";
 import { MilestoneStatus } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
@@ -26,7 +23,8 @@ import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { isOverdue } from "@/utils/is-overdue/is-overdue";
 import { labelOf } from "@/utils/label-of/label-of";
-import { todayISO } from "@/utils/today-iso/today-iso";
+
+import { RecordMilestonePaid } from "../record-milestone-paid/record-milestone-paid";
 
 /** One đợt thanh toán inside the settlement card, with an inline "đã thu" confirm. */
 export function MilestoneRow({
@@ -36,7 +34,6 @@ export function MilestoneRow({
   milestone: PaymentMilestone;
   projectId: number;
 }) {
-  const [paidDate, setPaidDate] = useState(todayISO);
   const paid = milestone.status === MilestoneStatus.PAID;
   const late = isOverdue(milestone.due_date, paid);
   // Overdue is derived and sits BESIDE the status, never instead of it — as the
@@ -44,9 +41,6 @@ export function MilestoneRow({
   const status = labelOf(MILESTONE_STATUSES, milestone.status);
   const type = MILESTONE_TYPES[milestone.type] ?? milestone.type;
 
-  const [pending, run] = useRun(
-    markMilestonePaid.bind(null, milestone.id, projectId, milestone.status)
-  );
   // Hạn thanh toán is otherwise only settable when the đợt is created.
   const [dueDate, setDueDate] = useState(milestone.due_date ?? "");
   const [duePending, runDue] = useRun(
@@ -96,27 +90,11 @@ export function MilestoneRow({
         </ConfirmAction>
       ) : null}
       {!paid ? (
-        <ConfirmAction
-          trigger={
-            <Button variant="outline" size="sm">
-              Ghi nhận đã thu
-            </Button>
-          }
-          title="Ghi nhận đã thu"
-          consequence={`Ghi nhận đã thu ${formatVND(milestone.amount)} cho đợt ${type}. Sau khi ghi nhận chỉ sửa được ngày thu, không bỏ được trạng thái.`}
-          pending={pending}
-          confirmDisabled={!paidDate}
-          onConfirm={() => run({ paid_date: paidDate })}
-        >
-          <div className="space-y-1">
-            <Label htmlFor={`paid-${milestone.id}`}>{FIELDS.collectDate}</Label>
-            <DateInput
-              id={`paid-${milestone.id}`}
-              value={paidDate}
-              onChange={setPaidDate}
-            />
-          </div>
-        </ConfirmAction>
+        <RecordMilestonePaid
+          milestone={milestone}
+          projectId={projectId}
+          primary={false}
+        />
       ) : null}
     </div>
   );

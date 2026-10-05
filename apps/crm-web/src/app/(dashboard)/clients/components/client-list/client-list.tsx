@@ -161,13 +161,7 @@ export function ClientList() {
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            client.type === ClientType.COMPANY
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
+                        <Badge variant="outline">
                           {CLIENT_TYPES[client.type]}
                         </Badge>
                       </TableCell>

@@ -14,7 +14,7 @@ import {
 // Quote builder — a NEW stage-3 báo giá for this project. `?from=survey` seeds
 // the rows from the project's survey_items (unit_price 0); `?copy=` seeds the
 // whole form from an existing quote (the revise flow — nothing persists until
-// saved); otherwise one blank row. Editing an existing draft is /quotes/[id].
+// saved); otherwise one blank row. Editing an existing draft is the quote's own page (quoteHref).
 export default async function QuoteBuilderPage({
   params,
   searchParams,

@@ -10,6 +10,7 @@ import type {
   AcceptanceSubStatus,
   AttachmentKind,
   ExecutionSubStatus,
+  PaperworkNeededFor,
   PaperworkStatus,
   ProjectStage,
   ProjectStatus,
@@ -114,6 +115,7 @@ export interface PaperworkItem {
   status: PaperworkStatus;
   due_date?: string | null;
   note?: string | null;
+  needed_for: PaperworkNeededFor;
   /**
    * Narrow project relation — GET /paperwork-items only (F41), so the
    * cross-project overdue panel prints a code instead of `#id`. Absent on
