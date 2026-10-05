@@ -8,11 +8,6 @@ import {
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 
-import {
-  AttachmentDownload,
-  AttachmentUpload,
-  attachmentName,
-} from "@/components/attachment-upload/attachment-upload";
 import { EmptyState } from "@/components/empty-state/empty-state";
 import { ACTIONS, PHOTO_TEXT } from "@/constants/labels";
 import {
@@ -23,6 +18,11 @@ import {
 import { deleteAttachment } from "../../../actions/attachments";
 import type { AttachmentKind } from "../../../enums";
 import type { Attachment } from "../../../types";
+import {
+  AttachmentDownload,
+  AttachmentUpload,
+  attachmentName,
+} from "../attachment-upload/attachment-upload";
 
 /**
  * Files of one kind: the list, the download links, the delete buttons and the

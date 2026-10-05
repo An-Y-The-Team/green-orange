@@ -8,14 +8,13 @@ import { Button } from "@yan/ui/components/button";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
-import {
-  addAttachment,
-  presignAttachment,
-} from "@/app/(dashboard)/projects/actions/attachments";
-import type { AttachmentKind } from "@/app/(dashboard)/projects/enums";
-import type { Attachment } from "@/app/(dashboard)/projects/types";
 import { FIELDS } from "@/constants/labels";
 import { ACTION_TOAST_TITLES } from "@/constants/server-action";
+
+import { addAttachment, presignAttachment } from "../../../actions/attachments";
+import type { AttachmentKind } from "../../../enums";
+import type { Attachment } from "../../../types";
+import { ACCEPT, MAX_BYTES, guessType } from "./attachment-types";
 
 /**
  * The one place a file becomes an `Attachment`. Every stage that collects a file
@@ -28,23 +27,6 @@ import { ACTION_TOAST_TITLES } from "@/constants/server-action";
  * the middle. Plain `useTransition` + `toast`, no `useEffect` (AGENTS.md).
  */
 
-/** Mirrors ALLOWED_CONTENT_TYPES in both backends; a presign rejects anything else. */
-const ACCEPT = [
-  ".pdf",
-  ".doc",
-  ".docx",
-  ".xls",
-  ".xlsx",
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".webp",
-].join(",");
-
-/** Matches MAX_UPLOAD_BYTES in both backends — checked here only to fail before
- *  a pointless round trip; the signed URL is what actually enforces it. */
-const MAX_BYTES = 25 * 1024 * 1024;
-
 /** Stable toast id: a retried upload would otherwise stack one identical toast
  *  per click. */
 const UPLOAD_ERROR_TOAST = "attachment-upload-error";
@@ -52,7 +34,6 @@ const UPLOAD_ERROR_TOAST = "attachment-upload-error";
 interface AttachmentUploadProps {
   projectId: number;
   kind: AttachmentKind;
-  paperworkItemId?: number;
   /** Shown above the picker. Omit for a bare row. */
   label?: string;
   /** Second field for the "— ghi chú" the photo lists print beside the name. */
@@ -64,7 +45,6 @@ interface AttachmentUploadProps {
 export function AttachmentUpload({
   projectId,
   kind,
-  paperworkItemId,
   label,
   withNote = false,
   buttonLabel = "Tải lên",
@@ -148,7 +128,6 @@ export function AttachmentUpload({
         {
           kind,
           s3_key: signed.data.s3_key,
-          paperwork_item_id: paperworkItemId,
           note: note.trim() || undefined,
         }
       );
@@ -212,24 +191,6 @@ export function AttachmentUpload({
         </Button>
       </div>
     </div>
-  );
-}
-
-/** Extension → MIME, for the browsers that hand us "" on Office files. */
-function guessType(filename: string): string {
-  const ext = filename.toLowerCase().split(".").pop() ?? "";
-  return (
-    {
-      pdf: "application/pdf",
-      doc: "application/msword",
-      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      xls: "application/vnd.ms-excel",
-      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      png: "image/png",
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      webp: "image/webp",
-    }[ext] ?? "application/octet-stream"
   );
 }
 

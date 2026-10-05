@@ -71,7 +71,6 @@ export async function presignAttachment(
 const addAttachmentSchema = z.object({
   kind: z.nativeEnum(AttachmentKind),
   s3_key: z.string().min(1, "Thiếu tệp đã tải lên."),
-  paperwork_item_id: z.number().int().optional(),
   note: z.string().optional(),
 });
 
@@ -97,7 +96,6 @@ export async function addAttachment(
       project_id: projectId,
       kind: parsed.data.kind,
       s3_key: parsed.data.s3_key,
-      paperwork_item_id: parsed.data.paperwork_item_id,
       note: parsed.data.note,
     };
     const data = await apiSend<Attachment>("/attachments", "POST", body);
