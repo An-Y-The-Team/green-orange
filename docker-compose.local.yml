@@ -112,6 +112,13 @@ services:
       JWT_SECRET: dev-only-change-me
       AUTH_MODE: local
       CORS_ORIGINS: http://localhost:3002
+      # Attachments. Both backends implement the same presign endpoints, so both
+      # need the keys — pointing CRM_API_URL at :8000 must not lose uploads.
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-hcm}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
     ports:
       - '8000:8000'
 

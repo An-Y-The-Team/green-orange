@@ -3,38 +3,25 @@
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 
-import {
-  type ServerActionState,
-  useServerAction,
-} from "@yan/shared/hooks/use-server-actions";
+import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
-import {
-  AttachmentDownload,
-  AttachmentUpload,
-  attachmentName,
-} from "@/components/attachment-upload/attachment-upload";
 import { EmptyState } from "@/components/empty-state/empty-state";
-import {
-  ACTIONS,
-  FIELDS,
-  LINE_ITEM_COLUMNS,
-  PHOTO_TEXT,
-} from "@/constants/labels";
+import { ACTIONS, FIELDS, LINE_ITEM_COLUMNS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
 
-import { deleteAttachment } from "../../../../actions/attachments";
 import { updateProject } from "../../../../actions/update-project";
 import { AttachmentKind } from "../../../../enums";
 import type { Attachment, Project, SurveyItem } from "../../../../types";
 import { gateButtonProps } from "../../../utils/gate-button-props/gate-button-props";
+import { AttachmentList } from "../../attachment-list/attachment-list";
 
 // Survey half of the stage-1 panel — a bare body, rendered by RequestPanel
 // below the appointment card once `visit_date` is set (the visit happened).
@@ -69,29 +56,6 @@ export function SurveyPanel({
 
   // --- survey_note -------------------------------------------------------
   const [surveyNote, setSurveyNote] = useState(project.survey_note ?? "");
-
-  // --- attachments (kind=survey) ----------------------------------------
-  const [rows, setRows] = useState<Attachment[]>(attachments);
-  const [showAdd, setShowAdd] = useState(false);
-
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [delState, delAction] = useActionState(
-    (prev: ServerActionState, id: number) =>
-      deleteAttachment(id, project.id, prev),
-    INITIAL_ACTION_STATE
-  );
-  const [delPending, startDel] = useTransition();
-  useServerAction(delState, delPending, {
-    ...ACTION_TOAST_TITLES,
-    onSuccess: (data: { id: number }) =>
-      setRows((prev) => prev.filter((r) => r.id !== data.id)),
-  });
-
-  // Remembers which row is going away so only that button shows as pending.
-  const handleDeleteAttachment = (id: number) => {
-    setDeletingId(id);
-    startDel(() => delAction(id));
-  };
 
   return (
     <div className="space-y-6 border-t border-border pt-4">
@@ -214,56 +178,14 @@ export function SurveyPanel({
         </Button>
       </div>
 
-      {/* Hình ảnh */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Hình ảnh ({rows.length})</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAdd((v) => !v)}
-          >
-            {PHOTO_TEXT.add}
-          </Button>
-        </div>
-        {rows.length > 0 ? (
-          <ul className="space-y-1 text-sm">
-            {rows.map((a) => (
-              <li key={a.id} className="flex items-center gap-2">
-                <AttachmentDownload id={a.id} name={attachmentName(a.s3_key)} />
-                {a.note ? (
-                  <span className="text-muted-foreground">{`— "${a.note}"`}</span>
-                ) : null}
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={delPending && deletingId === a.id}
-                  onClick={() => handleDeleteAttachment(a.id)}
-                >
-                  {ACTIONS.delete}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState message="Chưa có ảnh khảo sát." />
-        )}
-        {showAdd ? (
-          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">{PHOTO_TEXT.hint}</p>
-            <AttachmentUpload
-              projectId={project.id}
-              kind={AttachmentKind.SURVEY}
-              withNote
-              buttonLabel={ACTIONS.add}
-              onUploaded={(a) => {
-                setRows((prev) => [a, ...prev]);
-                setShowAdd(false);
-              }}
-            />
-          </div>
-        ) : null}
-      </div>
+      <AttachmentList
+        projectId={project.id}
+        kind={AttachmentKind.SURVEY}
+        initial={attachments.filter((a) => a.kind === AttachmentKind.SURVEY)}
+        title="Hình ảnh"
+        emptyMessage="Chưa có ảnh khảo sát."
+        withNote
+      />
     </div>
   );
 }

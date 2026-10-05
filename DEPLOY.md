@@ -778,10 +778,18 @@ transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
 **Setup (provider console — the operator does this once):**
 
 1. Bucket `greenorange` must be **private**, no public read.
-2. Create an access key (Access Key menu); put the pair in Dockhand as
+2. **Turn on object versioning.** This bucket is the _only_ copy of every signed
+   hợp đồng and biên bản nghiệm thu — before this feature those files lived in
+   Zalo/Drive, where the staff still had them. A delete is now permanent, and
+   `DELETE /attachments/:id` deletes the object. Versioning is the difference
+   between "someone removed the wrong row" and "the contract is gone".
+3. Create an access key (Access Key menu); put the pair in Dockhand as
    `S3_ACCESS_KEY` / `S3_SECRET_KEY`, plus `S3_ENDPOINT`, `S3_REGION`,
    `S3_BUCKET` (see `.env.production.example`). Keys never go in git.
-3. **CORS** — the browser PUTs directly, so without this every upload fails with
+   **Both** CRM backends read these — `crm-api-nest` and `crm-api` — because
+   both implement the presign endpoints and `CRM_API_URL` can point at either
+   (§6c). Set them on both services or the switch silently loses uploads.
+4. **CORS** — the browser PUTs directly, so without this every upload fails with
    an opaque network error:
 
    ```json
@@ -798,15 +806,24 @@ transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
 
    Replace the origin with the real `CRM_DOMAIN`. Do **not** use `*`.
 
-4. Create a second bucket `greenorange-backups` for §8a, with its **own** key.
+5. Add a lifecycle rule expiring **incomplete/orphaned objects after 7 days**.
+   An upload is three steps (presign → PUT → record the row); if the last one
+   fails the bytes are already in the bucket with no row pointing at them, and
+   nothing else ever deletes them.
+6. Create a second bucket `greenorange-backups` for §8a, with its **own** key.
 
 **Verify** after deploy: open a project → Khảo sát → upload a small .pdf → the
 row appears → click it → the file downloads. Then confirm the object exists in
 the console under `projects/<id>/<uuid>/`. A 403 on the PUT is almost always CORS
 or a clock skew on the VPS (`timedatectl` — signatures are time-sensitive).
 
-Unset `S3_*` is not fatal: the API boots and every other page works; only the
-upload button fails, saying storage is not configured.
+Unset `S3_*` is not fatal: the API boots and every other page works; the
+attachment endpoints answer **503** naming the missing variables, which crm-web
+shows as "Kho lưu trữ tệp chưa được cấu hình — báo quản trị viên."
+
+Rows created before this feature hold a bare filename instead of a real object
+key. They still list, but their download answers 404 with "tệp này có từ trước
+khi hệ thống lưu trữ tệp" rather than opening the provider's raw XML.
 
 ---
 
@@ -924,12 +941,23 @@ endpoint = https://hcm.ss.bfcplatform.vn
 
 ```bash
 # Nightly, after the dumps above have finished.
-30 3 * * * rclone sync /root/backups backups:greenorange-backups/vps/ >> /var/log/rclone-backup.log 2>&1
+# `copy`, NOT `sync`: sync mirrors deletions, so a wiped or half-written
+# /root/backups would propagate to the offsite copy at 03:30 and take the only
+# other copy with it. copy only ever adds.
+30 3 * * * rclone copy /root/backups backups:greenorange-backups/vps/ >> /var/log/rclone-backup.log 2>&1
+
+# The ATTACHMENTS bucket needs this too — it is the only copy of every signed
+# contract and biên bản nghiệm thu, and nothing else backs it up. Add the
+# attachments key as a second remote ([attachments], same stanza, its own
+# credentials) and pull it to the backups bucket.
+45 3 * * * rclone copy attachments:greenorange backups:greenorange-backups/attachments/ >> /var/log/rclone-backup.log 2>&1
 ```
 
-Use a **separate bucket** from the attachments one, so a credential leak on the
-app side cannot rewrite the backups. Verify with `rclone ls backups:greenorange-backups/vps/`
-a day later — an untested backup is a guess.
+Use a **separate bucket** from the attachments one, with its own key, so a
+credential leak on the app side cannot rewrite the backups. Verify with
+`rclone ls backups:greenorange-backups/vps/` and
+`rclone ls backups:greenorange-backups/attachments/` a day later — an untested
+backup is a guess.
 
 ---
 

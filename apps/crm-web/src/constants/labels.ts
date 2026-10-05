@@ -357,10 +357,11 @@ export const PLACEHOLDERS = {
 export const APP_NAME = "Quản lý công trình & nhân sự Ý Ân" as const;
 
 /**
- * Photo attachments are **filenames**, not files: there is no object storage
- * yet (a written-down deferral), so the row records which photo exists in
- * Zalo/Drive and where the note about it lives. "+ Thêm ảnh" promised an
- * upload and saved text, which is worse than saying so.
+ * Real uploads: the file goes to the bucket and the row records its key. The
+ * copy says "tệp", not "ảnh", because the same control now takes the signed
+ * hợp đồng and biên bản nghiệm thu as well as site photos — and it names the
+ * limits, because the picker's `accept` list is the only other place a user
+ * finds out what will be refused.
  */
 export const PHOTO_TEXT = {
   add: "+ Thêm tệp",

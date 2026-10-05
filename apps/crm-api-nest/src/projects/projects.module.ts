@@ -14,6 +14,7 @@ import {
   Post,
   Query,
   Res,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import { Type } from "class-transformer";
 import {
@@ -51,8 +52,10 @@ import {
   basename,
   buildKey,
   deleteObject,
+  isOwnKey,
   presignGet,
   presignPut,
+  storageConfigured,
 } from "../common/storage";
 import { DEFAULT_PAPERWORK } from "../paperwork/paperwork.module";
 import { PrismaService } from "../prisma/prisma.service";
@@ -627,6 +630,21 @@ export class AttachmentsController {
   @Post("presign")
   @HttpCode(200)
   async presign(@Body() dto: PresignAttachmentDto) {
+    // Say which knob is missing. Without this the plain Error from requireClient
+    // surfaces as a bare 500 "Máy chủ đang lỗi", and .env.example, config.py and
+    // DEPLOY.md §6f all promise the opposite.
+    if (!storageConfigured)
+      throw new ServiceUnavailableException(
+        "Object storage is not configured — set S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY"
+      );
+    // assertProjectOpen only rejects a CLOSED project; a project_id that does
+    // not exist passes it silently and would mint signed PUTs for keys no row
+    // will ever reference.
+    const project = await this.prisma.project.findUnique({
+      where: { id: dto.project_id },
+      select: { id: true },
+    });
+    if (!project) throw new NotFoundException("Project not found");
     await assertProjectOpen(this.prisma, dto.project_id);
     if (!ALLOWED_CONTENT_TYPES.has(dto.content_type))
       throw new BadRequestException(
@@ -650,6 +668,17 @@ export class AttachmentsController {
   async downloadUrl(@Param("id", ParseIntPipe) id: number) {
     const row = await this.prisma.attachment.findUnique({ where: { id } });
     if (!row) throw new NotFoundException("Attachment not found");
+    // Rows from the metadata-only era (and the seed) hold a bare filename, with
+    // no object behind it. Signing one yields a valid URL that opens the
+    // provider's raw NoSuchKey XML in a new tab; say so instead.
+    if (!isOwnKey(row.project_id, row.s3_key))
+      throw new NotFoundException(
+        "This attachment predates file storage — only its name was recorded"
+      );
+    if (!storageConfigured)
+      throw new ServiceUnavailableException(
+        "Object storage is not configured — set S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY"
+      );
     const download_url = await presignGet(row.s3_key, basename(row.s3_key));
     return { download_url, expires_in: PRESIGN_TTL_SECONDS };
   }
@@ -690,6 +719,13 @@ export class AttachmentsController {
           "paperwork_item_id does not belong to project_id"
         );
     }
+    // The key must be one presignPut minted for THIS project. DELETE removes the
+    // object this names, so an unchecked key lets a caller record a row over
+    // someone else's file and then delete their bytes, leaving their row behind.
+    if (!isOwnKey(dto.project_id, dto.s3_key))
+      throw new BadRequestException(
+        "s3_key was not issued for this project — upload via /attachments/presign"
+      );
     return this.prisma.attachment.create({
       data: {
         project_id: dto.project_id,
@@ -708,9 +744,11 @@ export class AttachmentsController {
     if (!row) throw new NotFoundException("Attachment not found");
     await assertProjectOpen(this.prisma, row.project_id);
     await this.prisma.attachment.delete({ where: { id } });
-    // After the row, and best-effort: a bucket hiccup must not resurrect a file
-    // the user just deleted from the UI.
-    await deleteObject(row.s3_key);
+    // After the row, and deliberately NOT awaited: deleteObject swallows its own
+    // errors, but awaiting it puts the SDK's retry backoff inside the user's
+    // request — a bucket outage would turn a committed delete into a timeout
+    // toast for a row that is already gone.
+    void deleteObject(row.s3_key);
   }
 }
 

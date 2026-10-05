@@ -83,10 +83,14 @@ export default async function ProjectDetailPage({
     viewStage === ProjectStage.SETTLEMENT;
   const needsCrewLists = view === WorkspacePane.CREW;
 
-  // Milestones, bills, settlements, survey attachments and assignments are read
-  // on every view: the nav marks every stage from them and the context pane
-  // shows the money. A handful of small reads in exchange for a nav that can
-  // say "done" about a stage you aren't looking at.
+  // Milestones, bills, settlements, attachments and assignments are read on
+  // every view: the nav marks every stage from them and the context pane shows
+  // the money. A handful of small reads in exchange for a nav that can say
+  // "done" about a stage you aren't looking at.
+  //
+  // All kinds in one read, not just survey: khảo sát, nghiệm thu and hoàn công
+  // each render their own list, and one request filtered in the panels beats
+  // three round trips.
   const [
     attachments,
     contracts,
@@ -101,7 +105,7 @@ export default async function ProjectDetailPage({
     projectTypes,
     clientDetail,
   ] = await Promise.all([
-    listProjectAttachments(project.id, "survey"),
+    listProjectAttachments(project.id),
     // Always: the nav's Giấy tờ count includes them, and a count that changes
     // with the view you're on reads as data appearing and vanishing.
     getProjectContracts(project.id),

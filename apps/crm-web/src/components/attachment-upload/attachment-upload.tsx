@@ -10,11 +10,11 @@ import { Label } from "@yan/ui/components/label";
 
 import {
   addAttachment,
-  getAttachmentUrl,
   presignAttachment,
 } from "@/app/(dashboard)/projects/actions/attachments";
 import type { AttachmentKind } from "@/app/(dashboard)/projects/enums";
 import type { Attachment } from "@/app/(dashboard)/projects/types";
+import { FIELDS } from "@/constants/labels";
 import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 
 /**
@@ -44,6 +44,10 @@ const ACCEPT = [
 /** Matches MAX_UPLOAD_BYTES in both backends — checked here only to fail before
  *  a pointless round trip; the signed URL is what actually enforces it. */
 const MAX_BYTES = 25 * 1024 * 1024;
+
+/** Stable toast id: a retried upload would otherwise stack one identical toast
+ *  per click. */
+const UPLOAD_ERROR_TOAST = "attachment-upload-error";
 
 interface AttachmentUploadProps {
   projectId: number;
@@ -81,8 +85,10 @@ export function AttachmentUpload({
     if (!file) return;
     if (file.size > MAX_BYTES) {
       toast.error(ACTION_TOAST_TITLES.errorToastTitle, {
+        id: UPLOAD_ERROR_TOAST,
         description: `Tệp vượt quá ${MAX_BYTES / 1024 / 1024} MB.`,
       });
+      reset();
       return;
     }
 
@@ -101,6 +107,7 @@ export function AttachmentUpload({
 
       if (!signed.success || !signed.data) {
         toast.error(ACTION_TOAST_TITLES.errorToastTitle, {
+          id: UPLOAD_ERROR_TOAST,
           description: signed.message ?? "Không thể tải tệp lên.",
         });
         return;
@@ -114,9 +121,22 @@ export function AttachmentUpload({
       }).catch(() => null);
 
       if (!put?.ok) {
+        // Keep the reason. The three things that actually fail here — missing
+        // bucket CORS, a 403 from VPS clock skew, and a checksum mismatch — are
+        // indistinguishable from "no internet" unless the status and the
+        // provider's XML body reach the console. DEPLOY.md §6f tells the
+        // operator to diagnose a 403 they would otherwise never be shown.
+        console.error(
+          "[attachment] bucket PUT failed:",
+          put
+            ? `${put.status} ${put.statusText} ${await put.text()}`
+            : "network/CORS"
+        );
         toast.error(ACTION_TOAST_TITLES.errorToastTitle, {
-          description:
-            "Không thể tải tệp lên kho lưu trữ. Kiểm tra kết nối rồi thử lại.",
+          id: UPLOAD_ERROR_TOAST,
+          description: put
+            ? `Kho lưu trữ từ chối tệp (lỗi ${put.status}). Báo quản trị viên.`
+            : "Không kết nối được kho lưu trữ. Kiểm tra mạng rồi thử lại.",
         });
         return;
       }
@@ -133,8 +153,9 @@ export function AttachmentUpload({
         }
       );
 
-      if (!created.success) {
+      if (!created.success || !created.data) {
         toast.error(ACTION_TOAST_TITLES.errorToastTitle, {
+          id: UPLOAD_ERROR_TOAST,
           description: created.message ?? "Không thể lưu tệp.",
         });
         return;
@@ -144,7 +165,7 @@ export function AttachmentUpload({
         description: created.message,
       });
       reset();
-      onUploaded?.(created.data as Attachment);
+      onUploaded?.(created.data);
     });
   };
 
@@ -160,15 +181,19 @@ export function AttachmentUpload({
           type="file"
           accept={ACCEPT}
           disabled={pending}
+          // Callers that render no visible label still need an accessible name.
+          aria-label={label ?? buttonLabel}
           className="h-8 w-56 cursor-pointer file:mr-2 file:cursor-pointer file:text-xs"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
         />
         {withNote ? (
           <Input
+            id={`${inputId}-note`}
             value={note}
-            placeholder="Ghi chú"
+            placeholder={FIELDS.note}
+            aria-label={FIELDS.note}
             disabled={pending}
-            className="h-8 w-40"
+            className="h-8 min-w-40 flex-1"
             onChange={(e) => setNote(e.target.value)}
           />
         ) : null}
@@ -212,36 +237,25 @@ function guessType(filename: string): string {
 export const attachmentName = (s3Key: string): string =>
   s3Key.split("/").pop() || s3Key;
 
-/** Download button: mints a fresh signed URL per click, then opens it. */
+/**
+ * Download link. A real `<a>`, not a button: the signed URL is minted by
+ * `/api/attachments/[id]/download`, which 302s to the bucket. That keeps it
+ * clickable inside the `<fieldset disabled>` a closed job renders (view actions
+ * are meant to survive — see `stage-panel.tsx`) and avoids the popup blocker
+ * that silently eats a `window.open` issued after an await.
+ */
 export function AttachmentDownload({ id, name }: { id: number; name: string }) {
-  const [pending, start] = useTransition();
-
-  const open = () =>
-    start(async () => {
-      const res = await getAttachmentUrl(id);
-      if (!res.success || !res.data) {
-        toast.error(ACTION_TOAST_TITLES.errorToastTitle, {
-          description: res.message ?? "Không thể tải tệp.",
-        });
-        return;
-      }
-      window.open(res.data.download_url, "_blank", "noopener,noreferrer");
-    });
-
   return (
     <Button
       variant="ghost"
       size="sm"
-      disabled={pending}
-      onClick={open}
       title={name}
-    >
-      {pending ? (
-        <Loader2 className="size-4 animate-spin" />
-      ) : (
-        <Paperclip className="size-4" />
-      )}
-      <span className="max-w-56 truncate">{name}</span>
-    </Button>
+      render={
+        <a href={`/api/attachments/${id}/download`}>
+          <Paperclip className="size-4" />
+          <span className="max-w-56 truncate">{name}</span>
+        </a>
+      }
+    />
   );
 }

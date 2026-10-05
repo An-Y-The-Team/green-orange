@@ -10,7 +10,7 @@ import {
   INVALID_INPUT_MESSAGE,
   NOUNS,
 } from "@/constants/server-action";
-import { apiFetch, apiSend, toActionError } from "@/utils/http/http";
+import { apiSend, toActionError } from "@/utils/http/http";
 
 import { AttachmentKind } from "../enums";
 import type { Attachment, AttachmentPresign } from "../types";
@@ -79,9 +79,9 @@ export type AddAttachmentFormValues = z.infer<typeof addAttachmentSchema>;
 
 export async function addAttachment(
   projectId: number,
-  _prev: ServerActionState,
+  _prev: ServerActionState<Attachment>,
   input: AddAttachmentFormValues
-): Promise<ServerActionState> {
+): Promise<ServerActionState<Attachment>> {
   const parsed = addAttachmentSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -120,27 +120,9 @@ export async function addAttachment(
   }
 }
 
-/**
- * A signed, short-lived download URL. Minted per click rather than listed with
- * the rows: a URL that expires in five minutes is useless in server-rendered
- * HTML the user may leave open for an hour.
- */
-export async function getAttachmentUrl(
-  id: number
-): Promise<ServerActionState<{ download_url: string }>> {
-  try {
-    const data = await apiFetch<{ download_url: string }>(
-      `/attachments/${id}/url`
-    );
-
-    return { success: true, message: "Đang tải tệp.", data };
-  } catch (error) {
-    return {
-      success: false,
-      message: toActionError(error, "Không thể tải tệp."),
-    };
-  }
-}
+// The signed download URL is minted by `app/api/attachments/[id]/download`, not
+// here: it has to be reachable as a plain `<a href>` so the link survives the
+// `<fieldset disabled>` of a closed job and the Safari popup blocker.
 
 export async function deleteAttachment(
   id: number,

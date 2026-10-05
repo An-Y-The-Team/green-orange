@@ -4,7 +4,7 @@ import type {
 } from "@/app/(dashboard)/crew/types";
 
 import { GateKey, ProjectStage } from "../../../../enums";
-import type { Project } from "../../../../types";
+import type { Attachment, Project } from "../../../../types";
 import type { StageGate } from "../../../utils/stage-gates/stage-gates";
 import { GateChecklist } from "../../gate-checklist/gate-checklist";
 import { StageCard } from "../../stage-card/stage-card";
@@ -20,11 +20,13 @@ export function ExecutionPanel({
   project,
   timekeeping,
   assignments,
+  attachments,
   gates,
 }: {
   project: Project;
   timekeeping: TimekeepingRecord[];
   assignments: Assignment[];
+  attachments: Attachment[];
   gates: StageGate[];
 }) {
   // Ngày khởi công has no button: the Duration form below is where it's typed.
@@ -42,7 +44,7 @@ export function ExecutionPanel({
       <StatusStepper project={project} />
       <Duration project={project} timekeeping={timekeeping} />
       <Personnel project={project} assignments={assignments} />
-      <FinishPhotos project={project} />
+      <FinishPhotos project={project} attachments={attachments} />
     </StageCard>
   );
 }

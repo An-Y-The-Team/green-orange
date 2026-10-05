@@ -84,6 +84,23 @@ def build_key(project_id: int, filename: str) -> str:
     return f"projects/{project_id}/{uuid.uuid4()}/{safe}"
 
 
+_KEY_SHAPE = re.compile(
+    r"^projects/(\d+)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[^/]+$"
+)
+
+
+def is_own_key(project_id: int, key: str) -> bool:
+    """Does this key look like one WE minted, for THIS project?
+
+    `POST /attachments` takes `s3_key` from the client and `DELETE` removes the
+    object it names, so an unchecked key lets a caller record a row over someone
+    else's file and then delete their bytes — the row survives, so nothing in the
+    UI shows the loss. The uuid segment is unguessable, so a key of this shape
+    was minted by `presign_put` for this project."""
+    match = _KEY_SHAPE.match(key)
+    return match is not None and int(match.group(1)) == project_id
+
+
 def presign_put(key: str, content_type: str, content_length: int) -> str:
     """Signed PUT. The content type and length are part of the signature, so a
     client that lies about either gets a 403 from the bucket, not a stored file."""
@@ -101,8 +118,12 @@ def presign_put(key: str, content_type: str, content_length: int) -> str:
 
 def presign_get(key: str, filename: str) -> str:
     """Signed GET. `filename` drives the download name so the browser does not
-    save the uuid segment as the file's name."""
-    disposition = f"attachment; filename*=UTF-8''{quote(filename)}"
+    save the uuid segment as the file's name.
+
+    `safe=""` matters: RFC 5987 uses `'` as the delimiter in `UTF-8''<name>`, so
+    an unescaped apostrophe truncates the download name. The NestJS mirror
+    escapes the same set by hand (`encodeURIComponent` leaves `'()!*` alone)."""
+    disposition = f"attachment; filename*=UTF-8''{quote(filename, safe='')}"
     return _client().generate_presigned_url(
         "get_object",
         Params={

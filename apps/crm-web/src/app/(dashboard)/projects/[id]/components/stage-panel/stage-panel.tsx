@@ -132,11 +132,18 @@ export function StagePanel({
             project={project}
             timekeeping={timekeeping}
             assignments={assignments}
+            attachments={attachments}
             gates={gates}
           />
         );
       case ProjectStage.ACCEPTANCE:
-        return <AcceptancePanel project={project} gates={gates} />;
+        return (
+          <AcceptancePanel
+            project={project}
+            attachments={attachments}
+            gates={gates}
+          />
+        );
       case ProjectStage.SETTLEMENT:
         return (
           <SettlementPanel
