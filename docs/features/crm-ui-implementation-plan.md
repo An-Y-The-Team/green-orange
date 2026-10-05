@@ -397,6 +397,60 @@ Not in scope: renumbering the shipped-phase notes below — they are history.
 The Python `crm-api` sandbox still has its own `KHAO_SAT` stage (already on
 the deferred list below).
 
+## Phase 8 — project flow redesign: work moves the job (option C) ✅ (2026-10-05)
+
+Why: the workspace had grown into four parallel answers to "what now?" — the
+stepper's "Chuyển sang" buttons (which skipped the side effects), a read-only
+StageGates card, each panel's own footer exit, and five read-only tabs that
+linked out. Two ways to advance disagreed, and copy promised moves the server
+never made. Direction C (three-pane record) was chosen from hi-fi mockups;
+design + rules in `crm-ui-redesign.md` ("The Công Trình workspace", "Panel
+action grammar", "Buttons vs badges"). Built in five steps, each with its own
+plan file in `~/.claude/plans/project-flow-step-*.md`:
+
+1. **Server auto-advance, both backends.** Added chốt → 3, `needed_for:
+execution` hồ sơ approved + cọc → 5, Đạt → 7, fully paid → 8 (also marks the
+   bill paid, since a closed job is locked). New `PaperworkItem.needed_for`
+   (execution | acceptance | settlement) so the later-stage documents seeded up
+   front don't block Thi công. `crm-api-nest/src/common/stage.ts`
+   (`paperworkReady`, `fullyPaid`, `advanceIfPaperworkReady`,
+   `closeIfFullyPaid`) ⇄ `crm-api/app/core/rules.py`; migrations
+   `20261005000000_paperwork_needed_for` / alembic `a7b5e4f63d98`.
+2. **Gate = task.** `stageGates` keys became the `GateKey` enum, with
+   `advances` on trigger rows; `components/gate-checklist/` replaces the
+   read-only card; every panel renders it at the top of its card with a
+   key → action map (`components/gate-actions/`: visit, client-signed,
+   deposit). `utils/next-gate` picks the single green button. Footers lost
+   their exits. Status tokens (`--done/--now/--waiting/--problem`) added to
+   `globals.css`.
+3. **Option C shell.** `page.tsx` reads `?view=` (`utils/parse-view`,
+   `utils/view-href`) and computes `gatesByStage` once; `components/stage-nav/`
+   (markers + mobile chips), `components/context-pane/` (contacts, money,
+   upcoming, notes), `components/documents-view/`, `future-stage-preview/`;
+   `StageCard` takes its own `stage`; manual move moved to the header
+   ("Chuyển giai đoạn…"). Deleted: `stage-stepper/`, `stage-gates/` card,
+   `workspace-tabs/` (AssignmentsTab kept for the Nhân sự view). A closed
+   job's past stages render read-only.
+4. **Documents stay in the job.** `/projects/{pid}/quotes/{qid}` (+ `/print`)
+   and `/projects/{pid}/contracts/{cid}`; the old `/quotes/{id}` and
+   `/contracts/{id}` redirect there when the document has a project. Bodies
+   extracted to `quotes/components/{quote-detail,quote-print-sheet}` and
+   `contracts/components/contract-document`; URLs built only by `quoteHref`,
+   `quotePrintHref`, `contractHref`.
+5. **Docs** — this entry, `crm-ui-redesign.md`, `crm-business-flow.md`.
+
+**Shipped (uncommitted at time of writing).** crm-web `tsc`, `eslint
+--max-warnings 0`, vitest 251 pass, `turbo run build` clean; crm-api-nest bun
+test 287 pass; crm-api pytest 97 pass + ruff clean. Migrations applied to the
+local `crm_nest` / `crm` DBs; the retag SQL verified on real names in a
+rolled-back transaction. Steps 2–4 were built with parallel fork subagents
+(3, 4 and 2 of them), the integrator owning the shared contract (enums,
+utils, page.tsx, StagePanel) and every cross-file fix.
+
+Still open: shared `Badge` `success` variant is emerald (green), so status
+badges break the "green = button" rule until `packages/ui` changes (touches
+apps/web too); not yet clicked through in a browser.
+
 ## Deferred / blocked (do not build without a new decision)
 
 - Cost module (own design session), S3 uploads (attachments stay
@@ -410,6 +464,13 @@ the deferred list below).
 
 ## Changelog
 
+- 2026-10-05 — phase 8 shipped: project flow redesign. Server auto-advance
+  completed in both backends (+ `PaperworkItem.needed_for`); each stage's
+  checklist rows carry their own action with one green next step; the
+  workspace is the option-C three-pane record (`?view=` stage nav, viewed
+  stage, context pane) with the stepper, read-only gates card and tabs
+  removed; a project's quotes/contracts open and print under
+  `/projects/{id}`. Built with parallel subagents per step.
 - 2026-07-25 — phase 7 shipped: stages 1+2 collapsed into one "Yêu cầu &
   Khảo sát" stage — the appointment is the survey visit. 9 → 8 stages,
   `survey` dropped from `STAGE_ORDER`/`ProjectStage` + a data-only migration,

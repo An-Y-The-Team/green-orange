@@ -26,7 +26,9 @@ refined during build.
 **Decisions (2026-07-23):**
 
 1. Project detail = **guided stage workspace** (stepper + current-stage panel
-   with gates), not flat entity tabs.
+   with gates), not flat entity tabs. _Superseded 2026-10-05 by the three-pane
+   record — see "The Công Trình workspace" below; still guided, still no flat
+   entity tabs._
 2. **Two explicit modes**: full desktop back-office (phase 1) + compact mobile
    "field mode" for the boss on site (phase 2).
 3. **No new visual identity** — keep `@yan/ui` components, Tailwind v4 tokens,
@@ -96,43 +98,79 @@ below.
 
 ## The Công Trình workspace (`/projects/:id`)
 
-The center of the app. Three zones:
+**Decision 2026-10-05 — the three-pane record (option C).** The old shell
+(header + stepper with "Chuyển sang" buttons + read-only "điều kiện" card +
+current-stage panel + five read-only tabs) answered "what now?" in four places
+that disagreed. It is replaced by one record: stage nav | the viewed stage's
+work | context. Built in `apps/crm-web/src/app/(dashboard)/projects/[id]/`
+(`page.tsx`, `stage-nav/`, `stage-panel/`, `future-stage-preview/`,
+`context-pane/`, `documents-view/`, `workspace-header/`).
 
 ```text
-┌──────────────────────────────────────────────────────────────┐
-│ CT-2026-001 · Vệ sinh kính toà A          [Đang hoạt động]   │
-│ Công ty TNHH An Phát · Toà nhà A — Q.1    (Vệ sinh)          │
-│ Liên hệ: Trần Văn B (0903…)  ·  Quyết định: Trần Văn B       │
-│                                                              │
-│ ①──②──●③──④──⑤──⑥──⑦──⑧           [Hoãn ▾] [Hủy]         │
-│ Yêu cầu & Khảo sát … Hợp đồng … Đã đóng                      │
-├──────────────────────────────────────────────────────────────┤
-│ ZONE 2 — panel of the CURRENT stage (see per-stage specs)    │
-├──────────────────────────────────────────────────────────────┤
-│ ZONE 3 — tabs: Báo giá · Hồ sơ · Nhân sự · Thanh toán ·      │
-│                Ghi chú & tệp                                 │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│ CT-2026-014  Vệ sinh kính & sơn mặt tiền  [Đang hoạt động]               │
+│ Highlands Coffee · 12 Lê Lợi · Anh Minh (0909…)  [Vệ sinh] [Thi công]    │
+│        [Hoãn] [Hủy] [Chuyển giai đoạn…] [✎ Sửa]                          │
+├──────────────┬──────────────────────────────────────┬────────────────────┤
+│ ✓ Yêu cầu    │ GIAI ĐOẠN 3 · HỢP ĐỒNG               │ LIÊN HỆ            │
+│ ✓ Báo giá    │ Việc cần làm            Còn 1 việc   │ Anh Minh  [Gọi]    │
+│ ● Hợp đồng   │ ✓ Báo giá đã chốt                    │ Chị Lan (duyệt/ký) │
+│ ◐ Hồ sơ 2/5  │ ✓ Khách ký xác nhận        04/10     │ TIỀN               │
+│ ○ Thi công   │ ○ Nhận cọc (tạm ứng) [Ghi nhận cọc]  │ 0 / 48.500.000 ₫   │
+│ ○ Nghiệm thu │   → Xong việc này → tự chuyển sang … │ ▱▱▱▱▱▱▱▱           │
+│ ○ Quyết toán │                                      │ SẮP TỚI            │
+│ ○ Đã đóng    │ Hợp đồng (không bắt buộc)            │ 08/10 PCCC chờ BQL │
+│ ──────────── │ HD-2026-007 · Đã ký   [Mở]           │ GHI CHÚ & HOẠT ĐỘNG│
+│ Giấy tờ (3)  │                                      │ [ Thêm ghi chú… ]  │
+│ Nhân sự (4)  │                                      │ 04/10 Khách ký…    │
+└──────────────┴──────────────────────────────────────┴────────────────────┘
 ```
 
-- **Zone 1 — header.** Code, name, status badge, client → location →
-  contacts, type tags. The 8-step stepper reflects where the job _is_,
-  derived from the work done: completed steps filled, current highlighted,
-  future dimmed. Most advances happen automatically as artifacts are created
-  (quote → 2, cọc → 4, works-done → 6, settlement signed → 7…); stage 1 has no
-  artifact, so its panel carries the exit button ([Đủ dữ liệu — lập báo giá]).
-  Clicking a step lets you jump there manually — a forward jump that skips
-  unfinished work shows a soft warning, never a hard block. `Hoãn` asks for a
-  follow-up date; `Hủy` asks for the required reason. Parked/cancelled
-  projects show a banner with the frozen stage + reason, and `Hoãn` offers
-  "Kích hoạt lại".
-- **Zone 2 — stage panel.** Only the current stage's panel renders. Each
-  panel = gate checklist (live from the same data the server gates on) +
-  the stage's own fields/actions.
-- **Zone 3 — entity tabs.** Always available regardless of stage (paperwork
-  can start during stage 3, crew can be assigned early). Tabs reuse the same
-  components the stage panels embed.
+- **Header.** Code, name, status badge, client · location · contacts, type
+  tags. Exception actions stay **visible buttons** — Hoãn / Dời ngày hẹn
+  (follow-up date), Hủy (reason required), Kích hoạt lại (when frozen), Sửa
+  (inline edit) and **Chuyển giai đoạn…** — no hidden ⋯ menu, because the
+  operators are not tech-savvy. Chuyển giai đoạn… is the only manual stage
+  move: a small dialog with a stage select (a closed job offers only Quyết
+  toán & Thanh toán — the server's reopen rule) and the current stage's open
+  rows listed as a soft warning ("Còn N việc ở … — các việc này vẫn hiện để
+  làm sau"). Hidden while the job is on hold or cancelled; the frozen banner
+  stays.
+- **Left — stage nav.** All 8 stages, every one openable, then Giấy tờ (all
+  documents of the job) and Nhân sự (assignments). Marker per stage, colour
+  per "Buttons vs badges": **done** blue check · **current** purple number ·
+  **leftover** amber "!" (a past stage with open rows, after a manual move) ·
+  **parallel** half-filled purple (Hồ sơ while at Hợp đồng with items under
+  way) · **future** grey number. Each item has a one-line summary ("2/3 việc",
+  "Xong"). The selected item is neutral (background + border,
+  `aria-current="page"`), never green. Below `lg` the same list becomes a
+  horizontal chip row (rounded rectangles, short labels from
+  `STAGE_SHORT_LABELS`).
+- **Centre — the viewed stage.** `?view=<stage>|documents|crew` (Next 16
+  `searchParams`, parsed by `utils/parse-view`; unknown values fall back),
+  default = the current stage; only that view's data is fetched. Links are
+  built by `utils/view-href` (the current stage's link has no `?view=`).
+  - Current or **past** stage → that stage's own panel, its "Việc cần làm"
+    checklist on top (corrections and leftover rows still work).
+  - **Future** stage → `FutureStagePreview`: the stage's rows, no buttons,
+    "Chưa tới giai đoạn này. Mở khi …" (`STAGE_OPENS`).
+  - Exception: **Hồ sơ while at Hợp đồng** renders the full panel — paperwork
+    is prepared in parallel.
+  - A **closed** job's past stages render read-only (native
+    `<fieldset disabled>` + "chỉ xem — mở lại ở giai đoạn Đã đóng"), since the
+    server 409s every edit on a closed project.
+- **Right — context pane.** Liên hệ (working contact, decision maker, phone +
+  Gọi, location) · Tiền (giá trị = official bill › chốt quote › latest quote;
+  đã thu; còn lại; blue progress bar; red "Quá hạn N ngày" badge) · Sắp tới
+  (appointment before the visit, submitted hồ sơ with a due date, unpaid đợt
+  with a due date) · Ghi chú & hoạt động (add note + list). Below `lg` it
+  stacks under the centre pane.
+- **Removed:** the stepper and its "Chuyển sang / ←" buttons, the read-only
+  `StageGates` card, and the five read-only tabs (Báo giá, Hồ sơ, Nhân sự,
+  Thanh toán, Ghi chú & tệp) — their content lives in the stage views, Giấy
+  tờ, Nhân sự and the context pane.
 
-### Panel action grammar (2026-09-09)
+### Panel action grammar (2026-09-09; gate = task 2026-10-05)
 
 Every panel had invented its own placement: the stage exit sat bottom-left
 alone in stages 1 and 5, mid-card among the secondaries in 6 and 7, and was
@@ -141,46 +179,123 @@ never in the same place twice. Operators could not tell an advance from a
 print link. The rules below are binding for all eight panels; where a
 per-stage ASCII mockup in this document disagrees, the mockup predates them.
 
-1. **Footer = the stage's next step.** `StageCard`'s `footer` slot renders a
-   bordered, right-aligned `CardFooter`. The rightmost button is the panel's
-   single primary (default variant); stage-level secondaries (print the stage
-   letter, reopen) are `outline` to its left. Default-size buttons appear
-   **only** in a footer — panel bodies are `size="sm"` throughout.
-2. **Header = status, or the list's add.** `StageCard`'s `aside` takes a badge
+1. **The checklist is the next step (changed 2026-10-05).** Each stage card
+   opens with its "Việc cần làm" checklist (`GateChecklist`, rows from
+   `utils/stage-gates`). Every row carries the action that completes it. The
+   first open row that has an action available (`utils/next-gate`) holds the
+   stage's **single primary** — green, default size, the row tinted purple;
+   every other row action is `outline sm` (`utils/gate-button-props`). Under
+   that row, "Xong việc này → tự chuyển sang …" appears only when the row is
+   an auto-advance trigger (`advances`) **and** the last open row — the
+   promise is never wrong. _Was: footer = the stage's next step (2026-09-09)._
+2. **Footer = stage-level secondaries only.** Print the stage letters
+   (Nghiệm thu), reopen / "+ Công trình mới tại địa điểm này" (Đã đóng).
+   Never the next step any more.
+3. **Header = status, or the list's add.** `StageCard`'s `aside` takes a badge
    or a count, and lives outside the `h2` so a button is never part of the
    heading. Section (`h3`) headers keep `justify-between` with at most one
    `outline sm` add on the right. Never a primary in a header.
-3. **Body rows right-align their own actions** (`ml-auto`, `outline sm`).
+4. **Body rows right-align their own actions** (`ml-auto`, `outline sm`).
    A text delete is `destructive sm`; an icon-only delete is `ghost icon-sm`
    with an `aria-label` naming its target.
-4. **Sub-status transitions form one row directly under their progress strip**,
+5. **Sub-status transitions form one row directly under their progress strip**,
    `outline sm`, transitions only — no edit/print/delete mixed in. The
-   transition that _leaves_ the stage is not in the row; it is the footer
-   primary.
-5. **Field saves are `outline sm`** at the end of the field row they commit.
-6. **Dialog footers are Đóng (`outline`) then the confirm** (default, or
+   transition that _leaves_ the stage is not in the row; it is the
+   checklist row's action.
+6. **Field saves are `outline sm`** at the end of the field row they commit.
+7. **Dialog footers are Đóng (`outline`) then the confirm** (default, or
    `destructive` when it destroys) — what `ConfirmAction` already renders.
-7. **A verb keeps its variant everywhere.** Hủy / Xóa / Xóa nháp →
+8. **A verb keeps its variant everywhere.** Hủy / Xóa / Xóa nháp →
    `destructive`. Hoãn / Sửa / In / Xem bản in / Gửi lại → `outline`. A print
    button carries the `Printer` icon.
 
-Stage 1 and stage 5 own their advance (`SurveyExit`, `FinishConfirm`); stage 2
-and stage 7 own the decision that triggers it (`QuoteDecision`,
-`SettlementAdvance`). All four are separate components rendered into the
-footer slot, so panel bodies hold no stage-advancing state.
+Row actions (2026-10-05): Yêu cầu — `VisitAction` (Đã gặp khách) → `SurveyExit`
+(a plain link to the builder; creating the quote moves the stage). Báo giá —
+link to the builder → `QuoteDecision` (Gửi, then Chốt; Gửi lại/Hoãn outline,
+Hủy destructive). Hợp đồng — `RecordClientSigned`, `RecordDeposit`. Hồ sơ —
+`RecordDeposit` while the cọc is missing (the item table is the hồ sơ work).
+Thi công — `FinishConfirm`. Nghiệm thu — Đạt (while inspecting). Quyết toán —
+link to create → `SettlementAdvance` (Đã gửi / Đã ký). Shared actions live in
+`components/gate-actions/`.
+
+### Buttons vs badges — green means "bấm vào đây" (2026-10-05)
+
+Operators are not tech-savvy: they must tell _what can I press_ from _what is
+just information_ at a glance, without reading. So colour and shape each carry
+one meaning, everywhere in crm-web. Binding for all new and touched UI.
+
+**Status (2026-10-05): fully applied.** The status tokens (`--done` / `--now` /
+`--waiting` / `--problem` + `-soft`, Tailwind `text-done`, `bg-now-soft`, …) live
+in `packages/ui/src/styles.css` next to the `Badge` that uses them; use them,
+never raw palette classes. `Badge` variants map to the tones — `default` purple,
+`secondary` grey, `warning` amber, `success` blue, `destructive` red, `outline` a
+dot-less grey tag — and every status tone leads with a dot. `labels.ts` was
+remapped so each label means its tone: every open **stage** is `default`
+("happening now"), only Đã đóng is `success` (this replaces the old plan-00
+phase colouring, which painted Quyết toán as finished and Hợp đồng as
+waiting); Đang hoạt động / Đang làm are purple; Gửi yêu cầu (nghiệm thu) and a
+sent quyết toán are amber (waiting on the client). No raw green/emerald class
+is left in crm-web (merge chips and links on the paper sheet are zinc; saved
+ticks are blue). `apps/web` does not use `Badge`.
+
+1. **Green is only for primary buttons.** The primary button is always solid
+   green (`--primary`) with white text. One green button per working area: the
+   next step. Nothing else is ever green: not badges, not text, not icons, not
+   done-ticks, not progress bars, not row highlights, not active nav.
+2. **Buttons are rounded rectangles that say a verb.** "Ghi nhận cọc",
+   "Gửi qua Zalo". `rounded-md`, never `rounded-full`. Three kinds only:
+   - **Primary** — solid green. The step that moves the job.
+   - **Secondary** (`outline`) — white with a visible border and shadow. In,
+     Sửa, Gửi lại, Gọi, Zalo.
+   - **Danger** (`destructive`) — red. Hủy, Xóa.
+     A `ghost` text button is allowed only for an alternative path next to a
+     primary ("Khách trả giá → lập v3"), and is underlined on hover.
+3. **Badges are pills that say a state.** "Đã duyệt", "Chờ thanh toán".
+   `rounded-full`, no border, soft tint, a leading dot, never clickable, never
+   a verb. Fixed tones — a meaning never borrows another tone:
+
+   | Tone   | Meaning                       | Examples                                          |
+   | ------ | ----------------------------- | ------------------------------------------------- |
+   | Grey   | not started / inactive        | Nháp, Chưa xong, Đã thay thế, Chưa tới            |
+   | Purple | happening now                 | Đang hoạt động, Đang làm, Song song               |
+   | Amber  | waiting on someone / leftover | Chờ duyệt, Đã nộp, Chờ thanh toán, Hoãn, Còn việc |
+   | Blue   | done                          | Đã duyệt, Đã ký, Chốt, Đã thu, Chính thức         |
+   | Red    | problem                       | Quá hạn, Hủy, Trùng lịch                          |
+
+4. **Non-badge status marks use the badge tones**: done ticks and finished
+   stage markers are blue, the current stage marker is purple, leftover work is
+   amber, progress bars fill blue.
+5. **Shape never lies.** No pill-shaped control (a stage switcher chip is a
+   rounded rectangle) and no rectangular status. Plain tags (project types)
+   are grey pills without the dot.
+6. **Words first, colour second.** Every state is written out; colour only
+   reinforces it. A disabled button keeps its shape and says why next to it
+   ("Làm dòng trên trước").
+
+Reference mockup: the "Hồ sơ công trình" (option C) artifact from the
+2026-10-05 project-flow redesign.
 
 ### Per-stage panels (first-pass draft — each stage confirmed below, one by one)
 
-| #   | Stage                   | Panel contents                      | Auto-advance trigger (soft, forward-only) |
-| --- | ----------------------- | ----------------------------------- | ----------------------------------------- |
-| 1   | Yêu cầu & Khảo sát      | ✅ confirmed — see "Stage 1" below. | — (panel's own exit button)               |
-| 2   | Báo giá                 | ✅ confirmed — see "Stage 2" below. | latest quote `deal`                       |
-| 3   | Hợp đồng                | ✅ confirmed — see "Stage 3" below. | — (gates apply to _entering_ 5)           |
-| 4   | Chuẩn bị hồ sơ          | ✅ confirmed — see "Stage 4" below. | all items `approved` + stage-3 gates      |
-| 5   | Thi công                | ✅ confirmed — see "Stage 5" below. | —                                         |
-| 6   | Nghiệm thu              | ✅ confirmed — see "Stage 6" below. | sub-status `passed`                       |
-| 7   | Quyết toán & Thanh toán | ✅ confirmed — see "Stage 7" below. | all milestones + bills `paid`             |
-| 8   | Đã đóng                 | ✅ confirmed — see "Stage 8" below. | terminal (reopen → stage 7)               |
+> **2026-10-05:** each stage's exit now lives in its "Việc cần làm" checklist
+> row (see "Panel action grammar"), not the card footer, and the stepper /
+> read-only tabs are gone. The per-stage mockups below predate that; read their
+> footer buttons as checklist rows.
+
+Auto-advance = the server moves the job forward (forward-only `max` rule,
+`crm-api-nest/src/common/stage.ts` + twin `crm-api/app/core/rules.py`); a
+manual move is always allowed via Chuyển giai đoạn….
+
+| #   | Stage                   | Panel contents                      | Leaves the stage when (soft, forward-only)                                               |
+| --- | ----------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------- |
+| 1   | Yêu cầu & Khảo sát      | ✅ confirmed — see "Stage 1" below. | first quote created → 2                                                                  |
+| 2   | Báo giá                 | ✅ confirmed — see "Stage 2" below. | a quote decided `deal` (chốt) → 3                                                        |
+| 3   | Hợp đồng                | ✅ confirmed — see "Stage 3" below. | cọc paid (`deposit` milestone `paid`) → 4                                                |
+| 4   | Chuẩn bị hồ sơ          | ✅ confirmed — see "Stage 4" below. | every `needed_for: execution` item `approved` + cọc paid → 5                             |
+| 5   | Thi công                | ✅ confirmed — see "Stage 5" below. | works-done confirm (`FinishConfirm` PATCHes the stage, client-side) → 6                  |
+| 6   | Nghiệm thu              | ✅ confirmed — see "Stage 6" below. | sub-status `passed` (Đạt) → 7; creating the settlement also → 7                          |
+| 7   | Quyết toán & Thanh toán | ✅ confirmed — see "Stage 7" below. | settlement signed and fully paid (bill `paid` or every đợt `paid`) → 8, bill marked paid |
+| 8   | Đã đóng                 | ✅ confirmed — see "Stage 8" below. | terminal (reopen → stage 7)                                                              |
 
 ### Stage 1 — Yêu cầu & Khảo sát (confirmed 2026-07-23; entry decoupled 2026-07-24; merged 2026-07-25)
 
@@ -368,7 +483,7 @@ parking chore.
 │ Hợp đồng (không bắt buộc)     [+ Tạo hợp đồng]  │
 │ HD-2026-003 · Nháp   [Sửa] [In] [Đánh dấu đã ký]│
 │                                                 │
-│ ℹ Hồ sơ có thể chuẩn bị song song → tab Hồ sơ  │
+│ ℹ Hồ sơ có thể chuẩn bị song song → Hồ sơ      │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -428,7 +543,7 @@ parking chore.
 │   Chấm công: 96 giờ / 11 ngày có ghi nhận  ⚠    │
 │   [Xem chênh lệch]                              │
 │                                                 │
-│ Nhân sự (3)  · Trùng lịch: 1 ⚠   [→ tab Nhân sự]│
+│ Nhân sự (3)  · Trùng lịch: 1 ⚠   [Phân công]    │
 │ Cách thức thi công: [dây đu, làm đêm…________]  │
 │                                                 │
 │ [✓ Xác nhận hoàn tất thi công]                  │
@@ -439,7 +554,7 @@ parking chore.
 - **Sub-status stepper**, one-way, single tap. **Dựng rào is skippable**
   (indoor jobs): Khởi công → Thi công allowed directly. Each advance
   offers an _optional_ note → stored as a ProjectNote with the sub-status
-  as context (timeline in Zone 3), no per-step note columns.
+  as context (shown in the context pane's notes), no per-step note columns.
 - **Est end derived**: `start_date + est_duration_days`; "trễ" chip when
   today is past it and works aren't done.
 - **Duration dual-sourced, no hard conversion rule**: manual
@@ -449,7 +564,8 @@ parking chore.
   records; she resolves by editing either side. No 8h=1-day math —
   invented rules create fake conflicts.
 - Worker list = assignment summary (count + overlap chip), editing in the
-  Nhân sự tab. Approaches = free text (`approaches`).
+  workspace's Nhân sự view (`?view=crew`). Approaches = free text
+  (`approaches`).
 - Exit stamps `works_done_at` → stage 6; optional image-log attachments.
 
 ### Stage 6 — Nghiệm thu (confirmed 2026-07-23)
@@ -661,6 +777,13 @@ version history rail (older versions frozen/`superseded`, watermark "Đã thay
 thế"). Project-scoped creation stays at `/projects/:id/quotes/new` (also used
 by "Sửa Báo giá này" for bargaining).
 
+**Canonical addresses (2026-10-05):** a project's quote lives inside the job —
+`/projects/{pid}/quotes/{qid}` and `/projects/{pid}/quotes/{qid}/print` — so
+opening, printing and going back never leave it (back → the Báo giá view).
+`/quotes/{id}` and `/quotes/{id}/print` redirect there when the quote has a
+project; standalone quotes keep those pages. `quoteHref` / `quotePrintHref`
+(`quotes/utils/quote-href`) are the only place the URLs are built.
+
 ### Hợp đồng (`/contracts`, templates kept)
 
 List: code, project (or "—" for standalone), status (`Nháp/Đã ký`), signed
@@ -668,6 +791,12 @@ date. Header button **"+ Hợp đồng mới"** opens the template editor direct
 a project is **optional** (`project_id` nullable) — tying one in auto-advances
 that project to Hợp đồng. Detail/edit and the Lexical template editor stay
 as-is, re-pointed at v2 fields (`project_id`, `signed_date`).
+
+**Canonical address (2026-10-05):** a project's contract document lives at
+`/projects/{pid}/contracts/{cid}` (back → the Hợp đồng view); `/contracts/{id}`
+redirects there when the contract has a project, standalone contracts keep it.
+`contractHref` (`contracts/utils/contract-href`) is the only place the URL is
+built. The editor stays at `/projects/{pid}/contracts/new?edit=`.
 
 ### Thu & công nợ (`/receivables`)
 
@@ -760,8 +889,8 @@ pages (which remain usable, just not optimized, on mobile).
 
 ## Open questions
 
-- Stepper on small screens: horizontal scroll vs compact "3/8 · Hợp đồng"
-  pill (proposal: pill below `md` breakpoint).
+- ~~Stepper on small screens~~ — resolved 2026-10-05: the stepper is gone;
+  below `lg` the stage nav is a horizontal chip row with short labels.
 - Quote print letterhead variants — reuse existing `letterhead/national`
   as-is? (assumed yes)
 - Attachments stay metadata-only until the S3 design session; UI shows file
@@ -838,3 +967,23 @@ pages (which remain usable, just not optimized, on mobile).
   acceptance date stamp, SettlementItem + sign choreography, closed-
   project lock with reopen). Verified: tests, tsc, eslint, build, live
   smoke of every new behavior.
+- 2026-10-05 — **work advances the stage, server-side (both backends)**:
+  chốt → 3, hồ sơ cleared + cọc → 5, nghiệm thu đạt → 7, fully paid → 8 (bill
+  marked paid on close). Paperwork items gain `needed_for` (execution |
+  acceptance | settlement) so later-stage documents don't block Thi công.
+- 2026-10-05 — **gate = task**: the read-only "điều kiện hoàn thành" card and
+  the footer exits are replaced by each stage's "Việc cần làm" checklist; every
+  row carries its action, the first open one is the single green primary.
+  Panel action grammar rule 1 rewritten.
+- 2026-10-05 — **option C shell**: three-pane record (stage nav | viewed stage
+  | context pane), `?view=` for any stage / Giấy tờ / Nhân sự, future stages as
+  read-only previews, header "Chuyển giai đoạn…" as the only manual move.
+  Stepper and the five read-only tabs removed.
+- 2026-10-05 — **documents stay in the job**: project quotes/contracts live at
+  `/projects/{pid}/quotes/{qid}[/print]` and `/projects/{pid}/contracts/{cid}`;
+  the old addresses redirect; `quoteHref` / `quotePrintHref` / `contractHref`
+  build every link.
+- 2026-10-05 — **buttons vs badges rule**: green only on primary buttons;
+  badges are dotted pills in fixed tones (grey / purple / amber / blue / red);
+  status tokens added to crm-web `globals.css`. Shared `Badge` variants still
+  pending.
