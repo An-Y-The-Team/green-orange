@@ -1,8 +1,7 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { z } from "zod";
-
-import { usePageParams } from "@yan/shared/hooks";
 
 /**
  * The active tab, in the URL.
@@ -12,26 +11,30 @@ import { usePageParams } from "@yan/shared/hooks";
  * `.claude/frontend-code-style.md` is that anything visible on the page should
  * be reproducible by pasting the URL.
  *
- * An unknown or absent `?tab=` falls back to the first tab via `.catch()`,
- * exactly like the list params schemas, so a stale bookmark renders rather
- * than breaking.
+ * The tab is read straight from `useSearchParams` rather than `usePageParams`:
+ * that hook copies the URL into state once on mount, so a sidebar link from
+ * `/crew` to `/crew?tab=timekeeping` — same route, no remount — changed the URL
+ * and left the tab where it was. Next syncs `useSearchParams` with
+ * `history.replaceState`, so the URL alone is enough.
+ *
+ * An unknown or absent `?tab=` falls back to the default tab, exactly like the
+ * list params schemas' `.catch()`, so a stale bookmark renders rather than
+ * breaking. Switching tabs drops the other params (a tab's filters belong to
+ * that tab) and omits `?tab=` for the default, like `cleanUrlParams`.
  */
 export function useTabParam<const T extends readonly [string, ...string[]]>(
   tabs: T,
   defaultTab: T[number]
 ) {
-  // The cast is the price of the const generic: `z.enum(tabs)` infers
-  // `Writeable<T>` and `.catch()` widens the output to include `undefined`,
-  // neither of which unifies with `ZodType<{ tab: T[number] }>`. The runtime
-  // shape is exactly that, and `.catch()` guarantees a member of `tabs`.
-  const schema = z.object({
-    tab: z.enum(tabs).catch(defaultTab),
-  }) as unknown as z.ZodType<{ tab: T[number] }, z.ZodTypeDef, unknown>;
+  const parsed = z.enum(tabs).safeParse(useSearchParams().get("tab"));
+  const tab: T[number] = parsed.success ? parsed.data : defaultTab;
 
-  const { params, setParams } = usePageParams<{ tab: T[number] }>({
-    defaultParams: { tab: defaultTab },
-    schema,
-  });
+  const setTab = (next: T[number]) =>
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + (next === defaultTab ? "" : `?tab=${next}`)
+    );
 
-  return [params.tab, (tab: T[number]) => setParams({ tab })] as const;
+  return [tab, setTab] as const;
 }
