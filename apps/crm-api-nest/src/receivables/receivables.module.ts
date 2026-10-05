@@ -54,7 +54,11 @@ import {
 } from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
-import { advanceStage } from "../common/stage";
+import {
+  advanceIfPaperworkReady,
+  advanceStage,
+  closeIfFullyPaid,
+} from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 import {
   assertDiscountWithin,
@@ -311,6 +315,9 @@ export class SettlementsController {
               },
             });
         });
+        // A cọc that already covers the whole payable means nothing is left
+        // to collect — the job is done the moment it's signed.
+        await closeIfFullyPaid(this.prisma, row.project_id);
         return this.get(id);
       }
     }
@@ -482,11 +489,14 @@ class BillsController {
       if (dto.status === "sent") data.sent_date ??= businessToday();
       if (dto.status === "paid") data.paid_date ??= businessToday();
     }
-    return this.prisma.bill.update({
+    const updated = await this.prisma.bill.update({
       where: { id },
       data,
       include: { milestones: true },
     });
+    if (data.status === "paid")
+      await closeIfFullyPaid(this.prisma, row.project_id);
+    return updated;
   }
 }
 
@@ -644,9 +654,7 @@ export class PaymentMilestonesController {
           (dto.status === "paid" ? businessToday() : undefined),
       },
     });
-    // Same rule as PATCH: cọc received closes stage 4 → paperwork.
-    if (dto.status === "paid" && dto.type === "deposit")
-      await advanceStage(this.prisma, dto.project_id, "paperwork");
+    if (dto.status === "paid") await this.afterPaid(dto.project_id, dto.type);
     return created;
   }
 
@@ -677,14 +685,19 @@ export class PaymentMilestonesController {
       where: { id },
       data,
     });
-    // Cọc received (deposit milestone paid) closes stage 4 → paperwork.
-    if (
-      dto.status === "paid" &&
-      row.status !== "paid" &&
-      row.type === "deposit"
-    )
-      await advanceStage(this.prisma, row.project_id, "paperwork");
+    if (dto.status === "paid" && row.status !== "paid")
+      await this.afterPaid(row.project_id, row.type);
     return updated;
+  }
+
+  // Money in moves the job: the cọc closes stage 3 (→ paperwork, and straight
+  // on to Thi công if the hồ sơ were already cleared); the last đợt closes it.
+  private async afterPaid(projectId: number, type: string) {
+    if (type === "deposit") {
+      await advanceStage(this.prisma, projectId, "paperwork");
+      await advanceIfPaperworkReady(this.prisma, projectId);
+    }
+    await closeIfFullyPaid(this.prisma, projectId);
   }
 
   @Delete(":id")

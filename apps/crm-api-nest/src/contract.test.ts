@@ -5,7 +5,12 @@ import { describe, expect, test } from "bun:test";
 
 import { toBig } from "./common/coerce";
 import { normalize } from "./common/serialize.interceptor";
-import { STAGE_ORDER, shouldAdvance } from "./common/stage";
+import {
+  STAGE_ORDER,
+  fullyPaid,
+  paperworkReady,
+  shouldAdvance,
+} from "./common/stage";
 import { SettlementsController } from "./receivables/receivables.module";
 
 describe("normalize (serialization contract)", () => {
@@ -71,6 +76,59 @@ describe("shouldAdvance (forward-only auto-advance)", () => {
     expect(STAGE_ORDER).toHaveLength(8);
     expect(STAGE_ORDER).not.toContain("survey");
     expect(STAGE_ORDER[0]).toBe("request");
+  });
+});
+
+// Stage-4 exit. What must not regress: the later-stage documents seeded up
+// front (needed_for acceptance/settlement) never hold up Thi công, and the cọc
+// is part of the gate.
+describe("paperworkReady (hồ sơ → Thi công)", () => {
+  const item = (status: string, needed_for = "execution") => ({
+    status,
+    needed_for,
+  });
+  test("all execution items approved + cọc paid → ready", () => {
+    expect(paperworkReady([item("approved"), item("approved")], true)).toBe(
+      true
+    );
+  });
+  test("later-stage items still preparing don't block", () => {
+    expect(
+      paperworkReady([item("approved"), item("preparing", "settlement")], true)
+    ).toBe(true);
+  });
+  test("one execution item not approved → not ready", () => {
+    expect(paperworkReady([item("approved"), item("submitted")], true)).toBe(
+      false
+    );
+  });
+  test("no cọc yet → not ready", () => {
+    expect(paperworkReady([item("approved")], false)).toBe(false);
+  });
+  test("no execution items at all proves nothing", () => {
+    expect(paperworkReady([item("approved", "acceptance")], true)).toBe(false);
+    expect(paperworkReady([], true)).toBe(false);
+  });
+});
+
+describe("fullyPaid (Quyết toán & Thanh toán → Đã đóng)", () => {
+  const paid = { status: "paid" };
+  const due = { status: "awaiting_payment" };
+  test("signed + every đợt paid → closed", () => {
+    expect(fullyPaid("signed", "sent", [paid, paid])).toBe(true);
+  });
+  test("signed + bill marked paid → closed", () => {
+    expect(fullyPaid("signed", "paid", [due])).toBe(true);
+  });
+  test("one đợt outstanding → open", () => {
+    expect(fullyPaid("signed", "sent", [paid, due])).toBe(false);
+  });
+  test("unsigned settlement never closes, even if money is in", () => {
+    expect(fullyPaid("sent", "paid", [paid])).toBe(false);
+    expect(fullyPaid(undefined, undefined, [])).toBe(false);
+  });
+  test("no đợt and bill not paid → open", () => {
+    expect(fullyPaid("signed", "official", [])).toBe(false);
   });
 });
 

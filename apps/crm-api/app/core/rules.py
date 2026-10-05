@@ -14,7 +14,9 @@ from zoneinfo import ZoneInfo
 from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
+from app.models.paperwork import PaperworkItem
 from app.models.project import Project, ProjectStage
+from app.models.receivable import PaymentMilestone, Settlement
 
 # All business dates are Vietnam calendar dates. A `date` column takes a `date`
 # straight through, so unlike the Nest backend there is no UTC-midnight dance
@@ -72,6 +74,70 @@ def advance_stage(session: Session, project_id: int | None, target: str) -> None
     project.stage = target
     session.add(project)
     session.commit()
+
+
+def paperwork_ready(items: Iterable[PaperworkItem], deposit_paid: bool) -> bool:
+    """Stage-4 exit: every hồ sơ item needed for Thi công is approved AND the
+    cọc is in. Items tagged for a later stage (`needed_for` acceptance /
+    settlement) don't count, and an empty checklist proves nothing.
+    Twin of `paperworkReady` in crm-api-nest/src/common/stage.ts.
+    """
+    needed = [i for i in items if i.needed_for == "execution"]
+    return deposit_paid and bool(needed) and all(i.status == "approved" for i in needed)
+
+
+def fully_paid(
+    settlement_status: str | None,
+    bill_status: str | None,
+    milestones: Iterable[PaymentMilestone],
+) -> bool:
+    """Stage-7 exit: the signed settlement's bill is paid, or every đợt on it is."""
+    if settlement_status != "signed":
+        return False
+    if bill_status == "paid":
+        return True
+    statuses = [m.status for m in milestones]
+    return bool(statuses) and all(s == "paid" for s in statuses)
+
+
+def advance_if_paperwork_ready(session: Session, project_id: int) -> None:
+    """After a hồ sơ item is approved/retagged/deleted or the cọc is recorded."""
+    items = session.exec(
+        select(PaperworkItem).where(PaperworkItem.project_id == project_id)
+    ).all()
+    deposit = session.exec(
+        select(PaymentMilestone).where(
+            PaymentMilestone.project_id == project_id,
+            PaymentMilestone.type == "deposit",
+            PaymentMilestone.status == "paid",
+        )
+    ).first()
+    if paperwork_ready(items, deposit is not None):
+        advance_stage(session, project_id, "execution")
+
+
+def close_if_fully_paid(session: Session, project_id: int) -> None:
+    """After a đợt is paid, a bill is marked paid, or the settlement is signed.
+
+    Closing locks the project, so the bill is flipped to paid in the same step —
+    otherwise it would sit at "sent" with no way left to edit it.
+    """
+    settlement = session.exec(
+        select(Settlement).where(Settlement.project_id == project_id)
+    ).first()
+    bill = settlement.bill if settlement else None
+    if not fully_paid(
+        settlement.status if settlement else None,
+        bill.status if bill else None,
+        bill.milestones if bill else [],
+    ):
+        return
+    if bill is not None and bill.status != "paid":
+        bill.status = "paid"
+        bill.paid_date = business_today()
+        session.add(bill)
+        session.commit()
+    advance_stage(session, project_id, "closed")
 
 
 def assert_project_open(session: Session, project_id: int | None) -> None:

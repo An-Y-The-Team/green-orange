@@ -230,7 +230,11 @@ describe("milestone create paid_date", () => {
           created.push(data);
           return data;
         },
+        findFirst: async () => null,
       },
+      // Read by the post-payment auto-advance checks (hồ sơ ready, fully paid).
+      paperworkItem: { findMany: async () => [] },
+      settlement: { findUnique: async () => null },
     };
   };
   const deposit = { project_id: 3, type: "deposit", amount: 100_000_000 };

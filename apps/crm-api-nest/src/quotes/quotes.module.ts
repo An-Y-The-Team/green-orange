@@ -374,11 +374,16 @@ export class QuotesController {
     await assertProjectOpen(this.prisma, quote.project_id);
     if (quote.status !== "waiting")
       throw new ConflictException("only waiting quotes can be decided");
-    return this.prisma.quote.update({
+    const decided = await this.prisma.quote.update({
       where: { id },
       data: { status: dto.status, decided_date: businessToday() },
       include: DETAIL_INCLUDE,
     });
+    // Chốt → contract signing (stage 3). Hoãn/Hủy change the project's status,
+    // not its stage — the UI sends that PATCH itself.
+    if (dto.status === "deal")
+      await advanceStage(this.prisma, quote.project_id, "contract");
+    return decided;
   }
 
   // Bargaining loop: sent versions are frozen; a revision is a new draft row.

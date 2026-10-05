@@ -191,8 +191,12 @@ def seed_initial_data() -> None:
         session.commit()
 
         for project in (request_project, quote_project, paperwork_project):
-            for name in DEFAULT_PAPERWORK:
-                session.add(PaperworkItem(project_id=project.id, name=name))
+            for name, needed_for in DEFAULT_PAPERWORK.items():
+                session.add(
+                    PaperworkItem(
+                        project_id=project.id, name=name, needed_for=needed_for
+                    )
+                )
 
         session.add(
             Quote(

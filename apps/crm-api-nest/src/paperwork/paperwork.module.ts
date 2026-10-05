@@ -27,9 +27,13 @@ import { businessToday } from "../common/business-date";
 import { toDate } from "../common/coerce";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
+import { advanceIfPaperworkReady } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
 
 const PAPERWORK_STATUS = ["preparing", "submitted", "approved"];
+// The stage that needs the item approved. Only "execution" items gate the
+// auto-advance to Thi công (common/stage.ts paperworkReady).
+const NEEDED_FOR = ["execution", "acceptance", "settlement"];
 
 // F41: the dashboard's "Hồ sơ quá hạn" panel prints a công trình code, and the
 // only way to get one was fetching /projects and joining in JS — a paginated
@@ -40,18 +44,21 @@ const PROJECT_INCLUDE = {
   project: { select: { id: true, code: true } },
 };
 
-// Stage-5 checklist defaults — user-facing names stay Vietnamese (data, not enum).
-// Exported: POST /projects auto-seeds these on project creation.
+// Stage-4 checklist defaults — user-facing names stay Vietnamese (data, not enum).
+// Exported: POST /projects auto-seeds these on project creation. The last three
+// are later-stage documents seeded up front so the checklist holds the whole
+// paper trail; their `needed_for` keeps them from blocking Thi công.
 export const DEFAULT_PAPERWORK = [
-  "Giấy phép thi công",
-  "PCCC",
-  "Danh sách nhân sự",
-  "Danh sách thiết bị",
-  "Hợp đồng",
-  "Đề nghị thanh toán",
-  "Biên bản nghiệm thu khối lượng",
-  "Biên bản quyết toán",
+  { name: "Giấy phép thi công", needed_for: "execution" },
+  { name: "PCCC", needed_for: "execution" },
+  { name: "Danh sách nhân sự", needed_for: "execution" },
+  { name: "Danh sách thiết bị", needed_for: "execution" },
+  { name: "Hợp đồng", needed_for: "execution" },
+  { name: "Đề nghị thanh toán", needed_for: "settlement" },
+  { name: "Biên bản nghiệm thu khối lượng", needed_for: "acceptance" },
+  { name: "Biên bản quyết toán", needed_for: "settlement" },
 ];
+const DEFAULT_NAMES = DEFAULT_PAPERWORK.map((d) => d.name);
 
 // ── Paperwork items (hồ sơ) ─────────────────────────────────────────────────
 class CreatePaperworkItemDto {
@@ -60,6 +67,7 @@ class CreatePaperworkItemDto {
   @IsOptional() @IsIn(PAPERWORK_STATUS) status?: string;
   @IsOptional() @IsDateString() due_date?: string;
   @IsOptional() @IsString() note?: string;
+  @IsOptional() @IsIn(NEEDED_FOR) needed_for?: string;
 }
 
 class UpdatePaperworkItemDto {
@@ -67,6 +75,7 @@ class UpdatePaperworkItemDto {
   @IsOptional() @IsIn(PAPERWORK_STATUS) status?: string;
   @IsOptional() @IsDateString() due_date?: string;
   @IsOptional() @IsString() note?: string;
+  @IsOptional() @IsIn(NEEDED_FOR) needed_for?: string;
 }
 
 class SeedDefaultsDto {
@@ -128,6 +137,7 @@ class PaperworkItemsController {
         status: dto.status ?? "preparing",
         due_date: toDate(dto.due_date),
         note: dto.note ?? null,
+        needed_for: dto.needed_for ?? "execution",
       },
     });
   }
@@ -139,14 +149,14 @@ class PaperworkItemsController {
   async seedDefaults(@Body() dto: SeedDefaultsDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
     const existing = await this.prisma.paperworkItem.findMany({
-      where: { project_id: dto.project_id, name: { in: DEFAULT_PAPERWORK } },
+      where: { project_id: dto.project_id, name: { in: DEFAULT_NAMES } },
       select: { name: true },
     });
     const have = new Set(existing.map((r) => r.name));
     await this.prisma.paperworkItem.createMany({
-      data: DEFAULT_PAPERWORK.filter((name) => !have.has(name)).map((name) => ({
+      data: DEFAULT_PAPERWORK.filter((d) => !have.has(d.name)).map((d) => ({
         project_id: dto.project_id,
-        name,
+        ...d,
       })),
     });
     return this.prisma.paperworkItem.findMany({
@@ -165,7 +175,12 @@ class PaperworkItemsController {
     const { due_date, ...rest } = dto;
     const data: Record<string, unknown> = { ...rest };
     if (due_date !== undefined) data.due_date = toDate(due_date);
-    return this.prisma.paperworkItem.update({ where: { id }, data });
+    const updated = await this.prisma.paperworkItem.update({
+      where: { id },
+      data,
+    });
+    await advanceIfPaperworkReady(this.prisma, row.project_id);
+    return updated;
   }
 
   @Delete(":id")
@@ -174,6 +189,8 @@ class PaperworkItemsController {
     const row = await this.get(id);
     await assertProjectOpen(this.prisma, row.project_id);
     await this.prisma.paperworkItem.delete({ where: { id } });
+    // Removing the last unapproved item can complete the checklist.
+    await advanceIfPaperworkReady(this.prisma, row.project_id);
   }
 }
 

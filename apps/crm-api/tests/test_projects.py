@@ -207,9 +207,10 @@ def test_summary_is_every_stage_with_its_chot_total(
     client.post(f"/quotes/{quote['id']}/decide", json={"status": "deal"})
 
     rows = client.get("/projects/summary").json()
-    # Σ of the CHỐT quote — the committed value, and the project moved to quote.
-    assert next(r for r in rows if r["stage"] == "quote") == {
-        "stage": "quote",
+    # Σ of the CHỐT quote — the committed value. Chốt auto-advances the project
+    # on to contract signing, so that's the row it lands in.
+    assert next(r for r in rows if r["stage"] == "contract") == {
+        "stage": "contract",
         "count": 1,
         "deal_total": 1_000_000,
     }

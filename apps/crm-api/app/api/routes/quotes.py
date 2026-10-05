@@ -273,6 +273,10 @@ def decide_quote(session: SessionDep, quote_id: int, payload: QuoteDecide) -> Qu
     quote.decided_date = business_today()
     session.add(quote)
     session.commit()
+    # Chốt → contract signing (stage 3). Hoãn/Hủy change the project's status,
+    # not its stage — the UI sends that PATCH itself.
+    if payload.status == "deal":
+        advance_stage(session, quote.project_id, "contract")
     session.refresh(quote)
     return quote
 

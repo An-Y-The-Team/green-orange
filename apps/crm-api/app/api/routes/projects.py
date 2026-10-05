@@ -29,6 +29,7 @@ from app.core.rules import (
     business_day_range,
     business_today,
     next_code,
+    should_advance,
 )
 from app.models.client import Client, Contact, Location
 from app.models.contract import Contract
@@ -331,8 +332,10 @@ def create_project(session: SessionDep, payload: ProjectCreate) -> Project:
     # flush(), not commit(): the auto-seeded stage-5 checklist goes in the SAME
     # transaction as the project, so no công trình can exist without it.
     session.flush()
-    for name in DEFAULT_PAPERWORK:
-        session.add(PaperworkItem(project_id=project.id, name=name))
+    for name, needed_for in DEFAULT_PAPERWORK.items():
+        session.add(
+            PaperworkItem(project_id=project.id, name=name, needed_for=needed_for)
+        )
     session.commit()
     session.refresh(project)
     return project
@@ -384,6 +387,12 @@ def update_project(
         and not project.acceptance_passed_date
     ):
         fields["acceptance_passed_date"] = business_today()
+    # Biên bản nghiệm thu signed → Quyết toán & Thanh toán, in the same write
+    # (forward-only: a manual stage in this body still wins if it's further on).
+    if fields.get("acceptance_sub_status") == "passed" and should_advance(
+        fields.get("stage", project.stage), "settlement"
+    ):
+        fields["stage"] = "settlement"
     project.sqlmodel_update(fields)
     session.add(project)
     session.commit()

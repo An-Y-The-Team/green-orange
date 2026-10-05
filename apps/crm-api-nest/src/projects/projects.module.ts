@@ -43,7 +43,7 @@ import {
 } from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
-import { STAGE_ORDER } from "../common/stage";
+import { STAGE_ORDER, shouldAdvance } from "../common/stage";
 import { DEFAULT_PAPERWORK } from "../paperwork/paperwork.module";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -410,10 +410,7 @@ export class ProjectsController {
         include: { client: true, location: true, types: true },
       });
       await tx.paperworkItem.createMany({
-        data: DEFAULT_PAPERWORK.map((name) => ({
-          project_id: project.id,
-          name,
-        })),
+        data: DEFAULT_PAPERWORK.map((d) => ({ project_id: project.id, ...d })),
       });
       return project;
     });
@@ -484,6 +481,13 @@ export class ProjectsController {
       !current.acceptance_passed_date
     )
       data.acceptance_passed_date = businessToday();
+    // Biên bản nghiệm thu signed → Quyết toán & Thanh toán, in the same write
+    // (forward-only: a manual stage in this body still wins if it's further on).
+    if (
+      dto.acceptance_sub_status === "passed" &&
+      shouldAdvance(dto.stage ?? current.stage, "settlement")
+    )
+      data.stage = "settlement";
     return this.prisma.project.update({ where: { id }, data });
   }
 

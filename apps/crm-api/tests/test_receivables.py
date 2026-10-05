@@ -174,13 +174,17 @@ def test_unsign_is_the_exact_inverse_and_refuses_collected_money(
         f"/payment-milestones/{new_balance['id']}", json={"status": "awaiting_payment"}
     )
     client.patch(f"/payment-milestones/{new_balance['id']}", json={"status": "paid"})
+    # The last đợt in closes the job and marks the bill paid.
+    assert client.get(f"/projects/{project['id']}").json()["stage"] == "closed"
+    assert client.get(f"/bills/{bill_id}").json()["status"] == "paid"
+    # Reopened, un-signing is still refused: the money is in.
+    client.patch(f"/projects/{project['id']}", json={"stage": "settlement"})
     assert (
         client.patch(
             f"/settlements/{settlement['id']}", json={"status": "draft"}
         ).status_code
         == 400
     )
-    assert client.get(f"/bills/{bill_id}").json()["status"] == "official"
 
 
 def test_bill_status_is_forward_only_and_stamps_its_dates(
