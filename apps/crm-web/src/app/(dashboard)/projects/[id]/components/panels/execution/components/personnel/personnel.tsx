@@ -18,7 +18,9 @@ import {
 } from "@/constants/server-action";
 
 import { updateProject } from "../../../../../../actions/update-project";
+import { WorkspacePane } from "../../../../../../enums";
 import type { Project } from "../../../../../../types";
+import { viewHref } from "../../../../../utils/view-href/view-href";
 
 /**
  * Assignment summary + approaches free text. Editing crew lives in the Nhân sự
@@ -50,16 +52,18 @@ export function Personnel({
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">Nhân sự ({workerCount})</span>
         {doubleBooked ? (
-          <Badge variant="warning">⚠ Trùng lịch trong công trình</Badge>
+          <Badge variant="destructive">⚠ Trùng lịch trong công trình</Badge>
         ) : null}
         <Button
           size="sm"
           variant="outline"
           className="ml-auto"
           render={
-            <Link href="/crew">
+            // The job's own crew view (assign, change roles) — not the global
+            // roster, which made the operator leave the công trình.
+            <Link href={viewHref(project, WorkspacePane.CREW)}>
               <Users className="size-4" />
-              tab Nhân sự
+              Phân công
             </Link>
           }
         />

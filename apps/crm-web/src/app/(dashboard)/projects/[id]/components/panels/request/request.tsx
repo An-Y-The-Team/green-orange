@@ -21,7 +21,14 @@ import {
 } from "@/utils/today-iso/today-iso";
 
 import { updateProject } from "../../../../actions/update-project";
+import { GateKey, ProjectStage } from "../../../../enums";
 import type { Attachment, Project } from "../../../../types";
+import type { StageGate } from "../../../utils/stage-gates/stage-gates";
+import { VisitAction } from "../../gate-actions/visit-action/visit-action";
+import {
+  type GateActions,
+  GateChecklist,
+} from "../../gate-checklist/gate-checklist";
 import { StageCard } from "../../stage-card/stage-card";
 import { SurveyExit, SurveyPanel } from "../survey/survey";
 
@@ -31,9 +38,11 @@ import { SurveyExit, SurveyPanel } from "../survey/survey";
 export function RequestPanel({
   project,
   attachments,
+  gates,
 }: {
   project: Project;
   attachments: Attachment[];
+  gates: StageGate[];
 }) {
   const [state, formAction] = useActionState(
     updateProject.bind(null, project.id),
@@ -59,40 +68,33 @@ export function RequestPanel({
   const [apptDate, setApptDate] = useState(initialDate);
   const [apptTime, setApptTime] = useState(initialTime);
 
-  // "Đã gặp khách" — visit date defaults to today, editable inline.
-  const [visitDate, setVisitDate] = useState(todayISO);
-
   // Combines the date + time inputs into one ISO instant; the toast reports
   // the outcome.
   const handleReschedule = () =>
     run({ appointment_at: localISO(apptDate, apptTime) });
 
-  // Footer = the stage's next step: before the visit it's "Đã gặp khách"
-  // (with the date it stamps), after it the move to Báo giá.
-  const footer = project.visit_date ? (
-    <SurveyExit project={project} />
-  ) : (
-    <>
-      <div className="space-y-1.5">
-        <Label htmlFor="visit-date">Ngày gặp khách</Label>
-        <DateInput
-          id="visit-date"
-          className="w-auto"
-          value={visitDate}
-          onChange={setVisitDate}
-        />
-      </div>
-      <Button
-        disabled={isPending || !visitDate}
-        onClick={() => run({ visit_date: visitDate })}
-      >
-        ✓ Đã gặp khách — bắt đầu khảo sát
-      </Button>
-    </>
-  );
+  // Gate = task: before the visit the row to press is "Đã gặp khách" (with the
+  // date it stamps); after it, the exit row opens the quote builder.
+  const actions: GateActions = project.visit_date
+    ? {
+        [GateKey.QUOTE_FROM_SURVEY]: (primary) => (
+          <SurveyExit project={project} primary={primary} />
+        ),
+      }
+    : {
+        [GateKey.VISIT]: (primary) => (
+          <VisitAction project={project} primary={primary} />
+        ),
+      };
 
   return (
-    <StageCard project={project} contentClassName="space-y-4" footer={footer}>
+    <StageCard stage={ProjectStage.REQUEST} contentClassName="space-y-4">
+      <GateChecklist
+        stage={ProjectStage.REQUEST}
+        gates={gates}
+        actions={actions}
+      />
+
       <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
         {project.request_note ? (
           <div className="contents">

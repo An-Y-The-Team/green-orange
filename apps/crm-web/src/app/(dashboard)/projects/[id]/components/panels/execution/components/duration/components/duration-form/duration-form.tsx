@@ -157,7 +157,7 @@ export function DurationForm({
     busyField === field ? (
       <span className="pb-2 text-xs text-muted-foreground">Đang lưu…</span>
     ) : savedField === field ? (
-      <span className="pb-2 text-xs text-emerald-600">Đã lưu</span>
+      <span className="pb-2 text-xs text-done">Đã lưu</span>
     ) : null;
 
   return (

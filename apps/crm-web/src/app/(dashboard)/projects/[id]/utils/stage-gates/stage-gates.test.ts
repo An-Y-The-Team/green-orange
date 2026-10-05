@@ -16,6 +16,8 @@ import type {
 
 import {
   AcceptanceSubStatus,
+  GateKey,
+  PaperworkNeededFor,
   PaperworkStatus,
   ProjectStage,
 } from "../../../enums";
@@ -40,8 +42,18 @@ const base = {
 const project = (over: Partial<Project>): Project => ({ ...base, ...over });
 const quote = (over: Partial<Quote>): Quote =>
   ({ id: 1, version: 1, status: QuoteStatus.DRAFT, ...over }) as Quote;
-const paperwork = (status: PaperworkStatus, id = 1): PaperworkItem =>
-  ({ id, project_id: 1, name: "Giấy phép", status }) as PaperworkItem;
+const paperwork = (
+  status: PaperworkStatus,
+  id = 1,
+  needed_for = PaperworkNeededFor.EXECUTION
+): PaperworkItem =>
+  ({
+    id,
+    project_id: 1,
+    name: "Giấy phép",
+    status,
+    needed_for,
+  }) as PaperworkItem;
 const milestone = (
   type: MilestoneType,
   status: MilestoneStatus
@@ -59,6 +71,7 @@ describe("stage 1 — Yêu cầu & Khảo sát", () => {
       appointment: false,
       visit: false,
       survey_data: false,
+      quote_from_survey: false,
     });
   });
 
@@ -99,7 +112,12 @@ describe("stage 2 — Báo giá", () => {
         quote({ version: 2, status: QuoteStatus.WAITING }),
       ],
     });
-    expect(keys(gs)).toEqual({ quote_exists: true, quote_deal: false });
+    // v1 rejected / v2 waiting: both went to the client, so "sent" is done.
+    expect(keys(gs)).toEqual({
+      quote_exists: true,
+      quote_sent: true,
+      quote_deal: false,
+    });
     expect(gs.find((g) => g.key === "quote_exists")?.detail).toBe(
       "2 phiên bản"
     );
@@ -187,6 +205,20 @@ describe("stage 4 — Chuẩn bị hồ sơ", () => {
     expect(keys(gs).paperwork_approved).toBe(true);
   });
 
+  // Server parity (crm-api-nest paperworkReady): the later-stage documents
+  // seeded up front don't hold up Thi công.
+  test("later-stage items still preparing don't block it", () => {
+    const gs = stageGates({
+      project: project({ stage: ProjectStage.PAPERWORK }),
+      paperworkItems: [
+        paperwork(PaperworkStatus.APPROVED, 1),
+        paperwork(PaperworkStatus.PREPARING, 2, PaperworkNeededFor.SETTLEMENT),
+      ],
+    });
+    expect(keys(gs).paperwork_approved).toBe(true);
+    expect(gs[0].detail).toBe("1/1 đã duyệt");
+  });
+
   // The bug this guards: `every()` on an empty array is true, so a project with
   // no hồ sơ rows would have reported "toàn bộ hồ sơ đã duyệt".
   test("no paperwork rows is NOT done", () => {
@@ -239,7 +271,29 @@ describe("stages 5–6 — Thi công, Nghiệm thu", () => {
       }),
     });
     expect(keys(passed).acceptance_passed).toBe(true);
-    expect(passed[0].detail).toBe("2026-09-06");
+    // Shown to the operator, so in the Vietnamese date format.
+    expect(passed[0].detail).toBe("06/09/2026");
+  });
+});
+
+// `advances` mirrors the server's auto-advance triggers (crm-api-nest
+// common/stage.ts). The checklist promises "tự chuyển sang …" off it, so a row
+// that does not move the job must never carry it.
+describe("advances flag", () => {
+  test("only trigger rows advance", () => {
+    const contract = stageGates({
+      project: project({ stage: ProjectStage.CONTRACT }),
+    });
+    expect(
+      Object.fromEntries(contract.map((g) => [g.key, Boolean(g.advances)]))
+    ).toEqual({ quote_deal: false, client_signed: false, deposit: true });
+
+    const request = stageGates({
+      project: project({ stage: ProjectStage.REQUEST }),
+    });
+    expect(request.filter((g) => g.advances).map((g) => g.key)).toEqual([
+      "quote_from_survey",
+    ]);
   });
 });
 
@@ -307,8 +361,8 @@ describe("stage 8 — Đã đóng, and the progress helper", () => {
     expect(gateProgress([])).toBeNull();
     expect(
       gateProgress([
-        { key: "a", label: "a", done: true },
-        { key: "b", label: "b", done: false },
+        { key: GateKey.VISIT, label: "a", done: true },
+        { key: GateKey.SURVEY_DATA, label: "b", done: false },
       ])
     ).toEqual({ done: 1, total: 2 });
   });

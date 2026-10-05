@@ -16,6 +16,8 @@ import {
 } from "@yan/ui/components/dialog";
 
 import type { Contract } from "@/app/(dashboard)/contracts/types";
+import { contractHref } from "@/app/(dashboard)/contracts/utils/contract-href/contract-href";
+import { quotePrintHref } from "@/app/(dashboard)/quotes/utils/quote-href/quote-href";
 import type {
   Bill,
   PaymentMilestone,
@@ -72,7 +74,7 @@ function ReopenButton({ project }: { project: Project }) {
           <DialogTitle>Mở lại công trình?</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          Công trình sẽ quay lại giai đoạn 8 (Quyết toán & Thanh toán) và được
+          Công trình sẽ quay lại giai đoạn 7 (Quyết toán & Thanh toán) và được
           mở khóa để chỉnh sửa.
         </p>
         <DialogFooter>
@@ -140,7 +142,7 @@ export function ClosedPanel({
 
   return (
     <StageCard
-      project={project}
+      stage={ProjectStage.CLOSED}
       contentClassName="space-y-4 text-sm"
       footer={
         <>
@@ -157,7 +159,7 @@ export function ClosedPanel({
       }
     >
       {fullyCollected ? (
-        <p className="font-medium text-emerald-700 dark:text-emerald-400">
+        <p className="font-medium text-done">
           ✓ Hoàn thành · Đã thu đủ {formatVND(collected)}
         </p>
       ) : (
@@ -189,16 +191,12 @@ export function ClosedPanel({
           {quotes.map((q) => (
             <DocLink
               key={`q-${q.id}`}
-              href={`/quotes/${q.id}/print`}
+              href={quotePrintHref({ id: q.id, project_id: project.id })}
               label={`Báo giá v${q.version}`}
             />
           ))}
           {contracts.map((c) => (
-            <DocLink
-              key={`c-${c.id}`}
-              href={`/contracts/${c.id}`}
-              label={c.code}
-            />
+            <DocLink key={`c-${c.id}`} href={contractHref(c)} label={c.code} />
           ))}
           {settlements.map((s) => (
             <DocLink

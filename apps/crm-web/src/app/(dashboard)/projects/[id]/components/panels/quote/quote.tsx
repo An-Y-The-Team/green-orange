@@ -26,6 +26,10 @@ import {
   QuoteStatus,
 } from "@/app/(dashboard)/quotes/enums";
 import type { Quote, QuoteSendLog } from "@/app/(dashboard)/quotes/types";
+import {
+  quoteHref,
+  quotePrintHref,
+} from "@/app/(dashboard)/quotes/utils/quote-href/quote-href";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { EmptyState } from "@/components/empty-state/empty-state";
 import {
@@ -41,7 +45,14 @@ import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
 import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
+import { GateKey, ProjectStage } from "../../../../enums";
 import type { Project } from "../../../../types";
+import { gateButtonProps } from "../../../utils/gate-button-props/gate-button-props";
+import type { StageGate } from "../../../utils/stage-gates/stage-gates";
+import {
+  type GateActions,
+  GateChecklist,
+} from "../../gate-checklist/gate-checklist";
 import { StageCard } from "../../stage-card/stage-card";
 
 /**
@@ -140,7 +151,9 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
     <Button
       variant="outline"
       size="sm"
-      render={<Link href={`/quotes/${quote.id}/print`} />}
+      render={
+        <Link href={quotePrintHref({ id: quote.id, project_id: project.id })} />
+      }
     >
       Xem bản in
     </Button>
@@ -157,7 +170,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
     <div
       className={
         isDeal
-          ? "space-y-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4"
+          ? "space-y-3 rounded-lg border border-done/40 bg-done-soft p-4"
           : "space-y-3 rounded-lg border p-4"
       }
     >
@@ -179,7 +192,11 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
             <Button
               variant="outline"
               size="sm"
-              render={<Link href={`/quotes/${quote.id}`} />}
+              render={
+                <Link
+                  href={quoteHref({ id: quote.id, project_id: project.id })}
+                />
+              }
             >
               {ACTIONS.edit}
             </Button>
@@ -207,9 +224,9 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
       </div>
 
       {isDeal ? (
-        <p className="text-sm text-emerald-700 dark:text-emerald-400">
-          Báo giá đã chốt — dùng nút “→ Hợp đồng” ở thanh giai đoạn để chuyển
-          bước, hoặc tạo phiên bản mới nếu khách đổi ý.
+        <p className="text-sm text-done">
+          Báo giá đã chốt — công trình đã tự chuyển sang Hợp đồng. Khách đổi ý
+          thì tạo phiên bản mới.
         </p>
       ) : null}
 
@@ -246,7 +263,16 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
  * the primary, so the one button that advances the pipeline is never a small
  * outline lost in a row of print links (which is where it used to sit).
  */
-function QuoteDecision({ quote, project }: { quote: Quote; project: Project }) {
+function QuoteDecision({
+  quote,
+  project,
+  primary,
+}: {
+  quote: Quote;
+  project: Project;
+  /** The next gate row's button — green when true, outline otherwise. */
+  primary: boolean;
+}) {
   const [sendOpen, setSendOpen] = useState(false);
   const [holdOpen, setHoldOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -282,7 +308,8 @@ function QuoteDecision({ quote, project }: { quote: Quote; project: Project }) {
   const isWaiting = quote.status === QuoteStatus.WAITING;
 
   // Chốt/hoãn/hủy are decisions on a quote the client has seen; a frozen or
-  // already-decided version offers none, and the stepper carries the stage hop.
+  // already-decided version offers none. Chốt moves the job to Hợp đồng
+  // server-side (auto-advance), no stepper click needed.
   if (!isDraft && !isWaiting) return null;
 
   return (
@@ -291,6 +318,7 @@ function QuoteDecision({ quote, project }: { quote: Quote; project: Project }) {
         <>
           <Button
             variant="outline"
+            size="sm"
             disabled={busy}
             onClick={() => setSendOpen(true)}
           >
@@ -298,6 +326,7 @@ function QuoteDecision({ quote, project }: { quote: Quote; project: Project }) {
           </Button>
           <Button
             variant="outline"
+            size="sm"
             disabled={busy}
             onClick={() => setHoldOpen(true)}
           >
@@ -305,13 +334,18 @@ function QuoteDecision({ quote, project }: { quote: Quote; project: Project }) {
           </Button>
           <Button
             variant="destructive"
+            size="sm"
             disabled={busy}
             onClick={() => setCancelOpen(true)}
           >
             {ACTIONS.cancel}
           </Button>
           <ConfirmAction
-            trigger={<Button disabled={busy}>Chốt ✓</Button>}
+            trigger={
+              <Button {...gateButtonProps(primary)} disabled={busy}>
+                Chốt ✓
+              </Button>
+            }
             title={`Chốt báo giá v${quote.version}?`}
             consequence={`Chốt ${formatVND(storedTotals(quote).total)} và đưa công trình sang Hợp đồng. Bản này khóa lại — muốn đổi giá phải lập phiên bản mới.`}
             confirmLabel="Chốt báo giá"
@@ -320,7 +354,11 @@ function QuoteDecision({ quote, project }: { quote: Quote; project: Project }) {
           />
         </>
       ) : (
-        <Button disabled={busy} onClick={() => setSendOpen(true)}>
+        <Button
+          {...gateButtonProps(primary)}
+          disabled={busy}
+          onClick={() => setSendOpen(true)}
+        >
           {ACTIONS.send}
         </Button>
       )}
@@ -388,28 +426,32 @@ function QuoteDecision({ quote, project }: { quote: Quote; project: Project }) {
   );
 }
 
-export function QuotePanel({ project }: { project: Project }) {
+export function QuotePanel({
+  project,
+  gates,
+}: {
+  project: Project;
+  gates: StageGate[];
+}) {
   const versions = [...(project.quotes ?? [])].sort(
     (a, b) => b.version - a.version
   );
   const [latest, ...older] = versions;
 
-  return (
-    <StageCard
-      project={project}
-      contentClassName="space-y-4"
-      footer={
-        latest ? <QuoteDecision quote={latest} project={project} /> : undefined
-      }
-    >
-      {latest ? (
-        <LatestVersion quote={latest} project={project} />
-      ) : (
-        <EmptyState
-          message="Chưa có báo giá."
-          action={
+  // Gate = task: no quote → open the builder; a draft → Gửi; a waiting quote →
+  // the decision (Chốt is the main button). One QuoteDecision serves both rows
+  // because only one of them is ever actionable at a time.
+  const decision = (primary: boolean) =>
+    latest ? (
+      <QuoteDecision quote={latest} project={project} primary={primary} />
+    ) : null;
+  const actions: GateActions = {
+    ...(latest
+      ? {}
+      : {
+          [GateKey.QUOTE_EXISTS]: (primary: boolean) => (
             <Button
-              size="sm"
+              {...gateButtonProps(primary)}
               render={
                 <Link
                   href={`/projects/${project.id}/quotes/new${
@@ -420,8 +462,28 @@ export function QuotePanel({ project }: { project: Project }) {
             >
               Lập báo giá
             </Button>
-          }
-        />
+          ),
+        }),
+    ...(latest?.status === QuoteStatus.DRAFT
+      ? { [GateKey.QUOTE_SENT]: decision }
+      : {}),
+    ...(latest?.status === QuoteStatus.WAITING
+      ? { [GateKey.QUOTE_DEAL]: decision }
+      : {}),
+  };
+
+  return (
+    <StageCard stage={ProjectStage.QUOTE} contentClassName="space-y-4">
+      <GateChecklist
+        stage={ProjectStage.QUOTE}
+        gates={gates}
+        actions={actions}
+      />
+
+      {latest ? (
+        <LatestVersion quote={latest} project={project} />
+      ) : (
+        <EmptyState message="Chưa có báo giá." />
       )}
 
       {older.length > 0 ? (
@@ -443,7 +505,11 @@ export function QuotePanel({ project }: { project: Project }) {
                 variant="outline"
                 size="sm"
                 className="ml-auto"
-                render={<Link href={`/quotes/${q.id}/print`} />}
+                render={
+                  <Link
+                    href={quotePrintHref({ id: q.id, project_id: project.id })}
+                  />
+                }
               >
                 Xem bản in
               </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 
 import {
@@ -30,8 +30,9 @@ import {
   deleteAttachment,
 } from "../../../../actions/attachments";
 import { updateProject } from "../../../../actions/update-project";
-import { AttachmentKind, ProjectStage } from "../../../../enums";
+import { AttachmentKind } from "../../../../enums";
 import type { Attachment, Project, SurveyItem } from "../../../../types";
+import { gateButtonProps } from "../../../utils/gate-button-props/gate-button-props";
 
 // Survey half of the stage-1 panel — a bare body, rendered by RequestPanel
 // below the appointment card once `visit_date` is set (the visit happened).
@@ -279,6 +280,7 @@ export function SurveyPanel({
                 onChange={(e) => setNewNote(e.target.value)}
               />
               <Button
+                variant="outline"
                 size="sm"
                 disabled={addPending || !newFilename.trim()}
                 onClick={() =>
@@ -302,34 +304,27 @@ export function SurveyPanel({
 }
 
 /**
- * Stage 1's exit, rendered in the StageCard footer by RequestPanel.
+ * Stage 1's exit: the GateChecklist action on the "Lập báo giá từ khảo sát" row.
  *
- * Stage 1 produces no artifact of its own, so the panel carries the move to
- * Báo giá (docs/features/crm-ui-redesign.md, Zone 1) — every other stage
- * advances off an artifact or the stepper. It lives in the footer with every
- * other stage's primary rather than trailing the photo list.
+ * A plain link to the builder — no stage PATCH. Creating the quote is what
+ * moves the job to Báo giá (the server auto-advances on quote create), so an
+ * operator who opens the builder and backs out leaves the job where it was.
  */
-export function SurveyExit({ project }: { project: Project }) {
-  const router = useRouter();
-  const [state, action] = useActionState(
-    updateProject.bind(null, project.id),
-    INITIAL_ACTION_STATE
-  );
-  const [isPending, startTransition] = useTransition();
-  useServerAction(state, isPending, {
-    ...ACTION_TOAST_TITLES,
-    onSuccess: () =>
-      router.push(`/projects/${project.id}/quotes/new?from=survey`),
-  });
-
+export function SurveyExit({
+  project,
+  primary,
+}: {
+  project: Project;
+  primary: boolean;
+}) {
   return (
     <Button
-      disabled={isPending}
-      onClick={() =>
-        startTransition(() => action({ stage: ProjectStage.QUOTE }))
+      {...gateButtonProps(primary)}
+      render={
+        <Link href={`/projects/${project.id}/quotes/new?from=survey`}>
+          Lập báo giá
+        </Link>
       }
-    >
-      ✓ Đủ dữ liệu — lập báo giá
-    </Button>
+    />
   );
 }

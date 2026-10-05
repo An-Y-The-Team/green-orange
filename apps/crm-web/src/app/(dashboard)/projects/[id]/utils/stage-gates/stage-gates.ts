@@ -11,9 +11,12 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import { formatDate } from "@/utils/format-date/format-date";
 
 import {
   AcceptanceSubStatus,
+  GateKey,
+  PaperworkNeededFor,
   PaperworkStatus,
   ProjectStage,
 } from "../../../enums";
@@ -35,21 +38,33 @@ import type { Attachment, PaperworkItem, Project } from "../../../types";
  * because a stored copy is a second source of truth that goes stale the moment
  * someone edits a milestone.
  *
- * Deliberately no `action` here: this is a pure function, and an action is a
- * client dialog. The contract stage pairs each of its conditions with the button
- * that satisfies it, inside its own panel — see the note in `stage-panel.tsx`.
+ * Deliberately no action component here: this is a pure function, and an
+ * action is client UI. Each panel maps a `GateKey` to the button that
+ * satisfies it and hands both to `GateChecklist` — gate = task.
  */
 export interface StageGate {
-  /** Stable key, for tests and for a panel that wants to attach an action. */
-  key: string;
+  /** Stable key: tests, and the panel's key → action map. */
+  key: GateKey;
   label: string;
   done: boolean;
   /** Short right-aligned fact — a date, an amount, "3/4 đã duyệt". */
   detail?: string;
+  /**
+   * Finishing this row is one of the server's auto-advance triggers
+   * (crm-api-nest common/stage.ts). The checklist only promises the move when
+   * it is also the last open row, so the promise is never wrong.
+   */
+  advances?: boolean;
 }
 
 export interface StageGateInput {
   project: Project;
+  /**
+   * The stage to answer for — defaults to the project's current stage. The
+   * workspace nav asks for every stage so it can mark finished stages and flag
+   * a past one with work left over (after a manual move).
+   */
+  stage?: ProjectStage;
   quotes?: Quote[];
   paperworkItems?: PaperworkItem[];
   attachments?: Attachment[];
@@ -59,14 +74,16 @@ export interface StageGateInput {
 }
 
 const gate = (
-  key: string,
+  key: GateKey,
   label: string,
   done: boolean,
-  detail?: string
-): StageGate => ({ key, label, done, detail });
+  detail?: string,
+  advances?: boolean
+): StageGate => ({ key, label, done, detail, advances });
 
 export function stageGates({
   project,
+  stage = project.stage,
   quotes,
   paperworkItems,
   attachments = [],
@@ -79,98 +96,144 @@ export function stageGates({
   const quoteRows = quotes ?? project.quotes ?? [];
   const paperwork = paperworkItems ?? project.paperwork_items ?? [];
 
-  switch (project.stage) {
+  switch (stage) {
     case ProjectStage.REQUEST: {
       // Yêu cầu and Khảo sát are ONE stage — the appointment IS the survey
-      // visit (stage.ts, 2026-07-25), so all three rows live here.
+      // visit (stage.ts, 2026-07-25). The last row is the exit: creating the
+      // quote is what moves the job to Báo giá.
       const surveyed =
         (project.survey_items?.length ?? 0) > 0 ||
         Boolean(project.survey_note?.trim()) ||
         attachments.length > 0;
       return [
-        gate("appointment", "Đã hẹn khảo sát", Boolean(project.appointment_at)),
-        gate("visit", "Đã gặp khách / khảo sát", Boolean(project.visit_date)),
         gate(
-          "survey_data",
-          "Đã ghi dữ liệu khảo sát",
+          GateKey.APPOINTMENT,
+          "Hẹn khảo sát",
+          Boolean(project.appointment_at)
+        ),
+        gate(
+          GateKey.VISIT,
+          "Đã gặp khách, bắt đầu khảo sát",
+          Boolean(project.visit_date)
+        ),
+        gate(
+          GateKey.SURVEY_DATA,
+          "Ghi khảo sát: hạng mục, kích thước, ảnh",
           surveyed,
           project.survey_items?.length
             ? `${project.survey_items.length} hạng mục`
             : undefined
+        ),
+        gate(
+          GateKey.QUOTE_FROM_SURVEY,
+          "Lập báo giá từ khảo sát",
+          quoteRows.length > 0,
+          undefined,
+          true
         ),
       ];
     }
 
     case ProjectStage.QUOTE: {
       const deal = quoteRows.find((q) => q.status === QuoteStatus.DEAL);
+      const sent = quoteRows.some((q) => q.status !== QuoteStatus.DRAFT);
       return [
         gate(
-          "quote_exists",
-          "Đã lập báo giá",
+          GateKey.QUOTE_EXISTS,
+          "Lập báo giá",
           quoteRows.length > 0,
           quoteRows.length ? `${quoteRows.length} phiên bản` : undefined
         ),
+        gate(GateKey.QUOTE_SENT, "Gửi báo giá cho khách", sent),
         gate(
-          "quote_deal",
-          "Khách đã chốt một báo giá",
+          GateKey.QUOTE_DEAL,
+          "Khách chốt báo giá",
           Boolean(deal),
-          deal ? `v${deal.version}` : undefined
+          deal ? `v${deal.version}` : undefined,
+          true
         ),
       ];
     }
 
     case ProjectStage.CONTRACT:
-      // Rendered by ContractPanel with an action on each row, not here.
       return [
         gate(
-          "quote_deal",
+          GateKey.QUOTE_DEAL,
           "Báo giá đã chốt",
           quoteRows.some((q) => q.status === QuoteStatus.DEAL)
         ),
         gate(
-          "client_signed",
+          GateKey.CLIENT_SIGNED,
           "Khách ký xác nhận",
-          Boolean(project.client_signed_date)
+          Boolean(project.client_signed_date),
+          project.client_signed_date
+            ? formatDate(project.client_signed_date)
+            : undefined
         ),
-        gate("deposit", "Nhận cọc (tạm ứng)", hasPaidDeposit(milestones)),
+        gate(
+          GateKey.DEPOSIT,
+          "Nhận cọc (tạm ứng)",
+          hasPaidDeposit(milestones),
+          undefined,
+          true
+        ),
       ];
 
     case ProjectStage.PAPERWORK: {
-      const approved = paperwork.filter(
+      // Same rule as the server's paperworkReady: only the items needed for
+      // Thi công count; later-stage documents wait for their own stage. The
+      // server also wants the cọc, so both rows advance.
+      const needed = paperwork.filter(
+        (p) => p.needed_for === PaperworkNeededFor.EXECUTION
+      );
+      const approved = needed.filter(
         (p) => p.status === PaperworkStatus.APPROVED
       ).length;
       return [
         gate(
-          "paperwork_approved",
-          "Toàn bộ hồ sơ đã duyệt",
-          paperwork.length > 0 && approved === paperwork.length,
-          paperwork.length ? `${approved}/${paperwork.length} đã duyệt` : "—"
+          GateKey.PAPERWORK_APPROVED,
+          "Hồ sơ cần cho thi công đã duyệt",
+          needed.length > 0 && approved === needed.length,
+          needed.length ? `${approved}/${needed.length} đã duyệt` : "—",
+          true
         ),
-        gate("deposit", "Đã nhận cọc", hasPaidDeposit(milestones)),
+        gate(
+          GateKey.DEPOSIT,
+          "Đã nhận cọc",
+          hasPaidDeposit(milestones),
+          undefined,
+          true
+        ),
       ];
     }
 
     case ProjectStage.EXECUTION:
       return [
         gate(
-          "start_date",
-          "Đã ghi ngày khởi công",
-          Boolean(project.start_date)
+          GateKey.START_DATE,
+          "Ghi ngày khởi công",
+          Boolean(project.start_date),
+          project.start_date ? formatDate(project.start_date) : undefined
         ),
         gate(
-          "works_done",
-          "Đã xác nhận hoàn tất thi công",
-          Boolean(project.works_done_at)
+          GateKey.WORKS_DONE,
+          "Xác nhận hoàn tất thi công",
+          Boolean(project.works_done_at),
+          undefined,
+          true
         ),
       ];
 
     case ProjectStage.ACCEPTANCE:
       return [
         gate(
-          "acceptance_passed",
-          "Nghiệm thu đạt (đã ký BB)",
+          GateKey.ACCEPTANCE_PASSED,
+          "Nghiệm thu đạt, khách ký biên bản",
           project.acceptance_sub_status === AcceptanceSubStatus.PASSED,
-          project.acceptance_passed_date ?? undefined
+          project.acceptance_passed_date
+            ? formatDate(project.acceptance_passed_date)
+            : undefined,
+          true
         ),
       ];
 
@@ -180,24 +243,25 @@ export function stageGates({
         (m) => m.status !== MilestoneStatus.PAID
       ).length;
       return [
-        gate("settlement_exists", "Đã lập quyết toán", Boolean(settlement)),
+        gate(GateKey.SETTLEMENT_EXISTS, "Lập quyết toán", Boolean(settlement)),
         gate(
-          "settlement_signed",
-          "Khách đã ký quyết toán",
+          GateKey.SETTLEMENT_SIGNED,
+          "Khách ký quyết toán",
           settlement?.status === SettlementStatus.SIGNED
         ),
         gate(
-          "bill_official",
+          GateKey.BILL_OFFICIAL,
           "Hóa đơn đã chính thức",
           bills.some((b) => b.status !== BillStatus.DRAFT)
         ),
         gate(
-          "milestones_paid",
-          "Đã thu đủ các đợt thanh toán",
+          GateKey.MILESTONES_PAID,
+          "Thu đủ các đợt thanh toán",
           milestones.length > 0 && unpaid === 0,
           milestones.length
             ? `${milestones.length - unpaid}/${milestones.length} đã thu`
-            : "—"
+            : "—",
+          true
         ),
       ];
     }

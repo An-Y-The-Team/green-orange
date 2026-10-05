@@ -212,7 +212,7 @@ function AssignmentRow({
             {a.to_date ? formatDate(a.to_date) : "…"}
           </span>
           {overlaps?.map((o) => (
-            <Badge key={o.id} variant="warning">
+            <Badge key={o.id} variant="destructive">
               Trùng lịch với {o.project?.code ?? `#${o.project_id}`}
             </Badge>
           ))}

@@ -3,7 +3,10 @@ import type {
   TimekeepingRecord,
 } from "@/app/(dashboard)/crew/types";
 
+import { GateKey, ProjectStage } from "../../../../enums";
 import type { Project } from "../../../../types";
+import type { StageGate } from "../../../utils/stage-gates/stage-gates";
+import { GateChecklist } from "../../gate-checklist/gate-checklist";
 import { StageCard } from "../../stage-card/stage-card";
 import { Duration } from "./components/duration/duration";
 import {
@@ -17,17 +20,25 @@ export function ExecutionPanel({
   project,
   timekeeping,
   assignments,
+  gates,
 }: {
   project: Project;
   timekeeping: TimekeepingRecord[];
   assignments: Assignment[];
+  gates: StageGate[];
 }) {
+  // Ngày khởi công has no button: the Duration form below is where it's typed.
   return (
-    <StageCard
-      project={project}
-      contentClassName="space-y-6"
-      footer={<FinishConfirm project={project} />}
-    >
+    <StageCard stage={ProjectStage.EXECUTION} contentClassName="space-y-6">
+      <GateChecklist
+        stage={ProjectStage.EXECUTION}
+        gates={gates}
+        actions={{
+          [GateKey.WORKS_DONE]: (primary) => (
+            <FinishConfirm project={project} primary={primary} />
+          ),
+        }}
+      />
       <StatusStepper project={project} />
       <Duration project={project} timekeeping={timekeeping} />
       <Personnel project={project} assignments={assignments} />

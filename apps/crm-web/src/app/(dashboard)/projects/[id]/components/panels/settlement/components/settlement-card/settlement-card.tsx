@@ -41,6 +41,7 @@ import { labelOf } from "@/utils/label-of/label-of";
 import { settlementTotals } from "@/utils/quote-totals/quote-totals";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
+import { gateButtonProps } from "../../../../../utils/gate-button-props/gate-button-props";
 import { AddMilestone } from "../add-milestone/add-milestone";
 import { BillRow } from "../bill-row/bill-row";
 import { MilestoneRow } from "../milestone-row/milestone-row";
@@ -104,7 +105,7 @@ export function SettlementCard({
     <div
       className={
         isSigned
-          ? "space-y-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4"
+          ? "space-y-3 rounded-lg border border-done/40 bg-done-soft p-4"
           : "space-y-3 rounded-lg border p-4"
       }
     >
@@ -261,7 +262,14 @@ export function SettlementCard({
  * minting hop that officializes the hóa đơn. Rendered in the StageCard footer
  * so it stops sitting fourth in a strip that also holds Sửa / In / Xóa nháp.
  */
-export function SettlementAdvance({ settlement }: { settlement: Settlement }) {
+export function SettlementAdvance({
+  settlement,
+  primary,
+}: {
+  settlement: Settlement;
+  /** The SETTLEMENT_SIGNED row is next → the stage's one green button. */
+  primary: boolean;
+}) {
   const [signOpen, setSignOpen] = useState(false);
   const [signedDate, setSignedDate] = useState(todayISO);
 
@@ -278,7 +286,11 @@ export function SettlementAdvance({ settlement }: { settlement: Settlement }) {
 
   if (settlement.status === SettlementStatus.DRAFT) {
     return (
-      <Button disabled={busy} onClick={() => runSend()}>
+      <Button
+        {...gateButtonProps(primary)}
+        disabled={busy}
+        onClick={() => runSend()}
+      >
         Đã gửi
       </Button>
     );
@@ -288,7 +300,11 @@ export function SettlementAdvance({ settlement }: { settlement: Settlement }) {
 
   return (
     <>
-      <Button disabled={busy} onClick={() => setSignOpen(true)}>
+      <Button
+        {...gateButtonProps(primary)}
+        disabled={busy}
+        onClick={() => setSignOpen(true)}
+      >
         ✓ Đã ký
       </Button>
 

@@ -26,6 +26,7 @@ import {
   ProjectStage,
 } from "../../../../../../enums";
 import type { Project } from "../../../../../../types";
+import { gateButtonProps } from "../../../../../utils/gate-button-props/gate-button-props";
 
 /** Optional hoàn-công images — they attach independently of the exit. */
 export function FinishPhotos({ project }: { project: Project }) {
@@ -95,13 +96,20 @@ export function FinishPhotos({ project }: { project: Project }) {
 }
 
 /**
- * Stage 5's exit, rendered in the StageCard footer by ExecutionPanel.
+ * Stage 5's exit — the WORKS_DONE row's action in ExecutionPanel's checklist.
+ * `primary` when it is the next row (gate-button-props).
  *
  * One patch stamps `works_done_at` and moves to stage 6 with `request_sent`
  * (the backend does NOT auto-set it). It used to trail the photo form inside
  * the body, indistinguishable from the "Thêm ảnh" beside it.
  */
-export function FinishConfirm({ project }: { project: Project }) {
+export function FinishConfirm({
+  project,
+  primary,
+}: {
+  project: Project;
+  primary: boolean;
+}) {
   const [state, formAction] = useActionState(
     updateProject.bind(null, project.id),
     INITIAL_ACTION_STATE
@@ -129,7 +137,7 @@ export function FinishConfirm({ project }: { project: Project }) {
     <>
       <ConfirmAction
         trigger={
-          <Button disabled={isPending}>
+          <Button {...gateButtonProps(primary)} disabled={isPending}>
             <CircleCheckBig className="size-4" />
             Xác nhận hoàn tất thi công
           </Button>
