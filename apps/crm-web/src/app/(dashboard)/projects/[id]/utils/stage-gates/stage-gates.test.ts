@@ -104,6 +104,24 @@ describe("stage 1 — Yêu cầu & Khảo sát", () => {
 });
 
 describe("stage 2 — Báo giá", () => {
+  // PR #84 review: "sent" used to be true once ANY version went out, so the
+  // bargaining loop (v1 waiting → revise → v2 draft) lost its Gửi row and the
+  // panel had no next step at all.
+  test("a revised draft re-opens Gửi; chốt stays open", () => {
+    const gs = stageGates({
+      project: project({ stage: ProjectStage.QUOTE }),
+      quotes: [
+        quote({ id: 1, version: 1, status: QuoteStatus.WAITING }),
+        quote({ id: 2, version: 2, status: QuoteStatus.DRAFT }),
+      ],
+    });
+    expect(keys(gs)).toEqual({
+      quote_exists: true,
+      quote_sent: false,
+      quote_deal: false,
+    });
+  });
+
   test("versions exist but none is chốt", () => {
     const gs = stageGates({
       project: project({ stage: ProjectStage.QUOTE }),

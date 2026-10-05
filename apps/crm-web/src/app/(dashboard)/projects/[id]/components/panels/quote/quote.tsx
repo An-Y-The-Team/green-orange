@@ -159,11 +159,15 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
     </Button>
   );
   const reviseBtn = (
-    <ReviseQuoteButton
-      quoteId={quote.id}
-      projectId={project.id}
-      disabled={deletePending}
-    />
+    // `contents` keeps the button in the row's flex layout; the span exists
+    // only to carry data-edit-link (a closed job hides editor links).
+    <span data-edit-link className="contents">
+      <ReviseQuoteButton
+        quoteId={quote.id}
+        projectId={project.id}
+        disabled={deletePending}
+      />
+    </span>
   );
 
   return (
@@ -194,6 +198,7 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
               size="sm"
               render={
                 <Link
+                  data-edit-link
                   href={quoteHref({ id: quote.id, project_id: project.id })}
                 />
               }
@@ -454,6 +459,7 @@ export function QuotePanel({
               {...gateButtonProps(primary)}
               render={
                 <Link
+                  data-edit-link
                   href={`/projects/${project.id}/quotes/new${
                     project.survey_items?.length ? "?from=survey" : ""
                   }`}

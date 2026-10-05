@@ -70,7 +70,7 @@ export default async function ProjectDetailPage({
     notFound();
   }
 
-  const view = parseView(rawView, project.stage);
+  const view = parseView({ raw: rawView, currentStage: project.stage });
   const viewStage = isStageView(view) ? view : null;
 
   const paperworkItems =
@@ -199,13 +199,26 @@ export default async function ProjectDetailPage({
                   {WORKSPACE_PANES[WorkspacePane.CREW]}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <AssignmentsTab
-                  projectId={project.id}
-                  assignments={assignments}
-                  crew={crew}
-                  roles={roles}
-                />
+              <CardContent className="space-y-3">
+                {/* Same lock as a closed job's past stages (StagePanel): the
+                    server 409s every assignment edit, so the roster is shown
+                    but its buttons are disabled natively. */}
+                {project.stage === ProjectStage.CLOSED ? (
+                  <p className="text-sm text-muted-foreground">
+                    Công trình đã đóng — chỉ xem.
+                  </p>
+                ) : null}
+                <fieldset
+                  disabled={project.stage === ProjectStage.CLOSED}
+                  className="min-w-0"
+                >
+                  <AssignmentsTab
+                    projectId={project.id}
+                    assignments={assignments}
+                    crew={crew}
+                    roles={roles}
+                  />
+                </fieldset>
               </CardContent>
             </Card>
           )}

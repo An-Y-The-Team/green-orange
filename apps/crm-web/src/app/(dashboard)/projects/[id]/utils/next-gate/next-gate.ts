@@ -11,9 +11,12 @@ import type { StageGate } from "../stage-gates/stage-gates";
  * sign), so a blocked row never steals the green button from the one that can
  * actually move.
  */
-export function nextGate(
-  gates: StageGate[],
-  actionable: ReadonlySet<GateKey>
-): StageGate | undefined {
+export function nextGate({
+  gates,
+  actionable,
+}: {
+  gates: StageGate[];
+  actionable: ReadonlySet<GateKey>;
+}): StageGate | undefined {
   return gates.find((g) => !g.done && actionable.has(g.key));
 }

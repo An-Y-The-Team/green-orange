@@ -102,7 +102,12 @@ export function SettlementPanel({
         [GateKey.SETTLEMENT_EXISTS]: (primary) => (
           <Button
             {...gateButtonProps(primary)}
-            render={<Link href={`/projects/${project.id}/settlements/new`} />}
+            render={
+              <Link
+                data-edit-link
+                href={`/projects/${project.id}/settlements/new`}
+              />
+            }
           >
             Lập quyết toán
           </Button>

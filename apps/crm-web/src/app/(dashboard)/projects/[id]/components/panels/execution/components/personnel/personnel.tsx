@@ -61,7 +61,7 @@ export function Personnel({
           render={
             // The job's own crew view (assign, change roles) — not the global
             // roster, which made the operator leave the công trình.
-            <Link href={viewHref(project, WorkspacePane.CREW)}>
+            <Link href={viewHref({ project, view: WorkspacePane.CREW })}>
               <Users className="size-4" />
               Phân công
             </Link>

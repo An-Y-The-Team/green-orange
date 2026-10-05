@@ -43,7 +43,7 @@ export function GateChecklist({
   const actionable = new Set(
     (Object.keys(actions) as GateKey[]).filter((k) => actions[k])
   );
-  const next = nextGate(gates, actionable);
+  const next = nextGate({ gates, actionable });
   const open = gates.filter((g) => !g.done).length;
   const nextStage = PROJECT_STAGE_ORDER[PROJECT_STAGE_ORDER.indexOf(stage) + 1];
 

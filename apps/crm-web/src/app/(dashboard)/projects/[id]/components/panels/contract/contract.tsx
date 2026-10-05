@@ -101,7 +101,10 @@ export function ContractPanel({
               variant="outline"
               size="sm"
               render={
-                <Link href={`/projects/${project.id}/contracts/new`}>
+                <Link
+                  data-edit-link
+                  href={`/projects/${project.id}/contracts/new`}
+                >
                   <Plus className="size-4" />
                   Tạo hợp đồng
                 </Link>
@@ -117,7 +120,12 @@ export function ContractPanel({
               <Button
                 size="sm"
                 variant="outline"
-                render={<Link href={`/projects/${project.id}/contracts/new`} />}
+                render={
+                  <Link
+                    data-edit-link
+                    href={`/projects/${project.id}/contracts/new`}
+                  />
+                }
               >
                 Tạo hợp đồng
               </Button>
@@ -138,7 +146,7 @@ export function ContractPanel({
           <Info className="size-4 shrink-0" />
           Hồ sơ có thể chuẩn bị song song —{" "}
           <Link
-            href={viewHref(project, ProjectStage.PAPERWORK)}
+            href={viewHref({ project, view: ProjectStage.PAPERWORK })}
             className="font-medium text-foreground underline underline-offset-4"
           >
             mở Chuẩn bị hồ sơ
@@ -189,6 +197,7 @@ function ContractRow({
             variant="outline"
             render={
               <Link
+                data-edit-link
                 href={`/projects/${project.id}/contracts/new?edit=${contract.id}`}
               >
                 {ACTIONS.edit}

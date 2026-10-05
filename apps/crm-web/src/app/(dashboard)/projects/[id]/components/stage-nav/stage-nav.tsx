@@ -57,16 +57,16 @@ export function StageNav({
       <ul className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0">
         {PROJECT_STAGE_ORDER.map((stage, i) => {
           const gates = gatesByStage[stage];
-          const state = stageState(
+          const state = stageState({
             stage,
-            project.stage,
+            current: project.stage,
             gates,
-            project.paperwork_items
-          );
+            paperwork: project.paperwork_items,
+          });
           return (
             <NavItem
               key={stage}
-              href={viewHref(project, stage)}
+              href={viewHref({ project, view: stage })}
               selected={view === stage}
               marker={<StageMarker state={state} number={i + 1} />}
               label={labelOf(PROJECT_STAGES, stage).label}
@@ -78,14 +78,14 @@ export function StageNav({
         })}
         <li aria-hidden className="hidden lg:my-2 lg:block lg:border-t" />
         <NavItem
-          href={viewHref(project, WorkspacePane.DOCUMENTS)}
+          href={viewHref({ project, view: WorkspacePane.DOCUMENTS })}
           selected={view === WorkspacePane.DOCUMENTS}
           marker={<PaneCount count={documentCount} />}
           label={WORKSPACE_PANES[WorkspacePane.DOCUMENTS]}
           summary="báo giá, hợp đồng, hóa đơn"
         />
         <NavItem
-          href={viewHref(project, WorkspacePane.CREW)}
+          href={viewHref({ project, view: WorkspacePane.CREW })}
           selected={view === WorkspacePane.CREW}
           marker={<PaneCount count={crewCount} />}
           label={WORKSPACE_PANES[WorkspacePane.CREW]}

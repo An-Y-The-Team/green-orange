@@ -72,9 +72,10 @@ export function StagePanel({
     return <FutureStagePreview stage={stage} gates={gates} />;
 
   // A closed job is locked server-side (409 on every edit). Its past stages
-  // stay readable — links to quotes and print sheets still work — but every
-  // button inside is disabled natively, so nothing offers an edit the server
-  // will refuse. The way back is "Mở lại" on the Đã đóng stage.
+  // stay readable. `fieldset disabled` disables the real <button>s natively,
+  // but NOT links — a `Button render={<Link/>}` is an <a> — so every link into
+  // an editor or builder carries `data-edit-link` and is hidden here. View and
+  // print links stay. The way back is "Mở lại" on the Đã đóng stage.
   if (project.stage === ProjectStage.CLOSED && stage !== ProjectStage.CLOSED)
     return (
       <>
@@ -83,7 +84,7 @@ export function StagePanel({
           Công trình đã đóng — chỉ xem. Muốn sửa, mở lại công trình ở giai đoạn
           Đã đóng.
         </p>
-        <fieldset disabled className="min-w-0">
+        <fieldset disabled className="min-w-0 [&_[data-edit-link]]:hidden">
           {renderPanel()}
         </fieldset>
       </>

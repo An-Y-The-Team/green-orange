@@ -55,6 +55,13 @@ export interface StageGate {
    * it is also the last open row, so the promise is never wrong.
    */
   advances?: boolean;
+  /**
+   * A later stage depends on this row (no agreed quote, no cọc, paid without
+   * passing nghiệm thu), so the nav flags its stage "!" when it is still open
+   * after the job moved on. Most rows are optional for a backfilled job and
+   * must NOT carry it — the marker is only useful while it is rare.
+   */
+  leftover?: boolean;
 }
 
 export interface StageGateInput {
@@ -136,7 +143,13 @@ export function stageGates({
 
     case ProjectStage.QUOTE: {
       const deal = quoteRows.find((q) => q.status === QuoteStatus.DEAL);
-      const sent = quoteRows.some((q) => q.status !== QuoteStatus.DRAFT);
+      // The LATEST version decides "sent": a revised v2 draft re-opens the
+      // Gửi row even though v1 already went out (PR #84 review).
+      const latest = quoteRows.reduce<Quote | undefined>(
+        (top, q) => (!top || q.version > top.version ? q : top),
+        undefined
+      );
+      const sent = Boolean(latest) && latest?.status !== QuoteStatus.DRAFT;
       return [
         gate(
           GateKey.QUOTE_EXISTS,
@@ -145,13 +158,16 @@ export function stageGates({
           quoteRows.length ? `${quoteRows.length} phiên bản` : undefined
         ),
         gate(GateKey.QUOTE_SENT, "Gửi báo giá cho khách", sent),
-        gate(
-          GateKey.QUOTE_DEAL,
-          "Khách chốt báo giá",
-          Boolean(deal),
-          deal ? `v${deal.version}` : undefined,
-          true
-        ),
+        {
+          ...gate(
+            GateKey.QUOTE_DEAL,
+            "Khách chốt báo giá",
+            Boolean(deal),
+            deal ? `v${deal.version}` : undefined,
+            true
+          ),
+          leftover: true,
+        },
       ];
     }
 
@@ -170,13 +186,16 @@ export function stageGates({
             ? formatDate(project.client_signed_date)
             : undefined
         ),
-        gate(
-          GateKey.DEPOSIT,
-          "Nhận cọc (tạm ứng)",
-          hasPaidDeposit(milestones),
-          undefined,
-          true
-        ),
+        {
+          ...gate(
+            GateKey.DEPOSIT,
+            "Nhận cọc (tạm ứng)",
+            hasPaidDeposit(milestones),
+            undefined,
+            true
+          ),
+          leftover: true,
+        },
       ];
 
     case ProjectStage.PAPERWORK: {
@@ -226,15 +245,18 @@ export function stageGates({
 
     case ProjectStage.ACCEPTANCE:
       return [
-        gate(
-          GateKey.ACCEPTANCE_PASSED,
-          "Nghiệm thu đạt, khách ký biên bản",
-          project.acceptance_sub_status === AcceptanceSubStatus.PASSED,
-          project.acceptance_passed_date
-            ? formatDate(project.acceptance_passed_date)
-            : undefined,
-          true
-        ),
+        {
+          ...gate(
+            GateKey.ACCEPTANCE_PASSED,
+            "Nghiệm thu đạt, khách ký biên bản",
+            project.acceptance_sub_status === AcceptanceSubStatus.PASSED,
+            project.acceptance_passed_date
+              ? formatDate(project.acceptance_passed_date)
+              : undefined,
+            true
+          ),
+          leftover: true,
+        },
       ];
 
     case ProjectStage.SETTLEMENT: {

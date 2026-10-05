@@ -12,21 +12,26 @@ import type { StageGate } from "../../../../utils/stage-gates/stage-gates";
 export enum StageState {
   DONE = "done",
   CURRENT = "current",
-  // A past stage whose open work still matters: a row that moves the job (an
-  // unpaid cọc after a manual move). Optional rows a backfilled job skipped
-  // (no survey for a job created at Hợp đồng) don't count.
+  // A past stage missing something a later stage depends on — a row marked
+  // `leftover` (no agreed quote, no cọc, paid without passing nghiệm thu).
+  // Anything else a backfilled job skipped (survey, hồ sơ items) doesn't count.
   LEFTOVER = "leftover",
   // Hồ sơ being prepared while the job is still at Hợp đồng.
   PARALLEL = "parallel",
   FUTURE = "future",
 }
 
-export function stageState(
-  stage: ProjectStage,
-  current: ProjectStage,
-  gates: StageGate[],
-  paperwork: PaperworkItem[] = []
-): StageState {
+export function stageState({
+  stage,
+  current,
+  gates,
+  paperwork = [],
+}: {
+  stage: ProjectStage;
+  current: ProjectStage;
+  gates: StageGate[];
+  paperwork?: PaperworkItem[];
+}): StageState {
   if (stage === current)
     return stage === ProjectStage.CLOSED ? StageState.DONE : StageState.CURRENT;
   const ahead =
@@ -34,10 +39,10 @@ export function stageState(
   if (!ahead) {
     // A closed job is finished and read-only: nothing left to flag.
     if (current === ProjectStage.CLOSED) return StageState.DONE;
-    // Click-through 2026-10-05: flagging EVERY open row painted "!" on stage 1
-    // of every job created straight at a later stage — noise that teaches the
-    // eye to ignore the marker. Only an open trigger row is real leftover.
-    return gates.some((g) => !g.done && g.advances)
+    // Flagging every open row (then every open trigger row) painted "!" on
+    // most backfilled jobs — noise that teaches the eye to ignore the marker.
+    // Only rows explicitly marked `leftover` in stageGates count.
+    return gates.some((g) => !g.done && g.leftover)
       ? StageState.LEFTOVER
       : StageState.DONE;
   }

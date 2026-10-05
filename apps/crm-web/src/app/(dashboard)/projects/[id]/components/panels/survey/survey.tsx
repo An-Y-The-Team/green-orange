@@ -321,7 +321,10 @@ export function SurveyExit({
     <Button
       {...gateButtonProps(primary)}
       render={
-        <Link href={`/projects/${project.id}/quotes/new?from=survey`}>
+        <Link
+          data-edit-link
+          href={`/projects/${project.id}/quotes/new?from=survey`}
+        >
           Lập báo giá
         </Link>
       }

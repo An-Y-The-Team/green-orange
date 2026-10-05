@@ -12,10 +12,13 @@ const VIEWS = new Set<string>([
  * or repeated (`?view=a&view=b`) falls back to the project's current stage, so a
  * stale bookmark renders instead of breaking — same rule as `useTabParam`.
  */
-export function parseView(
-  raw: string | string[] | undefined,
-  currentStage: ProjectStage
-): WorkspaceView {
+export function parseView({
+  raw,
+  currentStage,
+}: {
+  raw: string | string[] | undefined;
+  currentStage: ProjectStage;
+}): WorkspaceView {
   return typeof raw === "string" && VIEWS.has(raw)
     ? (raw as WorkspaceView)
     : currentStage;

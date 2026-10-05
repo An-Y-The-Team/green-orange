@@ -133,6 +133,7 @@ export function SettlementCard({
             size="sm"
             render={
               <Link
+                data-edit-link
                 href={`/projects/${projectId}/settlements/${settlement.id}/edit`}
               />
             }
