@@ -768,11 +768,11 @@ transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
 
 **The live bucket** (Bizfly, created 2026-10-05):
 
-| | |
-|---|---|
-| endpoint | `https://hcm.ss.bfcplatform.vn` |
-| region | `hcm` |
-| bucket | `greenorange` |
+|            |                                                                              |
+| ---------- | ---------------------------------------------------------------------------- |
+| endpoint   | `https://hcm.ss.bfcplatform.vn`                                              |
+| region     | `hcm`                                                                        |
+| bucket     | `greenorange`                                                                |
 | addressing | **path-style** (`forcePathStyle: true`) — Bizfly's own SDK page specifies it |
 
 **Setup (provider console — the operator does this once):**
@@ -785,14 +785,19 @@ transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
    an opaque network error:
 
    ```json
-   [{ "AllowedOrigins": ["https://crm.dichvuyan.com"],
-      "AllowedMethods": ["GET", "PUT"],
-      "AllowedHeaders": ["*"],
-      "ExposeHeaders": ["ETag"],
-      "MaxAgeSeconds": 3000 }]
+   [
+     {
+       "AllowedOrigins": ["https://crm.dichvuyan.com"],
+       "AllowedMethods": ["GET", "PUT"],
+       "AllowedHeaders": ["*"],
+       "ExposeHeaders": ["ETag"],
+       "MaxAgeSeconds": 3000
+     }
+   ]
    ```
 
    Replace the origin with the real `CRM_DOMAIN`. Do **not** use `*`.
+
 4. Create a second bucket `greenorange-backups` for §8a, with its **own** key.
 
 **Verify** after deploy: open a project → Khảo sát → upload a small .pdf → the

@@ -629,7 +629,9 @@ export class AttachmentsController {
   async presign(@Body() dto: PresignAttachmentDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
     if (!ALLOWED_CONTENT_TYPES.has(dto.content_type))
-      throw new BadRequestException(`Unsupported file type: ${dto.content_type}`);
+      throw new BadRequestException(
+        `Unsupported file type: ${dto.content_type}`
+      );
     if (dto.content_length > MAX_UPLOAD_BYTES)
       throw new BadRequestException(
         `File is larger than ${Math.floor(MAX_UPLOAD_BYTES / 1024 / 1024)} MB`
