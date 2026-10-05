@@ -135,11 +135,14 @@ def update_paperwork_item(
 ) -> PaperworkItem:
     item = get_item_or_404(session, item_id)
     assert_project_open(session, item.project_id)
-    item.sqlmodel_update(payload.model_dump(exclude_unset=True))
+    fields = payload.model_dump(exclude_unset=True)
+    item.sqlmodel_update(fields)
     session.add(item)
+    # Only a status / needed_for change can complete the checklist. A note,
+    # date or name edit must not undo a manual backward stage move. Same commit.
+    if "status" in fields or "needed_for" in fields:
+        advance_if_paperwork_ready(session, item.project_id)
     session.commit()
-    session.refresh(item)
-    advance_if_paperwork_ready(session, item.project_id)
     session.refresh(item)
     return item
 
@@ -150,6 +153,6 @@ def delete_paperwork_item(session: SessionDep, item_id: int) -> None:
     assert_project_open(session, item.project_id)
     project_id = item.project_id
     session.delete(item)
-    session.commit()
     # Removing the last unapproved item can complete the checklist.
     advance_if_paperwork_ready(session, project_id)
+    session.commit()

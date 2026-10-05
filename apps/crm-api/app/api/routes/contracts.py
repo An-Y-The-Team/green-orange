@@ -83,9 +83,10 @@ def create_contract(session: SessionDep, payload: ContractCreate) -> Contract:
     assert_project_open(session, payload.project_id)
     contract = Contract(code=next_code(session, Contract, "HD"), **payload.model_dump())
     session.add(contract)
+    # One commit for the contract and the stage move it triggers.
+    advance_stage(session, payload.project_id, "contract")
     session.commit()
     session.refresh(contract)
-    advance_stage(session, payload.project_id, "contract")
     return contract
 
 

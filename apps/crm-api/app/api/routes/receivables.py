@@ -237,10 +237,11 @@ def create_settlement(session: SessionDep, payload: SettlementCreate) -> Settlem
             total_amount=0,  # the bill gets the real total on sign
         )
     )
+    # Starting a settlement means the project has reached stage 8 — same
+    # commit as the settlement and its bill.
+    advance_stage(session, payload.project_id, "settlement")
     session.commit()
     session.refresh(settlement)
-    # Starting a settlement means the project has reached stage 8.
-    advance_stage(session, payload.project_id, "settlement")
     return settlement
 
 
@@ -323,10 +324,10 @@ def sign(session: Session, settlement: Settlement) -> Settlement:
                     amount=remainder,
                 )
             )
-    session.commit()
     # A cọc that already covers the whole payable leaves nothing to collect —
-    # the job is done the moment it's signed.
+    # the job is done the moment it's signed. One commit for all of it.
     close_if_fully_paid(session, settlement.project_id)
+    session.commit()
     session.refresh(settlement)
     return settlement
 
@@ -503,10 +504,13 @@ def update_bill(session: SessionDep, bill_id: int, payload: BillUpdate) -> Bill:
             bill.sent_date = business_today()
         if target == "paid" and bill.paid_date is None:
             bill.paid_date = business_today()
+        # Only on an actual transition — same as Nest, where re-sending "paid"
+        # on an already-paid bill (a reopened job) must not close it again.
+        if target == "paid":
+            session.add(bill)
+            close_if_fully_paid(session, bill.project_id)
     session.add(bill)
     session.commit()
-    if target == "paid":
-        close_if_fully_paid(session, bill.project_id)
     session.refresh(bill)
     return bill
 
@@ -611,12 +615,12 @@ def create_milestone(session: SessionDep, payload: MilestoneCreate) -> PaymentMi
     if payload.status is not None:
         milestone.status = payload.status
     session.add(milestone)
-    session.commit()
-    session.refresh(milestone)
-    # Cọc received closes stage 4 → paperwork.
+    # Cọc received closes stage 4 → paperwork; the last đợt closes the job.
+    # Same commit as the đợt itself.
     if payload.status == "paid":
         after_paid(session, payload.project_id, payload.type)
-        session.refresh(milestone)
+    session.commit()
+    session.refresh(milestone)
     return milestone
 
 
@@ -645,12 +649,12 @@ def update_milestone(
         if target == "paid" and milestone.paid_date is None:
             milestone.paid_date = business_today()
     session.add(milestone)
-    session.commit()
-    session.refresh(milestone)
-    # Cọc received (deposit milestone paid) closes stage 4 → paperwork.
+    # Cọc received (deposit milestone paid) closes stage 4 → paperwork. Same
+    # commit as the đợt itself.
     if target == "paid" and was_status != "paid":
         after_paid(session, milestone.project_id, was_type)
-        session.refresh(milestone)
+    session.commit()
+    session.refresh(milestone)
     return milestone
 
 

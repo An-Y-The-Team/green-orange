@@ -83,7 +83,8 @@ class SeedDefaultsDto {
 }
 
 @Controller("paperwork-items")
-class PaperworkItemsController {
+// Exported for paperwork.test.ts.
+export class PaperworkItemsController {
   constructor(private readonly prisma: PrismaService) {}
 
   // The due_date filter is `overdue=true` rather than a raw date bound: overdue
@@ -175,12 +176,18 @@ class PaperworkItemsController {
     const { due_date, ...rest } = dto;
     const data: Record<string, unknown> = { ...rest };
     if (due_date !== undefined) data.due_date = toDate(due_date);
-    const updated = await this.prisma.paperworkItem.update({
-      where: { id },
-      data,
+    // Only a change that can complete the checklist re-checks it: a note or
+    // due-date edit must not undo a manual backward stage move.
+    const affectsChecklist =
+      dto.status !== undefined || dto.needed_for !== undefined;
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.paperworkItem.update({
+        where: { id },
+        data,
+      });
+      if (affectsChecklist) await advanceIfPaperworkReady(tx, row.project_id);
+      return updated;
     });
-    await advanceIfPaperworkReady(this.prisma, row.project_id);
-    return updated;
   }
 
   @Delete(":id")
@@ -188,9 +195,11 @@ class PaperworkItemsController {
   async remove(@Param("id", ParseIntPipe) id: number) {
     const row = await this.get(id);
     await assertProjectOpen(this.prisma, row.project_id);
-    await this.prisma.paperworkItem.delete({ where: { id } });
     // Removing the last unapproved item can complete the checklist.
-    await advanceIfPaperworkReady(this.prisma, row.project_id);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.paperworkItem.delete({ where: { id } });
+      await advanceIfPaperworkReady(tx, row.project_id);
+    });
   }
 }
 

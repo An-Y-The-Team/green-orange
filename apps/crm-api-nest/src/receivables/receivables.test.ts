@@ -6,6 +6,7 @@ import { describe, expect, test } from "bun:test";
 
 import { businessToday } from "../common/business-date";
 import {
+  BillsController,
   PaymentMilestonesController,
   ReceivablesSummaryController,
   SettlementsController,
@@ -149,6 +150,8 @@ describe("settlement sign (PATCH items + status together)", () => {
       // Prisma returns the updated row — the fix reads the new total off it.
       settlement: {
         update: async ({ data }: any) => ({ ...stored, ...data }),
+        // The fully-paid close check runs inside the sign transaction.
+        findUnique: async () => null,
       },
       bill: {
         findFirst: async () => stored.bill,
@@ -222,7 +225,7 @@ describe("settlement sign (PATCH items + status together)", () => {
 describe("milestone create paid_date", () => {
   const fake = (): any => {
     const created: Record<string, unknown>[] = [];
-    return {
+    const self: any = {
       created,
       project: { findUnique: async () => ({ stage: "paperwork" }) },
       paymentMilestone: {
@@ -236,6 +239,9 @@ describe("milestone create paid_date", () => {
       paperworkItem: { findMany: async () => [] },
       settlement: { findUnique: async () => null },
     };
+    // The đợt and the auto-advance it triggers share one transaction.
+    self.$transaction = async (fn: any) => fn(self);
+    return self;
   };
   const deposit = { project_id: 3, type: "deposit", amount: 100_000_000 };
 
@@ -471,5 +477,46 @@ describe("GET /receivables/summary", () => {
     const { prisma, wheres } = fakePrisma({});
     await new ReceivablesSummaryController(prisma).summary(7);
     for (const [, where] of wheres) expect(where.project_id).toBe(7);
+  });
+});
+
+// The bill PATCH runs the fully-paid close only on a real transition to paid,
+// inside the same transaction as the flip — re-sending "paid" on an already
+// paid bill (a reopened job) must not close it again. Parity with crm-api.
+describe("bill PATCH → close", () => {
+  const fake = (status: string) => {
+    const calls: string[] = [];
+    const self: any = {
+      calls,
+      bill: {
+        findUnique: async () => ({ id: 9, project_id: 3, status }),
+        update: async () => ({ id: 9, milestones: [] }),
+        findUniqueOrThrow: async () => ({ id: 9, milestones: [] }),
+      },
+      project: { findUnique: async () => ({ stage: "settlement" }) },
+      settlement: {
+        findUnique: async () => {
+          calls.push("close-check");
+          return null;
+        },
+      },
+    };
+    self.$transaction = async (fn: any) => {
+      calls.push("tx");
+      return fn(self);
+    };
+    return self;
+  };
+
+  test("sent → paid runs the close check in the transaction", async () => {
+    const prisma = fake("sent");
+    await new BillsController(prisma).update(9, { status: "paid" } as any);
+    expect(prisma.calls).toEqual(["tx", "close-check"]);
+  });
+
+  test("paid → paid again does not", async () => {
+    const prisma = fake("paid");
+    await new BillsController(prisma).update(9, { status: "paid" } as any);
+    expect(prisma.calls).not.toContain("close-check");
   });
 });

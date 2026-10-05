@@ -62,9 +62,10 @@ def should_advance(current: str, target: str) -> bool:
 def advance_stage(session: Session, project_id: int | None, target: str) -> None:
     """Auto-advance: doing the work bumps the stage (`stage = max(stage, target)`).
 
-    Safe to call opportunistically after creating an artifact — a no-op when
+    Safe to call opportunistically after writing an artifact — a no-op when
     `project_id` is None (standalone quote/contract) or the project is already
-    at or past `target`. Commits, so call it after the artifact is committed.
+    at or past `target`. Does NOT commit: the calling route commits once, so
+    the artifact and the stage move land together or not at all.
     """
     if project_id is None:
         return
@@ -73,7 +74,6 @@ def advance_stage(session: Session, project_id: int | None, target: str) -> None
         return
     project.stage = target
     session.add(project)
-    session.commit()
 
 
 def paperwork_ready(items: Iterable[PaperworkItem], deposit_paid: bool) -> bool:
@@ -119,24 +119,42 @@ def advance_if_paperwork_ready(session: Session, project_id: int) -> None:
 def close_if_fully_paid(session: Session, project_id: int) -> None:
     """After a đợt is paid, a bill is marked paid, or the settlement is signed.
 
-    Closing locks the project, so the bill is flipped to paid in the same step —
-    otherwise it would sit at "sent" with no way left to edit it.
+    Closing locks the project, so the money is made consistent in the same unit
+    of work: the bill flips to paid (all đợt in), or the bill's open đợt flip
+    to paid (bill marked paid) — otherwise they would sit open, uneditable and
+    counted as overdue. Does NOT commit; the calling route does, once.
     """
     settlement = session.exec(
         select(Settlement).where(Settlement.project_id == project_id)
     ).first()
     bill = settlement.bill if settlement else None
+    # Queried, not `bill.milestones`: the caller's writes are still pending
+    # (one commit per request), and autoflush makes a query see them where a
+    # relationship collection loaded earlier would not.
+    milestones = (
+        session.exec(
+            select(PaymentMilestone).where(PaymentMilestone.bill_id == bill.id)
+        ).all()
+        if bill
+        else []
+    )
     if not fully_paid(
         settlement.status if settlement else None,
         bill.status if bill else None,
-        bill.milestones if bill else [],
+        milestones,
     ):
         return
-    if bill is not None and bill.status != "paid":
-        bill.status = "paid"
-        bill.paid_date = business_today()
-        session.add(bill)
-        session.commit()
+    if bill is not None:
+        today = business_today()
+        if bill.status != "paid":
+            bill.status = "paid"
+            bill.paid_date = today
+            session.add(bill)
+        for milestone in milestones:
+            if milestone.status != "paid":
+                milestone.status = "paid"
+                milestone.paid_date = today
+                session.add(milestone)
     advance_stage(session, project_id, "closed")
 
 

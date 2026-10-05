@@ -1,5 +1,13 @@
-import { PrismaService } from "../prisma/prisma.service";
+import type { Prisma } from "@prisma/client";
+
 import { businessToday } from "./business-date";
+
+// Every helper below takes the caller's transaction client: the triggering
+// write (a đợt paid, a quote chốt …) and the stage move / bill flip it causes
+// must commit together (code-review.md: one transaction per multi-write
+// request). PrismaService is assignable too, for a caller with nothing else to
+// write.
+type Db = Prisma.TransactionClient;
 
 // The 8 lifecycle stages, in order (prisma/schema.prisma Project.stage).
 // 2026-07-25: "survey" merged into "request" — the appointment IS the survey
@@ -27,7 +35,7 @@ export function shouldAdvance(current: string, target: string): boolean {
 // artifact is created; a no-op when projectId is null (standalone quotes/
 // contracts) or the project is already at/past the target.
 export async function advanceStage(
-  prisma: PrismaService,
+  prisma: Db,
   projectId: number | null | undefined,
   target: string
 ): Promise<void> {
@@ -74,7 +82,7 @@ export function fullyPaid(
 // Called after anything that can complete the stage-4 checklist: a hồ sơ item
 // approved/retagged/deleted, or the cọc recorded.
 export async function advanceIfPaperworkReady(
-  prisma: PrismaService,
+  prisma: Db,
   projectId: number
 ): Promise<void> {
   const [items, deposit] = await Promise.all([
@@ -92,10 +100,13 @@ export async function advanceIfPaperworkReady(
 }
 
 // Called after a đợt is paid, a bill is marked paid, or the settlement is
-// signed. Closing locks the project, so the bill is flipped to paid in the same
-// step — otherwise it would sit at "sent" forever with no way to edit it.
+// signed. Closing locks the project, so the money is made consistent in the
+// same step — otherwise a bill would sit at "sent", or a đợt at "awaiting
+// payment" (still counted overdue), forever with no way to edit it:
+// - every đợt paid → the bill is flipped to paid;
+// - the bill marked paid → its open đợt are flipped to paid.
 export async function closeIfFullyPaid(
-  prisma: PrismaService,
+  prisma: Db,
   projectId: number
 ): Promise<void> {
   const settlement = await prisma.settlement.findUnique({
@@ -117,6 +128,11 @@ export async function closeIfFullyPaid(
   if (bill && bill.status !== "paid")
     await prisma.bill.update({
       where: { id: bill.id },
+      data: { status: "paid", paid_date: businessToday() },
+    });
+  if (bill)
+    await prisma.paymentMilestone.updateMany({
+      where: { bill_id: bill.id, status: { not: "paid" } },
       data: { status: "paid", paid_date: businessToday() },
     });
   await advanceStage(prisma, projectId, "closed");

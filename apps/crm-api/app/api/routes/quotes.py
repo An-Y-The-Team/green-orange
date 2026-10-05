@@ -202,9 +202,10 @@ def create_quote(session: SessionDep, payload: QuoteCreate) -> Quote:
     if payload.vat_rate is not None:
         quote.vat_rate = payload.vat_rate
     session.add(quote)
+    # One commit for the quote and the stage move it triggers.
+    advance_stage(session, payload.project_id, "quote")
     session.commit()
     session.refresh(quote)
-    advance_stage(session, payload.project_id, "quote")
     return quote
 
 
@@ -272,11 +273,11 @@ def decide_quote(session: SessionDep, quote_id: int, payload: QuoteDecide) -> Qu
     quote.status = payload.status
     quote.decided_date = business_today()
     session.add(quote)
-    session.commit()
     # Chốt → contract signing (stage 3). Hoãn/Hủy change the project's status,
-    # not its stage — the UI sends that PATCH itself.
+    # not its stage — the UI sends that PATCH itself. One commit for both.
     if payload.status == "deal":
         advance_stage(session, quote.project_id, "contract")
+    session.commit()
     session.refresh(quote)
     return quote
 
@@ -312,9 +313,9 @@ def revise_quote(session: SessionDep, quote_id: int) -> Quote:
         ],
     )
     session.add(revised)
+    advance_stage(session, revised.project_id, "quote")
     session.commit()
     session.refresh(revised)
-    advance_stage(session, revised.project_id, "quote")
     return revised
 
 
