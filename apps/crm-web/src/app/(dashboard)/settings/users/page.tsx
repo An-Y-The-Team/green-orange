@@ -107,7 +107,7 @@ export default async function UsersPage({
                   </TableCell>
                   <TableCell>
                     {user.is_active ? (
-                      <Badge variant="success">Đang hoạt động</Badge>
+                      <Badge variant="default">Đang hoạt động</Badge>
                     ) : (
                       <Badge variant="secondary">Đã khóa</Badge>
                     )}

@@ -151,7 +151,7 @@ export default async function CrewDetailPage({
                       </TableCell>
                       <TableCell>
                         {(a.overlaps?.length ?? 0) > 0 && (
-                          <Badge variant="warning">
+                          <Badge variant="destructive">
                             <TriangleAlert className="size-3" />
                             Trùng lịch với{" "}
                             {a.overlaps

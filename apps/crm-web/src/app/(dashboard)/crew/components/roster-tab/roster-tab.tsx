@@ -192,14 +192,7 @@ export function RosterTab({ roles }: { roles: CrewRole[] }) {
                           {member.default_role?.name ?? "—"}
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant={
-                              member.employment_type ===
-                              EmploymentType.PERMANENT
-                                ? "default"
-                                : "secondary"
-                            }
-                          >
+                          <Badge variant="outline">
                             {EMPLOYMENT_TYPES[member.employment_type] ??
                               member.employment_type}
                           </Badge>

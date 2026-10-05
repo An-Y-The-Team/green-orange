@@ -21,7 +21,7 @@ export type SerializedLineItemsNode = SerializedLexicalNode;
 
 function LineItemsPlaceholder(): JSX.Element {
   return (
-    <div className="my-2 rounded-md border border-dashed border-emerald-400 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-800">
+    <div className="my-2 rounded-md border border-dashed border-zinc-400 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
       <span className="font-medium">Bảng báo giá (tự động)</span> — chèn từ báo
       giá liên kết khi in/xuất tài liệu.
     </div>

@@ -24,6 +24,10 @@
   --ring: oklch(59.6% 0.145 163.225);
 }
 
+/* Status tones (--done/--now/--waiting/--problem) live in @yan/ui/styles.css,
+   next to the Badge that uses them — see "Buttons vs badges" in
+   docs/features/crm-ui-redesign.md. */
+
 /* Operators asked for a bigger UI. Every Tailwind size (text, spacing, radii) is
    rem-based, so raising the root font-size zooms the whole app proportionally
    instead of only enlarging text into cramped rows. */

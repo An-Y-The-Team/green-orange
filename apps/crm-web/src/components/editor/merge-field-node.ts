@@ -51,7 +51,7 @@ export class MergeFieldNode extends TextNode {
   createDOM(config: EditorConfig): HTMLElement {
     const dom = super.createDOM(config);
     dom.className =
-      "mx-0.5 inline-block rounded bg-emerald-100 px-1 align-baseline text-[0.95em] font-medium text-emerald-800";
+      "mx-0.5 inline-block rounded bg-zinc-100 px-1 align-baseline text-[0.95em] font-medium text-zinc-800 ring-1 ring-zinc-300";
     dom.setAttribute("data-merge-token", this.__token);
     return dom;
   }

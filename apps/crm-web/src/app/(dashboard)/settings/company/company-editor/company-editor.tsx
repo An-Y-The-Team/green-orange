@@ -214,8 +214,8 @@ export function CompanyEditor({ company }: { company: CompanyData }) {
             <h2 className="text-sm font-medium">Mẫu đầu trang</h2>
             <p className="text-xs text-muted-foreground">
               Các ô{" "}
-              <span className="rounded bg-emerald-100 px-1 font-medium text-emerald-800">
-                màu xanh
+              <span className="rounded bg-muted px-1 font-medium text-foreground ring-1 ring-border">
+                có nền xám
               </span>{" "}
               là trường dữ liệu — nội dung lấy từ các mục bên phải, không nhập
               trực tiếp vào mẫu.
