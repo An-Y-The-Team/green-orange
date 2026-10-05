@@ -6,8 +6,9 @@ common: overlaps come back on the response as a non-blocking warning.
 """
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Literal, Self
 
+from pydantic import model_validator
 from sqlalchemy import DateTime, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -26,6 +27,34 @@ TIMEKEEPING_SOURCES = (TIMEKEEPING_SOURCE_MANUAL, "zalo_app")
 EmploymentType = Literal["permanent", "day_hire"]
 CrewStatus = Literal["working", "on_leave", "left"]
 TimekeepingSource = Literal["manual", "zalo_app"]
+
+# Full hours 00–23, like the Nest HH_MM validator.
+HH_MM = r"^([01]\d|2[0-3]):[0-5]\d$"
+# A shift longer than this is a typo (swapped AM/PM), not a workday.
+MAX_SHIFT_HOURS = 16
+
+
+def compute_shift_hours(start: str, end: str) -> float:
+    """ "HH:mm" pair → decimal hours; end at-or-before start crosses midnight.
+
+    Mirrors `computeShiftHours` in crm-api-nest/src/common/shift-hours.ts. A
+    claimed pair has no dates, so +24h is the best guess and an impossible span
+    is rejected rather than stored.
+    """
+
+    def minutes(t: str) -> int:
+        h, m = t.split(":")
+        return int(h) * 60 + int(m)
+
+    diff = minutes(end) - minutes(start)
+    if diff <= 0:
+        diff += 24 * 60
+    hours = round(diff / 60, 2)
+    if hours > MAX_SHIFT_HOURS:
+        raise ValueError(
+            f"Ca làm vượt quá {MAX_SHIFT_HOURS} giờ — kiểm tra lại giờ vào / giờ ra"
+        )
+    return hours
 
 
 # ── Tables ──────────────────────────────────────────────────────────────────
@@ -87,6 +116,8 @@ class TimekeepingRecord(SQLModel, table=True):
     work_date: date = Field(index=True)
     hours: float  # raw hours worked that day
     source: str  # manual | zalo_app — manual is the source of truth
+    start_time: str | None = None  # "HH:mm" giờ vào, when hours came from a pair
+    end_time: str | None = None  # "HH:mm" giờ ra
     note: str | None = None
 
 
@@ -137,12 +168,27 @@ class AssignmentUpdate(SQLModel):
 
 
 class TimekeepingCreate(SQLModel):
+    """Either `hours`, or a giờ vào / giờ ra pair the server turns into hours."""
+
     crew_member_id: int
     project_id: int
     work_date: date
-    hours: float = Field(ge=0)
+    hours: float | None = Field(default=None, ge=0)
+    start_time: str | None = Field(default=None, regex=HH_MM)
+    end_time: str | None = Field(default=None, regex=HH_MM)
     source: TimekeepingSource
     note: str | None = None
+
+    @model_validator(mode="after")
+    def hours_from_times(self) -> Self:
+        if (self.start_time is None) != (self.end_time is None):
+            raise ValueError("start_time and end_time go together")
+        # Times win over a sent `hours`: the number is derived, never trusted.
+        if self.start_time and self.end_time:
+            self.hours = compute_shift_hours(self.start_time, self.end_time)
+        if self.hours is None:
+            raise ValueError("hours or start_time + end_time is required")
+        return self
 
 
 # ── Response schemas ────────────────────────────────────────────────────────
@@ -204,6 +250,8 @@ class TimekeepingPublic(SQLModel):
     work_date: date
     hours: float
     source: str
+    start_time: str | None
+    end_time: str | None
     note: str | None
 
 

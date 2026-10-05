@@ -22,8 +22,10 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Min,
   MinLength,
+  ValidateIf,
 } from "class-validator";
 import type { Response } from "express";
 
@@ -40,6 +42,7 @@ import {
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { overlappingIds } from "../common/schedule";
+import { HH_MM, computeShiftHours } from "../common/shift-hours";
 import { PrismaService } from "../prisma/prisma.service";
 
 const EMPLOYMENT_TYPE = ["permanent", "day_hire"];
@@ -454,11 +457,18 @@ class AssignmentsController {
 }
 
 // ── Timekeeping (chấm công) ─────────────────────────────────────────────────
+// Either `hours`, or a giờ vào / giờ ra pair the server turns into hours — the
+// office's manual entry claims times exactly like the worker's remedy does.
 class CreateTimekeepingDto {
   @IsInt() crew_member_id: number;
   @IsInt() project_id: number;
   @IsDateString() work_date: string;
-  @IsNumber() @Min(0) hours: number;
+  @ValidateIf((o: CreateTimekeepingDto) => !o.start_time && !o.end_time)
+  @IsNumber()
+  @Min(0)
+  hours?: number;
+  @IsOptional() @Matches(HH_MM) start_time?: string;
+  @IsOptional() @Matches(HH_MM) end_time?: string;
   @IsIn(TIMEKEEPING_SOURCE) source: string;
   @IsOptional() @IsString() note?: string;
 }
@@ -604,6 +614,13 @@ export class TimekeepingController {
   @Post()
   @HttpCode(201)
   async create(@Body() dto: CreateTimekeepingDto) {
+    if (!dto.start_time !== !dto.end_time)
+      throw new BadRequestException("start_time and end_time go together");
+    // Times win over a sent `hours`: the number is derived, never trusted.
+    const hours =
+      dto.start_time && dto.end_time
+        ? computeShiftHours(dto.start_time, dto.end_time)
+        : dto.hours!;
     await assertProjectOpen(this.prisma, dto.project_id);
     const key = {
       crew_member_id: dto.crew_member_id,
@@ -611,10 +628,18 @@ export class TimekeepingController {
       work_date: toDate(dto.work_date)!,
       source: dto.source,
     };
+    // Times are always written, null included: an hours-only edit from the
+    // grid must clear a pair that no longer adds up to the new number.
+    const fields = {
+      hours,
+      start_time: dto.start_time ?? null,
+      end_time: dto.end_time ?? null,
+      note: dto.note ?? null,
+    };
     return this.prisma.timekeepingRecord.upsert({
       where: { crew_member_id_project_id_work_date_source: key },
-      create: { ...key, hours: dto.hours, note: dto.note ?? null },
-      update: { hours: dto.hours, note: dto.note ?? null },
+      create: { ...key, ...fields },
+      update: fields,
     });
   }
 

@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { mondayOfThisWeek, weekRange } from "./date-range";
+import { mondayOf, mondayOfThisWeek, weekRange } from "./date-range";
 
 // TZ=Asia/Ho_Chi_Minh comes from vitest.config.ts — the early-morning cases
 // only fail in a UTC+ zone.
@@ -35,4 +35,10 @@ test("mondayOfThisWeek treats Sunday as the end of its week", () => {
 test("mondayOfThisWeek is a no-op on a Monday", () => {
   vi.setSystemTime(new Date("2026-07-27T03:00:00Z")); // 10:00 Mon 27/07/2026 ICT
   expect(mondayOfThisWeek()).toBe("2026-07-27");
+});
+
+test("mondayOf finds the Monday of any date, Sunday included", () => {
+  expect(mondayOf("2026-10-05")).toBe("2026-10-05");
+  expect(mondayOf("2026-10-11")).toBe("2026-10-05");
+  expect(mondayOf("2026-01-01")).toBe("2025-12-29");
 });

@@ -118,6 +118,13 @@ export function TimekeepingCell({
   };
 
   const fromZalo = zalo && !row;
+  // Giờ vào–giờ ra + ghi chú of a manual row entered through the form; the cell
+  // itself only has room for the hours.
+  const detail = row?.start_time
+    ? [`${row.start_time}–${row.end_time}`, row.note]
+        .filter(Boolean)
+        .join(" · ")
+    : undefined;
 
   return (
     <TableCell className="p-1 text-center align-top">
@@ -134,6 +141,7 @@ export function TimekeepingCell({
             // in flight — never its neighbours.
             disabled={pending}
             aria-label={`${memberName} — ${weekday} ${formatDate(date)}`}
+            title={detail}
             aria-invalid={error ? true : undefined}
             className={cn(
               "h-8 w-14 text-center",

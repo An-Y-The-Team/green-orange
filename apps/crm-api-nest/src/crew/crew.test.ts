@@ -281,6 +281,68 @@ describe("POST /timekeeping/:id/decide", () => {
   });
 });
 
+// Manual entry (POST /timekeeping). What must not regress: a giờ vào / giờ ra
+// pair is turned into hours by the server, never taken from the client, and an
+// hours-only re-entry clears a pair that would no longer add up.
+describe("POST /timekeeping (manual upsert)", () => {
+  const create = async (dto: Record<string, unknown>) => {
+    const upserts: Record<string, unknown>[] = [];
+    const prisma = {
+      timekeepingRecord: {
+        upsert: async (args: Record<string, unknown>) => {
+          upserts.push(args);
+          return args.create;
+        },
+      },
+      project: { findUnique: async () => ({ id: 2, stage: "execution" }) },
+    } as unknown as PrismaService;
+    await new TimekeepingController(prisma).create({
+      crew_member_id: 3,
+      project_id: 2,
+      work_date: "2026-10-05",
+      source: "manual",
+      ...dto,
+    } as never);
+    return upserts[0] as { create: object; update: object };
+  };
+
+  test("a times pair stores the server-computed hours and both times", async () => {
+    const { create: row, update } = await create({
+      start_time: "07:30",
+      end_time: "17:00",
+      hours: 99,
+    });
+    expect(row).toMatchObject({
+      hours: 9.5,
+      start_time: "07:30",
+      end_time: "17:00",
+    });
+    expect(update).toMatchObject({ hours: 9.5, start_time: "07:30" });
+  });
+
+  test("an hours-only entry nulls the times", async () => {
+    const { update } = await create({ hours: 8 });
+    expect(update).toEqual({
+      hours: 8,
+      start_time: null,
+      end_time: null,
+      note: null,
+    });
+  });
+
+  test("half a pair is a 400", async () => {
+    await expect(create({ start_time: "07:30" })).rejects.toThrow(
+      /go together/
+    );
+  });
+
+  test("a span over the cap is rejected, like the worker's remedy", async () => {
+    await expect(
+      create({ start_time: "06:00", end_time: "23:30" })
+    ).rejects.toThrow(/vượt quá/);
+  });
+});
+
 // X-Total-Count on a paginated list (GET /crew stands in for all 15 — they share
 // one `withTotalCount` helper). What must not regress: the header is the total of
 // the FILTERED collection, not the length of the page and not the whole table.

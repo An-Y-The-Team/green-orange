@@ -119,5 +119,32 @@ def test_timekeeping_upserts_per_source_and_manual_wins_in_the_summary(
     }
 
 
+def test_manual_times_become_server_computed_hours(
+    client: TestClient, fixtures: dict, project: dict
+):
+    def enter(**fields):
+        return client.post(
+            "/timekeeping",
+            json={
+                "crew_member_id": fixtures["crew_member_id"],
+                "project_id": project["id"],
+                "work_date": "2026-08-15",
+                "source": "manual",
+                **fields,
+            },
+        )
+
+    # The pair wins over a sent `hours` — the number is derived, never trusted.
+    row = enter(start_time="07:30", end_time="17:00", hours=99).json()
+    assert (row["hours"], row["start_time"], row["end_time"]) == (9.5, "07:30", "17:00")
+    # An hours-only re-entry clears a pair that no longer adds up.
+    row = enter(hours=8).json()
+    assert (row["hours"], row["start_time"], row["end_time"]) == (8, None, None)
+
+    assert enter(start_time="07:30").status_code == 422
+    assert enter(start_time="06:00", end_time="23:30").status_code == 422
+    assert enter().status_code == 422
+
+
 def test_crew_role_in_use_cannot_be_deleted(client: TestClient, fixtures: dict):
     assert client.delete(f"/crew-roles/{fixtures['role_id']}").status_code == 409

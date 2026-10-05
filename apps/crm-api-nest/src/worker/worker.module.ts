@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -32,6 +31,11 @@ import { toDate } from "../common/coerce";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import {
+  HH_MM,
+  MAX_SHIFT_HOURS,
+  computeShiftHours,
+} from "../common/shift-hours";
+import {
   TIMEKEEPING_SOURCE_ZALO,
   TIMEKEEPING_STATUS_APPROVED,
   TIMEKEEPING_STATUS_OPEN,
@@ -45,14 +49,6 @@ import { PrismaService } from "../prisma/prisma.service";
 // a leaked crew JWT can never read the CRM. Every handler scopes its queries
 // by the token's crew_member_id — a worker sees exactly their own rows.
 // Error messages are Vietnamese: the mini app shows them to workers verbatim.
-
-// Full hours 00–23 at the DTO edge so computeShiftHours only ever sees valid
-// clock times.
-const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-// Odd hours are the norm on site, but a shift longer than this is a typo
-// (swapped AM/PM), not a workday — approval is the control for everything else.
-export const MAX_SHIFT_HOURS = 16;
 
 // Set on a clock-out whose real span exceeded MAX_SHIFT_HOURS: the hours are
 // clamped to the cap and the row is flagged so the operator looks at it.
@@ -90,26 +86,6 @@ export const stampedShiftHours = ({
   return hours > MAX_SHIFT_HOURS
     ? { hours: MAX_SHIFT_HOURS, flag: FLAG_OVER_CAP }
     : { hours, flag: null };
-};
-
-// "HH:mm" pair → decimal hours, end at-or-before start crosses midnight (+24h).
-// Only the remedy path uses this: a worker claiming times by hand gives us no
-// dates to subtract, so the +24h guess is the best available and an impossible
-// span is a typo worth rejecting. Exported for the unit test — not a route.
-export const computeShiftHours = (start: string, end: string): number => {
-  const minutes = (t: string): number => {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + m;
-  };
-  let diff = minutes(end) - minutes(start);
-  if (diff <= 0) diff += 24 * 60;
-  const hours = Math.round((diff / 60) * 100) / 100;
-  if (hours > MAX_SHIFT_HOURS) {
-    throw new BadRequestException(
-      `Ca làm vượt quá ${MAX_SHIFT_HOURS} giờ — kiểm tra lại giờ vào / giờ ra`
-    );
-  }
-  return hours;
 };
 
 // A lý do short enough to be meaningless ("ok", ".") tells the operator nothing,

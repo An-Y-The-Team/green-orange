@@ -23,12 +23,27 @@ import type { Assignment, TimekeepingRecord } from "../types";
 // edit path. 409 if the project is closed (surfaced as the error message).
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày không hợp lệ.");
 
-const upsertSchema = z.object({
-  crew_member_id: z.number().int().positive(),
-  work_date: isoDate,
-  hours: z.number().min(0),
-  note: z.string().optional(),
-});
+const hhmm = z.string().regex(/^\d{2}:\d{2}$/, "Giờ không hợp lệ.");
+
+// Either `hours` (the grid cell) or a giờ vào / giờ ra pair (the manual-entry
+// form) — the backend computes hours from the pair and nulls it on an
+// hours-only write.
+const upsertSchema = z
+  .object({
+    crew_member_id: z.number().int().positive(),
+    work_date: isoDate,
+    hours: z.number().min(0).optional(),
+    start_time: hhmm.optional(),
+    end_time: hhmm.optional(),
+    note: z.string().optional(),
+  })
+  .refine(
+    (v) =>
+      v.start_time && v.end_time
+        ? true
+        : v.hours !== undefined && !v.start_time && !v.end_time,
+    { message: "Nhập số giờ, hoặc cả giờ vào và giờ ra." }
+  );
 
 export type UpsertTimekeepingValues = z.infer<typeof upsertSchema>;
 

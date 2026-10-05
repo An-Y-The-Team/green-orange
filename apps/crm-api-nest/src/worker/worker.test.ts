@@ -18,11 +18,11 @@
 //     open shift never consults the project's stage.
 import { describe, expect, test } from "bun:test";
 
+import { computeShiftHours } from "../common/shift-hours";
 import type { PrismaService } from "../prisma/prisma.service";
 import {
   clockIn,
   clockOut,
-  computeShiftHours,
   isStampedShift,
   stampedShiftHours,
   submitRemedy,

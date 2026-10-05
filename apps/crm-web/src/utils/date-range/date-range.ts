@@ -9,12 +9,15 @@ import { todayISO } from "@/utils/today-iso/today-iso";
 export type DateRange = { from: string; to: string };
 
 /**
- * Monday of the week containing today (Mon-start weeks), as `YYYY-MM-DD`.
- * `getDay()` is local, matching `todayISO()` — a UTC-based day-of-week would
- * pick the wrong Monday between 00:00 and 07:00 in Vietnam.
+ * Monday of the week containing `iso` (Mon-start weeks), as `YYYY-MM-DD`.
+ * Parsed as LOCAL midnight, matching `todayISO()` — a UTC-based day-of-week
+ * would pick the wrong Monday between 00:00 and 07:00 in Vietnam.
  */
-export const mondayOfThisWeek = (): string =>
-  addDays(todayISO(), -((new Date().getDay() + 6) % 7)); // Sun=0 → 6, Mon=1 → 0
+export const mondayOf = (iso: string): string =>
+  addDays(iso, -((new Date(`${iso}T00:00:00`).getDay() + 6) % 7)); // Sun=0 → 6, Mon=1 → 0
+
+/** Monday of the week containing today. */
+export const mondayOfThisWeek = (): string => mondayOf(todayISO());
 
 /** The 7 days a weekly grid renders, from its Monday. */
 export const weekRange = (weekStart: string): DateRange => ({

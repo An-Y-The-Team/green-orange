@@ -26,7 +26,11 @@ import { EmptyState } from "@/components/empty-state/empty-state";
 import { EntityCombobox } from "@/components/entity-combobox/entity-combobox";
 import { FIELDS } from "@/constants/labels";
 import { addDays } from "@/utils/add-days/add-days";
-import { mondayOfThisWeek, weekRange } from "@/utils/date-range/date-range";
+import {
+  mondayOf,
+  mondayOfThisWeek,
+  weekRange,
+} from "@/utils/date-range/date-range";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import {
@@ -35,6 +39,7 @@ import {
 } from "../../actions/timekeeping";
 import { CrewMemberStatus } from "../../enums";
 import type { CrewMember, TimekeepingRecord } from "../../types";
+import { ManualEntryForm } from "./components/manual-entry-form/manual-entry-form";
 import { TimekeepingCell } from "./components/timekeeping-cell/timekeeping-cell";
 import { cellFor } from "./utils/cell-for/cell-for";
 import { hoursFor } from "./utils/hours-for/hours-for";
@@ -52,6 +57,9 @@ export function TimekeepingTab({ crew }: { crew: CrewMember[] }) {
   // their week has arrived — otherwise every input renders blank over correct
   // totals, which is exactly what happened the first time this was built.
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  // Bumped when the manual-entry form saves: cells read their value once at
+  // mount, so a row written from OUTSIDE a cell only shows after a remount.
+  const [revision, setRevision] = useState(0);
 
   const [isLoading, startLoad] = useTransition();
   // Fetches exactly the 7 days the grid renders — the backend's dateless default
@@ -124,6 +132,14 @@ export function TimekeepingTab({ crew }: { crew: CrewMember[] }) {
       ),
       record,
     ]);
+  // A form save lands in this week's records and remounts the cells to show
+  // it; a day in another week jumps the grid there, which refetches anyway.
+  const handleFormSaved = (record: TimekeepingRecord) => {
+    const target = mondayOf(record.work_date);
+    if (target !== weekStart) return goToWeek(target);
+    mergeRecord(record);
+    setRevision((r) => r + 1);
+  };
   const dropRecord = (id: number) =>
     setRecords((prev) => prev.filter((r) => r.id !== id));
 
@@ -163,6 +179,12 @@ export function TimekeepingTab({ crew }: { crew: CrewMember[] }) {
           </p>
         ) : (
           <>
+            <ManualEntryForm
+              projectId={projectId}
+              members={rows}
+              onSaved={handleFormSaved}
+            />
+
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" variant="outline" onClick={shiftWeek(-1)}>
                 <ChevronLeft className="size-4" />
@@ -258,8 +280,9 @@ export function TimekeepingTab({ crew }: { crew: CrewMember[] }) {
                           return (
                             <TimekeepingCell
                               // Keyed on the WINDOW, not the record: a save must
-                              // not remount the cell the user just left.
-                              key={`${projectId}-${weekStart}-${m.id}-${d}`}
+                              // not remount the cell the user just left. Only a
+                              // form save bumps `revision`.
+                              key={`${projectId}-${weekStart}-${revision}-${m.id}-${d}`}
                               projectId={projectId}
                               memberId={m.id}
                               memberName={m.name}

@@ -529,7 +529,11 @@ def create_timekeeping(
     if row is None:
         row = TimekeepingRecord.model_validate(payload)
     else:
+        # Times always written, None included: an hours-only edit from the grid
+        # must clear a pair that no longer adds up to the new number.
         row.hours = payload.hours
+        row.start_time = payload.start_time
+        row.end_time = payload.end_time
         row.note = payload.note
     session.add(row)
     session.commit()
