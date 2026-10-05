@@ -52,7 +52,7 @@ export function Personnel({
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">Nhân sự ({workerCount})</span>
         {doubleBooked ? (
-          <Badge variant="destructive">⚠ Trùng lịch trong công trình</Badge>
+          <Badge variant="warning">⚠ Trùng lịch trong công trình</Badge>
         ) : null}
         <Button
           size="sm"

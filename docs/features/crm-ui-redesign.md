@@ -254,13 +254,13 @@ ticks are blue). `apps/web` does not use `Badge`.
    `rounded-full`, no border, soft tint, a leading dot, never clickable, never
    a verb. Fixed tones — a meaning never borrows another tone:
 
-   | Tone   | Meaning                       | Examples                                          |
-   | ------ | ----------------------------- | ------------------------------------------------- |
-   | Grey   | not started / inactive        | Nháp, Chưa xong, Đã thay thế, Chưa tới            |
-   | Purple | happening now                 | Đang hoạt động, Đang làm, Song song               |
-   | Amber  | waiting on someone / leftover | Chờ duyệt, Đã nộp, Chờ thanh toán, Hoãn, Còn việc |
-   | Blue   | done                          | Đã duyệt, Đã ký, Chốt, Đã thu, Chính thức         |
-   | Red    | problem                       | Quá hạn, Hủy, Trùng lịch                          |
+   | Tone   | Meaning                                                 | Examples                                                      |
+   | ------ | ------------------------------------------------------- | ------------------------------------------------------------- |
+   | Grey   | not started / inactive                                  | Nháp, Chưa xong, Đã thay thế, Chưa tới                        |
+   | Purple | happening now                                           | Đang hoạt động, Đang làm, Song song                           |
+   | Amber  | waiting on someone / leftover / heads-up (non-blocking) | Chờ duyệt, Đã nộp, Chờ thanh toán, Hoãn, Còn việc, Trùng lịch |
+   | Blue   | done                                                    | Đã duyệt, Đã ký, Chốt, Đã thu, Chính thức                     |
+   | Red    | problem                                                 | Quá hạn, Hủy                                                  |
 
 4. **Non-badge status marks use the badge tones**: done ticks and finished
    stage markers are blue, the current stage marker is purple, leftover work is
