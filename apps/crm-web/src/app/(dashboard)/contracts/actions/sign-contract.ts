@@ -116,6 +116,7 @@ export async function signContract(
     // chained failure still shows it signed.
     revalidatePath(`/projects/${projectId}`);
     revalidatePath(`/contracts/${id}`);
+    revalidatePath("/projects/[id]/contracts/[contractId]", "page");
 
     // Chain the client confirmation onto the project when not already set.
     // updateProject RETURNS failure instead of throwing, so an unchecked chain

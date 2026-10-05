@@ -39,6 +39,7 @@ export async function createContract(
     if (parsed.data.project_id)
       revalidatePath(`/projects/${parsed.data.project_id}`);
     revalidatePath("/contracts");
+    revalidatePath("/projects/[id]/contracts/[contractId]", "page");
 
     return { success: true, message: "Đã tạo hợp đồng.", data: contract };
   } catch (error) {

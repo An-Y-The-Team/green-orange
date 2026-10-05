@@ -37,6 +37,7 @@ import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
 import { QuoteStatus } from "../../enums";
 import type { QuoteListRow } from "../../types";
+import { quoteHref } from "../../utils/quote-href/quote-href";
 import {
   type QuoteSortKey,
   useQuoteListParams,
@@ -179,13 +180,10 @@ export function QuoteList() {
                       ? QUOTE_SUPERSEDED_LABEL
                       : labelOf(QUOTE_STATUSES, quote.status);
                     return (
-                      <TableRow
-                        key={quote.id}
-                        {...rowProps(`/quotes/${quote.id}`)}
-                      >
+                      <TableRow key={quote.id} {...rowProps(quoteHref(quote))}>
                         <TableCell className="font-medium">
                           <Link
-                            href={`/quotes/${quote.id}`}
+                            href={quoteHref(quote)}
                             className="hover:underline"
                           >
                             BG-{String(quote.id).padStart(3, "0")} · v

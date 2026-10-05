@@ -1,32 +1,15 @@
-import { Printer } from "lucide-react";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import { Badge } from "@yan/ui/components/badge";
-import { Button } from "@yan/ui/components/button";
+import { BACK_TO } from "@/constants/labels";
 
-import {
-  QuoteBuilderForm,
-  type QuoteBuilderInitial,
-} from "@/app/(dashboard)/projects/[id]/quotes/new/quote-builder-form/quote-builder-form";
-import { BackLink } from "@/components/back-link/back-link";
-import { PageHeader } from "@/components/page-header/page-header";
-import {
-  BACK_TO,
-  QUOTE_STATUSES,
-  QUOTE_SUPERSEDED_LABEL,
-} from "@/constants/labels";
-import { labelOf } from "@/utils/label-of/label-of";
-
-import { ReviseQuoteButton } from "../components/revise-quote-button/revise-quote-button";
-import { QuoteStatus } from "../enums";
-import { getQuote, isSuperseded, quoteFormSeed } from "../queries";
+import { QuoteDetail } from "../components/quote-detail/quote-detail";
+import { getQuote, isSuperseded } from "../queries";
+import { quoteHref } from "../utils/quote-href/quote-href";
 
 /**
- * A quote's own page — the line grid, editable in place. This is where a báo giá
- * is worked on; no need to go through the project's stage panel. Sent/decided
- * versions are frozen (the backend 409s on PATCH), so those render the same grid
- * read-only with "Sửa Báo giá này". The customer-facing sheet is /print.
+ * A STANDALONE quote's page. A quote that belongs to a công trình lives inside
+ * it (`/projects/{pid}/quotes/{id}`) and this address redirects there, so old
+ * bookmarks and cross-project links still land in the job.
  */
 export default async function QuotePage({
   params,
@@ -39,64 +22,16 @@ export default async function QuotePage({
   if (!quote) {
     notFound();
   }
-
-  const superseded = await isSuperseded(quote);
-  const frozen = quote.status !== QuoteStatus.DRAFT;
-  const badge = superseded
-    ? QUOTE_SUPERSEDED_LABEL
-    : labelOf(QUOTE_STATUSES, quote.status);
-  const label = quote.project
-    ? quote.project.code
-    : `BG-${String(quote.id).padStart(3, "0")}`;
-
-  const initial: QuoteBuilderInitial = {
-    projectId: quote.project_id ?? undefined,
-    version: quote.version,
-    editId: quote.id,
-    project: quote.project,
-    ...quoteFormSeed(quote),
-  };
+  if (quote.project_id) {
+    redirect(quoteHref(quote));
+  }
 
   return (
-    <>
-      <div className="mb-4 flex items-center justify-between">
-        <BackLink
-          href={quote.project_id ? `/projects/${quote.project_id}` : "/quotes"}
-          className="mb-0"
-        >
-          {quote.project_id ? BACK_TO.project : BACK_TO.list}
-        </BackLink>
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </div>
-
-      <PageHeader
-        title="Báo giá"
-        description={
-          frozen
-            ? `${label} · v${quote.version} · chỉ đọc — tạo phiên bản mới để sửa`
-            : `${label} · v${quote.version}`
-        }
-        action={
-          <div className="flex gap-2">
-            {frozen && !superseded ? (
-              <ReviseQuoteButton
-                quoteId={quote.id}
-                projectId={quote.project_id}
-              />
-            ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              render={<Link href={`/quotes/${quote.id}/print`} />}
-            >
-              <Printer />
-              Bản in
-            </Button>
-          </div>
-        }
-      />
-
-      <QuoteBuilderForm initial={initial} readOnly={frozen} />
-    </>
+    <QuoteDetail
+      quote={quote}
+      superseded={await isSuperseded(quote)}
+      backHref="/quotes"
+      backLabel={BACK_TO.list}
+    />
   );
 }

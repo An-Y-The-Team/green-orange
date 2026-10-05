@@ -40,6 +40,7 @@ export async function updateContract(
 
     revalidatePath(`/projects/${projectId}`);
     revalidatePath(`/contracts/${id}`);
+    revalidatePath("/projects/[id]/contracts/[contractId]", "page");
 
     return {
       success: true,
