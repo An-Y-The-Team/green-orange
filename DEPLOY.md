@@ -766,12 +766,21 @@ cross-border transfer under **Luật BVDLCN 91/2025/QH15 + NĐ 356/2025** (in fo
 2026-01-01), which requires a Mẫu số 09 impact filing within 60 days of the first
 transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
 
+**The live bucket** (Bizfly, created 2026-10-05):
+
+| | |
+|---|---|
+| endpoint | `https://hcm.ss.bfcplatform.vn` |
+| region | `hcm` |
+| bucket | `greenorange` |
+| addressing | **path-style** (`forcePathStyle: true`) — Bizfly's own SDK page specifies it |
+
 **Setup (provider console — the operator does this once):**
 
-1. Create bucket `greenorange-crm`, **private**, no public read.
-2. Create an access key scoped to that bucket; put the pair in Dockhand as
+1. Bucket `greenorange` must be **private**, no public read.
+2. Create an access key (Access Key menu); put the pair in Dockhand as
    `S3_ACCESS_KEY` / `S3_SECRET_KEY`, plus `S3_ENDPOINT`, `S3_REGION`,
-   `S3_BUCKET` (see `.env.production.example`).
+   `S3_BUCKET` (see `.env.production.example`). Keys never go in git.
 3. **CORS** — the browser PUTs directly, so without this every upload fails with
    an opaque network error:
 
@@ -890,11 +899,25 @@ backup — it is a copy. Since §6f the stack already has an offsite bucket and
 credentials, so use it:
 
 ```bash
-# One-time: rclone reads the same keys the CRM uses (S3-compatible remote).
 apt install -y rclone
-rclone config create backups s3 provider=Other \
-  endpoint="$S3_ENDPOINT" access_key_id="$S3_ACCESS_KEY" secret_access_key="$S3_SECRET_KEY"
+mkdir -p ~/.config/rclone
+```
 
+`~/.config/rclone/rclone.conf` — exactly the stanza Bizfly's own DevOps page gives
+(`region` and `env_auth` matter; leaving them out makes signing fail):
+
+```ini
+[backups]
+type = s3
+provider = Other
+env_auth = false
+access_key_id = <BACKUP_ACCESS_KEY>
+secret_access_key = <BACKUP_SECRET_KEY>
+region = hcm
+endpoint = https://hcm.ss.bfcplatform.vn
+```
+
+```bash
 # Nightly, after the dumps above have finished.
 30 3 * * * rclone sync /root/backups backups:greenorange-backups/vps/ >> /var/log/rclone-backup.log 2>&1
 ```

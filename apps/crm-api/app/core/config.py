@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     # Luật BVDLCN 91/2025/QH15. Unset, the API still boots — only the presign
     # endpoints fail, and they say why. NestJS mirror: src/common/storage.ts.
     s3_endpoint: str = ""
-    s3_region: str = "hn"
+    s3_region: str = "hcm"
     s3_bucket: str = ""
     s3_access_key: str = ""
     s3_secret_key: str = ""
