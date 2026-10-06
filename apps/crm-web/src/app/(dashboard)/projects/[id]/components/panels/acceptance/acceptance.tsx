@@ -98,6 +98,10 @@ export function AcceptancePanel({
 
   const label = labelOf(ACCEPTANCE_SUB_STATUSES, sub);
 
+  const defects = attachments.filter(
+    (a) => a.kind === AttachmentKind.DEFECT_IMAGE
+  );
+
   // Đạt is only a real choice while the inspection is underway; before the
   // schedule or during rework the body's transition buttons do the work.
   const actions: GateActions =
@@ -264,10 +268,26 @@ export function AcceptancePanel({
         ) : null}
       </div>
 
-      {/* Signed biên bản — optional attachment once passed */}
-      {passed ? (
-        <AcceptanceReport project={project} attachments={attachments} />
+      {/* Photos of what the client wants fixed — optional. Shown during Bổ
+          sung, and kept afterwards once any exist so the crew can still
+          compare against them at the re-inspection. */}
+      {sub === AcceptanceSubStatus.REWORK || defects.length > 0 ? (
+        <div className="rounded-lg border p-3">
+          <AttachmentList
+            owner={{ project_id: project.id }}
+            kind={AttachmentKind.DEFECT_IMAGE}
+            initial={defects}
+            title="Ảnh lỗi cần sửa (tùy chọn)"
+            emptyMessage="Chưa có ảnh lỗi."
+            withNote
+            uploadLabel="Ảnh lỗi cần sửa"
+          />
+        </div>
       ) : null}
+
+      {/* Signed biên bản — optional, attachable whenever it arrives (the
+          client may sign before or after the Đạt click). Never gates Đạt. */}
+      <AcceptanceReport project={project} attachments={attachments} />
 
       {/* Lịch sử — rework/acceptance notes, newest first */}
       {history.length > 0 ? (
@@ -289,7 +309,7 @@ export function AcceptancePanel({
   );
 }
 
-// The signed biên bản, attached after Đạt — kind acceptance_report. A list, not
+// The signed biên bản — kind acceptance_report, open from request_sent on. A list, not
 // a bare uploader: this is the document the job is closed on, so it has to be
 // re-readable and replaceable after it goes up.
 function AcceptanceReport({

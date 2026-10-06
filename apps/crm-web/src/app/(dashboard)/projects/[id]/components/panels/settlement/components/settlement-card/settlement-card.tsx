@@ -33,7 +33,15 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
-import { ACTIONS, FIELDS, SETTLEMENT_STATUSES } from "@/constants/labels";
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
+import {
+  ACTIONS,
+  ATTACHMENT_KINDS,
+  FIELDS,
+  SETTLEMENT_STATUSES,
+} from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -59,12 +67,14 @@ export function SettlementCard({
   billMilestones,
   extraMilestones,
   projectId,
+  attachments,
 }: {
   settlement: Settlement;
   bill?: Bill | null;
   billMilestones: PaymentMilestone[];
   extraMilestones: PaymentMilestone[];
   projectId: number;
+  attachments: Attachment[];
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [unsignOpen, setUnsignOpen] = useState(false);
@@ -184,8 +194,22 @@ export function SettlementCard({
         ) : null}
       </div>
 
+      {/* The signed biên bản scan — one quyết toán per công trình, so no link.
+          Optional: signing above never waits for it. */}
+      <AttachmentList
+        owner={{ project_id: projectId }}
+        kind={AttachmentKind.SETTLEMENT}
+        initial={attachments.filter(
+          (a) => a.kind === AttachmentKind.SETTLEMENT
+        )}
+        title={ATTACHMENT_KINDS[AttachmentKind.SETTLEMENT]}
+        emptyMessage="Chưa có bản quyết toán đã ký. Chụp hoặc quét bản có chữ ký rồi thêm vào đây."
+      />
+
       {/* Bill row — officializes on sign */}
-      {bill ? <BillRow bill={bill} projectId={projectId} /> : null}
+      {bill ? (
+        <BillRow bill={bill} projectId={projectId} attachments={attachments} />
+      ) : null}
 
       {/* Đợt thanh toán */}
       <div className="space-y-2">
@@ -198,7 +222,12 @@ export function SettlementCard({
         {milestones.length > 0 ? (
           <div className="space-y-1.5">
             {milestones.map((m) => (
-              <MilestoneRow key={m.id} milestone={m} projectId={projectId} />
+              <MilestoneRow
+                key={m.id}
+                milestone={m}
+                projectId={projectId}
+                attachments={attachments}
+              />
             ))}
           </div>
         ) : (

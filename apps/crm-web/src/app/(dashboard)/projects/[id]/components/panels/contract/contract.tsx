@@ -27,13 +27,23 @@ import {
   MilestoneType,
 } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
 import { EmptyState } from "@/components/empty-state/empty-state";
-import { ACTIONS, CONTRACT_STATUSES, FIELDS } from "@/constants/labels";
+import {
+  ACTIONS,
+  ATTACHMENT_KINDS,
+  CONTRACT_STATUSES,
+  FIELDS,
+  MILESTONE_TYPES,
+} from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
 import { formatDate } from "@/utils/format-date/format-date";
+import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
 import { todayISO } from "@/utils/today-iso/today-iso";
 
@@ -50,21 +60,23 @@ import {
 
 export function ContractPanel({
   project,
+  attachments,
   contracts,
   milestones,
   dealQuote,
   gates,
 }: {
   project: Project;
+  /** Every file of the job; each contract / cọc row filters its own. */
+  attachments: Attachment[];
   contracts: Contract[];
   milestones: PaymentMilestone[];
   dealQuote?: Quote;
   gates: StageGate[];
 }) {
   const clientSigned = Boolean(project.client_signed_date);
-  const depositPaid = milestones.some(
-    (m) => m.type === MilestoneType.DEPOSIT && m.status === MilestoneStatus.PAID
-  );
+  const deposits = milestones.filter((m) => m.type === MilestoneType.DEPOSIT);
+  const depositPaid = deposits.some((m) => m.status === MilestoneStatus.PAID);
 
   // Gate = task: each open row carries the button that completes it.
   const actions: GateActions = {
@@ -134,11 +146,57 @@ export function ContractPanel({
         ) : (
           <ul className="space-y-2">
             {contracts.map((c) => (
-              <ContractRow key={c.id} contract={c} project={project} />
+              <ContractRow
+                key={c.id}
+                contract={c}
+                project={project}
+                attachments={attachments}
+              />
             ))}
           </ul>
         )}
       </section>
+
+      {/* The recorded cọc, with the client's transfer slip / phiếu thu beside
+          it — optional, the gate never waits on a file. */}
+      {deposits.length > 0 ? (
+        <section className="space-y-3">
+          <h3 className="text-sm font-medium">Tiền cọc</h3>
+          <ul className="space-y-2">
+            {deposits.map((m) => (
+              <li
+                key={m.id}
+                className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+              >
+                <span className="font-medium">
+                  {MILESTONE_TYPES[MilestoneType.DEPOSIT]}
+                </span>
+                <span className="tabular-nums">{formatVND(m.amount)}</span>
+                {m.paid_date ? (
+                  <span className="text-muted-foreground">
+                    {formatDate(m.paid_date)}
+                  </span>
+                ) : null}
+                <span className="ml-auto">
+                  <AttachmentList
+                    owner={{ project_id: project.id }}
+                    kind={AttachmentKind.PAYMENT_PROOF}
+                    link={{ payment_milestone_id: m.id }}
+                    initial={attachments.filter(
+                      (a) =>
+                        a.kind === AttachmentKind.PAYMENT_PROOF &&
+                        a.payment_milestone_id === m.id
+                    )}
+                    title={ATTACHMENT_KINDS[AttachmentKind.PAYMENT_PROOF]}
+                    emptyMessage="Chưa có chứng từ chuyển khoản / phiếu thu."
+                    compact
+                  />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {/* Only while the job is here — opened later from the nav, it's history. */}
       {project.stage === ProjectStage.CONTRACT ? (
@@ -160,9 +218,11 @@ export function ContractPanel({
 function ContractRow({
   contract,
   project,
+  attachments,
 }: {
   contract: Contract;
   project: Project;
+  attachments: Attachment[];
 }) {
   const [state, formAction] = useActionState(
     signContract.bind(null, contract.id, project.id),
@@ -190,6 +250,20 @@ function ContractRow({
       ) : null}
 
       <span className="ml-auto flex flex-wrap items-center gap-1.5">
+        {/* The signed scan — optional, never needed for "Đánh dấu đã ký". */}
+        <AttachmentList
+          owner={{ project_id: project.id }}
+          kind={AttachmentKind.SIGNED_CONTRACT}
+          link={{ contract_id: contract.id }}
+          initial={attachments.filter(
+            (a) =>
+              a.kind === AttachmentKind.SIGNED_CONTRACT &&
+              a.contract_id === contract.id
+          )}
+          title={ATTACHMENT_KINDS[AttachmentKind.SIGNED_CONTRACT]}
+          emptyMessage="Chưa có bản hợp đồng đã ký."
+          compact
+        />
         {/* A signed contract's content is frozen (the server enforces it too). */}
         {signed ? null : (
           <Button

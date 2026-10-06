@@ -24,6 +24,9 @@ import {
   MilestoneType,
 } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { FIELDS, OVERDUE_LABEL, PAPERWORK_STATUSES } from "@/constants/labels";
 import {
@@ -59,9 +62,11 @@ const NEXT: Partial<Record<PaperworkStatus, PaperworkStatus>> = {
 function PaperworkRow({
   item,
   projectId,
+  attachments,
 }: {
   item: PaperworkItem;
   projectId: number;
+  attachments: Attachment[];
 }) {
   const [updateState, updateAction] = useActionState(
     updatePaperworkItem.bind(null, item.id, projectId),
@@ -165,6 +170,25 @@ function PaperworkRow({
         />
       </TableCell>
 
+      {/* The scanned/stamped hồ sơ itself — optional, never gates the status.
+          Compact so the row stays one line until the paperclip is opened. */}
+      <TableCell>
+        <AttachmentList
+          owner={{ project_id: projectId }}
+          kind={AttachmentKind.PAPERWORK}
+          link={{ paperwork_item_id: item.id }}
+          initial={attachments.filter(
+            (a) =>
+              a.kind === AttachmentKind.PAPERWORK &&
+              a.paperwork_item_id === item.id
+          )}
+          title={`Tệp "${item.name}"`}
+          emptyMessage="Chưa đính kèm bản scan / ảnh hồ sơ."
+          uploadLabel="Bản scan / ảnh hồ sơ"
+          compact
+        />
+      </TableCell>
+
       <TableCell className="text-right">
         <Button
           size="icon-sm"
@@ -206,7 +230,7 @@ function AddPaperworkRow({ projectId }: { projectId: number }) {
       {/* One cell across the row: the button in the ✕ column widened that
           column into dead space. w-56 keeps input + button inside the visible
           part of the column before the table scrolls. */}
-      <TableCell colSpan={5}>
+      <TableCell colSpan={6}>
         <div className="flex items-center gap-2">
           <Input
             value={name}
@@ -238,12 +262,14 @@ function AddPaperworkRow({ projectId }: { projectId: number }) {
 
 export function PaperworkPanel({
   project,
+  attachments,
   paperworkItems,
   milestones,
   dealQuote,
   gates,
 }: {
   project: Project;
+  attachments: Attachment[];
   paperworkItems: PaperworkItem[];
   milestones: PaymentMilestone[];
   dealQuote?: Quote;
@@ -330,12 +356,18 @@ export function PaperworkPanel({
               <TableHead>{FIELDS.status}</TableHead>
               <TableHead>Hạn</TableHead>
               <TableHead>{FIELDS.note}</TableHead>
+              <TableHead>Tệp</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {paperworkItems.map((item) => (
-              <PaperworkRow key={item.id} item={item} projectId={project.id} />
+              <PaperworkRow
+                key={item.id}
+                item={item}
+                projectId={project.id}
+                attachments={attachments}
+              />
             ))}
             <AddPaperworkRow projectId={project.id} />
           </TableBody>

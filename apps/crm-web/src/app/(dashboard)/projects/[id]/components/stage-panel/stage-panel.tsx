@@ -104,12 +104,19 @@ export function StagePanel({
           />
         );
       case ProjectStage.QUOTE:
-        return <QuotePanel project={project} gates={gates} />;
+        return (
+          <QuotePanel
+            project={project}
+            attachments={attachments}
+            gates={gates}
+          />
+        );
       case ProjectStage.CONTRACT:
         return (
           <StageCard stage={ProjectStage.CONTRACT}>
             <ContractPanel
               project={project}
+              attachments={attachments}
               contracts={contracts}
               milestones={milestones}
               dealQuote={dealQuote}
@@ -121,6 +128,7 @@ export function StagePanel({
         return (
           <PaperworkPanel
             project={project}
+            attachments={attachments}
             paperworkItems={paperworkItems}
             milestones={milestones}
             dealQuote={dealQuote}
@@ -149,6 +157,7 @@ export function StagePanel({
         return (
           <SettlementPanel
             project={project}
+            attachments={attachments}
             settlements={settlements}
             bills={bills}
             milestones={milestones}

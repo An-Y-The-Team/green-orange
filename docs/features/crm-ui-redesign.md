@@ -516,7 +516,7 @@ parking chore.
 ```
 
 - Rows: name, one-way single-tap status stepper (`Chưa xong → Đã nộp →
-Đã duyệt`), expandable note + attachment (metadata). ✕ deletes.
+Đã duyệt`), expandable note + 📎 files linked to the item. ✕ deletes.
 - **Auto-seeded**: the 8 default items are created automatically with the
   project (backend delta — was a manual button). Zero-paperwork jobs just
   delete them (or ignore: gate is vacuous with zero items — "Không cần
@@ -547,7 +547,7 @@ parking chore.
 │ Cách thức thi công: [dây đu, làm đêm…________]  │
 │                                                 │
 │ [✓ Xác nhận hoàn tất thi công]                  │
-│    + ảnh hoàn công (tùy chọn, metadata)         │
+│    + ảnh hoàn công (tùy chọn, tải lên)          │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -596,7 +596,8 @@ parking chore.
   **stamps `acceptance_passed_date`**, unlocks stage 7). Notes land in
   the ProjectNote timeline; the rework history shown is those notes
   filtered.
-- Signed biên bản = attachment (metadata) on Đạt.
+- Signed biên bản = uploaded file, attachable from the moment acceptance is
+  requested (optional; never gates Đạt).
 
 ### Stage 7 — Quyết toán & Thanh toán (confirmed 2026-07-23)
 
@@ -895,7 +896,16 @@ pages (which remain usable, just not optimized, on mobile).
   as-is? (assumed yes)
 - ~~Attachments stay metadata-only until the S3 design session.~~ Resolved
   2026-09-17: real uploads to a Vietnamese bucket, presigned both ways. UI
-  shows filename + note as a download button; still no preview.
+  shows filename + note as a download button; pdf/images open in a tab
+  (2026-10-06), still no in-page preview.
+- **Uploads everywhere (2026-10-06).** Every stage that collects paper gets a
+  file slot, each categorized by `kind` and linked to its record (see
+  `crm-database-schema.md` § attachment): signed báo giá (chốt version),
+  signed hợp đồng (per contract), chứng từ thanh toán (cọc + every đợt),
+  hồ sơ (per checklist row), ảnh thi công, ảnh lỗi cần sửa, biên bản nghiệm
+  thu / quyết toán, hóa đơn VAT (per bill), plus CCCD / chứng chỉ on a crew
+  member. Table rows use a 📎-count `<details>`. Giấy tờ tab lists every file
+  grouped by category. Files never gate a stage.
 
 ## Changelog
 

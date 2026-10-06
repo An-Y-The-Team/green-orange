@@ -13,6 +13,7 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import type { Attachment } from "@/components/attachments/types";
 import { EmptyState } from "@/components/empty-state/empty-state";
 import { MILESTONE_TYPES } from "@/constants/labels";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
@@ -35,6 +36,7 @@ import {
 
 export function SettlementPanel({
   project,
+  attachments,
   settlements,
   bills,
   milestones,
@@ -42,6 +44,7 @@ export function SettlementPanel({
   gates,
 }: {
   project: Project;
+  attachments: Attachment[];
   settlements: Settlement[];
   bills: Bill[];
   milestones: PaymentMilestone[];
@@ -130,6 +133,7 @@ export function SettlementPanel({
           }
           extraMilestones={unallocated}
           projectId={project.id}
+          attachments={attachments}
         />
       ) : (
         <EmptyState
