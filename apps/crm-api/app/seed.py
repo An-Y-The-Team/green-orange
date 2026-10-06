@@ -17,11 +17,12 @@ from sqlmodel import Session, select
 from app.core.db import engine
 from app.core.rules import business_today
 from app.core.security import hash_password
+from app.models.attachment import Attachment
 from app.models.client import Client, Contact, Location
 from app.models.contract import ContractTemplate
 from app.models.crew import CrewMember, CrewRole
 from app.models.paperwork import DEFAULT_PAPERWORK, PaperworkItem
-from app.models.project import Attachment, Project, ProjectType
+from app.models.project import Project, ProjectType
 from app.models.quote import Quote, QuoteItem
 from app.models.receivable import PaymentMilestone
 from app.models.user import User

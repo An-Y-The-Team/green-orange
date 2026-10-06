@@ -125,7 +125,7 @@ model Project {
   /// Regenerating this table from schema.prisma alone (`db push`) would create
   /// it as a plain column and search would silently stop updating; the
   /// generated expression lives in that migration.
-  name_norm  String?
+  name_norm                 String?
   request_note              String? // stage 1: short "what they want done" from the first call
   referral_source           String? // stage 1: free text (giới thiệu, gọi lại, …) — not a managed list
   stage                     String    @default("request") // request | quote | contract | paperwork | execution | acceptance | settlement | closed
@@ -204,7 +204,7 @@ model Quote {
   rep_name     String?
   rep_title    String?
 
-  project   Project?       @relation(fields: [project_id], references: [id])
+  project     Project?       @relation(fields: [project_id], references: [id])
   items       QuoteItem[]
   send_logs   QuoteSendLog[]
   attachments Attachment[]
@@ -243,23 +243,23 @@ model QuoteSendLog {
 }
 
 model Contract {
-  id          Int       @id @default(autoincrement())
-  project_id  Int? // 0..n per project; null = standalone contract, attachable later
-  code        String    @unique
-  status      String    @default("draft") // draft | signed
-  signed_date DateTime? @db.Date
-  note        String?
+  id             Int       @id @default(autoincrement())
+  project_id     Int? // 0..n per project; null = standalone contract, attachable later
+  code           String    @unique
+  status         String    @default("draft") // draft | signed
+  signed_date    DateTime? @db.Date
+  note           String?
   // printable-contract feature, kept from v1:
-  template_id Int?
-  body        String? // Lexical editorState JSON, opaque
+  template_id    Int?
+  body           String? // Lexical editorState JSON, opaque
   // Signature footer (per-contract signer lines); B side falls back to the
   // company representative when unset, labels to ĐẠI DIỆN BÊN A/B.
-  rep_a_label String?
-  rep_a_name  String?
-  rep_a_title String?
-  rep_b_label String?
-  rep_b_name  String?
-  rep_b_title String?
+  rep_a_label    String?
+  rep_a_name     String?
+  rep_a_title    String?
+  rep_b_label    String?
+  rep_b_name     String?
+  rep_b_title    String?
   // Frozen at signing: the company details, header template, title and header
   // style as they were on the signed paper (JSON). A later profile edit must
   // never change what an already-signed contract reprints.
@@ -299,16 +299,16 @@ model CompanyProfile {
 }
 
 model ContractTemplate {
-  id           Int     @id @default(autoincrement())
-  name         String
-  doc_title    String
-  body         String // Lexical editorState JSON, opaque
+  id              Int     @id @default(autoincrement())
+  name            String
+  doc_title       String
+  body            String // Lexical editorState JSON, opaque
   // Header blocks are INDEPENDENT, not alternatives: official Vietnamese
   // paperwork carries the Quốc hiệu and the letterhead sits above it, so both
   // default on. Per-template so every future paperwork type reuses this.
   show_letterhead Boolean @default(true)
   show_national   Boolean @default(true)
-  is_active    Boolean @default(true)
+  is_active       Boolean @default(true)
 
   contracts Contract[]
 }
@@ -329,18 +329,18 @@ model PaperworkItem {
 }
 
 model Settlement {
-  id           Int       @id @default(autoincrement())
-  project_id   Int       @unique // 1:1 — a project settles once (corrections revise this row)
-  status       String    @default("draft") // draft | sent | signed
-  total_amount BigInt    @default(0) // VND, server-computed Σ item amounts — BEFORE giảm giá and VAT, same convention as Quote.total_amount
+  id              Int       @id @default(autoincrement())
+  project_id      Int       @unique // 1:1 — a project settles once (corrections revise this row)
+  status          String    @default("draft") // draft | sent | signed
+  total_amount    BigInt    @default(0) // VND, server-computed Σ item amounts — BEFORE giảm giá and VAT, same convention as Quote.total_amount
   // The quyết toán settles a contract that was priced with VAT (and sometimes a
   // giảm giá), so it has to carry both or the hóa đơn asks for less than the
   // hợp đồng says. What the client owes = (total_amount − discount_amount) + VAT
   // — `payableTotal` in receivables.module.ts, which is what the bill gets on sign.
-  discount_amount BigInt @default(0) // VND, giảm giá trước thuế
-  vat_rate     Float     @default(0.08)
-  signed_date  DateTime? @db.Date
-  note         String?
+  discount_amount BigInt    @default(0) // VND, giảm giá trước thuế
+  vat_rate        Float     @default(0.08)
+  signed_date     DateTime? @db.Date
+  note            String?
 
   project Project          @relation(fields: [project_id], references: [id])
   bill    Bill?
@@ -416,7 +416,7 @@ model CrewMember {
   /// Regenerating this table from schema.prisma alone (`db push`) would create
   /// it as a plain column and search would silently stop updating; the
   /// generated expression lives in that migration.
-  name_norm  String?
+  name_norm       String?
   phone           String?  @unique // Zalo mini-app identity — normalized "0…" 10 digits, see common/phone.ts
   employment_type String // permanent | day_hire
   default_role_id Int?
@@ -490,7 +490,7 @@ model TimekeepingRecord {
 // One table for every file in the bucket. `kind` is the category; the owner
 // (project XOR crew member — CHECK attachment_one_owner in the migration) and at
 // most one link column say exactly which record the file belongs to. Which kind
-// needs which owner/link is ATTACHMENT_KINDS in src/projects/projects.module.ts.
+// needs which owner/link is ATTACHMENT_KINDS in src/attachments/attachments.module.ts.
 model Attachment {
   id                   Int      @id @default(autoincrement())
   project_id           Int?

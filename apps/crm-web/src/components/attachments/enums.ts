@@ -1,6 +1,6 @@
 /**
  * Attachment `kind` — the file's category. Mirrors `ATTACHMENT_KINDS` in both
- * backends (crm-api-nest projects.module.ts / crm-api models/project.py), which
+ * backends (crm-api-nest attachments.module.ts / crm-api models/attachment.py), which
  * also decide the owner and the link each kind needs — a wrong pairing is a 400.
  * Vietnamese names: `ATTACHMENT_KINDS` in `@/constants/labels`.
  */

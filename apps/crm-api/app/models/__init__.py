@@ -9,12 +9,12 @@ themselves by class name once everything is loaded.
 from sqlalchemy import event
 
 from app.core.search import normalize_search
+from app.models.attachment import Attachment
 from app.models.client import Client, Contact, Location
 from app.models.contract import CompanyProfile, Contract, ContractTemplate
 from app.models.crew import Assignment, CrewMember, CrewRole, TimekeepingRecord
 from app.models.paperwork import PaperworkItem
 from app.models.project import (
-    Attachment,
     Project,
     ProjectNote,
     ProjectType,

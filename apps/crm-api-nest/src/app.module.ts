@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { AttachmentsModule } from "./attachments/attachments.module";
 import { AuthModule } from "./auth/auth.module";
 import { ClientsModule } from "./clients/clients.module";
 import { CompanyModule } from "./company/company.module";
@@ -19,6 +20,7 @@ import { WorkerModule } from "./worker/worker.module";
     AuthModule,
     ClientsModule,
     ProjectsModule,
+    AttachmentsModule,
     QuotesModule,
     ContractsModule,
     CompanyModule,

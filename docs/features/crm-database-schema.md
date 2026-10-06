@@ -427,7 +427,7 @@ Owner is a project **or** a crew member — exactly one (CHECK
 the ONE link column (if any) that says which record the file documents, so a
 panel fetches "the payment proof for this milestone" with
 `GET /attachments?payment_milestone_id=…`. Rules: `ATTACHMENT_KINDS` in
-`crm-api-nest/src/projects/projects.module.ts` / `crm-api/app/models/project.py`.
+`crm-api-nest/src/attachments/attachments.module.ts` / `crm-api/app/models/attachment.py`.
 Owners RESTRICT (delete is 409 while files exist); links SET NULL (the file
 outlives the row and stays under its owner).
 

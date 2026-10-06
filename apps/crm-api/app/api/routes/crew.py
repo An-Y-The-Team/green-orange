@@ -24,6 +24,7 @@ from app.api.common import (
 from app.api.deps import SessionDep, get_current_user
 from app.core.rules import assert_project_open, business_today
 from app.core.schedule import overlapping_ids
+from app.models.attachment import Attachment
 from app.models.crew import (
     CREW_STATUS_WORKING,
     CREW_STATUSES,
@@ -50,7 +51,6 @@ from app.models.crew import (
     TimekeepingRecord,
     TimekeepingSummary,
 )
-from app.models.project import Attachment
 
 roles_router = APIRouter(
     prefix="/crew-roles", tags=["crew-roles"], dependencies=[Depends(get_current_user)]

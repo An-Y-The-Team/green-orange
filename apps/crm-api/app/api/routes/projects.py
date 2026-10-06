@@ -11,7 +11,6 @@ from typing import Annotated, Literal
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     HTTPException,
     Query,
@@ -39,34 +38,14 @@ from app.core.rules import (
     next_code,
     should_advance,
 )
-from app.core.storage import (
-    ALLOWED_CONTENT_TYPES,
-    MAX_UPLOAD_BYTES,
-    PRESIGN_TTL_SECONDS,
-    basename,
-    build_key,
-    delete_object,
-    is_own_key,
-    presign_get,
-    presign_put,
-    storage_configured,
-)
+from app.models.attachment import Attachment
 from app.models.client import Client, Contact, Location
 from app.models.contract import Contract
-from app.models.crew import Assignment, CrewMember, TimekeepingRecord
+from app.models.crew import Assignment, TimekeepingRecord
 from app.models.paperwork import DEFAULT_PAPERWORK, PaperworkItem
 from app.models.project import (
-    ATTACHMENT_KINDS,
-    ATTACHMENT_LINKS,
     EXECUTION_SUB_STATUSES,
     PROJECT_STATUSES,
-    Attachment,
-    AttachmentCreate,
-    AttachmentDownloadPublic,
-    AttachmentOwner,
-    AttachmentPresign,
-    AttachmentPresignPublic,
-    AttachmentPublic,
     Project,
     ProjectCreate,
     ProjectDetail,
@@ -96,11 +75,6 @@ types_router = APIRouter(
 notes_router = APIRouter(
     prefix="/project-notes",
     tags=["project-notes"],
-    dependencies=[Depends(get_current_user)],
-)
-attachments_router = APIRouter(
-    prefix="/attachments",
-    tags=["attachments"],
     dependencies=[Depends(get_current_user)],
 )
 
@@ -515,221 +489,3 @@ def delete_project_note(session: SessionDep, note_id: int) -> None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Note not found")
     session.delete(note)
     session.commit()
-
-
-# ── Attachments (metadata rows + presigned S3 upload/download) ─────────────
-_STORAGE_OFF = (
-    "Object storage is not configured — set S3_ENDPOINT, S3_BUCKET, "
-    "S3_ACCESS_KEY, S3_SECRET_KEY"
-)
-# Which table each link column points at — every one carries a project_id.
-_LINK_MODELS = {
-    "quote_id": Quote,
-    "contract_id": Contract,
-    "payment_milestone_id": PaymentMilestone,
-    "bill_id": Bill,
-    "paperwork_item_id": PaperworkItem,
-}
-
-
-def _assert_owner(session: Session, payload: AttachmentOwner) -> None:
-    """The kind decides the owner: a project file needs project_id and no
-    crew_member_id, a CCCD the reverse. 400 rather than letting the DB CHECK
-    surface as a 500. Then the owner must exist, and a project must be open.
-    (NestJS mirror: `AttachmentsController.assertOwner`.)"""
-    crew = ATTACHMENT_KINDS[payload.kind][0] == "crew"
-    if (payload.crew_member_id if crew else payload.project_id) is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"kind {payload.kind} needs {'crew_member_id' if crew else 'project_id'}",
-        )
-    if (payload.project_id if crew else payload.crew_member_id) is not None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "An attachment has exactly one owner: project_id or crew_member_id",
-        )
-    if crew:
-        if not session.get(CrewMember, payload.crew_member_id):
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Crew member not found")
-        return
-    # assert_project_open only rejects a CLOSED project; a project_id that does
-    # not exist passes it silently and would mint signed PUTs for keys no row
-    # will ever reference.
-    if not session.get(Project, payload.project_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
-    assert_project_open(session, payload.project_id)
-
-
-def _assert_link(session: Session, payload: AttachmentCreate) -> None:
-    """Exactly the kind's link, and it must sit on the same project — otherwise
-    another job's contract or milestone would collect this file silently."""
-    want = ATTACHMENT_KINDS[payload.kind][1]
-    for link in ATTACHMENT_LINKS:
-        if link != want and getattr(payload, link) is not None:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, f"kind {payload.kind} takes no {link}"
-            )
-    if want is None:
-        return
-    link_id = getattr(payload, want)
-    if link_id is None:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, f"kind {payload.kind} needs {want}"
-        )
-    row = session.get(_LINK_MODELS[want], link_id)
-    if not row or row.project_id != payload.project_id:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, f"{want} does not belong to project_id"
-        )
-
-
-@attachments_router.post("/presign", response_model=AttachmentPresignPublic)
-def presign_attachment(
-    session: SessionDep, payload: AttachmentPresign
-) -> AttachmentPresignPublic:
-    """Hand out a short-lived signed PUT; the browser uploads straight to the
-    bucket and then POSTs the returned s3_key to POST /attachments. Bytes never
-    pass through this process.
-
-    The content type and length are signed into the URL, so the checks below are
-    not the only line of defence — a client that lies about either is refused by
-    the bucket. They run here to fail fast with a sentence instead of a 403.
-    """
-    # Say which knob is missing. Without this the RuntimeError from _client()
-    # surfaces as a bare 500, and .env.example, config.py and DEPLOY.md §6f all
-    # promise the opposite.
-    if not storage_configured():
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, _STORAGE_OFF)
-    _assert_owner(session, payload)
-    if payload.content_type not in ALLOWED_CONTENT_TYPES:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"Unsupported file type: {payload.content_type}",
-        )
-    if payload.content_length > MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"File is larger than {MAX_UPLOAD_BYTES // 1024 // 1024} MB",
-        )
-    key = build_key(
-        payload.project_id, payload.crew_member_id, payload.kind, payload.filename
-    )
-    return AttachmentPresignPublic(
-        upload_url=presign_put(key, payload.content_type, payload.content_length),
-        s3_key=key,
-        expires_in=PRESIGN_TTL_SECONDS,
-    )
-
-
-@attachments_router.get("/{attachment_id}/url", response_model=AttachmentDownloadPublic)
-def attachment_download_url(
-    session: SessionDep, attachment_id: int
-) -> AttachmentDownloadPublic:
-    """Short-lived signed GET for one row — the link the UI opens."""
-    attachment = session.get(Attachment, attachment_id)
-    if not attachment:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Attachment not found")
-    # Rows from the metadata-only era (and the seed) hold a bare filename with no
-    # object behind it. Signing one yields a valid URL that opens the provider's
-    # raw NoSuchKey XML in a new tab; say so instead.
-    if not is_own_key(
-        attachment.project_id,
-        attachment.crew_member_id,
-        attachment.kind,
-        attachment.s3_key,
-    ):
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            "This attachment predates file storage — only its name was recorded",
-        )
-    if not storage_configured():
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, _STORAGE_OFF)
-    return AttachmentDownloadPublic(
-        download_url=presign_get(attachment.s3_key, basename(attachment.s3_key)),
-        expires_in=PRESIGN_TTL_SECONDS,
-    )
-
-
-@attachments_router.get("", response_model=list[AttachmentPublic])
-def list_attachments(
-    session: SessionDep,
-    response: Response,
-    page: PageDep,
-    project_id: Annotated[int | None, Query()] = None,
-    crew_member_id: Annotated[int | None, Query()] = None,
-    kind: Annotated[str | None, Query()] = None,
-    quote_id: Annotated[int | None, Query()] = None,
-    contract_id: Annotated[int | None, Query()] = None,
-    payment_milestone_id: Annotated[int | None, Query()] = None,
-    bill_id: Annotated[int | None, Query()] = None,
-    paperwork_item_id: Annotated[int | None, Query()] = None,
-) -> list[Attachment]:
-    """Filter by owner, category and/or the record a file documents — e.g.
-    `?contract_id=12` is the signed scan of contract 12, nothing else."""
-    # A typo'd kind would otherwise answer an empty list — indistinguishable
-    # from "no files yet".
-    if kind and kind not in ATTACHMENT_KINDS:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unknown kind: {kind}")
-    statement = select(Attachment)
-    filters = {
-        Attachment.project_id: project_id,
-        Attachment.crew_member_id: crew_member_id,
-        Attachment.kind: kind or None,
-        Attachment.quote_id: quote_id,
-        Attachment.contract_id: contract_id,
-        Attachment.payment_milestone_id: payment_milestone_id,
-        Attachment.bill_id: bill_id,
-        Attachment.paperwork_item_id: paperwork_item_id,
-    }
-    for column, value in filters.items():
-        if value is not None:
-            statement = statement.where(column == value)
-    return paged(
-        session,
-        response,
-        statement.order_by(Attachment.created_at.desc(), Attachment.id.desc()),
-        page,
-    )
-
-
-@attachments_router.post(
-    "", response_model=AttachmentPublic, status_code=status.HTTP_201_CREATED
-)
-def create_attachment(session: SessionDep, payload: AttachmentCreate) -> Attachment:
-    _assert_owner(session, payload)
-    _assert_link(session, payload)
-    # The key must be one presign_put minted for THIS owner and kind. DELETE
-    # removes the object this names, so an unchecked key lets a caller record a
-    # row over someone else's file and then delete their bytes, leaving their
-    # row behind.
-    if not is_own_key(
-        payload.project_id, payload.crew_member_id, payload.kind, payload.s3_key
-    ):
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "s3_key was not issued for this owner and kind — upload via "
-            "/attachments/presign",
-        )
-    attachment = Attachment.model_validate(payload)
-    session.add(attachment)
-    session.commit()
-    session.refresh(attachment)
-    return attachment
-
-
-@attachments_router.delete("/{attachment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_attachment(
-    session: SessionDep, attachment_id: int, background: BackgroundTasks
-) -> None:
-    attachment = session.get(Attachment, attachment_id)
-    if not attachment:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Attachment not found")
-    assert_project_open(session, attachment.project_id)  # no-op for crew files
-    key = attachment.s3_key
-    session.delete(attachment)
-    session.commit()
-    # After the row, and deliberately off the request: delete_object swallows its
-    # own errors, but running it inline puts botocore's retry backoff inside the
-    # user's request — a bucket outage would turn a committed delete into a
-    # timeout toast for a row that is already gone. (NestJS mirror: `void`.)
-    background.add_task(delete_object, key)

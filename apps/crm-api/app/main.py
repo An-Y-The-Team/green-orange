@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
 from app.api.routes import (
+    attachments,
     auth,
     clients,
     company,
@@ -27,6 +28,7 @@ from app.api.routes import (
     receivables,
 )
 from app.core.config import settings
+from app.services.attachments import AttachmentRejected
 
 
 @asynccontextmanager
@@ -64,6 +66,15 @@ _INTEGRITY_MESSAGES = {
 }
 
 
+@app.exception_handler(AttachmentRejected)
+def attachment_rejected_handler(
+    _request: Request, exc: AttachmentRejected
+) -> JSONResponse:
+    # The service layer stays FastAPI-free; this is where its refusals become
+    # the same `{"detail": …}` an HTTPException would have produced.
+    return JSONResponse(status_code=exc.status, content={"detail": exc.detail})
+
+
 @app.exception_handler(IntegrityError)
 def integrity_error_handler(_request: Request, exc: IntegrityError) -> JSONResponse:
     sqlstate = getattr(exc.orig, "sqlstate", None)
@@ -84,7 +95,7 @@ app.include_router(clients.locations_router)
 app.include_router(projects.types_router)
 app.include_router(projects.router)
 app.include_router(projects.notes_router)
-app.include_router(projects.attachments_router)
+app.include_router(attachments.router)
 app.include_router(quotes.router)
 app.include_router(contracts.router)
 app.include_router(contracts.templates_router)
