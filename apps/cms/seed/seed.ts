@@ -539,14 +539,100 @@ const findIdBySlug = async ({
 }
 
 // Replace all rows of an O2M child collection for the singleton.
+// ---------------------------------------------------------------------------
+// Terms of use for the Zalo mini app "Chấm công Ý Ân" (/dieu-khoan-su-dung).
+// Mirrors DEFAULT_LEGAL_TERMS in apps/web/src/data.ts — same copy in both
+// places, the same way SITE_SETTINGS mirrors DEFAULT_SETTINGS: the web app
+// falls back to its own copy when the CMS is unreachable.
+// ---------------------------------------------------------------------------
+const LEGAL_TERMS = {
+  pageTitle: 'Điều khoản sử dụng',
+  pageSubtitle: 'Mini App “Chấm công Ý Ân”',
+  operator: {
+    name: 'CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ Ý ÂN',
+    taxCode: '0319016318',
+    address: '256/41 Nguyễn Tiểu La, Phường Diên Hồng, TP Hồ Chí Minh, Việt Nam',
+    email: 'ctydv.yan@gmail.com',
+    phone: '0975460430',
+    updatedAt: '06/10/2026',
+  },
+  sections: [
+    {
+      heading: 'Mini App này dùng để làm gì',
+      body: `“Chấm công Ý Ân” là ứng dụng **nội bộ** của công ty. Nhân sự đã được công ty đăng ký dùng ứng dụng để chấm công vào/ra tại công trình mình được phân công. Giờ công sau đó được văn phòng duyệt trên hệ thống quản lý của công ty.
+
+Ứng dụng **không dành cho người dùng Zalo nói chung**. Người không có trong danh sách nhân sự của công ty sẽ không đăng nhập được.`,
+    },
+    {
+      heading: 'Quyền mà Mini App xin phép',
+      body: `Mini App xin **một quyền duy nhất**:
+
+- **Truy cập số điện thoại (getPhoneNumber)** — đối chiếu với danh sách nhân sự đã đăng ký của công ty, để biết người đang chấm công là ai.
+
+Quyền này chỉ được xin **khi bạn bấm nút “Đăng nhập bằng Zalo”**, và chỉ lấy được thông tin nếu bạn bấm “Cho phép”. Nếu bạn từ chối, ứng dụng không nhận được số điện thoại và bạn không đăng nhập được — ngoài ra không có ảnh hưởng nào khác.
+
+Mini App **không** xin và **không** sử dụng: vị trí, camera, micro, hình ảnh, tệp tin, danh bạ, hay bất kỳ quyền nào khác.`,
+    },
+    {
+      heading: 'Dữ liệu cá nhân mà Mini App sử dụng',
+      body: `**Lấy từ Zalo:**
+
+- **Số điện thoại** — dùng để nhận diện bạn là nhân sự nào của công ty.
+
+Số điện thoại được gửi thẳng từ Zalo về máy chủ của công ty và được đối chiếu với danh sách nhân sự. Ứng dụng trên điện thoại **không lưu** số điện thoại của bạn.
+
+**Do công ty tạo ra khi bạn sử dụng:**
+
+- Ngày làm việc, giờ vào, giờ ra, số giờ công
+- Công trình bạn được phân công
+- Ghi chú và lý do bạn tự nhập (ví dụ khi gửi đơn bù công)
+
+Giờ vào/giờ ra do **máy chủ của công ty ghi nhận** tại thời điểm bạn bấm nút, không lấy từ đồng hồ điện thoại.`,
+    },
+    {
+      heading: 'Dùng dữ liệu để làm gì',
+      body: `Chỉ để chấm công và tính công cho bạn: ghi nhận giờ làm, để văn phòng duyệt, và lưu làm hồ sơ lao động của công ty.
+
+Công ty **không** bán, **không** trao đổi và **không** chia sẻ dữ liệu này cho bên thứ ba, **không** dùng để quảng cáo, và **không** dùng vào mục đích nào khác ngoài những điều nêu trên.`,
+    },
+    {
+      heading: 'Lưu trữ và bảo mật',
+      body: `Dữ liệu được lưu trên hệ thống của công ty, truyền qua kết nối mã hoá (HTTPS). Chỉ nhân sự văn phòng được cấp quyền mới xem được.
+
+Hồ sơ giờ công được lưu theo quy định về hồ sơ lao động của công ty.`,
+    },
+    {
+      heading: 'Rút lại sự đồng ý và xoá dữ liệu',
+      body: `Bạn có thể rút lại quyền truy cập số điện thoại bất cứ lúc nào trong phần cài đặt Mini App của Zalo, hoặc liên hệ văn phòng.
+
+Khi nhận được yêu cầu, công ty sẽ **gỡ liên kết giữa tài khoản Zalo của bạn và hồ sơ nhân sự** — sau đó bạn không đăng nhập được ứng dụng nữa.
+
+Riêng **hồ sơ giờ công đã ghi nhận** (ngày công, giờ làm) được giữ lại, vì đây là hồ sơ lao động của công ty về công việc đã thực hiện và liên quan đến việc tính lương, không phải dữ liệu do Zalo cung cấp. Nếu bạn muốn xoá cả phần này, vui lòng liên hệ văn phòng theo thông tin ở đầu trang.`,
+    },
+    {
+      heading: 'Điều kiện sử dụng',
+      body: `- Chỉ chấm công cho **chính mình**; không chấm công hộ người khác.
+- Chấm công đúng giờ làm việc thực tế. Giờ công do văn phòng duyệt; trường hợp sai sót, liên hệ văn phòng để điều chỉnh.
+- Không sử dụng ứng dụng vào mục đích ngoài công việc của công ty.`,
+    },
+    {
+      heading: 'Liên hệ',
+      body: `Mọi thắc mắc về ứng dụng hoặc dữ liệu cá nhân, vui lòng liên hệ công ty theo địa chỉ, email và số điện thoại ghi ở đầu trang.`,
+    },
+  ],
+}
+
 const resetChildren = async ({
   collection,
   settingsId,
   rows,
+  parentField = 'site_settings',
 }: {
   collection: string
   settingsId: number
   rows: Record<string, unknown>[]
+  /** FK column back to the owning singleton — `legal_terms` has its own. */
+  parentField?: string
 }): Promise<void> => {
   const existing = (await api('GET', `/items/${collection}?fields=id&limit=-1`)) as {
     data: { id: number }[]
@@ -555,7 +641,7 @@ const resetChildren = async ({
   if (ids.length > 0) await api('DELETE', `/items/${collection}`, ids)
   let sort = 0
   for (const row of rows) {
-    await api('POST', `/items/${collection}`, { ...row, site_settings: settingsId, sort })
+    await api('POST', `/items/${collection}`, { ...row, [parentField]: settingsId, sort })
     sort += 1
   }
 }
@@ -757,6 +843,31 @@ const main = async (): Promise<void> => {
       title: p.title,
       description: p.description,
     })),
+  })
+
+  // ── legal_terms singleton + its sections ────────────────────────────────────
+  // Terms of use for the Zalo mini app, shown at /dieu-khoan-su-dung. Unlike the
+  // rest of this seed these are NOT demo values: Zalo's app review reads this
+  // page, so it carries the real registered company. Body syntax: a blank line
+  // separates blocks, a block of "- " lines is a bullet list, **text** is bold.
+  console.log('Seeding legal_terms…')
+  const t = LEGAL_TERMS
+  await api('PATCH', '/items/legal_terms', {
+    page_title: t.pageTitle,
+    page_subtitle: t.pageSubtitle,
+    operator_name: t.operator.name,
+    operator_tax_code: t.operator.taxCode,
+    operator_address: t.operator.address,
+    operator_email: t.operator.email,
+    operator_phone: t.operator.phone,
+    updated_at: t.operator.updatedAt,
+  })
+  const terms = (await api('GET', '/items/legal_terms?fields=id')) as { data: { id: number } }
+  await resetChildren({
+    collection: 'legal_term_sections',
+    settingsId: terms.data.id,
+    parentField: 'legal_terms',
+    rows: t.sections.map((sec) => ({ heading: sec.heading, body: sec.body })),
   })
 
   console.log('\nSeed complete.')

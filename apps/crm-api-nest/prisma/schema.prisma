@@ -418,6 +418,11 @@ model CrewMember {
   /// generated expression lives in that migration.
   name_norm       String?
   phone           String?  @unique // Zalo mini-app identity — normalized "0…" 10 digits, see common/phone.ts
+  // The per-app Zalo user id, captured best-effort at mini-app login. It exists
+  // ONLY so the platform webhook can act: Zalo's "user.revoke.consent" event
+  // carries `userId` and no phone number, so without this column a worker
+  // withdrawing consent could not be matched to a roster row at all.
+  zalo_user_id    String?  @unique
   employment_type String // permanent | day_hire
   default_role_id Int?
   status          String   @default("working") // working | on_leave | left

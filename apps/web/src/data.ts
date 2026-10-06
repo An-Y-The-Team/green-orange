@@ -4,6 +4,8 @@ import { COLOR_THEME_SLUGS, type ColorThemeSlug } from "@/lib/color-themes";
 import {
   type DirectusBrandValue,
   type DirectusHeroSegment,
+  type DirectusLegalSection,
+  type DirectusLegalTerms,
   type DirectusProcessStep,
   type DirectusProject,
   type DirectusSectionLink,
@@ -960,5 +962,160 @@ export async function getSiteSettings(draft = false): Promise<SiteSettings> {
       metaDescription: orDefault(s.seo_meta_description, d.seo.metaDescription),
       ogImageUrl: assetUrl({ fileId: s.seo_og_image }) ?? d.seo.ogImageUrl,
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Legal terms: the Zalo mini app's terms-of-use page (/dieu-khoan-su-dung).
+// Its own singleton rather than part of site_settings — those are marketing
+// copy for the landing page, while this names the registered legal entity that
+// Zalo's app review checks. Same "degrade, don't crash" fallback as above, and
+// here it matters more than anywhere else on the site: the reviewer must be
+// able to open this page even if the CMS is down, or the submission fails.
+// ---------------------------------------------------------------------------
+export interface LegalSection {
+  id?: number;
+  heading: string;
+  body: string;
+}
+
+export interface LegalTerms {
+  /** Directus singleton id — used by the Visual Editor (setAttr `item`). */
+  cmsId?: number;
+  pageTitle: string;
+  pageSubtitle: string;
+  operator: {
+    name: string;
+    taxCode: string;
+    address: string;
+    email: string;
+    phone: string;
+    updatedAt: string;
+  };
+  sections: LegalSection[];
+}
+
+export const DEFAULT_LEGAL_TERMS: LegalTerms = {
+  pageTitle: "Điều khoản sử dụng",
+  pageSubtitle: "Mini App “Chấm công Ý Ân”",
+  operator: {
+    name: "CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ Ý ÂN",
+    taxCode: "0319016318",
+    address:
+      "256/41 Nguyễn Tiểu La, Phường Diên Hồng, TP Hồ Chí Minh, Việt Nam",
+    email: "ctydv.yan@gmail.com",
+    phone: "0975460430",
+    updatedAt: "06/10/2026",
+  },
+  sections: [
+    {
+      heading: "Mini App này dùng để làm gì",
+      body: `“Chấm công Ý Ân” là ứng dụng **nội bộ** của công ty. Nhân sự đã được công ty đăng ký dùng ứng dụng để chấm công vào/ra tại công trình mình được phân công. Giờ công sau đó được văn phòng duyệt trên hệ thống quản lý của công ty.
+
+Ứng dụng **không dành cho người dùng Zalo nói chung**. Người không có trong danh sách nhân sự của công ty sẽ không đăng nhập được.`,
+    },
+    {
+      heading: "Quyền mà Mini App xin phép",
+      body: `Mini App xin **một quyền duy nhất**:
+
+- **Truy cập số điện thoại (getPhoneNumber)** — đối chiếu với danh sách nhân sự đã đăng ký của công ty, để biết người đang chấm công là ai.
+
+Quyền này chỉ được xin **khi bạn bấm nút “Đăng nhập bằng Zalo”**, và chỉ lấy được thông tin nếu bạn bấm “Cho phép”. Nếu bạn từ chối, ứng dụng không nhận được số điện thoại và bạn không đăng nhập được — ngoài ra không có ảnh hưởng nào khác.
+
+Mini App **không** xin và **không** sử dụng: vị trí, camera, micro, hình ảnh, tệp tin, danh bạ, hay bất kỳ quyền nào khác.`,
+    },
+    {
+      heading: "Dữ liệu cá nhân mà Mini App sử dụng",
+      body: `**Lấy từ Zalo:**
+
+- **Số điện thoại** — dùng để nhận diện bạn là nhân sự nào của công ty.
+
+Số điện thoại được gửi thẳng từ Zalo về máy chủ của công ty và được đối chiếu với danh sách nhân sự. Ứng dụng trên điện thoại **không lưu** số điện thoại của bạn.
+
+**Do công ty tạo ra khi bạn sử dụng:**
+
+- Ngày làm việc, giờ vào, giờ ra, số giờ công
+- Công trình bạn được phân công
+- Ghi chú và lý do bạn tự nhập (ví dụ khi gửi đơn bù công)
+
+Giờ vào/giờ ra do **máy chủ của công ty ghi nhận** tại thời điểm bạn bấm nút, không lấy từ đồng hồ điện thoại.`,
+    },
+    {
+      heading: "Dùng dữ liệu để làm gì",
+      body: `Chỉ để chấm công và tính công cho bạn: ghi nhận giờ làm, để văn phòng duyệt, và lưu làm hồ sơ lao động của công ty.
+
+Công ty **không** bán, **không** trao đổi và **không** chia sẻ dữ liệu này cho bên thứ ba, **không** dùng để quảng cáo, và **không** dùng vào mục đích nào khác ngoài những điều nêu trên.`,
+    },
+    {
+      heading: "Lưu trữ và bảo mật",
+      body: `Dữ liệu được lưu trên hệ thống của công ty, truyền qua kết nối mã hoá (HTTPS). Chỉ nhân sự văn phòng được cấp quyền mới xem được.
+
+Hồ sơ giờ công được lưu theo quy định về hồ sơ lao động của công ty.`,
+    },
+    {
+      heading: "Rút lại sự đồng ý và xoá dữ liệu",
+      body: `Bạn có thể rút lại quyền truy cập số điện thoại bất cứ lúc nào trong phần cài đặt Mini App của Zalo, hoặc liên hệ văn phòng.
+
+Khi nhận được yêu cầu, công ty sẽ **gỡ liên kết giữa tài khoản Zalo của bạn và hồ sơ nhân sự** — sau đó bạn không đăng nhập được ứng dụng nữa.
+
+Riêng **hồ sơ giờ công đã ghi nhận** (ngày công, giờ làm) được giữ lại, vì đây là hồ sơ lao động của công ty về công việc đã thực hiện và liên quan đến việc tính lương, không phải dữ liệu do Zalo cung cấp. Nếu bạn muốn xoá cả phần này, vui lòng liên hệ văn phòng theo thông tin ở đầu trang.`,
+    },
+    {
+      heading: "Điều kiện sử dụng",
+      body: `- Chỉ chấm công cho **chính mình**; không chấm công hộ người khác.
+- Chấm công đúng giờ làm việc thực tế. Giờ công do văn phòng duyệt; trường hợp sai sót, liên hệ văn phòng để điều chỉnh.
+- Không sử dụng ứng dụng vào mục đích ngoài công việc của công ty.`,
+    },
+    {
+      heading: "Liên hệ",
+      body: `Mọi thắc mắc về ứng dụng hoặc dữ liệu cá nhân, vui lòng liên hệ công ty theo địa chỉ, email và số điện thoại ghi ở đầu trang.`,
+    },
+  ],
+};
+
+// Sections with no heading or no body are dropped rather than rendered as an
+// empty numbered clause — a blank row in a legal document reads as a mistake,
+// and the numbering is derived from what actually renders.
+const mapLegalSections = (
+  raw: DirectusLegalSection[] | null | undefined,
+  fallback: LegalSection[]
+): LegalSection[] => {
+  const mapped = (raw ?? [])
+    .filter(
+      (s): s is DirectusLegalSection & { heading: string; body: string } =>
+        Boolean(s?.heading && s?.body)
+    )
+    .map((s) => ({ id: s.id, heading: s.heading, body: s.body }));
+  return mapped.length ? mapped : fallback;
+};
+
+export async function getLegalTerms(draft = false): Promise<LegalTerms> {
+  const d = DEFAULT_LEGAL_TERMS;
+  let t: DirectusLegalTerms | null = null;
+  try {
+    t = await directusClient(draft).request(
+      readSingleton("legal_terms", {
+        fields: ["*", { sections: ["*"] }],
+      })
+    );
+  } catch (err) {
+    console.error("CMS fetch error for legal-terms:", err);
+    return d;
+  }
+  if (!t) return d;
+
+  return {
+    cmsId: t.id,
+    pageTitle: orDefault(t.page_title, d.pageTitle),
+    pageSubtitle: orDefault(t.page_subtitle, d.pageSubtitle),
+    operator: {
+      name: orDefault(t.operator_name, d.operator.name),
+      taxCode: orDefault(t.operator_tax_code, d.operator.taxCode),
+      address: orDefault(t.operator_address, d.operator.address),
+      email: orDefault(t.operator_email, d.operator.email),
+      phone: orDefault(t.operator_phone, d.operator.phone),
+      updatedAt: orDefault(t.updated_at, d.operator.updatedAt),
+    },
+    sections: mapLegalSections(t.sections, d.sections),
   };
 }

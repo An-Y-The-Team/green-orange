@@ -55,6 +55,8 @@ const READ_ALL = [
   'site_stats',
   'site_brand_values',
   'site_process_steps',
+  'legal_terms',
+  'legal_term_sections',
   'directus_files',
 ] as const
 interface IdRow {
@@ -230,19 +232,18 @@ const main = async (): Promise<void> => {
     'site_stats',
     'site_brand_values',
     'site_process_steps',
+    'legal_term_sections',
   ]
   for (const collection of CONTENT) {
     for (const action of ['create', 'read', 'update'] as const) {
       await addPermission({ policyId: editorPolicyId, collection, action, have: editorHave })
     }
   }
-  for (const action of ['read', 'update'] as const) {
-    await addPermission({
-      policyId: editorPolicyId,
-      collection: 'site_settings',
-      action,
-      have: editorHave,
-    })
+  // Both singletons: editors may read and update, never create or delete.
+  for (const collection of ['site_settings', 'legal_terms']) {
+    for (const action of ['read', 'update'] as const) {
+      await addPermission({ policyId: editorPolicyId, collection, action, have: editorHave })
+    }
   }
   for (const collection of CHILDREN) {
     for (const action of ['create', 'read', 'update', 'delete'] as const) {

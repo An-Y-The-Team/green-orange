@@ -187,11 +187,31 @@ export interface DirectusSiteSettings {
   process_steps: DirectusProcessStep[];
 }
 
+export interface DirectusLegalSection {
+  id: number;
+  heading: string | null;
+  body: string | null;
+}
+
+export interface DirectusLegalTerms {
+  id: number;
+  page_title: string | null;
+  page_subtitle: string | null;
+  operator_name: string | null;
+  operator_tax_code: string | null;
+  operator_address: string | null;
+  operator_email: string | null;
+  operator_phone: string | null;
+  updated_at: string | null;
+  sections: DirectusLegalSection[];
+}
+
 export interface Schema {
   services: DirectusService[];
   projects: DirectusProject[];
   testimonials: DirectusTestimonial[];
   site_settings: DirectusSiteSettings; // singleton
+  legal_terms: DirectusLegalTerms; // singleton
   // O2M child collections of the singleton — registered so the SDK types
   // nested field expansion (e.g. `fields: ['*', { nav_items: ['*'] }]`).
   site_nav_items: DirectusSectionLink[];
@@ -200,6 +220,7 @@ export interface Schema {
   site_stats: DirectusStat[];
   site_brand_values: DirectusBrandValue[];
   site_process_steps: DirectusProcessStep[];
+  legal_term_sections: DirectusLegalSection[];
 }
 
 // Server-only base URL for SSR reads — in prod set CMS_INTERNAL_URL to the

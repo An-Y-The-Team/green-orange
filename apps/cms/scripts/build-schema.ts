@@ -469,6 +469,39 @@ const main = async (): Promise<void> => {
     str('description', { multiline: true }),
   ])
 
+  // ── legal_terms (singleton) ──────────────────────────────────────────────────
+  // The Zalo mini app's terms-of-use page (/dieu-khoan-su-dung). Kept OUT of
+  // site_settings on purpose: those are marketing copy for the landing page,
+  // while this names the registered legal entity (tax code included) that Zalo's
+  // app review checks. Separate collection = separate editing surface, and a
+  // careless edit to one cannot silently rewrite the other.
+  console.log('legal_terms (singleton)')
+  await createCollection('legal_terms', { singleton: true, icon: 'gavel' })
+  await addFields('legal_terms', [
+    str('page_title'),
+    str('page_subtitle'),
+    // The operating company, as registered — not the site's marketing name.
+    str('operator_name'),
+    str('operator_tax_code'),
+    str('operator_address', { multiline: true }),
+    str('operator_email'),
+    str('operator_phone'),
+    // Free text, not a date column: editors control the displayed format and
+    // decide when a change is substantive enough to re-date the document.
+    str('updated_at'),
+  ])
+  // Sections are numbered by their sort order at render time, so reordering in
+  // the Studio renumbers the document — no "1."/"2." typed into the headings.
+  await addO2M('legal_terms', 'legal_term_sections', 'sections', [
+    str('heading'),
+    str('body', { multiline: true }),
+  ])
+  await patchField('legal_term_sections', 'body', {
+    interface: 'input-multiline',
+    special: null,
+    note: 'Dòng trống ngăn đoạn. Dòng bắt đầu bằng "- " là gạch đầu dòng. Bọc **chữ** để in đậm.',
+  })
+
   // ── Patch existing heading fields to multiline ───────────────────────────────
   // addField skips already-existing fields, so any field created before this
   // change was made with interface=input. Patch them to input-multiline so

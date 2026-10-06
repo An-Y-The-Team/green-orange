@@ -37,6 +37,40 @@ export class AuthService {
     return { access_token, token_type: "bearer" };
   }
 
+  /**
+   * Records the per-app Zalo user id against the crew member, so a later
+   * `user.revoke.consent` webhook can be matched to a roster row (that event
+   * carries only `userId` — see src/zalo/zalo.module.ts).
+   *
+   * Swallows every failure on purpose: this is bookkeeping for a webhook that
+   * may never fire, and it must never cost a worker their login. Worst case the
+   * column stays null and a revocation is logged for the office to handle.
+   *
+   * ⚠️ Assumes `graph.zalo.me/v2.0/me` returns the SAME per-app id the webhook
+   * sends. Verify against one real revocation before trusting the automatic
+   * path — if the ids differ, the webhook's fallback logging still catches it.
+   */
+  private async captureZaloUserId(
+    crewMemberId: number,
+    zaloAccessToken: string
+  ) {
+    try {
+      const res = await fetch(
+        `https://graph.zalo.me/v2.0/me?access_token=${encodeURIComponent(zaloAccessToken)}&fields=id`,
+        { signal: AbortSignal.timeout(ZALO_FETCH_TIMEOUT_MS) }
+      );
+      if (!res.ok) return;
+      const body = (await res.json()) as { id?: unknown };
+      if (typeof body?.id !== "string" || !body.id) return;
+      await this.prisma.crewMember.update({
+        where: { id: crewMemberId },
+        data: { zalo_user_id: body.id },
+      });
+    } catch {
+      // Already covered by the doc comment: never fails a login.
+    }
+  }
+
   async me(username: string) {
     const user = await this.prisma.user.findUnique({ where: { username } });
     if (!user) throw new UnauthorizedException();
@@ -91,6 +125,12 @@ export class AuthService {
         "Số điện thoại chưa được đăng ký với công ty. Báo văn phòng để được thêm vào danh sách."
       );
     }
+
+    // Best-effort, and deliberately not awaited into the login path's success:
+    // the only thing this id is for is letting the platform webhook act on a
+    // "user.revoke.consent" event, which carries a userId and no phone. A
+    // worker must still be able to clock in if Zalo is slow or this call fails.
+    await this.captureZaloUserId(member.id, zaloAccessToken);
 
     const access_token = await this.jwt.signAsync(
       { sub: `crew:${member.id}`, kind: "crew", crew_member_id: member.id },

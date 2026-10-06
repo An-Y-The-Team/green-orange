@@ -2,8 +2,9 @@ import type { MetadataRoute } from "next";
 
 import { SITE_URL } from "../data";
 
-// The site is a single landing page (hash-anchored sections), so the sitemap is
-// effectively the one canonical URL. Emitting it still helps crawlers.
+// The marketing site is a single landing page (hash-anchored sections), plus
+// the mini app's terms of use — a standalone page because Zalo's app review
+// requires a public, linkable terms URL.
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
@@ -11,6 +12,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 1,
+    },
+    {
+      url: `${SITE_URL}/dieu-khoan-su-dung`,
+      lastModified: new Date(),
+      changeFrequency: "yearly",
+      priority: 0.3,
     },
   ];
 }

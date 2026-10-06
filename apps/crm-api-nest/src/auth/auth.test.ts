@@ -643,12 +643,34 @@ describe("AuthService.zaloToken", () => {
   test("the exchange sends the pair plus the app secret as headers", async () => {
     const { auth, calls } = service(ok, [kim]);
     await auth.zaloToken("phone-token", "zalo-access-token");
-    expect(calls).toHaveLength(1);
+    // The FIRST call is the phone-number exchange. A second one follows to
+    // capture the Zalo user id for the revocation webhook — it carries only the
+    // access token, never the app secret.
     expect(calls[0].headers).toEqual({
       access_token: "zalo-access-token",
       code: "phone-token",
       secret_key: SECRET_KEY,
     });
+  });
+
+  // The user-id capture exists only so src/zalo can act on user.revoke.consent.
+  // It must never cost a worker their login, so a failure there is swallowed.
+  test("a failing user-id capture still returns a working crew token", async () => {
+    const { auth } = service(ok, [kim]);
+    const realFetch = globalThis.fetch;
+    let n = 0;
+    globalThis.fetch = (async () => {
+      n += 1;
+      if (n === 1)
+        return { ok: true, json: async () => ok.body } as unknown as Response;
+      throw new TypeError("graph.zalo.me unreachable");
+    }) as unknown as typeof fetch;
+    try {
+      const result = await auth.zaloToken("t", "a");
+      expect(result.crew_member.id).toBe(7);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
   });
 
   test("no ZALO_APP_SECRET → 500, never a token", async () => {

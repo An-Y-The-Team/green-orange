@@ -149,6 +149,10 @@ services:
       # Converts zmp-sdk getPhoneNumber tokens via graph.zalo.me (POST
       # /auth/zalo-token). From the Zalo Developers console; secret in Dockhand.
       ZALO_APP_SECRET: ${ZALO_APP_SECRET}
+      # Signs the Zalo platform webhook (POST /zalo/webhook) — the consent
+      # revocation / data deletion callback the Mini App Center requires. From
+      # Open APIs → Quản lý APIs; a different secret from ZALO_APP_SECRET.
+      ZALO_API_KEY: ${ZALO_API_KEY}
       # Attachment storage — a Vietnamese S3 bucket (Bizfly / Viettel). Keeping
       # the bucket onshore avoids a cross-border transfer filing under Luật
       # BVDLCN 91/2025/QH15. Keys live in Dockhand, never in this file.

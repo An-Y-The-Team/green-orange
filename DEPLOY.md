@@ -700,13 +700,40 @@ docs in [`apps/zalo-timekeeping/README.md`](apps/zalo-timekeeping/README.md).
   depends on it).
 - Whitelist `https://api-crm.dichvuyan.com` in the app's request-domain list.
 
-**2. Secrets in Dockhand** (both new, both required by crm-api-nest):
+**2. Secrets in Dockhand** (all required by crm-api-nest):
 
 - `CRM_JWT_SECRET` — signs crew HS256 JWTs. Crew tokens are HS256 **even in
   AUTH_MODE=oidc** (`src/auth/jwt.guard.ts`), so prod now needs this set:
   `openssl rand -hex 32`.
 - `ZALO_APP_SECRET` — the Zalo App secret key from step 1; converts phone-number
   tokens via graph.zalo.me in `POST /auth/zalo-token`.
+- `ZALO_API_KEY` — **a different secret**: the Open APIs API Key (Quản lý Zalo
+  App → Open APIs → Quản lý APIs, same screen as the Webhook URL). It signs the
+  platform webhook below. Unset means `POST /zalo/webhook` refuses every caller,
+  which is the intended fail-closed behaviour but also means revocations are
+  silently dropped — set it before registering the URL.
+
+**2b. Webhook URL** — the Mini App Center will not accept a version submission
+until one is registered (Bước 2 of "Yêu cầu xét duyệt phiên bản"). Set it in
+Quản lý Zalo App → Open APIs → Webhook URL to:
+
+```
+https://api-crm.dichvuyan.com/zalo/webhook
+```
+
+It handles two events. `versions.review.done` carries the review verdict, so
+**approval and rejection land in the crm-api-nest log** — `docker logs <crm-api-nest> | grep ZaloWebhook`
+is the fastest way to see why a version was refused. `user.revoke.consent` means
+a worker withdrew consent: the handler clears their `phone` and `zalo_user_id`,
+which revokes their login, and deliberately keeps their TimekeepingRecord rows
+(employment records, not Zalo data — the terms of use say so explicitly).
+
+> A revocation can only be matched automatically if that worker has logged into
+> the mini app since `zalo_user_id` shipped (v0.24.6+), since the event carries a
+> `userId` and no phone. An unmatched one is logged at **error** level with the
+> full payload — grep `ZaloWebhook` and handle it by hand. Worth checking after
+> the first real revocation that the id Zalo sends matches the one captured at
+> login; if it does not, the automatic path never fires and only the log does.
 
 **3. Phone dedup pre-check** — the release's migration normalizes
 `CrewMember.phone` (`+84`/`84` → `0…`, strip separators) and adds a UNIQUE index.
