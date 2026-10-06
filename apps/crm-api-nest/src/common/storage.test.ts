@@ -1,0 +1,75 @@
+// What must not regress: a filename coming off a browser file picker cannot
+// escape its project prefix, and the last segment stays the human filename the
+// UI prints — `basename(s3_key)` is the only thing standing between a user and
+// seeing a uuid where the file's name should be.
+import { describe, expect, test } from "bun:test";
+
+import { basename, buildKey, isOwnKey } from "./storage";
+
+const lastSegment = (key: string) => key.split("/").slice(3).join("/");
+
+describe("buildKey", () => {
+  test("keeps the Vietnamese filename intact as the last segment", () => {
+    const key = buildKey(7, "Mau Hop Dong.docx");
+    expect(key).toStartWith("projects/7/");
+    expect(basename(key)).toBe("Mau Hop Dong.docx");
+    expect(basename(buildKey(7, "Biên bản nghiệm thu.pdf"))).toBe(
+      "Biên bản nghiệm thu.pdf"
+    );
+  });
+
+  test("two uploads of the same name get different keys", () => {
+    expect(buildKey(7, "a.pdf")).not.toBe(buildKey(7, "a.pdf"));
+  });
+
+  test("cannot escape the project prefix", () => {
+    for (const evil of [
+      "../../etc/passwd",
+      "..\\..\\windows\\system32",
+      "/absolute/path.pdf",
+      "nested/dir/file.pdf",
+    ]) {
+      const key = buildKey(7, evil);
+      expect(key).toStartWith("projects/7/");
+      expect(lastSegment(key)).not.toInclude("/");
+      expect(key.split("/")).toHaveLength(4);
+    }
+  });
+
+  test("strips control characters and leading dots", () => {
+    expect(basename(buildKey(7, ".hidden.pdf"))).toBe("hidden.pdf");
+    expect(basename(buildKey(7, "a\u0000b.pdf"))).toBe("ab.pdf");
+  });
+
+  test("falls back rather than producing an empty segment", () => {
+    expect(basename(buildKey(7, "   "))).toBe("tep");
+    expect(basename(buildKey(7, "..."))).toBe("tep");
+  });
+
+  test("caps a hostile filename length", () => {
+    expect(basename(buildKey(7, "x".repeat(500))).length).toBe(120);
+  });
+
+  // `.slice(0, 120)` cuts UTF-16 units, so an emoji straddling the cut used to
+  // leave a lone surrogate and `encodeURIComponent` threw URIError — a 500 on
+  // the presign. Slicing by code point is also what Python's `[:120]` does.
+  test("never cuts a surrogate pair in half", () => {
+    const key = buildKey(7, `${"x".repeat(119)}😀.pdf`);
+    expect(() => encodeURIComponent(basename(key))).not.toThrow();
+    expect([...basename(key)]).toHaveLength(120);
+  });
+});
+
+describe("isOwnKey", () => {
+  test("accepts only keys we minted for this project", () => {
+    const key = buildKey(7, "Biên bản.pdf");
+    expect(isOwnKey(7, key)).toBe(true);
+    // Another project's key, a hand-written one, a legacy metadata-only row, and
+    // an extra path segment all have to be refused: POST /attachments takes this
+    // from the client and DELETE removes the object it names.
+    expect(isOwnKey(8, key)).toBe(false);
+    expect(isOwnKey(7, "projects/7/not-a-uuid/x.pdf")).toBe(false);
+    expect(isOwnKey(7, "bien-ban-nghiem-thu.pdf")).toBe(false);
+    expect(isOwnKey(7, `${key}/extra.pdf`)).toBe(false);
+  });
+});

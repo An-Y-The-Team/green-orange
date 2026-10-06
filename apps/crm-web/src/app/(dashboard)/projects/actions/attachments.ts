@@ -13,12 +13,64 @@ import {
 import { apiSend, toActionError } from "@/utils/http/http";
 
 import { AttachmentKind } from "../enums";
-import type { Attachment } from "../types";
+import type { Attachment, AttachmentPresign } from "../types";
 
-// Metadata-only: the user types a filename; we store it as s3_key (no upload).
+/**
+ * Upload is a three-step dance, and only the two ends run here:
+ *
+ *   1. `presignAttachment` — this file, server-side, asks crm-api for a signed URL
+ *   2. the browser PUTs the bytes straight to the bucket (see attachment-upload)
+ *   3. `addAttachment` — this file, records the row against the returned s3_key
+ *
+ * Step 2 cannot run here: CRM_API_URL is server-only and the bucket is not, but
+ * more to the point a server action would pull every byte through the Next
+ * process (and past its 1 MB body limit) for nothing.
+ */
+const presignSchema = z.object({
+  filename: z.string().min(1),
+  content_type: z.string().min(1),
+  content_length: z.number().int().positive(),
+});
+
+export type PresignAttachmentInput = z.infer<typeof presignSchema>;
+
+export async function presignAttachment(
+  projectId: number,
+  input: PresignAttachmentInput
+): Promise<ServerActionState<AttachmentPresign>> {
+  const parsed = presignSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      message: INVALID_INPUT_MESSAGE,
+      errors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  try {
+    const data = await apiSend<AttachmentPresign>(
+      "/attachments/presign",
+      "POST",
+      { project_id: projectId, ...parsed.data }
+    );
+
+    return { success: true, message: "Đã sẵn sàng tải lên.", data };
+  } catch (error) {
+    return {
+      success: false,
+      message: toActionError(
+        error,
+        ACTION_MESSAGES.addFailed(NOUNS.attachment)
+      ),
+    };
+  }
+}
+
+/** Records the row once the bytes are already in the bucket. */
 const addAttachmentSchema = z.object({
   kind: z.nativeEnum(AttachmentKind),
-  filename: z.string().min(1, "Nhập tên tệp."),
+  s3_key: z.string().min(1, "Thiếu tệp đã tải lên."),
   note: z.string().optional(),
 });
 
@@ -26,9 +78,9 @@ export type AddAttachmentFormValues = z.infer<typeof addAttachmentSchema>;
 
 export async function addAttachment(
   projectId: number,
-  _prev: ServerActionState,
+  _prev: ServerActionState<Attachment>,
   input: AddAttachmentFormValues
-): Promise<ServerActionState> {
+): Promise<ServerActionState<Attachment>> {
   const parsed = addAttachmentSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -43,7 +95,7 @@ export async function addAttachment(
     const body = {
       project_id: projectId,
       kind: parsed.data.kind,
-      s3_key: parsed.data.filename,
+      s3_key: parsed.data.s3_key,
       note: parsed.data.note,
     };
     const data = await apiSend<Attachment>("/attachments", "POST", body);
@@ -65,6 +117,10 @@ export async function addAttachment(
     };
   }
 }
+
+// The signed download URL is minted by `app/api/attachments/[id]/download`, not
+// here: it has to be reachable as a plain `<a href>` so the link survives the
+// `<fieldset disabled>` of a closed job and the Safari popup blocker.
 
 export async function deleteAttachment(
   id: number,

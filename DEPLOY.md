@@ -751,6 +751,82 @@ maintained in crm-web (Nhân sự page).
 
 ---
 
+## 6f. Attachment storage (S3 bucket)
+
+CRM attachments — khảo sát photos, signed contracts, biên bản nghiệm thu, ảnh
+hoàn công — live in an S3 bucket, not on the VPS disk. The API only ever hands
+out presigned URLs; bytes go browser ↔ bucket directly and never touch the 1–2 GB
+box (`crm-api-nest/src/common/storage.ts`, `crm-api/app/core/storage.py`).
+
+**Use a Vietnamese provider.** Bizfly Simple Storage (~1,000đ/GB/month) or
+Viettel Cloud Object Storage (~800đ/GB/month). Cloudflare R2 is ~2–3× cheaper
+with free egress, and is still the wrong choice here: contracts carry customer
+names, addresses, phones and MST, so a foreign bucket makes every upload a
+cross-border transfer under **Luật BVDLCN 91/2025/QH15 + NĐ 356/2025** (in force
+2026-01-01), which requires a Mẫu số 09 impact filing within 60 days of the first
+transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
+
+**The live bucket** (Bizfly, created 2026-10-05):
+
+|            |                                                                              |
+| ---------- | ---------------------------------------------------------------------------- |
+| endpoint   | `https://hcm.ss.bfcplatform.vn`                                              |
+| region     | `hcm`                                                                        |
+| bucket     | `greenorange`                                                                |
+| addressing | **path-style** (`forcePathStyle: true`) — Bizfly's own SDK page specifies it |
+
+**Setup (provider console — the operator does this once):**
+
+1. Bucket `greenorange` must be **private**, no public read.
+2. **Turn on object versioning.** This bucket is the _only_ copy of every signed
+   hợp đồng and biên bản nghiệm thu — before this feature those files lived in
+   Zalo/Drive, where the staff still had them. A delete is now permanent, and
+   `DELETE /attachments/:id` deletes the object. Versioning is the difference
+   between "someone removed the wrong row" and "the contract is gone".
+3. Create an access key (Access Key menu); put the pair in Dockhand as
+   `S3_ACCESS_KEY` / `S3_SECRET_KEY`, plus `S3_ENDPOINT`, `S3_REGION`,
+   `S3_BUCKET` (see `.env.production.example`). Keys never go in git.
+   **Both** CRM backends read these — `crm-api-nest` and `crm-api` — because
+   both implement the presign endpoints and `CRM_API_URL` can point at either
+   (§6c). Set them on both services or the switch silently loses uploads.
+4. **CORS** — the browser PUTs directly, so without this every upload fails with
+   an opaque network error:
+
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://crm.dichvuyan.com"],
+       "AllowedMethods": ["GET", "PUT"],
+       "AllowedHeaders": ["*"],
+       "ExposeHeaders": ["ETag"],
+       "MaxAgeSeconds": 3000
+     }
+   ]
+   ```
+
+   Replace the origin with the real `CRM_DOMAIN`. Do **not** use `*`.
+
+5. Add a lifecycle rule expiring **incomplete/orphaned objects after 7 days**.
+   An upload is three steps (presign → PUT → record the row); if the last one
+   fails the bytes are already in the bucket with no row pointing at them, and
+   nothing else ever deletes them.
+6. Create a second bucket `greenorange-backups` for §8a, with its **own** key.
+
+**Verify** after deploy: open a project → Khảo sát → upload a small .pdf → the
+row appears → click it → the file downloads. Then confirm the object exists in
+the console under `projects/<id>/<uuid>/`. A 403 on the PUT is almost always CORS
+or a clock skew on the VPS (`timedatectl` — signatures are time-sensitive).
+
+Unset `S3_*` is not fatal: the API boots and every other page works; the
+attachment endpoints answer **503** naming the missing variables, which crm-web
+shows as "Kho lưu trữ tệp chưa được cấu hình — báo quản trị viên."
+
+Rows created before this feature hold a bare filename instead of a real object
+key. They still list, but their download answers 404 with "tệp này có từ trước
+khi hệ thống lưu trữ tệp" rather than opening the provider's raw XML.
+
+---
+
 ## 7. Ongoing deploys
 
 Just cut a new tag. The repo uses `vX.Y.Z` tags, and pushing one triggers the
@@ -836,6 +912,52 @@ Restore: `gunzip -c dump.sql.gz | docker exec -i "green-orange-postgres-1" psql 
 > These labels are set by Compose on every container/volume it creates, so they
 > hold regardless of the project name. Sanity-check with `docker ps` /
 > `docker volume ls` if a match comes back empty.
+
+### 8a. Get the backups OFF the box
+
+Everything above writes to `/root/backups` **on the same VPS it is backing up**.
+One disk failure takes the databases and the backups together, which is not a
+backup — it is a copy. Since §6f the stack already has an offsite bucket and
+credentials, so use it:
+
+```bash
+apt install -y rclone
+mkdir -p ~/.config/rclone
+```
+
+`~/.config/rclone/rclone.conf` — exactly the stanza Bizfly's own DevOps page gives
+(`region` and `env_auth` matter; leaving them out makes signing fail):
+
+```ini
+[backups]
+type = s3
+provider = Other
+env_auth = false
+access_key_id = <BACKUP_ACCESS_KEY>
+secret_access_key = <BACKUP_SECRET_KEY>
+region = hcm
+endpoint = https://hcm.ss.bfcplatform.vn
+```
+
+```bash
+# Nightly, after the dumps above have finished.
+# `copy`, NOT `sync`: sync mirrors deletions, so a wiped or half-written
+# /root/backups would propagate to the offsite copy at 03:30 and take the only
+# other copy with it. copy only ever adds.
+30 3 * * * rclone copy /root/backups backups:greenorange-backups/vps/ >> /var/log/rclone-backup.log 2>&1
+
+# The ATTACHMENTS bucket needs this too — it is the only copy of every signed
+# contract and biên bản nghiệm thu, and nothing else backs it up. Add the
+# attachments key as a second remote ([attachments], same stanza, its own
+# credentials) and pull it to the backups bucket.
+45 3 * * * rclone copy attachments:greenorange backups:greenorange-backups/attachments/ >> /var/log/rclone-backup.log 2>&1
+```
+
+Use a **separate bucket** from the attachments one, with its own key, so a
+credential leak on the app side cannot rewrite the backups. Verify with
+`rclone ls backups:greenorange-backups/vps/` and
+`rclone ls backups:greenorange-backups/attachments/` a day later — an untested
+backup is a guess.
 
 ---
 

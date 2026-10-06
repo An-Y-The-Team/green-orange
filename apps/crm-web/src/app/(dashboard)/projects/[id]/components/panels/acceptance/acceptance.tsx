@@ -15,7 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@yan/ui/components/dialog";
-import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
@@ -28,7 +27,6 @@ import {
 import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
-import { addAttachment } from "../../../../actions/attachments";
 import { updateProject } from "../../../../actions/update-project";
 import { updateProjectWithNote } from "../../../../actions/update-project-with-note";
 import {
@@ -37,9 +35,10 @@ import {
   GateKey,
   ProjectStage,
 } from "../../../../enums";
-import type { Project } from "../../../../types";
+import type { Attachment, Project } from "../../../../types";
 import { gateButtonProps } from "../../../utils/gate-button-props/gate-button-props";
 import type { StageGate } from "../../../utils/stage-gates/stage-gates";
+import { AttachmentList } from "../../attachment-list/attachment-list";
 import {
   type GateActions,
   GateChecklist,
@@ -55,9 +54,11 @@ const ACCEPTANCE_TAGS = new Set(["rework"]);
 
 export function AcceptancePanel({
   project,
+  attachments,
   gates,
 }: {
   project: Project;
+  attachments: Attachment[];
   gates: StageGate[];
 }) {
   // Entering stage 6 already set request_sent; guard the null just in case.
@@ -267,7 +268,9 @@ export function AcceptancePanel({
       </div>
 
       {/* Signed biên bản — optional attachment once passed */}
-      {passed ? <AcceptanceReport projectId={project.id} /> : null}
+      {passed ? (
+        <AcceptanceReport project={project} attachments={attachments} />
+      ) : null}
 
       {/* Lịch sử — rework/acceptance notes, newest first */}
       {history.length > 0 ? (
@@ -289,46 +292,28 @@ export function AcceptancePanel({
   );
 }
 
-// Attach the signed biên bản (metadata only) after Đạt — kind acceptance_report.
-function AcceptanceReport({ projectId }: { projectId: number }) {
-  const [state, formAction] = useActionState(
-    addAttachment.bind(null, projectId),
-    INITIAL_ACTION_STATE
-  );
-  const [isPending, startTransition] = useTransition();
-  const [filename, setFilename] = useState("");
-  useServerAction(state, isPending, {
-    ...ACTION_TOAST_TITLES,
-    onSuccess: () => setFilename(""),
-  });
-
+// The signed biên bản, attached after Đạt — kind acceptance_report. A list, not
+// a bare uploader: this is the document the job is closed on, so it has to be
+// re-readable and replaceable after it goes up.
+function AcceptanceReport({
+  project,
+  attachments,
+}: {
+  project: Project;
+  attachments: Attachment[];
+}) {
   return (
-    <div className="flex items-end gap-2 rounded-lg border p-3">
-      <div className="flex-1 space-y-1.5">
-        <Label htmlFor="acceptance-report">Biên bản nghiệm thu (tên tệp)</Label>
-        <Input
-          id="acceptance-report"
-          value={filename}
-          placeholder="bien-ban-nghiem-thu.pdf"
-          disabled={isPending}
-          onChange={(e) => setFilename(e.target.value)}
-        />
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={isPending || !filename.trim()}
-        onClick={() =>
-          startTransition(() =>
-            formAction({
-              kind: AttachmentKind.ACCEPTANCE_REPORT,
-              filename: filename.trim(),
-            })
-          )
-        }
-      >
-        Đính kèm
-      </Button>
+    <div className="rounded-lg border p-3">
+      <AttachmentList
+        projectId={project.id}
+        kind={AttachmentKind.ACCEPTANCE_REPORT}
+        initial={attachments.filter(
+          (a) => a.kind === AttachmentKind.ACCEPTANCE_REPORT
+        )}
+        title="Biên bản nghiệm thu đã ký"
+        emptyMessage="Chưa đính kèm biên bản đã ký."
+        uploadLabel="Biên bản nghiệm thu đã ký"
+      />
     </div>
   );
 }

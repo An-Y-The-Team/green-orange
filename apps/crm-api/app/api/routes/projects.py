@@ -9,7 +9,15 @@ and a manual jump just applies. A closed project is locked.
 from datetime import date
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
+)
 from sqlalchemy import func, or_
 from sqlmodel import Session, select
 
@@ -31,6 +39,18 @@ from app.core.rules import (
     next_code,
     should_advance,
 )
+from app.core.storage import (
+    ALLOWED_CONTENT_TYPES,
+    MAX_UPLOAD_BYTES,
+    PRESIGN_TTL_SECONDS,
+    basename,
+    build_key,
+    delete_object,
+    is_own_key,
+    presign_get,
+    presign_put,
+    storage_configured,
+)
 from app.models.client import Client, Contact, Location
 from app.models.contract import Contract
 from app.models.crew import Assignment, TimekeepingRecord
@@ -40,6 +60,9 @@ from app.models.project import (
     PROJECT_STATUSES,
     Attachment,
     AttachmentCreate,
+    AttachmentDownloadPublic,
+    AttachmentPresign,
+    AttachmentPresignPublic,
     AttachmentPublic,
     Project,
     ProjectCreate,
@@ -491,7 +514,80 @@ def delete_project_note(session: SessionDep, note_id: int) -> None:
     session.commit()
 
 
-# ── Attachments (S3 metadata rows only; storage TBD) ────────────────────────
+# ── Attachments (metadata rows + presigned S3 upload/download) ─────────────
+@attachments_router.post("/presign", response_model=AttachmentPresignPublic)
+def presign_attachment(
+    session: SessionDep, payload: AttachmentPresign
+) -> AttachmentPresignPublic:
+    """Hand out a short-lived signed PUT; the browser uploads straight to the
+    bucket and then POSTs the returned s3_key to POST /attachments as it always
+    has. Bytes never pass through this process.
+
+    The content type and length are signed into the URL, so the checks below are
+    not the only line of defence — a client that lies about either is refused by
+    the bucket. They run here to fail fast with a sentence instead of a 403.
+    """
+    # Say which knob is missing. Without this the RuntimeError from _client()
+    # surfaces as a bare 500, and .env.example, config.py and DEPLOY.md §6f all
+    # promise the opposite.
+    if not storage_configured():
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Object storage is not configured — set S3_ENDPOINT, S3_BUCKET, "
+            "S3_ACCESS_KEY, S3_SECRET_KEY",
+        )
+    # assert_project_open only rejects a CLOSED project; a project_id that does
+    # not exist passes it silently and would mint signed PUTs for keys no row
+    # will ever reference.
+    if not session.get(Project, payload.project_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    assert_project_open(session, payload.project_id)
+    if payload.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Unsupported file type: {payload.content_type}",
+        )
+    if payload.content_length > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"File is larger than {MAX_UPLOAD_BYTES // 1024 // 1024} MB",
+        )
+    key = build_key(payload.project_id, payload.filename)
+    return AttachmentPresignPublic(
+        upload_url=presign_put(key, payload.content_type, payload.content_length),
+        s3_key=key,
+        expires_in=PRESIGN_TTL_SECONDS,
+    )
+
+
+@attachments_router.get("/{attachment_id}/url", response_model=AttachmentDownloadPublic)
+def attachment_download_url(
+    session: SessionDep, attachment_id: int
+) -> AttachmentDownloadPublic:
+    """Short-lived signed GET for one row — the download link the UI opens."""
+    attachment = session.get(Attachment, attachment_id)
+    if not attachment:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Attachment not found")
+    # Rows from the metadata-only era (and the seed) hold a bare filename with no
+    # object behind it. Signing one yields a valid URL that opens the provider's
+    # raw NoSuchKey XML in a new tab; say so instead.
+    if not is_own_key(attachment.project_id, attachment.s3_key):
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "This attachment predates file storage — only its name was recorded",
+        )
+    if not storage_configured():
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Object storage is not configured — set S3_ENDPOINT, S3_BUCKET, "
+            "S3_ACCESS_KEY, S3_SECRET_KEY",
+        )
+    return AttachmentDownloadPublic(
+        download_url=presign_get(attachment.s3_key, basename(attachment.s3_key)),
+        expires_in=PRESIGN_TTL_SECONDS,
+    )
+
+
 @attachments_router.get("", response_model=list[AttachmentPublic])
 def list_attachments(
     session: SessionDep,
@@ -526,6 +622,14 @@ def create_attachment(session: SessionDep, payload: AttachmentCreate) -> Attachm
                 status.HTTP_400_BAD_REQUEST,
                 "paperwork_item_id does not belong to project_id",
             )
+    # The key must be one presign_put minted for THIS project. DELETE removes the
+    # object this names, so an unchecked key lets a caller record a row over
+    # someone else's file and then delete their bytes, leaving their row behind.
+    if not is_own_key(payload.project_id, payload.s3_key):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "s3_key was not issued for this project — upload via /attachments/presign",
+        )
     attachment = Attachment.model_validate(payload)
     session.add(attachment)
     session.commit()
@@ -534,10 +638,18 @@ def create_attachment(session: SessionDep, payload: AttachmentCreate) -> Attachm
 
 
 @attachments_router.delete("/{attachment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_attachment(session: SessionDep, attachment_id: int) -> None:
+def delete_attachment(
+    session: SessionDep, attachment_id: int, background: BackgroundTasks
+) -> None:
     attachment = session.get(Attachment, attachment_id)
     if not attachment:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Attachment not found")
     assert_project_open(session, attachment.project_id)
+    key = attachment.s3_key
     session.delete(attachment)
     session.commit()
+    # After the row, and deliberately off the request: delete_object swallows its
+    # own errors, but running it inline puts botocore's retry backoff inside the
+    # user's request — a bucket outage would turn a committed delete into a
+    # timeout toast for a row that is already gone. (NestJS mirror: `void`.)
+    background.add_task(delete_object, key)

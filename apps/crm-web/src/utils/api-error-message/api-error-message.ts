@@ -39,6 +39,29 @@ const NETWORK_ERROR = "Không kết nối được máy chủ — kiểm tra m�
  * one. `vi` may read the regex captures to keep the backend's numbers.
  */
 const MESSAGES: { match: RegExp; vi: (m: RegExpMatchArray) => string }[] = [
+  // ── Tệp đính kèm ─────────────────────────────────────────────────────────
+  {
+    match: /unsupported file type: (.+)/i,
+    vi: (m) =>
+      `Không nhận loại tệp này (${m[1]}). Chỉ nhận .pdf, .doc(x), .xls(x) và ảnh .png/.jpg/.webp.`,
+  },
+  {
+    match: /file is larger than (\d+) MB/i,
+    vi: (m) => `Tệp vượt quá ${m[1]} MB — nén hoặc cắt bớt rồi tải lại.`,
+  },
+  {
+    match: /s3_key was not issued for this project/i,
+    vi: () => "Tệp tải lên không hợp lệ — chọn lại tệp rồi thử lại.",
+  },
+  {
+    match: /attachment predates file storage/i,
+    vi: () =>
+      "Tệp này có từ trước khi hệ thống lưu trữ tệp — chỉ tên được ghi lại, không có tệp để tải.",
+  },
+  {
+    match: /object storage is not configured/i,
+    vi: () => "Kho lưu trữ tệp chưa được cấu hình — báo quản trị viên.",
+  },
   // ── Quyết toán / hóa đơn / đợt thanh toán ────────────────────────────────
   {
     match: /cannot un-sign: payments have already been collected/i,
