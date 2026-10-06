@@ -11,6 +11,8 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
 import { formatDate } from "@/utils/format-date/format-date";
 
 import {
@@ -20,7 +22,7 @@ import {
   PaperworkStatus,
   ProjectStage,
 } from "../../../enums";
-import type { Attachment, PaperworkItem, Project } from "../../../types";
+import type { PaperworkItem, Project } from "../../../types";
 
 /**
  * "What does this job still need?" — the one question the workspace exists to
@@ -111,7 +113,9 @@ export function stageGates({
       const surveyed =
         (project.survey_items?.length ?? 0) > 0 ||
         Boolean(project.survey_note?.trim()) ||
-        attachments.length > 0;
+        // Survey photos only — a contract scan or hoàn công photo is not a
+        // survey, and used to tick this row on any job that had files.
+        attachments.some((a) => a.kind === AttachmentKind.SURVEY);
       return [
         gate(
           GateKey.APPOINTMENT,

@@ -8,7 +8,6 @@ import type { Quote } from "@/app/(dashboard)/quotes/types";
 
 import type {
   AcceptanceSubStatus,
-  AttachmentKind,
   ExecutionSubStatus,
   PaperworkNeededFor,
   PaperworkStatus,
@@ -130,27 +129,6 @@ export interface ProjectNote {
   tag?: string | null; // e.g. kickoff, hoarding, rework
   body: string;
   created_at: string;
-}
-
-/** S3 metadata row (storage TBD; shape stable). */
-export interface Attachment {
-  id: number;
-  project_id: number;
-  kind: AttachmentKind;
-  paperwork_item_id?: number | null;
-  s3_key: string;
-  note?: string | null;
-  created_at: string;
-}
-
-/**
- * `POST /attachments/presign` — a signed URL the browser PUTs the bytes to.
- * The response also carries `expires_in`; it is left out here because nothing
- * reads it — the URL is minted per upload and used immediately.
- */
-export interface AttachmentPresign {
-  upload_url: string;
-  s3_key: string;
 }
 
 /**

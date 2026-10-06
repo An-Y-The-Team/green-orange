@@ -37,6 +37,7 @@ import {
   MilestoneType,
   SettlementStatus,
 } from "@/app/(dashboard)/receivables/enums";
+import { AttachmentKind } from "@/components/attachments/enums";
 
 type BadgeVariant =
   | "default"
@@ -363,6 +364,24 @@ export const APP_NAME = "Quản lý công trình & nhân sự Ý Ân" as const;
  * limits, because the picker's `accept` list is the only other place a user
  * finds out what will be refused.
  */
+// File categories — headings on the Giấy tờ tab and default list titles.
+export const ATTACHMENT_KINDS: Record<AttachmentKind, string> = {
+  [AttachmentKind.SURVEY]: "Ảnh khảo sát",
+  [AttachmentKind.SIGNED_QUOTE]: "Báo giá đã xác nhận",
+  [AttachmentKind.SIGNED_CONTRACT]: "Hợp đồng đã ký",
+  [AttachmentKind.PAYMENT_PROOF]: "Chứng từ thanh toán",
+  [AttachmentKind.PAPERWORK]: "Hồ sơ giấy tờ",
+  [AttachmentKind.SITE_LOG]: "Ảnh thi công",
+  [AttachmentKind.FINISH_IMAGE]: "Ảnh hoàn công",
+  [AttachmentKind.DEFECT_IMAGE]: "Ảnh lỗi cần sửa",
+  [AttachmentKind.ACCEPTANCE_REPORT]: "Biên bản nghiệm thu",
+  [AttachmentKind.SETTLEMENT]: "Biên bản quyết toán",
+  [AttachmentKind.VAT_INVOICE]: "Hóa đơn VAT",
+  [AttachmentKind.OTHER]: "Tệp khác",
+  [AttachmentKind.ID_CARD]: "CCCD",
+  [AttachmentKind.CERTIFICATE]: "Chứng chỉ",
+};
+
 export const PHOTO_TEXT = {
   add: "+ Thêm tệp",
   hint: "Ảnh và tài liệu (.pdf, .docx, .xlsx), tối đa 25 MB mỗi tệp.",

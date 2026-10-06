@@ -2,9 +2,10 @@ import type {
   Assignment,
   TimekeepingRecord,
 } from "@/app/(dashboard)/crew/types";
+import type { Attachment } from "@/components/attachments/types";
 
 import { GateKey, ProjectStage } from "../../../../enums";
-import type { Attachment, Project } from "../../../../types";
+import type { Project } from "../../../../types";
 import type { StageGate } from "../../../utils/stage-gates/stage-gates";
 import { GateChecklist } from "../../gate-checklist/gate-checklist";
 import { StageCard } from "../../stage-card/stage-card";

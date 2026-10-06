@@ -2,7 +2,6 @@ import { apiFetchDetail, apiFetchSafe } from "@/utils/http/http";
 import { pageQuery } from "@/utils/page-param/page-param";
 
 import type {
-  Attachment,
   PaperworkItem,
   Project,
   ProjectType,
@@ -63,16 +62,6 @@ export async function listPaperworkItems(
 ): Promise<PaperworkItem[]> {
   return apiFetchSafe<PaperworkItem[]>(
     `/paperwork-items?project_id=${projectId}`,
-    []
-  );
-}
-
-export async function listProjectAttachments(
-  projectId: number,
-  kind?: string
-): Promise<Attachment[]> {
-  return apiFetchSafe<Attachment[]>(
-    `/attachments?project_id=${projectId}${kind ? `&kind=${kind}` : ""}`,
     []
   );
 }

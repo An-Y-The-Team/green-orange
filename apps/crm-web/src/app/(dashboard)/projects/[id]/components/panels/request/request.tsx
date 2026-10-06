@@ -8,6 +8,7 @@ import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 
+import type { Attachment } from "@/components/attachments/types";
 import { ACTIONS, FIELDS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
@@ -22,7 +23,7 @@ import {
 
 import { updateProject } from "../../../../actions/update-project";
 import { GateKey, ProjectStage } from "../../../../enums";
-import type { Attachment, Project } from "../../../../types";
+import type { Project } from "../../../../types";
 import type { StageGate } from "../../../utils/stage-gates/stage-gates";
 import { VisitAction } from "../../gate-actions/visit-action/visit-action";
 import {

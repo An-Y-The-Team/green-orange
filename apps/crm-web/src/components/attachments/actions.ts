@@ -12,8 +12,19 @@ import {
 } from "@/constants/server-action";
 import { apiSend, toActionError } from "@/utils/http/http";
 
-import { AttachmentKind } from "../enums";
-import type { Attachment, AttachmentPresign } from "../types";
+import { AttachmentKind } from "./enums";
+import type {
+  Attachment,
+  AttachmentLink,
+  AttachmentOwner,
+  AttachmentPresign,
+} from "./types";
+
+/** The page a file shows on — revalidated after every write. */
+const ownerPath = (owner: AttachmentOwner): string =>
+  "project_id" in owner
+    ? `/projects/${owner.project_id}`
+    : `/crew/${owner.crew_member_id}`;
 
 /**
  * Upload is a three-step dance, and only the two ends run here:
@@ -36,7 +47,7 @@ const presignSchema = z.object({
 export type PresignAttachmentInput = z.infer<typeof presignSchema>;
 
 export async function presignAttachment(
-  projectId: number,
+  owner: AttachmentOwner,
   input: PresignAttachmentInput
 ): Promise<ServerActionState<AttachmentPresign>> {
   const parsed = presignSchema.safeParse(input);
@@ -53,7 +64,7 @@ export async function presignAttachment(
     const data = await apiSend<AttachmentPresign>(
       "/attachments/presign",
       "POST",
-      { project_id: projectId, ...parsed.data }
+      { ...owner, ...parsed.data }
     );
 
     return { success: true, message: "Đã sẵn sàng tải lên.", data };
@@ -78,7 +89,8 @@ const addAttachmentSchema = z.object({
 export type AddAttachmentFormValues = z.infer<typeof addAttachmentSchema>;
 
 export async function addAttachment(
-  projectId: number,
+  owner: AttachmentOwner,
+  link: AttachmentLink,
   _prev: ServerActionState<Attachment>,
   input: AddAttachmentFormValues
 ): Promise<ServerActionState<Attachment>> {
@@ -94,14 +106,15 @@ export async function addAttachment(
 
   try {
     const body = {
-      project_id: projectId,
+      ...owner,
+      ...link,
       kind: parsed.data.kind,
       s3_key: parsed.data.s3_key,
       note: parsed.data.note,
     };
     const data = await apiSend<Attachment>("/attachments", "POST", body);
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(ownerPath(owner));
 
     return {
       success: true,
@@ -125,13 +138,13 @@ export async function addAttachment(
 
 export async function deleteAttachment(
   id: number,
-  projectId: number,
+  owner: AttachmentOwner,
   _prev: ServerActionState
 ): Promise<ServerActionState> {
   try {
     await apiSend(`/attachments/${id}`, "DELETE");
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(ownerPath(owner));
 
     return { success: true, message: "Đã xoá tệp.", data: { id } };
   } catch (error) {

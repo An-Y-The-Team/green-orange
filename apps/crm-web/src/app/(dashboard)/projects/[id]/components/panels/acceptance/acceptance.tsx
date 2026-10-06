@@ -18,6 +18,9 @@ import {
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { ACCEPTANCE_SUB_STATUSES, ACTIONS } from "@/constants/labels";
 import {
@@ -29,16 +32,10 @@ import { labelOf } from "@/utils/label-of/label-of";
 
 import { updateProject } from "../../../../actions/update-project";
 import { updateProjectWithNote } from "../../../../actions/update-project-with-note";
-import {
-  AcceptanceSubStatus,
-  AttachmentKind,
-  GateKey,
-  ProjectStage,
-} from "../../../../enums";
-import type { Attachment, Project } from "../../../../types";
+import { AcceptanceSubStatus, GateKey, ProjectStage } from "../../../../enums";
+import type { Project } from "../../../../types";
 import { gateButtonProps } from "../../../utils/gate-button-props/gate-button-props";
 import type { StageGate } from "../../../utils/stage-gates/stage-gates";
-import { AttachmentList } from "../../attachment-list/attachment-list";
 import {
   type GateActions,
   GateChecklist,
@@ -305,7 +302,7 @@ function AcceptanceReport({
   return (
     <div className="rounded-lg border p-3">
       <AttachmentList
-        projectId={project.id}
+        owner={{ project_id: project.id }}
         kind={AttachmentKind.ACCEPTANCE_REPORT}
         initial={attachments.filter(
           (a) => a.kind === AttachmentKind.ACCEPTANCE_REPORT

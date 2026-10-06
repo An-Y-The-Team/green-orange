@@ -8,6 +8,9 @@ import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Label } from "@yan/ui/components/label";
 
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { PROJECT_STAGE_ORDER } from "@/constants/labels";
 import {
@@ -18,14 +21,9 @@ import { formatDate } from "@/utils/format-date/format-date";
 import { localISO, nowHHmm, todayISO } from "@/utils/today-iso/today-iso";
 
 import { updateProject } from "../../../../../../actions/update-project";
-import {
-  AcceptanceSubStatus,
-  AttachmentKind,
-  ProjectStage,
-} from "../../../../../../enums";
-import type { Attachment, Project } from "../../../../../../types";
+import { AcceptanceSubStatus, ProjectStage } from "../../../../../../enums";
+import type { Project } from "../../../../../../types";
 import { gateButtonProps } from "../../../../../utils/gate-button-props/gate-button-props";
-import { AttachmentList } from "../../../../attachment-list/attachment-list";
 
 /**
  * Optional hoàn-công images — they attach independently of the exit. A list, not
@@ -41,7 +39,7 @@ export function FinishPhotos({
 }) {
   return (
     <AttachmentList
-      projectId={project.id}
+      owner={{ project_id: project.id }}
       kind={AttachmentKind.FINISH_IMAGE}
       initial={attachments.filter(
         (a) => a.kind === AttachmentKind.FINISH_IMAGE

@@ -11,10 +11,11 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import type { Attachment } from "@/components/attachments/types";
 import { PROJECT_STAGE_ORDER } from "@/constants/labels";
 
 import { ProjectStage } from "../../../enums";
-import type { Attachment, PaperworkItem, Project } from "../../../types";
+import type { PaperworkItem, Project } from "../../../types";
 import type { StageGate } from "../../utils/stage-gates/stage-gates";
 import { FutureStagePreview } from "../future-stage-preview/future-stage-preview";
 import { AcceptancePanel } from "../panels/acceptance/acceptance";
