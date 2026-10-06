@@ -81,13 +81,18 @@ def _owner_prefix(project_id: int | None, crew_member_id: int | None) -> str:
 
 
 def build_key(
-    project_id: int | None, crew_member_id: int | None, kind: str, filename: str
+    *,
+    project_id: int | None = None,
+    crew_member_id: int | None = None,
+    kind: str,
+    filename: str,
 ) -> str:
     """`{projects|crew}/{id}/{kind}/{uuid}/{filename}` — the owner and kind
     segments make the bucket browsable by category (and an orphan sweep a prefix
     listing); the uuid keeps two uploads of the same filename apart without
     renaming either, so the last segment stays the human filename (`basename`).
-    Exactly one of `project_id` / `crew_member_id` is set."""
+    Exactly one of `project_id` / `crew_member_id` is set — keyword-only, so the
+    two ids can never be swapped by position."""
     safe = _SEPARATORS.sub("-", filename)
     safe = _CONTROL.sub("", safe)
     safe = safe.lstrip(".").strip()[:120] or "tep"
@@ -105,7 +110,11 @@ _LEGACY_KEY_SHAPE = re.compile(rf"(projects/[0-9]+)/{_UUID}/[^/]+")
 
 
 def is_own_key(
-    project_id: int | None, crew_member_id: int | None, kind: str, key: str
+    *,
+    project_id: int | None = None,
+    crew_member_id: int | None = None,
+    kind: str,
+    key: str,
 ) -> bool:
     """Does this key look like one WE minted, for THIS owner and kind?
 

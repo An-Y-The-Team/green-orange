@@ -188,6 +188,7 @@ export function ContractPanel({
                         a.payment_milestone_id === m.id
                     )}
                     title={ATTACHMENT_KINDS[AttachmentKind.PAYMENT_PROOF]}
+                    target={`${MILESTONE_TYPES[MilestoneType.DEPOSIT]} ${formatVND(m.amount)}`}
                     emptyMessage="Chưa có chứng từ chuyển khoản / phiếu thu."
                     compact
                   />
@@ -261,6 +262,7 @@ function ContractRow({
               a.contract_id === contract.id
           )}
           title={ATTACHMENT_KINDS[AttachmentKind.SIGNED_CONTRACT]}
+          target={contract.code}
           emptyMessage="Chưa có bản hợp đồng đã ký."
           compact
         />

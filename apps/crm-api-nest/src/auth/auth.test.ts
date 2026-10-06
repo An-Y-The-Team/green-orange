@@ -280,7 +280,7 @@ describe("JwtGuard: local mode (HS256)", () => {
     expect(await ok).toBe(true);
     // The exact shape the express augmentation promises — CurrentUser() reads
     // req.user.username and nothing else may sneak in.
-    expect(req.user).toEqual({ username: "alice" });
+    expect(req.user).toEqual({ username: "alice", admin: true });
   });
 
   test("a token signed with a different secret → 401", async () => {
@@ -344,7 +344,7 @@ describe("JwtGuard: local mode (HS256)", () => {
     const token = await jwt.signAsync({ role: "admin" }, { secret: SECRET });
     const { ok, req } = activate(token);
     expect(await ok).toBe(true);
-    expect(req.user).toEqual({ username: undefined });
+    expect(req.user).toEqual({ username: undefined, admin: true });
   });
 });
 
@@ -371,7 +371,18 @@ describe("JwtGuard: oidc mode (Authentik)", () => {
       db.prisma
     );
     expect(await ok).toBe(true);
-    expect(req.user).toEqual({ username: "kim" });
+    expect(req.user).toEqual({ username: "kim", admin: false });
+  });
+
+  // CCCD scans are crm-admins only; the flag rides on req.user for that check.
+  test("crm-admins in the token's groups claim marks the user admin", async () => {
+    const db = fakeUsers();
+    const { ok, req } = login(
+      { preferred_username: "kim", groups: ["staff", "crm-admins"] },
+      db.prisma
+    );
+    expect(await ok).toBe(true);
+    expect(req.user).toEqual({ username: "kim", admin: true });
   });
 
   // Mode confusion: an Authentik token must not be handed to our HS256 verifier
@@ -404,7 +415,7 @@ describe("JwtGuard: oidc mode (Authentik)", () => {
     const db = fakeUsers();
     const { ok, req } = login({ iat: 1 }, db.prisma);
     expect(await ok).toBe(true);
-    expect(req.user).toEqual({ username: "unknown" });
+    expect(req.user).toEqual({ username: "unknown", admin: false });
     expect(db.creates).toEqual([
       { username: "unknown", hashed_password: "", full_name: null },
     ]);

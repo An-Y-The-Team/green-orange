@@ -10,6 +10,7 @@ import { Request } from "express";
 
 import { IS_PUBLIC_KEY } from "../common/public.decorator";
 import { PrismaService } from "../prisma/prisma.service";
+import { isCrmAdmin } from "./admin";
 import { IS_WORKER_KEY } from "./crew.decorator";
 import { OidcService } from "./oidc.service";
 
@@ -18,7 +19,9 @@ import { OidcService } from "./oidc.service";
 // hide a shape change from the compiler.
 declare module "express" {
   interface Request {
-    user?: { username: string } | { kind: "crew"; crew_member_id: number };
+    user?:
+      | { username: string; admin: boolean }
+      | { kind: "crew"; crew_member_id: number };
   }
 }
 
@@ -77,13 +80,14 @@ export class JwtGuard implements CanActivate {
         const payload = await this.oidc.verify(token);
         const username = this.oidc.identity(payload);
         await this.provision(username, payload.name as string | undefined);
-        req.user = { username };
+        req.user = { username, admin: isCrmAdmin(payload) };
       } else {
         const payload = await this.jwt.verifyAsync(token, {
           secret: process.env.JWT_SECRET,
         });
         if (payload.kind === "crew") throw new Error("crew token on CRM route");
-        req.user = { username: payload.sub };
+        // Local mode has no groups to check (see auth/admin.ts).
+        req.user = { username: payload.sub, admin: true };
       }
     } catch {
       throw new UnauthorizedException();

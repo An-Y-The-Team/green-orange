@@ -70,12 +70,12 @@ def _get_jwks_client() -> PyJWKClient:
     return _jwks_client
 
 
-def verify_oidc_token(token: str) -> str | None:
-    """Validate an Authentik-issued OIDC access token; return its username.
+def decode_oidc_token(token: str) -> dict | None:
+    """Validate an Authentik-issued OIDC access token; return its claims.
 
     Verifies the RS256 signature against Authentik's JWKS and checks `iss` (and
-    `aud` when OIDC_AUDIENCE is set). Returns the user identity from the standard
-    claims, or None if the token is invalid/expired. Config errors (bad issuer,
+    `aud` when OIDC_AUDIENCE is set). Returns None if the token is
+    invalid/expired. Config errors (bad issuer,
     JWKS unreachable) raise — those are misconfiguration, not a bad token.
 
     Enable with AUTH_MODE=oidc plus OIDC_ISSUER and OIDC_AUDIENCE in .env.
@@ -87,7 +87,14 @@ def verify_oidc_token(token: str) -> str | None:
         # get_signing_key_from_jwt parses the (untrusted) header, so a malformed
         # token raises here — catch alongside signature/claim failures from decode.
         signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
-        claims = jwt.decode(token, signing_key.key, **decode_kwargs)
+        return jwt.decode(token, signing_key.key, **decode_kwargs)
     except (jwt.InvalidTokenError, PyJWKClientError):
+        return None
+
+
+def verify_oidc_token(token: str) -> str | None:
+    """The username of a valid Authentik token (see `decode_oidc_token`)."""
+    claims = decode_oidc_token(token)
+    if claims is None:
         return None
     return claims.get("preferred_username") or claims.get("email") or claims.get("sub")

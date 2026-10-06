@@ -12,7 +12,7 @@ from app.core.storage import basename, build_key, content_disposition, is_own_ke
 
 
 def key7(filename: str) -> str:
-    return build_key(7, None, "survey", filename)
+    return build_key(project_id=7, kind="survey", filename=filename)
 
 
 def test_keeps_vietnamese_filename_intact():
@@ -61,33 +61,35 @@ def test_never_cuts_a_surrogate_pair():
 
 def test_own_key_accepts_only_keys_we_minted_for_this_owner_and_kind():
     key = key7("Biên bản.pdf")
-    assert is_own_key(7, None, "survey", key)
+    assert is_own_key(project_id=7, kind="survey", key=key)
     # Another project's key, another kind's, a hand-written one, a legacy
     # metadata-only row and an extra path segment all have to be refused: POST
     # /attachments takes this from the client and DELETE removes the object it
     # names.
-    assert not is_own_key(8, None, "survey", key)
-    assert not is_own_key(70, None, "survey", key)
-    assert not is_own_key(7, None, "other", key)
-    assert not is_own_key(7, None, "survey", "projects/7/survey/not-a-uuid/x.pdf")
-    assert not is_own_key(7, None, "survey", "bien-ban-nghiem-thu.pdf")
-    assert not is_own_key(7, None, "survey", key + "/extra.pdf")
+    assert not is_own_key(project_id=8, kind="survey", key=key)
+    assert not is_own_key(project_id=70, kind="survey", key=key)
+    assert not is_own_key(project_id=7, kind="other", key=key)
+    assert not is_own_key(
+        project_id=7, kind="survey", key="projects/7/survey/not-a-uuid/x.pdf"
+    )
+    assert not is_own_key(project_id=7, kind="survey", key="bien-ban-nghiem-thu.pdf")
+    assert not is_own_key(project_id=7, kind="survey", key=key + "/extra.pdf")
 
 
 def test_crew_key_is_its_own_namespace():
-    key = build_key(None, 7, "id_card", "cccd.jpg")
+    key = build_key(crew_member_id=7, kind="id_card", filename="cccd.jpg")
     assert key.startswith("crew/7/id_card/")
-    assert is_own_key(None, 7, "id_card", key)
+    assert is_own_key(crew_member_id=7, kind="id_card", key=key)
     # Same number, other owner type: project 7 must not claim crew 7's scan.
-    assert not is_own_key(7, None, "id_card", key)
+    assert not is_own_key(project_id=7, kind="id_card", key=key)
 
 
 def test_legacy_project_keys_without_a_kind_still_match():
     # Uploads made before the kind segment existed must still download.
     legacy = "projects/7/0b3a3c3e-1d2f-4a5b-9c8d-7e6f5a4b3c2d/a.pdf"
-    assert is_own_key(7, None, "survey", legacy)
-    assert not is_own_key(8, None, "survey", legacy)
-    assert not is_own_key(None, 7, "id_card", legacy)
+    assert is_own_key(project_id=7, kind="survey", key=legacy)
+    assert not is_own_key(project_id=8, kind="survey", key=legacy)
+    assert not is_own_key(crew_member_id=7, kind="id_card", key=legacy)
 
 
 def test_photos_and_pdfs_open_inline_office_files_download():

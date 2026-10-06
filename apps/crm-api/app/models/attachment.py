@@ -7,57 +7,71 @@ NestJS mirror: `crm-api-nest/src/attachments/attachments.module.ts`.
 """
 
 from datetime import datetime
-from typing import Literal
+from enum import StrEnum
 
 from sqlalchemy import CheckConstraint, DateTime
 from sqlmodel import Field, SQLModel
 
 from app.models.client import utcnow
 
+
+class AttachmentKind(StrEnum):
+    """The file's category. NestJS mirror: `ATTACHMENT_KINDS` keys in
+    src/attachments/attachments.module.ts; web: components/attachments/enums.ts."""
+
+    SURVEY = "survey"
+    SIGNED_QUOTE = "signed_quote"
+    SIGNED_CONTRACT = "signed_contract"
+    PAYMENT_PROOF = "payment_proof"
+    PAPERWORK = "paperwork"
+    SITE_LOG = "site_log"
+    FINISH_IMAGE = "finish_image"
+    DEFECT_IMAGE = "defect_image"
+    ACCEPTANCE_REPORT = "acceptance_report"
+    SETTLEMENT = "settlement"
+    VAT_INVOICE = "vat_invoice"
+    OTHER = "other"
+    ID_CARD = "id_card"
+    CERTIFICATE = "certificate"
+
+
+class AttachmentOwnerType(StrEnum):
+    PROJECT = "project"
+    CREW = "crew"
+
+
+class AttachmentLink(StrEnum):
+    """The link columns — each names the one record a file documents."""
+
+    QUOTE = "quote_id"
+    CONTRACT = "contract_id"
+    PAYMENT_MILESTONE = "payment_milestone_id"
+    BILL = "bill_id"
+    PAPERWORK_ITEM = "paperwork_item_id"
+
+
 # Every file category → (owner, the ONE record it must link to, if any). Owner +
 # link is what lets a panel find "the payment proof for THIS milestone" with a
 # filter instead of guessing from a filename.
-# NestJS mirror: `ATTACHMENT_KINDS` in src/attachments/attachments.module.ts.
-ATTACHMENT_KINDS: dict[str, tuple[Literal["project", "crew"], str | None]] = {
-    "survey": ("project", None),
-    "signed_quote": ("project", "quote_id"),
-    "signed_contract": ("project", "contract_id"),
-    "payment_proof": ("project", "payment_milestone_id"),
-    "paperwork": ("project", "paperwork_item_id"),
-    "site_log": ("project", None),
-    "finish_image": ("project", None),
-    "defect_image": ("project", None),
-    "acceptance_report": ("project", None),
-    "settlement": ("project", None),
-    "vat_invoice": ("project", "bill_id"),
-    "other": ("project", None),
-    "id_card": ("crew", None),
-    "certificate": ("crew", None),
+_P, _C = AttachmentOwnerType.PROJECT, AttachmentOwnerType.CREW
+ATTACHMENT_KINDS: dict[
+    AttachmentKind, tuple[AttachmentOwnerType, AttachmentLink | None]
+] = {
+    AttachmentKind.SURVEY: (_P, None),
+    AttachmentKind.SIGNED_QUOTE: (_P, AttachmentLink.QUOTE),
+    AttachmentKind.SIGNED_CONTRACT: (_P, AttachmentLink.CONTRACT),
+    AttachmentKind.PAYMENT_PROOF: (_P, AttachmentLink.PAYMENT_MILESTONE),
+    AttachmentKind.PAPERWORK: (_P, AttachmentLink.PAPERWORK_ITEM),
+    AttachmentKind.SITE_LOG: (_P, None),
+    AttachmentKind.FINISH_IMAGE: (_P, None),
+    AttachmentKind.DEFECT_IMAGE: (_P, None),
+    AttachmentKind.ACCEPTANCE_REPORT: (_P, None),
+    AttachmentKind.SETTLEMENT: (_P, None),
+    AttachmentKind.VAT_INVOICE: (_P, AttachmentLink.BILL),
+    AttachmentKind.OTHER: (_P, None),
+    AttachmentKind.ID_CARD: (_C, None),
+    AttachmentKind.CERTIFICATE: (_C, None),
 }
-ATTACHMENT_LINKS = (
-    "quote_id",
-    "contract_id",
-    "payment_milestone_id",
-    "bill_id",
-    "paperwork_item_id",
-)
-
-AttachmentKind = Literal[
-    "survey",
-    "signed_quote",
-    "signed_contract",
-    "payment_proof",
-    "paperwork",
-    "site_log",
-    "finish_image",
-    "defect_image",
-    "acceptance_report",
-    "settlement",
-    "vat_invoice",
-    "other",
-    "id_card",
-    "certificate",
-]
 
 
 # ── Table ───────────────────────────────────────────────────────────────────

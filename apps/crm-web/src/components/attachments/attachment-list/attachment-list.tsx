@@ -1,7 +1,14 @@
 "use client";
 
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Paperclip } from "lucide-react";
-import { useActionState, useState, useTransition } from "react";
+import {
+  type ReactNode,
+  useActionState,
+  useCallback,
+  useState,
+  useTransition,
+} from "react";
 
 import {
   type ServerActionState,
@@ -25,6 +32,10 @@ import {
 import type { AttachmentKind } from "../enums";
 import type { Attachment, AttachmentLink, AttachmentOwner } from "../types";
 
+// Past this many rows only the ones on screen are rendered (frontend-code-style
+// "Rendering Large Lists") — a busy job's site log can reach the 500-row fetch cap.
+const VIRTUALIZE_AFTER = 100;
+
 /**
  * Files of one kind: the list, the download links, the delete buttons and the
  * uploader that adds to it.
@@ -43,6 +54,12 @@ interface AttachmentListProps {
   /** Server-fetched rows of this kind; the list owns them from then on. */
   initial: Attachment[];
   title: string;
+  /**
+   * The record this list belongs to ("HĐ-001", "Cọc", "v2") — joined into the
+   * heading and the compact summary's accessible name, so ten paperclips in one
+   * table don't all announce the same "Hợp đồng đã ký (1)".
+   */
+  target?: string;
   emptyMessage: string;
   /**
    * For a table row: a paperclip + count that opens the list in place, so a
@@ -67,6 +84,7 @@ export function AttachmentList({
   link,
   initial,
   title,
+  target,
   emptyMessage,
   compact = false,
   withNote = false,
@@ -100,7 +118,29 @@ export function AttachmentList({
     setShowAdd(false);
   };
 
-  const label = `${title} (${rows.length})`;
+  const label = target
+    ? `${title} — ${target} (${rows.length})`
+    : `${title} (${rows.length})`;
+
+  const renderRow = (a: Attachment) => (
+    <>
+      <AttachmentDownload id={a.id} name={attachmentName(a.s3_key)} />
+      {recordLabels?.[a.id] ? (
+        <span className="text-muted-foreground">{recordLabels[a.id]}</span>
+      ) : null}
+      {a.note ? (
+        <span className="text-muted-foreground">{`— "${a.note}"`}</span>
+      ) : null}
+      <Button
+        variant="destructive"
+        size="sm"
+        disabled={delPending && deletingId === a.id}
+        onClick={() => handleDelete(a.id)}
+      >
+        {ACTIONS.delete}
+      </Button>
+    </>
+  );
 
   const body = (
     <div className="space-y-2">
@@ -117,27 +157,13 @@ export function AttachmentList({
         ) : null}
       </div>
 
-      {rows.length > 0 ? (
+      {rows.length > VIRTUALIZE_AFTER ? (
+        <VirtualRows rows={rows} renderRow={renderRow} />
+      ) : rows.length > 0 ? (
         <ul className="space-y-1 text-sm">
           {rows.map((a) => (
             <li key={a.id} className="flex items-center gap-2">
-              <AttachmentDownload id={a.id} name={attachmentName(a.s3_key)} />
-              {recordLabels?.[a.id] ? (
-                <span className="text-muted-foreground">
-                  {recordLabels[a.id]}
-                </span>
-              ) : null}
-              {a.note ? (
-                <span className="text-muted-foreground">{`— "${a.note}"`}</span>
-              ) : null}
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={delPending && deletingId === a.id}
-                onClick={() => handleDelete(a.id)}
-              >
-                {ACTIONS.delete}
-              </Button>
+              {renderRow(a)}
             </li>
           ))}
         </ul>
@@ -175,5 +201,61 @@ export function AttachmentList({
       </summary>
       <div className="mt-2 min-w-72">{body}</div>
     </details>
+  );
+}
+
+/**
+ * The long-list branch: rows positioned inside a <ul> sized to the whole list,
+ * scrolled by the page itself (no inner scroll box inside a card).
+ */
+function VirtualRows({
+  rows,
+  renderRow,
+}: {
+  rows: Attachment[];
+  renderRow: (a: Attachment) => ReactNode;
+}) {
+  // Where the list starts on the page, which window scrolling is measured from.
+  // Re-read whenever the page resizes — a panel above expanding, or the closed
+  // compact <details> around this list opening — since a stale offset renders
+  // the wrong slice. A ref callback with cleanup, not an effect.
+  const [scrollMargin, setScrollMargin] = useState(0);
+  const trackOffset = useCallback((el: HTMLUListElement) => {
+    const ro = new ResizeObserver(() =>
+      setScrollMargin(el.getBoundingClientRect().top + window.scrollY)
+    );
+    ro.observe(document.body);
+    return () => ro.disconnect();
+  }, []);
+
+  const virtualizer = useWindowVirtualizer({
+    count: rows.length,
+    estimateSize: () => 40,
+    overscan: 8,
+    scrollMargin,
+    getItemKey: (i) => rows[i].id,
+    // The server render has no window; start from the top on both sides so
+    // hydration matches, then the real offset is observed after mount.
+    initialOffset: 0,
+  });
+
+  return (
+    <ul
+      ref={trackOffset}
+      className="relative text-sm"
+      style={{ height: virtualizer.getTotalSize() }}
+    >
+      {virtualizer.getVirtualItems().map((item) => (
+        <li
+          key={item.key}
+          data-index={item.index}
+          ref={virtualizer.measureElement}
+          className="absolute top-0 left-0 flex w-full items-center gap-2 pb-1"
+          style={{ transform: `translateY(${item.start - scrollMargin}px)` }}
+        >
+          {renderRow(rows[item.index])}
+        </li>
+      ))}
+    </ul>
   );
 }

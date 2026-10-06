@@ -10,7 +10,7 @@ from sqlalchemy import event
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
-from app.api.deps import get_current_user, get_session
+from app.api.deps import get_current_user, get_session, is_crm_admin
 from app.main import app
 from app.models.client import Client, Contact, Location
 from app.models.crew import CrewMember, CrewRole
@@ -35,6 +35,9 @@ def client_fixture(session: Session):
     # Not used as a context manager, so the app's lifespan does NOT run — the
     # overrides below fully isolate the test.
     app.dependency_overrides[get_session] = lambda: session
+    # Local-mode default: every user is a crm-admin (tests that need a
+    # non-admin override this one key).
+    app.dependency_overrides[is_crm_admin] = lambda: True
     app.dependency_overrides[get_current_user] = lambda: User(
         id=1, username="tester", hashed_password="x"
     )

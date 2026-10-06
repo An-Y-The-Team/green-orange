@@ -357,13 +357,6 @@ export const PLACEHOLDERS = {
  */
 export const APP_NAME = "Quản lý công trình & nhân sự Ý Ân" as const;
 
-/**
- * Real uploads: the file goes to the bucket and the row records its key. The
- * copy says "tệp", not "ảnh", because the same control now takes the signed
- * hợp đồng and biên bản nghiệm thu as well as site photos — and it names the
- * limits, because the picker's `accept` list is the only other place a user
- * finds out what will be refused.
- */
 // File categories — headings on the Giấy tờ tab and default list titles.
 export const ATTACHMENT_KINDS: Record<AttachmentKind, string> = {
   [AttachmentKind.SURVEY]: "Ảnh khảo sát",
@@ -382,6 +375,13 @@ export const ATTACHMENT_KINDS: Record<AttachmentKind, string> = {
   [AttachmentKind.CERTIFICATE]: "Chứng chỉ",
 };
 
+/**
+ * Real uploads: the file goes to the bucket and the row records its key. The
+ * copy says "tệp", not "ảnh", because the same control now takes the signed
+ * hợp đồng and biên bản nghiệm thu as well as site photos — and it names the
+ * limits, because the picker's `accept` list is the only other place a user
+ * finds out what will be refused.
+ */
 export const PHOTO_TEXT = {
   add: "+ Thêm tệp",
   hint: "Ảnh và tài liệu (.pdf, .docx, .xlsx), tối đa 25 MB mỗi tệp.",

@@ -28,11 +28,13 @@ from app.core.storage import (
 )
 from app.models.attachment import (
     ATTACHMENT_KINDS,
-    ATTACHMENT_LINKS,
     Attachment,
     AttachmentCreate,
     AttachmentDownloadPublic,
+    AttachmentKind,
+    AttachmentLink,
     AttachmentOwner,
+    AttachmentOwnerType,
     AttachmentPresign,
     AttachmentPresignPublic,
 )
@@ -59,11 +61,11 @@ _STORAGE_OFF = (
 )
 # Which table each link column points at — every one carries a project_id.
 _LINK_MODELS = {
-    "quote_id": Quote,
-    "contract_id": Contract,
-    "payment_milestone_id": PaymentMilestone,
-    "bill_id": Bill,
-    "paperwork_item_id": PaperworkItem,
+    AttachmentLink.QUOTE: Quote,
+    AttachmentLink.CONTRACT: Contract,
+    AttachmentLink.PAYMENT_MILESTONE: PaymentMilestone,
+    AttachmentLink.BILL: Bill,
+    AttachmentLink.PAPERWORK_ITEM: PaperworkItem,
 }
 
 
@@ -71,11 +73,20 @@ def _bad(detail: str) -> AttachmentRejected:
     return AttachmentRejected(HTTPStatus.BAD_REQUEST, detail)
 
 
-def _assert_owner(session: Session, payload: AttachmentOwner) -> None:
+def _assert_crew_access(admin: bool) -> None:
+    """Workers' CCCD / chứng chỉ scans are personal data (NĐ 13/2023): only
+    crm-admins may list, open, upload or delete them (app/api/deps.py)."""
+    if not admin:
+        raise AttachmentRejected(
+            HTTPStatus.FORBIDDEN, "Crew documents are restricted to crm-admins"
+        )
+
+
+def _assert_owner(session: Session, payload: AttachmentOwner, *, admin: bool) -> None:
     """The kind decides the owner: a project file needs project_id and no
     crew_member_id, a CCCD the reverse. 400 rather than letting the DB CHECK
     surface as a 500. Then the owner must exist, and a project must be open."""
-    crew = ATTACHMENT_KINDS[payload.kind][0] == "crew"
+    crew = ATTACHMENT_KINDS[payload.kind][0] == AttachmentOwnerType.CREW
     if (payload.crew_member_id if crew else payload.project_id) is None:
         raise _bad(
             f"kind {payload.kind} needs {'crew_member_id' if crew else 'project_id'}"
@@ -83,6 +94,7 @@ def _assert_owner(session: Session, payload: AttachmentOwner) -> None:
     if (payload.project_id if crew else payload.crew_member_id) is not None:
         raise _bad("An attachment has exactly one owner: project_id or crew_member_id")
     if crew:
+        _assert_crew_access(admin)
         if not session.get(CrewMember, payload.crew_member_id):
             raise AttachmentRejected(HTTPStatus.NOT_FOUND, "Crew member not found")
         return
@@ -98,7 +110,7 @@ def _assert_link(session: Session, payload: AttachmentCreate) -> None:
     """Exactly the kind's link, and it must sit on the same project — otherwise
     another job's contract or milestone would collect this file silently."""
     want = ATTACHMENT_KINDS[payload.kind][1]
-    for link in ATTACHMENT_LINKS:
+    for link in AttachmentLink:
         if link != want and getattr(payload, link) is not None:
             raise _bad(f"kind {payload.kind} takes no {link}")
     if want is None:
@@ -111,7 +123,9 @@ def _assert_link(session: Session, payload: AttachmentCreate) -> None:
         raise _bad(f"{want} does not belong to project_id")
 
 
-def presign(session: Session, payload: AttachmentPresign) -> AttachmentPresignPublic:
+def presign(
+    session: Session, payload: AttachmentPresign, *, admin: bool
+) -> AttachmentPresignPublic:
     """A short-lived signed PUT; the browser uploads straight to the bucket and
     then records the returned s3_key via `create`. Bytes never pass through.
 
@@ -124,13 +138,16 @@ def presign(session: Session, payload: AttachmentPresign) -> AttachmentPresignPu
     # §6f all promise the opposite.
     if not storage_configured():
         raise AttachmentRejected(HTTPStatus.SERVICE_UNAVAILABLE, _STORAGE_OFF)
-    _assert_owner(session, payload)
+    _assert_owner(session, payload, admin=admin)
     if payload.content_type not in ALLOWED_CONTENT_TYPES:
         raise _bad(f"Unsupported file type: {payload.content_type}")
     if payload.content_length > MAX_UPLOAD_BYTES:
         raise _bad(f"File is larger than {MAX_UPLOAD_BYTES // 1024 // 1024} MB")
     key = build_key(
-        payload.project_id, payload.crew_member_id, payload.kind, payload.filename
+        project_id=payload.project_id,
+        crew_member_id=payload.crew_member_id,
+        kind=payload.kind,
+        filename=payload.filename,
     )
     return AttachmentPresignPublic(
         upload_url=presign_put(key, payload.content_type, payload.content_length),
@@ -139,19 +156,23 @@ def presign(session: Session, payload: AttachmentPresign) -> AttachmentPresignPu
     )
 
 
-def download_url(session: Session, attachment_id: int) -> AttachmentDownloadPublic:
+def download_url(
+    session: Session, attachment_id: int, *, admin: bool
+) -> AttachmentDownloadPublic:
     """Short-lived signed GET for one row — the link the UI opens."""
     attachment = session.get(Attachment, attachment_id)
     if not attachment:
         raise AttachmentRejected(HTTPStatus.NOT_FOUND, "Attachment not found")
+    if attachment.crew_member_id is not None:
+        _assert_crew_access(admin)
     # Rows from the metadata-only era (and the seed) hold a bare filename with no
     # object behind it. Signing one yields a valid URL that opens the provider's
     # raw NoSuchKey XML in a new tab; say so instead.
     if not is_own_key(
-        attachment.project_id,
-        attachment.crew_member_id,
-        attachment.kind,
-        attachment.s3_key,
+        project_id=attachment.project_id,
+        crew_member_id=attachment.crew_member_id,
+        kind=attachment.kind,
+        key=attachment.s3_key,
     ):
         raise AttachmentRejected(
             HTTPStatus.NOT_FOUND,
@@ -165,31 +186,47 @@ def download_url(session: Session, attachment_id: int) -> AttachmentDownloadPubl
     )
 
 
-def list_statement(*, kind: str | None, **ids: int | None) -> SelectOfScalar:
+def list_statement(
+    *,
+    admin: bool,
+    kind: AttachmentKind | None,
+    crew_member_id: int | None,
+    **ids: int | None,
+) -> SelectOfScalar:
     """Rows filtered by category and by owner / link ids (`project_id`,
-    `crew_member_id`, `contract_id`, …) — e.g. `contract_id=12` is the signed
-    scan of contract 12, nothing else. Newest first; the router pages it."""
-    # A typo'd kind would otherwise answer an empty list — indistinguishable
-    # from "no files yet".
-    if kind and kind not in ATTACHMENT_KINDS:
-        raise _bad(f"Unknown kind: {kind}")
+    `contract_id`, …) — e.g. `contract_id=12` is the signed scan of contract
+    12, nothing else. Newest first; the router pages it. `kind` arrives
+    validated (an unknown one is the router's 422)."""
     statement = select(Attachment)
-    filters: dict[str, Any] = {"kind": kind or None, **ids}
+    # A non-admin asking for a worker's papers is refused; one listing without
+    # an owner filter just never sees crew rows.
+    if crew_member_id is not None:
+        _assert_crew_access(admin)
+    elif not admin:
+        statement = statement.where(Attachment.crew_member_id.is_(None))
+    filters: dict[str, Any] = {
+        "kind": kind,
+        "crew_member_id": crew_member_id,
+        **ids,
+    }
     for column, value in filters.items():
         if value is not None:
             statement = statement.where(getattr(Attachment, column) == value)
     return statement.order_by(Attachment.created_at.desc(), Attachment.id.desc())
 
 
-def create(session: Session, payload: AttachmentCreate) -> Attachment:
-    _assert_owner(session, payload)
+def create(session: Session, payload: AttachmentCreate, *, admin: bool) -> Attachment:
+    _assert_owner(session, payload, admin=admin)
     _assert_link(session, payload)
     # The key must be one presign_put minted for THIS owner and kind. Deleting
     # the row removes the object this names, so an unchecked key lets a caller
     # record a row over someone else's file and then delete their bytes,
     # leaving their row behind.
     if not is_own_key(
-        payload.project_id, payload.crew_member_id, payload.kind, payload.s3_key
+        project_id=payload.project_id,
+        crew_member_id=payload.crew_member_id,
+        kind=payload.kind,
+        key=payload.s3_key,
     ):
         raise _bad(
             "s3_key was not issued for this owner and kind — upload via "
@@ -202,12 +239,14 @@ def create(session: Session, payload: AttachmentCreate) -> Attachment:
     return attachment
 
 
-def delete(session: Session, attachment_id: int) -> str:
+def delete(session: Session, attachment_id: int, *, admin: bool) -> str:
     """Delete the row; return its object key for the caller to remove from the
     bucket AFTER the response (see the router)."""
     attachment = session.get(Attachment, attachment_id)
     if not attachment:
         raise AttachmentRejected(HTTPStatus.NOT_FOUND, "Attachment not found")
+    if attachment.crew_member_id is not None:
+        _assert_crew_access(admin)
     assert_project_open(session, attachment.project_id)  # no-op for crew files
     key = attachment.s3_key
     session.delete(attachment)

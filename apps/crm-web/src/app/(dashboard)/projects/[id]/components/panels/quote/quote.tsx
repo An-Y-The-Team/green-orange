@@ -157,6 +157,7 @@ function SignedQuoteFiles({
         (a) => a.kind === AttachmentKind.SIGNED_QUOTE && a.quote_id === quote.id
       )}
       title={ATTACHMENT_KINDS[AttachmentKind.SIGNED_QUOTE]}
+      target={`v${quote.version}`}
       emptyMessage="Chưa có bản báo giá khách đã ký."
       compact
     />

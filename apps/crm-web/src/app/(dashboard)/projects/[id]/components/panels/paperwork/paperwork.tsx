@@ -28,7 +28,12 @@ import { AttachmentList } from "@/components/attachments/attachment-list/attachm
 import { AttachmentKind } from "@/components/attachments/enums";
 import type { Attachment } from "@/components/attachments/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
-import { FIELDS, OVERDUE_LABEL, PAPERWORK_STATUSES } from "@/constants/labels";
+import {
+  ATTACHMENT_KINDS,
+  FIELDS,
+  OVERDUE_LABEL,
+  PAPERWORK_STATUSES,
+} from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -182,7 +187,8 @@ function PaperworkRow({
               a.kind === AttachmentKind.PAPERWORK &&
               a.paperwork_item_id === item.id
           )}
-          title={`Tệp "${item.name}"`}
+          title={ATTACHMENT_KINDS[AttachmentKind.PAPERWORK]}
+          target={item.name}
           emptyMessage="Chưa đính kèm bản scan / ảnh hồ sơ."
           uploadLabel="Bản scan / ảnh hồ sơ"
           compact

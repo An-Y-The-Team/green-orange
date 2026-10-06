@@ -119,6 +119,7 @@ export function MilestoneRow({
               a.payment_milestone_id === milestone.id
           )}
           title={ATTACHMENT_KINDS[AttachmentKind.PAYMENT_PROOF]}
+          target={`${type} ${formatVND(milestone.amount)}`}
           emptyMessage="Chưa có chứng từ. Thêm ủy nhiệm chi hoặc ảnh chuyển khoản nếu có."
         />
       </div>

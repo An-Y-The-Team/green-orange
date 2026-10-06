@@ -36,7 +36,8 @@ describe("attachment create — owner, kind and link", () => {
   test("another project's paperwork_item_id → 400", async () => {
     await expect(
       new AttachmentsController(fake(99)).create(
-        dto("paperwork", { paperwork_item_id: 8 })
+        dto("paperwork", { paperwork_item_id: 8 }),
+        true
       )
     ).rejects.toThrow(/paperwork_item_id does not belong to project_id/);
   });
@@ -50,7 +51,8 @@ describe("attachment create — owner, kind and link", () => {
       ["vat_invoice", "bill_id"],
     ]) {
       const row = await new AttachmentsController(fake(3)).create(
-        dto(kind, { [link]: 8 })
+        dto(kind, { [link]: 8 }),
+        true
       );
       expect(row[link]).toBe(8);
     }
@@ -60,28 +62,31 @@ describe("attachment create — owner, kind and link", () => {
   // and a survey photo carrying a contract_id would show up on the contract.
   test("missing required link or a foreign link → 400", async () => {
     const c = new AttachmentsController(fake(3));
-    await expect(c.create(dto("payment_proof"))).rejects.toThrow(
+    await expect(c.create(dto("payment_proof"), true)).rejects.toThrow(
       /needs payment_milestone_id/
     );
-    await expect(c.create(dto("survey", { contract_id: 8 }))).rejects.toThrow(
-      /takes no contract_id/
-    );
+    await expect(
+      c.create(dto("survey", { contract_id: 8 }), true)
+    ).rejects.toThrow(/takes no contract_id/);
   });
 
   test("the kind decides the owner", async () => {
     const c = new AttachmentsController(fake(3));
     await expect(
-      c.create({ ...dto("id_card"), project_id: 3 })
+      c.create({ ...dto("id_card"), project_id: 3 }, true)
     ).rejects.toThrow(/needs crew_member_id/);
     await expect(
-      c.create({ ...dto("survey"), crew_member_id: 5 })
+      c.create({ ...dto("survey"), crew_member_id: 5 }, true)
     ).rejects.toThrow(/exactly one owner/);
     const crew = { crew_member_id: 5 };
-    const row = await c.create({
-      ...crew,
-      kind: "id_card",
-      s3_key: buildKey(crew, "id_card", "cccd.jpg"),
-    } as any);
+    const row = await c.create(
+      {
+        ...crew,
+        kind: "id_card",
+        s3_key: buildKey(crew, "id_card", "cccd.jpg"),
+      } as any,
+      true
+    );
     expect(row.crew_member_id).toBe(5);
     expect(row.project_id).toBeUndefined();
   });
@@ -97,8 +102,64 @@ describe("attachment create — owner, kind and link", () => {
       "projects/3/survey/nope/x.pdf",
     ]) {
       await expect(
-        new AttachmentsController(fake(3)).create({ ...dto("survey"), s3_key })
+        new AttachmentsController(fake(3)).create(
+          { ...dto("survey"), s3_key },
+          true
+        )
       ).rejects.toThrow(/s3_key was not issued for this owner and kind/);
     }
+  });
+
+  // Workers' ID scans: the same valid crew upload is refused for a non-admin.
+  test("crew files are crm-admins only", async () => {
+    const crew = { crew_member_id: 5 };
+    await expect(
+      new AttachmentsController(fake(3)).create(
+        {
+          ...crew,
+          kind: "id_card",
+          s3_key: buildKey(crew, "id_card", "cccd.jpg"),
+        } as any,
+        false
+      )
+    ).rejects.toThrow(/restricted to crm-admins/);
+  });
+});
+
+describe("attachment list — crew rows and filters", () => {
+  const listed = () => {
+    const wheres: any[] = [];
+    const prisma: any = {
+      attachment: {
+        findMany: async ({ where }: any) => {
+          wheres.push(where);
+          return [];
+        },
+        count: async () => 0,
+      },
+    };
+    const res: any = { setHeader: () => undefined };
+    return { c: new AttachmentsController(prisma), res, wheres };
+  };
+
+  // Unfiltered or project-filtered lists never carry a worker's CCCD for a
+  // non-admin; asking for one outright is a 403.
+  test("a non-admin never sees crew rows", async () => {
+    const { c, res, wheres } = listed();
+    await c.list(res, {} as any, false, 3);
+    expect(wheres[0].crew_member_id).toBeNull();
+    expect(() => c.list(res, {} as any, false, undefined, 5)).toThrow(
+      /restricted to crm-admins/
+    );
+    await c.list(res, {} as any, true, undefined, 5);
+    expect(wheres[1].crew_member_id).toBe(5);
+  });
+
+  test("an Object.prototype name is not a kind", () => {
+    const { c, res } = listed();
+    for (const kind of ["constructor", "toString", "__proto__"])
+      expect(() =>
+        c.list(res, {} as any, true, undefined, undefined, kind)
+      ).toThrow(/Unknown kind/);
   });
 });

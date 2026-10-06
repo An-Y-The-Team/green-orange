@@ -62,6 +62,11 @@ const MESSAGES: { match: RegExp; vi: (m: RegExpMatchArray) => string }[] = [
     match: /object storage is not configured/i,
     vi: () => "Kho lưu trữ tệp chưa được cấu hình — báo quản trị viên.",
   },
+  {
+    match: /Crew documents are restricted to crm-admins/i,
+    vi: () =>
+      "Chỉ quản trị viên (nhóm crm-admins) được xem và tải giấy tờ cá nhân của nhân sự.",
+  },
   // ── Quyết toán / hóa đơn / đợt thanh toán ────────────────────────────────
   {
     match: /cannot un-sign: payments have already been collected/i,

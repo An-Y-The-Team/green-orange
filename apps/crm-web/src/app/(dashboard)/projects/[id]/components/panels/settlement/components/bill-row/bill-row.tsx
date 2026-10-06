@@ -75,6 +75,7 @@ export function BillRow({
               a.kind === AttachmentKind.VAT_INVOICE && a.bill_id === bill.id
           )}
           title={ATTACHMENT_KINDS[AttachmentKind.VAT_INVOICE]}
+          target={`HĐ #${bill.id}`}
           emptyMessage="Chưa có hóa đơn VAT. Thêm tệp hóa đơn điện tử khi đã xuất."
         />
         {official && idx < BILL_ORDER.indexOf(BillStatus.SENT) ? (

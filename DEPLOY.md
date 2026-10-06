@@ -872,6 +872,23 @@ Rows created before this feature hold a bare filename instead of a real object
 key. They still list, but their download answers 404 with "tệp này có từ trước
 khi hệ thống lưu trữ tệp" rather than opening the provider's raw XML.
 
+**Deploy crm-web and the CRM API as one release — and roll back as one.** Since
+the 2026-10 attachments change (PR #86) the upload contract changed on both
+sides: an older crm-web against the new API fails every presign (`kind` is now
+required), and the new crm-web against an older API has its `kind`/link fields
+silently stripped (Nest's `whitelist`), so files are saved without the record
+they belong to. The normal release does this already — one webhook, one
+`docker compose up -d` over all four `*_IMAGE` tags (§7). Never pin or roll back
+only one of `crm-web` / `crm-api-nest`, and let the API's `prisma migrate
+deploy` finish before judging the web.
+
+**CCCD / chứng chỉ scans are crm-admins only.** Both backends read the Authentik
+`groups` claim from the user's access token. Authentik's default `profile`
+scope mapping emits it — confirm once after deploy: a crm-admins member sees
+the "Giấy tờ cá nhân" lists on `/crew/<id>`, anyone else sees the
+"Chỉ quản trị viên" notice. If even admins get the notice, the CRM provider's
+scopes are missing `profile` (or its `groups` mapping).
+
 ---
 
 ## 7. Ongoing deploys
