@@ -116,7 +116,7 @@ export function CrewForm({
             <FieldLabel htmlFor="crew-phone">{FIELDS.phone}</FieldLabel>
             <Input
               {...fieldProps("crew-phone", errors.phone)}
-              placeholder="0901 234 567"
+              placeholder="0901234567"
               {...form.register("phone")}
             />
             {fieldError(errors.phone, "crew-phone")}

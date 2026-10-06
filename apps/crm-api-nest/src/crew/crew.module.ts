@@ -15,6 +15,7 @@ import {
   Query,
   Res,
 } from "@nestjs/common";
+import { Transform } from "class-transformer";
 import {
   IsDateString,
   IsIn,
@@ -40,10 +41,16 @@ import {
   unaccented,
 } from "../common/list-query";
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
+import { LOCAL_PHONE, toLocalPhone } from "../common/phone";
 import { assertProjectOpen } from "../common/project-lock";
 import { overlappingIds } from "../common/schedule";
 import { HH_MM, computeShiftHours } from "../common/shift-hours";
 import { PrismaService } from "../prisma/prisma.service";
+
+// Shown to the operator in crm-web when a typed number cannot be read as a
+// Vietnamese mobile. Names the accepted forms rather than the regex.
+const PHONE_MESSAGE =
+  "phone must be a Vietnamese mobile number — 10 digits starting 0 (spaces and +84 are accepted)";
 
 const EMPLOYMENT_TYPE = ["permanent", "day_hire"];
 // Only a working member can take a NEW assignment — see assertAssignmentRefs.
@@ -137,7 +144,10 @@ class CrewRolesController {
 // ── Crew members (nhân sự) ──────────────────────────────────────────────────
 class CreateCrewDto {
   @IsString() @MinLength(1) name: string;
-  @IsOptional() @IsString() phone?: string;
+  @IsOptional()
+  @Transform(toLocalPhone)
+  @Matches(LOCAL_PHONE, { message: PHONE_MESSAGE })
+  phone?: string;
   @IsIn(EMPLOYMENT_TYPE) employment_type: string;
   @IsOptional() @IsInt() default_role_id?: number;
   @IsOptional() @IsIn(CREW_STATUS) status?: string;
@@ -146,7 +156,10 @@ class CreateCrewDto {
 
 class UpdateCrewDto {
   @IsOptional() @IsString() @MinLength(1) name?: string;
-  @IsOptional() @IsString() phone?: string;
+  @IsOptional()
+  @Transform(toLocalPhone)
+  @Matches(LOCAL_PHONE, { message: PHONE_MESSAGE })
+  phone?: string;
   @IsOptional() @IsIn(EMPLOYMENT_TYPE) employment_type?: string;
   @IsOptional() @IsInt() default_role_id?: number;
   @IsOptional() @IsIn(CREW_STATUS) status?: string;
