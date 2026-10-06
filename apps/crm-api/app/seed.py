@@ -17,6 +17,7 @@ from sqlmodel import Session, select
 from app.core.db import engine
 from app.core.rules import business_today
 from app.core.security import hash_password
+from app.models.attachment import Attachment
 from app.models.client import Client, Contact, Location
 from app.models.contract import ContractTemplate
 from app.models.crew import CrewMember, CrewRole
@@ -236,6 +237,46 @@ def seed_initial_data() -> None:
                 paid_date=today - timedelta(days=2),
             )
         )
+        session.commit()
+
+        # One file per owner shape, as in the NestJS seed. Bare filenames with no
+        # object behind them: the lists render, clicking one answers the
+        # "predates file storage" 404. Real uploads write
+        # `{projects|crew}/<id>/<kind>/<uuid>/<filename>` (app/core/storage.py).
+        pccc = session.exec(
+            select(PaperworkItem).where(
+                PaperworkItem.project_id == paperwork_project.id,
+                PaperworkItem.name == "PCCC",
+            )
+        ).first()
+        dung = session.exec(
+            select(CrewMember).where(CrewMember.name == "Phạm Văn Dũng")
+        ).first()
+        session.add(
+            Attachment(
+                project_id=request_project.id,
+                kind="survey",
+                s3_key="mat-ngoai-1.jpg",
+                note="vết ố tầng 5",
+            )
+        )
+        if pccc:
+            session.add(
+                Attachment(
+                    project_id=paperwork_project.id,
+                    kind="paperwork",
+                    paperwork_item_id=pccc.id,
+                    s3_key="pccc-ho-so.pdf",
+                )
+            )
+        if dung:
+            session.add(
+                Attachment(
+                    crew_member_id=dung.id,
+                    kind="id_card",
+                    s3_key="cccd-pham-van-dung.jpg",
+                )
+            )
         session.commit()
 
 

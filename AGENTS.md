@@ -31,8 +31,8 @@ SQLModel, port 8000) is the teaching/sandbox implementation of that same contrac
 bug: pointing the UI at the other one then renders empty pages rather than errors (a
 failing list read degrades to `[]` — `apiFetchSafe` never falls back to mock data).
 Every Python module names its NestJS counterpart in its docstring; the two known,
-deliberate differences are framework-level — an invalid request **body** answers 422
-in FastAPI vs 400 in Nest, and error bodies are `{"detail": …}` vs
+deliberate differences are framework-level — an invalid request **body** or **query
+parameter** answers 422 in FastAPI vs 400 in Nest, and error bodies are `{"detail": …}` vs
 `{statusCode, message, error}`.
 
 - First-class Node/Turbo citizen: real `dev|build|lint|check-types|test` (no CI

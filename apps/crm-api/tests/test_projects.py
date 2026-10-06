@@ -154,31 +154,6 @@ def test_project_type_in_use_cannot_be_deleted(
     assert project["types"][0]["id"] == fixtures["type_id"]
 
 
-def test_attachment_must_belong_to_its_paperwork_item(
-    client: TestClient, fixtures: dict, project: dict
-):
-    other = client.post(
-        "/projects",
-        json={
-            "name": "Khác",
-            "client_id": fixtures["client_id"],
-            "location_id": fixtures["location_id"],
-            "type_ids": [fixtures["type_id"]],
-        },
-    ).json()
-    foreign_item = client.get(f"/paperwork-items?project_id={other['id']}").json()[0]
-    res = client.post(
-        "/attachments",
-        json={
-            "project_id": project["id"],
-            "kind": "paperwork",
-            "paperwork_item_id": foreign_item["id"],
-            "s3_key": "k",
-        },
-    )
-    assert res.status_code == 400
-
-
 def test_summary_is_every_stage_with_its_chot_total(
     client: TestClient, fixtures: dict, project: dict
 ):

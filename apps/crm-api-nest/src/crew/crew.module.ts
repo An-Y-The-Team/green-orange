@@ -302,6 +302,12 @@ export class CrewController {
       throw new ConflictException(
         "Crew member has assignments or timekeeping records; set status to 'left' instead"
       );
+    // Their CCCD / chứng chỉ scans are the only copy — remove them first, on
+    // purpose, rather than orphaning the objects behind a cascade.
+    if (await this.prisma.attachment.count({ where: { crew_member_id: id } }))
+      throw new ConflictException(
+        "Crew member has attached files; delete them first"
+      );
     await this.prisma.crewMember.delete({ where: { id } });
   }
 }

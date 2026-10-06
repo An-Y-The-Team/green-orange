@@ -24,6 +24,7 @@ from app.api.common import (
 from app.api.deps import SessionDep, get_current_user
 from app.core.rules import assert_project_open, business_today
 from app.core.schedule import overlapping_ids
+from app.models.attachment import Attachment
 from app.models.crew import (
     CREW_STATUS_WORKING,
     CREW_STATUSES,
@@ -327,6 +328,18 @@ def delete_crew_member(session: SessionDep, member_id: int) -> None:
             status.HTTP_409_CONFLICT,
             "Crew member has assignments or timekeeping records; "
             "set status to 'left' instead",
+        )
+    # Their CCCD / chứng chỉ scans are the only copy — remove them first, on
+    # purpose, rather than orphaning the objects behind a cascade.
+    files = session.exec(
+        select(func.count())
+        .select_from(Attachment)
+        .where(Attachment.crew_member_id == member_id)
+    ).one()
+    if files:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Crew member has attached files; delete them first",
         )
     session.delete(member)
     session.commit()

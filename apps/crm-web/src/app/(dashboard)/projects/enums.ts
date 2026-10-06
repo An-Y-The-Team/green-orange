@@ -92,16 +92,3 @@ export enum DurationField {
   ESTIMATED = "est_duration_days",
   ACTUAL = "actual_duration_days",
 }
-
-// Attachment `kind` — which stage produced the file. Was a bare `string` with
-// this list in a comment; the values are a closed set the UI branches on.
-export enum AttachmentKind {
-  SURVEY = "survey",
-  SITE_LOG = "site_log",
-  FINISH_IMAGE = "finish_image",
-  SIGNED_CONTRACT = "signed_contract",
-  ACCEPTANCE_REPORT = "acceptance_report",
-  SETTLEMENT = "settlement",
-  PAPERWORK = "paperwork",
-  OTHER = "other",
-}

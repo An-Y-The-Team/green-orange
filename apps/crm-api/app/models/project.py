@@ -1,4 +1,4 @@
-"""Công trình — the project a job lives on, plus its notes and attachments.
+"""Công trình — the project a job lives on, plus its notes (files: attachment.py).
 
 The lifecycle is the 8 stages in `STAGE_ORDER` (app/core/rules.py). Transitions
 are SOFT: doing the work auto-advances the stage (a quote created → `quote`, a
@@ -28,16 +28,6 @@ from app.models.refs import ContactRef
 PROJECT_STATUSES = ("active", "on_hold", "cancelled")
 EXECUTION_SUB_STATUSES = ("kickoff", "hoarding", "works")
 ACCEPTANCE_SUB_STATUSES = ("request_sent", "inspecting", "rework", "passed")
-ATTACHMENT_KINDS = (
-    "survey",
-    "site_log",
-    "finish_image",
-    "signed_contract",
-    "acceptance_report",
-    "settlement",
-    "paperwork",
-    "other",
-)
 
 # The 8 lifecycle stages, in order. app/core/rules.py reads STAGE_ORDER off this
 # Literal, so the list lives in exactly one place.
@@ -54,16 +44,6 @@ ProjectStage = Literal[
 ProjectStatus = Literal["active", "on_hold", "cancelled"]
 ExecutionSubStatus = Literal["kickoff", "hoarding", "works"]
 AcceptanceSubStatus = Literal["request_sent", "inspecting", "rework", "passed"]
-AttachmentKind = Literal[
-    "survey",
-    "site_log",
-    "finish_image",
-    "signed_contract",
-    "acceptance_report",
-    "settlement",
-    "paperwork",
-    "other",
-]
 
 
 # ── Tables ──────────────────────────────────────────────────────────────────
@@ -183,20 +163,6 @@ class ProjectNote(SQLModel, table=True):
     )
 
 
-class Attachment(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    project_id: int = Field(foreign_key="project.id", index=True)
-    kind: str
-    paperwork_item_id: int | None = Field(
-        default=None, foreign_key="paperworkitem.id", index=True
-    )
-    s3_key: str  # object key in the attachments bucket; see app/core/storage.py
-    note: str | None = None
-    created_at: datetime = Field(
-        default_factory=utcnow, sa_type=DateTime(timezone=True)
-    )
-
-
 # ── Request schemas ─────────────────────────────────────────────────────────
 class ProjectTypeIn(SQLModel):
     name: str = Field(min_length=1)
@@ -258,24 +224,6 @@ class ProjectNoteCreate(SQLModel):
     project_id: int
     tag: str | None = None
     body: str = Field(min_length=1)
-
-
-class AttachmentCreate(SQLModel):
-    project_id: int
-    kind: AttachmentKind
-    paperwork_item_id: int | None = None
-    s3_key: str = Field(min_length=1)
-    note: str | None = None
-
-
-class AttachmentPresign(SQLModel):
-    """Request for a signed upload URL — the browser PUTs to the bucket itself,
-    then POSTs the returned s3_key to /attachments as it always has."""
-
-    project_id: int
-    filename: str = Field(min_length=1)
-    content_type: str = Field(min_length=1)
-    content_length: int = Field(gt=0)
 
 
 # ── Response schemas ────────────────────────────────────────────────────────
@@ -344,27 +292,6 @@ class ProjectDetail(ProjectWithRelations):
     paperwork_items: list[PaperworkItemPublic]
     quotes: list[QuoteInProject]
     notes: list[ProjectNotePublic]
-
-
-class AttachmentPublic(SQLModel):
-    id: int
-    project_id: int
-    kind: str
-    paperwork_item_id: int | None
-    s3_key: str
-    note: str | None
-    created_at: datetime
-
-
-class AttachmentPresignPublic(SQLModel):
-    upload_url: str
-    s3_key: str
-    expires_in: int
-
-
-class AttachmentDownloadPublic(SQLModel):
-    download_url: str
-    expires_in: int
 
 
 class ProjectStageSummary(SQLModel):

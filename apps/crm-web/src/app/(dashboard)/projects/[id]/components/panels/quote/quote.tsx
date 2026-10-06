@@ -30,10 +30,14 @@ import {
   quoteHref,
   quotePrintHref,
 } from "@/app/(dashboard)/quotes/utils/quote-href/quote-href";
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { EmptyState } from "@/components/empty-state/empty-state";
 import {
   ACTIONS,
+  ATTACHMENT_KINDS,
   QUOTE_CHANNELS,
   QUOTE_STATUSES,
   QUOTE_SUPERSEDED_LABEL,
@@ -132,12 +136,49 @@ function SendHistory({ quote }: { quote: Quote }) {
 }
 
 /**
+ * The client's signed/stamped copy of a chốt quote — optional, never a gate.
+ * Only a chốt version gets one: it is the figure the client agreed to.
+ */
+function SignedQuoteFiles({
+  quote,
+  projectId,
+  attachments,
+}: {
+  quote: Quote;
+  projectId: number;
+  attachments: Attachment[];
+}) {
+  return (
+    <AttachmentList
+      owner={{ project_id: projectId }}
+      kind={AttachmentKind.SIGNED_QUOTE}
+      link={{ quote_id: quote.id }}
+      initial={attachments.filter(
+        (a) => a.kind === AttachmentKind.SIGNED_QUOTE && a.quote_id === quote.id
+      )}
+      title={ATTACHMENT_KINDS[AttachmentKind.SIGNED_QUOTE]}
+      target={`v${quote.version}`}
+      emptyMessage="Chưa có bản báo giá khách đã ký."
+      compact
+    />
+  );
+}
+
+/**
  * The latest version's identity and its *utility* actions (edit, revise, print,
  * delete a draft). Deciding the quote — send, chốt, hoãn, hủy — is the stage's
  * next step and lives in the panel footer (`QuoteDecision`), so the strip here
  * no longer mixes "look at this" with "advance the pipeline".
  */
-function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
+function LatestVersion({
+  quote,
+  project,
+  attachments,
+}: {
+  quote: Quote;
+  project: Project;
+  attachments: Attachment[];
+}) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePending, runDelete] = useRun(
     deleteQuote.bind(null, quote.id),
@@ -229,10 +270,17 @@ function LatestVersion({ quote, project }: { quote: Quote; project: Project }) {
       </div>
 
       {isDeal ? (
-        <p className="text-sm text-done">
-          Báo giá đã chốt — công trình đã tự chuyển sang Hợp đồng. Khách đổi ý
-          thì tạo phiên bản mới.
-        </p>
+        <>
+          <p className="text-sm text-done">
+            Báo giá đã chốt — công trình đã tự chuyển sang Hợp đồng. Khách đổi ý
+            thì tạo phiên bản mới.
+          </p>
+          <SignedQuoteFiles
+            quote={quote}
+            projectId={project.id}
+            attachments={attachments}
+          />
+        </>
       ) : null}
 
       {/* Xóa nháp — tiny confirm. */}
@@ -433,9 +481,12 @@ function QuoteDecision({
 
 export function QuotePanel({
   project,
+  attachments,
   gates,
 }: {
   project: Project;
+  /** Every file of the job; each chốt version filters its own. */
+  attachments: Attachment[];
   gates: StageGate[];
 }) {
   const versions = [...(project.quotes ?? [])].sort(
@@ -487,7 +538,11 @@ export function QuotePanel({
       />
 
       {latest ? (
-        <LatestVersion quote={latest} project={project} />
+        <LatestVersion
+          quote={latest}
+          project={project}
+          attachments={attachments}
+        />
       ) : (
         <EmptyState message="Chưa có báo giá." />
       )}
@@ -507,6 +562,15 @@ export function QuotePanel({
               <span className="tabular-nums">
                 {formatVND(storedTotals(q).total)}
               </span>
+              {/* A revision in progress leaves the chốt version down here
+                  until the new one is decided — its signed copy stays reachable. */}
+              {q.status === QuoteStatus.DEAL ? (
+                <SignedQuoteFiles
+                  quote={q}
+                  projectId={project.id}
+                  attachments={attachments}
+                />
+              ) : null}
               <Button
                 variant="outline"
                 size="sm"

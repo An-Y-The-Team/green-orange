@@ -17,8 +17,16 @@ import {
   quoteHref,
   quotePrintHref,
 } from "@/app/(dashboard)/quotes/utils/quote-href/quote-href";
-import type { Bill, Settlement } from "@/app/(dashboard)/receivables/types";
+import type {
+  Bill,
+  PaymentMilestone,
+  Settlement,
+} from "@/app/(dashboard)/receivables/types";
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
 import {
+  ATTACHMENT_KINDS,
   BILL_STATUSES,
   CONTRACT_STATUSES,
   PROJECT_STAGE_ORDER,
@@ -32,24 +40,39 @@ import { labelOf } from "@/utils/label-of/label-of";
 import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
 import { ProjectStage } from "../../../enums";
-import type { Project } from "../../../types";
+import type { PaperworkItem, Project } from "../../../types";
+import {
+  UPLOADED_FILES_ANCHOR,
+  groupByKind,
+  recordLabels,
+} from "./uploaded-files/uploaded-files";
 
 /**
  * Giấy tờ — every document of the job in one list: each báo giá version, the
  * hợp đồng, the quyết toán and hóa đơn, and the fixed print sheets. It replaces
  * the read-only Báo giá / Thanh toán tabs, which showed the same rows with no
  * way to open or print them.
+ *
+ * Below it, every file uploaded to the job. Read-only — each stage panel owns
+ * deleting its own kind — except "Tệp khác", which belongs to no stage and so
+ * can only be added here.
  */
 export function DocumentsView({
   project,
   contracts,
   settlements,
   bills,
+  milestones,
+  paperworkItems,
+  attachments,
 }: {
   project: Project;
   contracts: Contract[];
   settlements: Settlement[];
   bills: Bill[];
+  milestones: PaymentMilestone[];
+  paperworkItems: PaperworkItem[];
+  attachments: Attachment[];
 }) {
   const base = `/projects/${project.id}`;
   const quotes = [...(project.quotes ?? [])].sort(
@@ -137,19 +160,74 @@ export function DocumentsView({
     />,
   ];
 
+  const records = {
+    contracts,
+    quotes,
+    milestones,
+    bills,
+    paperworkItems,
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle as="h2">Giấy tờ</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Mọi giấy tờ của công trình.
-        </p>
-      </CardHeader>
-      <CardContent>
-        {/* Never empty: the worker-list sheet always exists. */}
-        <ul className="divide-y rounded-lg border">{rows}</ul>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle as="h2">Giấy tờ</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Mọi giấy tờ của công trình.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {/* Never empty: the worker-list sheet always exists. */}
+          <ul className="divide-y rounded-lg border">{rows}</ul>
+        </CardContent>
+      </Card>
+
+      <Card id={UPLOADED_FILES_ANCHOR} className="scroll-mt-4">
+        <CardHeader>
+          <CardTitle as="h2">Tệp đã tải lên</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Ảnh và tệp của mọi giai đoạn, xóa được ngay tại đây.
+          </p>
+        </CardHeader>
+        {/* Delete lives here too, not only in the stage panels: a file whose
+            hợp đồng / đợt / hóa đơn / hồ sơ row was deleted (its link is SET
+            NULL) or whose báo giá was superseded shows on no panel any more,
+            and this is the one place it can still be removed. A closed job
+            409s every write: same native lock as its stage panels — the
+            download links (<a>) stay live. */}
+        <CardContent>
+          <fieldset
+            disabled={project.stage === ProjectStage.CLOSED}
+            className="min-w-0 space-y-5"
+          >
+            {groupByKind(attachments).map(([kind, files]) => (
+              <AttachmentList
+                key={kind}
+                owner={{ project_id: project.id }}
+                kind={kind}
+                initial={files}
+                title={ATTACHMENT_KINDS[kind]}
+                emptyMessage="Đã xóa hết."
+                addable={false}
+                recordLabels={recordLabels(files, records)}
+              />
+            ))}
+
+            <AttachmentList
+              owner={{ project_id: project.id }}
+              kind={AttachmentKind.OTHER}
+              initial={attachments.filter(
+                (a) => a.kind === AttachmentKind.OTHER
+              )}
+              title={ATTACHMENT_KINDS[AttachmentKind.OTHER]}
+              emptyMessage="Chưa có tệp nào khác."
+              withNote
+            />
+          </fieldset>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

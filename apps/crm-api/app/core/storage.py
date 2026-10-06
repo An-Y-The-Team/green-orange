@@ -74,31 +74,60 @@ def _client():
     )
 
 
-def build_key(project_id: int, filename: str) -> str:
-    """`projects/{id}/{uuid}/{filename}` — the uuid segment keeps two uploads of
-    the same filename apart without renaming either, so the last segment stays
-    the human filename the UI prints (`basename`)."""
+def _owner_prefix(project_id: int | None, crew_member_id: int | None) -> str:
+    return (
+        f"projects/{project_id}" if project_id is not None else f"crew/{crew_member_id}"
+    )
+
+
+def build_key(
+    *,
+    project_id: int | None = None,
+    crew_member_id: int | None = None,
+    kind: str,
+    filename: str,
+) -> str:
+    """`{projects|crew}/{id}/{kind}/{uuid}/{filename}` — the owner and kind
+    segments make the bucket browsable by category (and an orphan sweep a prefix
+    listing); the uuid keeps two uploads of the same filename apart without
+    renaming either, so the last segment stays the human filename (`basename`).
+    Exactly one of `project_id` / `crew_member_id` is set — keyword-only, so the
+    two ids can never be swapped by position."""
     safe = _SEPARATORS.sub("-", filename)
     safe = _CONTROL.sub("", safe)
     safe = safe.lstrip(".").strip()[:120] or "tep"
-    return f"projects/{project_id}/{uuid.uuid4()}/{safe}"
+    prefix = _owner_prefix(project_id, crew_member_id)
+    return f"{prefix}/{kind}/{uuid.uuid4()}/{safe}"
 
 
-_KEY_SHAPE = re.compile(
-    r"^projects/(\d+)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[^/]+$"
-)
+_UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+# [0-9], not \d (which matches any Unicode digit), and fullmatch, not `$` (which
+# also matches before a trailing newline) — so this accepts what the NestJS
+# regex does.
+_KEY_SHAPE = re.compile(rf"((?:projects|crew)/[0-9]+)/([a-z_]+)/{_UUID}/[^/]+")
+# Before 2026-10 keys carried no kind segment. Such rows still download.
+_LEGACY_KEY_SHAPE = re.compile(rf"(projects/[0-9]+)/{_UUID}/[^/]+")
 
 
-def is_own_key(project_id: int, key: str) -> bool:
-    """Does this key look like one WE minted, for THIS project?
+def is_own_key(
+    *,
+    project_id: int | None = None,
+    crew_member_id: int | None = None,
+    kind: str,
+    key: str,
+) -> bool:
+    """Does this key look like one WE minted, for THIS owner and kind?
 
     `POST /attachments` takes `s3_key` from the client and `DELETE` removes the
     object it names, so an unchecked key lets a caller record a row over someone
     else's file and then delete their bytes — the row survives, so nothing in the
     UI shows the loss. The uuid segment is unguessable, so a key of this shape
-    was minted by `presign_put` for this project."""
-    match = _KEY_SHAPE.match(key)
-    return match is not None and int(match.group(1)) == project_id
+    was minted by `presign_put` for this owner."""
+    prefix = _owner_prefix(project_id, crew_member_id)
+    if match := _KEY_SHAPE.fullmatch(key):
+        return match.group(1) == prefix and match.group(2) == kind
+    legacy = _LEGACY_KEY_SHAPE.fullmatch(key)
+    return legacy is not None and legacy.group(1) == prefix
 
 
 def presign_put(key: str, content_type: str, content_length: int) -> str:
@@ -116,20 +145,28 @@ def presign_put(key: str, content_type: str, content_length: int) -> str:
     )
 
 
+# What a browser renders itself — a photo or a scan opens in a tab instead of
+# landing in Downloads. Office files have no viewer, so they stay `attachment`.
+_INLINE = re.compile(r"\.(pdf|png|jpe?g|webp)$", re.IGNORECASE)
+
+
+def content_disposition(filename: str) -> str:
+    """`safe=""` matters: RFC 5987 uses `'` as the delimiter in `UTF-8''<name>`,
+    so an unescaped apostrophe truncates the download name. The NestJS mirror
+    escapes the same set by hand (`encodeURIComponent` leaves `'()!*` alone)."""
+    mode = "inline" if _INLINE.search(filename) else "attachment"
+    return f"{mode}; filename*=UTF-8''{quote(filename, safe='')}"
+
+
 def presign_get(key: str, filename: str) -> str:
     """Signed GET. `filename` drives the download name so the browser does not
-    save the uuid segment as the file's name.
-
-    `safe=""` matters: RFC 5987 uses `'` as the delimiter in `UTF-8''<name>`, so
-    an unescaped apostrophe truncates the download name. The NestJS mirror
-    escapes the same set by hand (`encodeURIComponent` leaves `'()!*` alone)."""
-    disposition = f"attachment; filename*=UTF-8''{quote(filename, safe='')}"
+    save the uuid segment as the file's name."""
     return _client().generate_presigned_url(
         "get_object",
         Params={
             "Bucket": settings.s3_bucket,
             "Key": key,
-            "ResponseContentDisposition": disposition,
+            "ResponseContentDisposition": content_disposition(filename),
         },
         ExpiresIn=PRESIGN_TTL_SECONDS,
     )

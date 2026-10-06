@@ -11,16 +11,16 @@ import { Label } from "@yan/ui/components/label";
 import { FIELDS } from "@/constants/labels";
 import { ACTION_TOAST_TITLES } from "@/constants/server-action";
 
-import { addAttachment, presignAttachment } from "../../../actions/attachments";
-import type { AttachmentKind } from "../../../enums";
-import type { Attachment } from "../../../types";
+import { addAttachment, presignAttachment } from "../actions";
+import type { AttachmentKind } from "../enums";
+import type { Attachment, AttachmentLink, AttachmentOwner } from "../types";
 import { ACCEPT, MAX_BYTES, guessType } from "./attachment-types";
 
 /**
- * The one place a file becomes an `Attachment`. Every stage that collects a file
- * — khảo sát photos, biên bản nghiệm thu, ảnh hoàn công — renders this instead of
- * keeping its own copy of the form; there used to be three, each asking the user
- * to *type* a filename because there was no bucket behind them.
+ * The one place a file becomes an `Attachment`. Every screen that collects a
+ * file — khảo sát photos, signed contracts, payment proofs, CCCD scans — renders
+ * this instead of keeping its own copy of the form; there used to be three, each
+ * asking the user to *type* a filename because there was no bucket behind them.
  *
  * Deliberately NOT `useActionState`: the flow is presign → PUT to the bucket →
  * record the row, and a single action state cannot straddle a browser fetch in
@@ -32,8 +32,10 @@ import { ACCEPT, MAX_BYTES, guessType } from "./attachment-types";
 const UPLOAD_ERROR_TOAST = "attachment-upload-error";
 
 interface AttachmentUploadProps {
-  projectId: number;
+  owner: AttachmentOwner;
   kind: AttachmentKind;
+  /** The record this file documents, when its kind needs one. */
+  link?: AttachmentLink;
   /** Shown above the picker. Omit for a bare row. */
   label?: string;
   /** Second field for the "— ghi chú" the photo lists print beside the name. */
@@ -43,8 +45,9 @@ interface AttachmentUploadProps {
 }
 
 export function AttachmentUpload({
-  projectId,
+  owner,
   kind,
+  link = {},
   label,
   withNote = false,
   buttonLabel = "Tải lên",
@@ -79,7 +82,8 @@ export function AttachmentUpload({
 
     start(async () => {
       // 1. ask our API to sign an upload for exactly this file
-      const signed = await presignAttachment(projectId, {
+      const signed = await presignAttachment(owner, {
+        kind,
         filename: file.name,
         content_type: contentType,
         content_length: file.size,
@@ -123,7 +127,8 @@ export function AttachmentUpload({
 
       // 3. only now does the row exist, so a failed upload leaves no ghost
       const created = await addAttachment(
-        projectId,
+        owner,
+        link,
         { success: false },
         {
           kind,
@@ -148,7 +153,14 @@ export function AttachmentUpload({
     });
   };
 
-  const inputId = `attachment-${kind}-${projectId}`;
+  // Unique per owner + kind + linked record: a contract panel renders one
+  // picker per contract row, and duplicate ids break the label association.
+  const inputId = [
+    "attachment",
+    kind,
+    ...Object.values(owner),
+    ...Object.values(link),
+  ].join("-");
 
   return (
     <div className="space-y-1.5">
@@ -204,6 +216,10 @@ export const attachmentName = (s3Key: string): string =>
  * clickable inside the `<fieldset disabled>` a closed job renders (view actions
  * are meant to survive — see `stage-panel.tsx`) and avoids the popup blocker
  * that silently eats a `window.open` issued after an await.
+ *
+ * New tab: pdf/photos are served `inline`, so a same-tab link would swap the
+ * whole workspace (and any half-typed form) for a signed URL that dies in 5
+ * minutes. Office files still just download.
  */
 export function AttachmentDownload({ id, name }: { id: number; name: string }) {
   return (
@@ -212,7 +228,11 @@ export function AttachmentDownload({ id, name }: { id: number; name: string }) {
       size="sm"
       title={name}
       render={
-        <a href={`/api/attachments/${id}/download`}>
+        <a
+          href={`/api/attachments/${id}/download`}
+          target="_blank"
+          rel="noopener"
+        >
           <Paperclip className="size-4" />
           <span className="max-w-56 truncate">{name}</span>
         </a>

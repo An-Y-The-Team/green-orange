@@ -10,7 +10,10 @@ import { updateBill } from "@/app/(dashboard)/receivables/actions/update-bill";
 import { BILL_ORDER } from "@/app/(dashboard)/receivables/constants";
 import { BillStatus } from "@/app/(dashboard)/receivables/enums";
 import type { Bill } from "@/app/(dashboard)/receivables/types";
-import { BILL_STATUSES } from "@/constants/labels";
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
+import { ATTACHMENT_KINDS, BILL_STATUSES } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
 import { labelOf } from "@/utils/label-of/label-of";
@@ -18,13 +21,17 @@ import { labelOf } from "@/utils/label-of/label-of";
 /**
  * The settlement's hóa đơn. A draft bill has no advance buttons — it only turns
  * official when the settlement is signed, which is what mints the real total.
+ * The CRM only prints the đề nghị thanh toán; the real hóa đơn VAT is issued
+ * outside it, so its file is attached here (optional, behind the paperclip).
  */
 export function BillRow({
   bill,
   projectId,
+  attachments,
 }: {
   bill: Bill;
   projectId: number;
+  attachments: Attachment[];
 }) {
   const idx = BILL_ORDER.indexOf(bill.status);
   const [pending, run] = useRun(updateBill.bind(null, bill.id, projectId));
@@ -58,6 +65,19 @@ export function BillRow({
           <Printer className="size-4" />
           In đề nghị thanh toán
         </Button>
+        <AttachmentList
+          compact
+          owner={{ project_id: projectId }}
+          kind={AttachmentKind.VAT_INVOICE}
+          link={{ bill_id: bill.id }}
+          initial={attachments.filter(
+            (a) =>
+              a.kind === AttachmentKind.VAT_INVOICE && a.bill_id === bill.id
+          )}
+          title={ATTACHMENT_KINDS[AttachmentKind.VAT_INVOICE]}
+          target={`HĐ #${bill.id}`}
+          emptyMessage="Chưa có hóa đơn VAT. Thêm tệp hóa đơn điện tử khi đã xuất."
+        />
         {official && idx < BILL_ORDER.indexOf(BillStatus.SENT) ? (
           <Button
             variant="outline"

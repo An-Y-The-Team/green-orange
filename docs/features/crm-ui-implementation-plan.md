@@ -453,8 +453,7 @@ apps/web too); not yet clicked through in a browser.
 
 ## Deferred / blocked (do not build without a new decision)
 
-- Cost module (own design session), S3 uploads (attachments stay
-  metadata-only), bank-feed bill auto-flip, Python crm-api update for students
+- Cost module (own design session), bank-feed bill auto-flip, Python crm-api update for students
   (including the Zalo endpoints and the `status`/`start_time`/`end_time`
   columns — the Python model cannot represent a mini-app row until then).
 - **No longer deferred:** Zalo mini-app ingest was built on
@@ -464,6 +463,13 @@ apps/web too); not yet clicked through in a browser.
 
 ## Changelog
 
+- 2026-10-06 — uploads everywhere (PR #86): attachments gained a crew owner
+  and per-record links (quote / contract / milestone / bill / paperwork
+  item) in both backends; shared `src/components/attachments/` layer
+  (owner + link props, compact 📎 mode); file slots on every stage panel,
+  a categorized "Tệp đã tải lên" section on the Giấy tờ tab, and CCCD /
+  chứng chỉ on crew detail. Survey checklist row now counts survey photos
+  only. S3 uploads are no longer deferred.
 - 2026-10-05 — phase 8 shipped: project flow redesign. Server auto-advance
   completed in both backends (+ `PaperworkItem.needed_for`); each stage's
   checklist rows carry their own action with one green next step; the

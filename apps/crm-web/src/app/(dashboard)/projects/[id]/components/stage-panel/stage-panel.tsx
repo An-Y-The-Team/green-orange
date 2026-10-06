@@ -11,10 +11,11 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import type { Attachment } from "@/components/attachments/types";
 import { PROJECT_STAGE_ORDER } from "@/constants/labels";
 
 import { ProjectStage } from "../../../enums";
-import type { Attachment, PaperworkItem, Project } from "../../../types";
+import type { PaperworkItem, Project } from "../../../types";
 import type { StageGate } from "../../utils/stage-gates/stage-gates";
 import { FutureStagePreview } from "../future-stage-preview/future-stage-preview";
 import { AcceptancePanel } from "../panels/acceptance/acceptance";
@@ -103,12 +104,19 @@ export function StagePanel({
           />
         );
       case ProjectStage.QUOTE:
-        return <QuotePanel project={project} gates={gates} />;
+        return (
+          <QuotePanel
+            project={project}
+            attachments={attachments}
+            gates={gates}
+          />
+        );
       case ProjectStage.CONTRACT:
         return (
           <StageCard stage={ProjectStage.CONTRACT}>
             <ContractPanel
               project={project}
+              attachments={attachments}
               contracts={contracts}
               milestones={milestones}
               dealQuote={dealQuote}
@@ -120,6 +128,7 @@ export function StagePanel({
         return (
           <PaperworkPanel
             project={project}
+            attachments={attachments}
             paperworkItems={paperworkItems}
             milestones={milestones}
             dealQuote={dealQuote}
@@ -148,6 +157,7 @@ export function StagePanel({
         return (
           <SettlementPanel
             project={project}
+            attachments={attachments}
             settlements={settlements}
             bills={bills}
             milestones={milestones}
@@ -159,6 +169,7 @@ export function StagePanel({
         return (
           <ClosedPanel
             project={project}
+            attachments={attachments}
             bills={bills}
             milestones={milestones}
             settlements={settlements}

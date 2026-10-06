@@ -13,6 +13,7 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import { AttachmentKind } from "@/components/attachments/enums";
 
 import {
   AcceptanceSubStatus,
@@ -87,12 +88,22 @@ describe("stage 1 — Yêu cầu & Khảo sát", () => {
     expect(keys(gs).survey_data).toBe(true);
   });
 
-  test("survey data via an attachment row", () => {
+  test("survey data via a survey photo", () => {
     const gs = stageGates({
       project: project({ stage: ProjectStage.REQUEST }),
-      attachments: [{ id: 1 }] as never,
+      attachments: [{ id: 1, kind: AttachmentKind.SURVEY }] as never,
     });
     expect(keys(gs).survey_data).toBe(true);
+  });
+
+  // A contract scan or hoàn công photo is not survey data; this row used to
+  // count files of any kind.
+  test("another kind of file does not count as survey data", () => {
+    const gs = stageGates({
+      project: project({ stage: ProjectStage.REQUEST }),
+      attachments: [{ id: 1, kind: AttachmentKind.SIGNED_CONTRACT }] as never,
+    });
+    expect(keys(gs).survey_data).toBe(false);
   });
 
   test("a whitespace-only survey note does not count", () => {

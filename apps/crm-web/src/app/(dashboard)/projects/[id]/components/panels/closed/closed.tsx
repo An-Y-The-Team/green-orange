@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Plus, RotateCcw } from "lucide-react";
+import { FileText, Paperclip, Plus, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 
@@ -23,6 +23,7 @@ import type {
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import type { Attachment } from "@/components/attachments/types";
 import { ACTIONS } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
@@ -34,8 +35,10 @@ import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { MilestoneStatus } from "../../../../../receivables/enums";
 import { updateProject } from "../../../../actions/update-project";
-import { ProjectStage } from "../../../../enums";
+import { ProjectStage, WorkspacePane } from "../../../../enums";
 import type { Project } from "../../../../types";
+import { viewHref } from "../../../utils/view-href/view-href";
+import { UPLOADED_FILES_ANCHOR } from "../../documents-view/uploaded-files/uploaded-files";
 import { StageCard } from "../../stage-card/stage-card";
 
 /** Whole days between two ISO/date strings (endStamp - startStamp). */
@@ -112,12 +115,14 @@ function DocLink({ href, label }: { href: string; label: string }) {
 
 export function ClosedPanel({
   project,
+  attachments,
   bills,
   milestones,
   settlements,
   contracts,
 }: {
   project: Project;
+  attachments: Attachment[];
   bills: Bill[];
   milestones: PaymentMilestone[];
   settlements: Settlement[];
@@ -208,6 +213,20 @@ export function ClosedPanel({
           <DocLink
             href={`/projects/${project.id}/print/acceptance-request`}
             label="BB nghiệm thu"
+          />
+          {/* Every uploaded file of the job lives in the Giấy tờ tab — same
+              tab, not a new one, so it stays one archive to browse. */}
+          <Button
+            size="sm"
+            variant="outline"
+            render={
+              <Link
+                href={`${viewHref({ project, view: WorkspacePane.DOCUMENTS })}#${UPLOADED_FILES_ANCHOR}`}
+              >
+                <Paperclip className="size-4" />
+                Tệp đã tải lên ({attachments.length})
+              </Link>
+            }
           />
         </div>
       </div>

@@ -10,9 +10,13 @@ import { Label } from "@yan/ui/components/label";
 import { updateMilestone } from "@/app/(dashboard)/receivables/actions/milestones";
 import { MilestoneStatus } from "@/app/(dashboard)/receivables/enums";
 import type { PaymentMilestone } from "@/app/(dashboard)/receivables/types";
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import {
   ACTIONS,
+  ATTACHMENT_KINDS,
   FIELDS,
   MILESTONE_STATUSES,
   MILESTONE_TYPES,
@@ -26,13 +30,19 @@ import { labelOf } from "@/utils/label-of/label-of";
 
 import { RecordMilestonePaid } from "../record-milestone-paid/record-milestone-paid";
 
-/** One đợt thanh toán inside the settlement card, with an inline "đã thu" confirm. */
+/**
+ * One đợt thanh toán inside the settlement card, with an inline "đã thu"
+ * confirm and its chứng từ (ủy nhiệm chi / ảnh chuyển khoản) behind a
+ * paperclip — optional, recording "đã thu" never waits for it.
+ */
 export function MilestoneRow({
   milestone,
   projectId,
+  attachments,
 }: {
   milestone: PaymentMilestone;
   projectId: number;
+  attachments: Attachment[];
 }) {
   const paid = milestone.status === MilestoneStatus.PAID;
   const late = isOverdue(milestone.due_date, paid);
@@ -96,6 +106,23 @@ export function MilestoneRow({
           primary={false}
         />
       ) : null}
+      {/* A paid row has no buttons to push it right, so the clip does it. */}
+      <div className={paid ? "ml-auto" : undefined}>
+        <AttachmentList
+          compact
+          owner={{ project_id: projectId }}
+          kind={AttachmentKind.PAYMENT_PROOF}
+          link={{ payment_milestone_id: milestone.id }}
+          initial={attachments.filter(
+            (a) =>
+              a.kind === AttachmentKind.PAYMENT_PROOF &&
+              a.payment_milestone_id === milestone.id
+          )}
+          title={ATTACHMENT_KINDS[AttachmentKind.PAYMENT_PROOF]}
+          target={`${type} ${formatVND(milestone.amount)}`}
+          emptyMessage="Chưa có chứng từ. Thêm ủy nhiệm chi hoặc ảnh chuyển khoản nếu có."
+        />
+      </div>
     </div>
   );
 }

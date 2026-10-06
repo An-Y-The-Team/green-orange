@@ -10,6 +10,9 @@ import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Textarea } from "@yan/ui/components/textarea";
 
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
 import { EmptyState } from "@/components/empty-state/empty-state";
 import { ACTIONS, FIELDS, LINE_ITEM_COLUMNS } from "@/constants/labels";
 import {
@@ -18,10 +21,8 @@ import {
 } from "@/constants/server-action";
 
 import { updateProject } from "../../../../actions/update-project";
-import { AttachmentKind } from "../../../../enums";
-import type { Attachment, Project, SurveyItem } from "../../../../types";
+import type { Project, SurveyItem } from "../../../../types";
 import { gateButtonProps } from "../../../utils/gate-button-props/gate-button-props";
-import { AttachmentList } from "../../attachment-list/attachment-list";
 
 // Survey half of the stage-1 panel — a bare body, rendered by RequestPanel
 // below the appointment card once `visit_date` is set (the visit happened).
@@ -179,7 +180,7 @@ export function SurveyPanel({
       </div>
 
       <AttachmentList
-        projectId={project.id}
+        owner={{ project_id: project.id }}
         kind={AttachmentKind.SURVEY}
         initial={attachments.filter((a) => a.kind === AttachmentKind.SURVEY)}
         title="Hình ảnh"

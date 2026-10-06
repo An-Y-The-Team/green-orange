@@ -852,13 +852,16 @@ against gone is versioning (on) plus the offsite copy in §8a.
    keys, compare to `Attachment.s3_key`, delete the unreferenced), which is not
    worth writing until it matters: an orphan costs 504đ/GB/month and only
    appears when the row insert fails after a successful PUT. The key layout
-   `projects/{id}/{uuid}/{name}` is what makes that script easy later.
+   `{projects|crew}/{id}/{kind}/{uuid}/{name}` (since 2026-10; older uploads are
+   `projects/{id}/{uuid}/{name}` and still download) is what makes that script
+   easy later. Both prefixes live in this one bucket — no CORS or lifecycle
+   change was needed for them.
 
 6. Create a second bucket `greenorange-backups` for §8a, with its **own** key.
 
 **Verify** after deploy: open a project → Khảo sát → upload a small .pdf → the
 row appears → click it → the file downloads. Then confirm the object exists in
-the console under `projects/<id>/<uuid>/`. A 403 on the PUT is almost always CORS
+the console under `projects/<id>/survey/<uuid>/`. A 403 on the PUT is almost always CORS
 or a clock skew on the VPS (`timedatectl` — signatures are time-sensitive).
 
 Unset `S3_*` is not fatal: the API boots and every other page works; the
@@ -868,6 +871,23 @@ shows as "Kho lưu trữ tệp chưa được cấu hình — báo quản trị 
 Rows created before this feature hold a bare filename instead of a real object
 key. They still list, but their download answers 404 with "tệp này có từ trước
 khi hệ thống lưu trữ tệp" rather than opening the provider's raw XML.
+
+**Deploy crm-web and the CRM API as one release — and roll back as one.** Since
+the 2026-10 attachments change (PR #86) the upload contract changed on both
+sides: an older crm-web against the new API fails every presign (`kind` is now
+required), and the new crm-web against an older API has its `kind`/link fields
+silently stripped (Nest's `whitelist`), so files are saved without the record
+they belong to. The normal release does this already — one webhook, one
+`docker compose up -d` over all four `*_IMAGE` tags (§7). Never pin or roll back
+only one of `crm-web` / `crm-api-nest`, and let the API's `prisma migrate
+deploy` finish before judging the web.
+
+**CCCD / chứng chỉ scans are crm-admins only.** Both backends read the Authentik
+`groups` claim from the user's access token. Authentik's default `profile`
+scope mapping emits it — confirm once after deploy: a crm-admins member sees
+the "Giấy tờ cá nhân" lists on `/crew/<id>`, anyone else sees the
+"Chỉ quản trị viên" notice. If even admins get the notice, the CRM provider's
+scopes are missing `profile` (or its `groups` mapping).
 
 ---
 

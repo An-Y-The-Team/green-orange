@@ -2,9 +2,12 @@ import type {
   Assignment,
   TimekeepingRecord,
 } from "@/app/(dashboard)/crew/types";
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
 
 import { GateKey, ProjectStage } from "../../../../enums";
-import type { Attachment, Project } from "../../../../types";
+import type { Project } from "../../../../types";
 import type { StageGate } from "../../../utils/stage-gates/stage-gates";
 import { GateChecklist } from "../../gate-checklist/gate-checklist";
 import { StageCard } from "../../stage-card/stage-card";
@@ -44,6 +47,16 @@ export function ExecutionPanel({
       <StatusStepper project={project} />
       <Duration project={project} timekeeping={timekeeping} />
       <Personnel project={project} assignments={assignments} />
+      {/* Progress photos while the works run — optional, gates nothing. */}
+      <AttachmentList
+        owner={{ project_id: project.id }}
+        kind={AttachmentKind.SITE_LOG}
+        initial={attachments.filter((a) => a.kind === AttachmentKind.SITE_LOG)}
+        title="Ảnh thi công (tùy chọn)"
+        emptyMessage="Chưa có ảnh thi công."
+        withNote
+        uploadLabel="Ảnh thi công"
+      />
       <FinishPhotos project={project} attachments={attachments} />
     </StageCard>
   );

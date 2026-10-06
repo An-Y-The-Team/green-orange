@@ -26,6 +26,7 @@ import {
   getProjectMilestones,
   getProjectSettlements,
 } from "@/app/(dashboard)/receivables/queries";
+import { listAttachments } from "@/components/attachments/queries";
 import { BackLink } from "@/components/back-link/back-link";
 import {
   BACK_TO,
@@ -36,12 +37,7 @@ import { localDateOf, todayISO } from "@/utils/today-iso/today-iso";
 
 import { loadClient } from "../../clients/actions/load-client";
 import { ProjectStage, WorkspacePane } from "../enums";
-import {
-  getProject,
-  listPaperworkItems,
-  listProjectAttachments,
-  listProjectTypes,
-} from "../queries";
+import { getProject, listPaperworkItems, listProjectTypes } from "../queries";
 import { AssignmentsTab } from "./components/assignments-tab/assignments-tab";
 import { ContextPane } from "./components/context-pane/context-pane";
 import { DocumentsView } from "./components/documents-view/documents-view";
@@ -105,7 +101,7 @@ export default async function ProjectDetailPage({
     projectTypes,
     clientDetail,
   ] = await Promise.all([
-    listProjectAttachments(project.id),
+    listAttachments({ project_id: project.id }),
     // Always: the nav's Giấy tờ count includes them, and a count that changes
     // with the view you're on reads as data appearing and vanishing.
     getProjectContracts(project.id),
@@ -151,7 +147,10 @@ export default async function ProjectDetailPage({
   ) as Record<ProjectStage, StageGate[]>;
 
   const documentCount =
-    (project.quotes?.length ?? 0) + contracts.length + settlements.length;
+    (project.quotes?.length ?? 0) +
+    contracts.length +
+    settlements.length +
+    attachments.length;
 
   return (
     <>
@@ -201,6 +200,9 @@ export default async function ProjectDetailPage({
               contracts={contracts}
               settlements={settlements}
               bills={bills}
+              milestones={milestones}
+              paperworkItems={paperworkItems}
+              attachments={attachments}
             />
           ) : (
             <Card>

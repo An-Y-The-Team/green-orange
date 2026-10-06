@@ -18,8 +18,12 @@ import {
   TableRow,
 } from "@yan/ui/components/table";
 
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { AttachmentKind } from "@/components/attachments/enums";
+import { listCrewAttachments } from "@/components/attachments/queries";
 import { BackLink } from "@/components/back-link/back-link";
 import {
+  ATTACHMENT_KINDS,
   BACK_TO,
   CREW_MEMBER_STATUSES,
   EMPLOYMENT_TYPES,
@@ -39,8 +43,9 @@ import { MemberActions } from "./member-actions/member-actions";
 // asks for one explicit window and says so in the card heading.
 const TIMEKEEPING_WINDOW_DAYS = 90;
 
-// Hồ sơ nhân sự — read-only (phase 1): member card, assignment history with
-// the non-blocking "Trùng lịch" chip, timekeeping records.
+// Hồ sơ nhân sự — member card, personal papers (CCCD, chứng chỉ — the only
+// editable part), assignment history with the non-blocking "Trùng lịch" chip,
+// timekeeping records.
 export default async function CrewDetailPage({
   params,
 }: {
@@ -48,14 +53,21 @@ export default async function CrewDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const member = await getCrewMember(Number(id));
-  if (!member) notFound();
-
+  const memberId = Number(id);
+  // /crew/abc would otherwise reach the API as crew_member_id=NaN.
+  if (!Number.isInteger(memberId) || memberId <= 0) notFound();
   const to = todayISO();
-  const records = await listTimekeeping({
-    crewMemberId: member.id,
-    range: { from: addDays(to, -TIMEKEEPING_WINDOW_DAYS), to },
-  });
+  // All three only need the id, so they go out together; an unknown id still
+  // 404s below (the other two just come back empty).
+  const [member, records, attachments] = await Promise.all([
+    getCrewMember(memberId),
+    listTimekeeping({
+      crewMemberId: memberId,
+      range: { from: addDays(to, -TIMEKEEPING_WINDOW_DAYS), to },
+    }),
+    listCrewAttachments(memberId),
+  ]);
+  if (!member) notFound();
   const assignments = member.assignments ?? [];
 
   const statusBadge = labelOf(CREW_MEMBER_STATUSES, member.status);
@@ -102,6 +114,47 @@ export default async function CrewDetailPage({
                 </div>
               )}
             </dl>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2" className="text-base">
+              Giấy tờ cá nhân
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-6 md:grid-cols-2">
+            {/* null = the backend refused (403): crew papers are crm-admins only. */}
+            {attachments === null ? (
+              <p className="text-sm text-muted-foreground md:col-span-2">
+                Chỉ quản trị viên (nhóm crm-admins) xem được CCCD và chứng chỉ.
+              </p>
+            ) : (
+              <>
+                <AttachmentList
+                  owner={{ crew_member_id: member.id }}
+                  kind={AttachmentKind.ID_CARD}
+                  initial={attachments.filter(
+                    (a) => a.kind === AttachmentKind.ID_CARD
+                  )}
+                  title={ATTACHMENT_KINDS[AttachmentKind.ID_CARD]}
+                  emptyMessage="Chưa có ảnh CCCD — chụp cả mặt trước và mặt sau."
+                  uploadLabel="Ảnh CCCD (mặt trước, mặt sau)"
+                  withNote
+                />
+                <AttachmentList
+                  owner={{ crew_member_id: member.id }}
+                  kind={AttachmentKind.CERTIFICATE}
+                  initial={attachments.filter(
+                    (a) => a.kind === AttachmentKind.CERTIFICATE
+                  )}
+                  title={ATTACHMENT_KINDS[AttachmentKind.CERTIFICATE]}
+                  emptyMessage="Chưa có chứng chỉ (ví dụ: an toàn lao động)."
+                  uploadLabel="Ảnh hoặc tệp chứng chỉ"
+                  withNote
+                />
+              </>
+            )}
           </CardContent>
         </Card>
 

@@ -14,7 +14,6 @@ import {
   Post,
   Query,
   Res,
-  ServiceUnavailableException,
 } from "@nestjs/common";
 import { Type } from "class-transformer";
 import {
@@ -45,18 +44,6 @@ import {
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { STAGE_ORDER, shouldAdvance } from "../common/stage";
-import {
-  ALLOWED_CONTENT_TYPES,
-  MAX_UPLOAD_BYTES,
-  PRESIGN_TTL_SECONDS,
-  basename,
-  buildKey,
-  deleteObject,
-  isOwnKey,
-  presignGet,
-  presignPut,
-  storageConfigured,
-} from "../common/storage";
 import { DEFAULT_PAPERWORK } from "../paperwork/paperwork.module";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -65,16 +52,6 @@ const STAGE = STAGE_ORDER;
 const STATUS = ["active", "on_hold", "cancelled"];
 const EXECUTION_SUB = ["kickoff", "hoarding", "works"];
 const ACCEPTANCE_SUB = ["request_sent", "inspecting", "rework", "passed"];
-const ATTACHMENT_KIND = [
-  "survey",
-  "site_log",
-  "finish_image",
-  "signed_contract",
-  "acceptance_report",
-  "settlement",
-  "paperwork",
-  "other",
-];
 
 // ── Project types (user-managed tags) ───────────────────────────────────────
 class ProjectTypeDto {
@@ -598,166 +575,11 @@ class ProjectNotesController {
   }
 }
 
-// ── Attachments (metadata rows + presigned S3 upload/download) ─────────────
-class CreateAttachmentDto {
-  @IsInt() project_id: number;
-  @IsIn(ATTACHMENT_KIND) kind: string;
-  @IsOptional() @IsInt() paperwork_item_id?: number;
-  @IsString() @MinLength(1) s3_key: string;
-  @IsOptional() @IsString() note?: string;
-}
-
-class PresignAttachmentDto {
-  @IsInt() project_id: number;
-  @IsString() @MinLength(1) filename: string;
-  @IsString() @MinLength(1) content_type: string;
-  @IsInt() @Min(1) content_length: number;
-}
-
-@Controller("attachments")
-export class AttachmentsController {
-  constructor(private readonly prisma: PrismaService) {}
-
-  /**
-   * Hands out a short-lived signed PUT; the browser uploads straight to the
-   * bucket and then POSTs the returned `s3_key` to `POST /attachments` as it
-   * always has. Bytes never pass through this process.
-   *
-   * The content type and length are signed into the URL, so the checks below are
-   * not the only line of defence — a client that lies about either is refused by
-   * the bucket. They run here to fail fast with a sentence instead of a 403.
-   */
-  @Post("presign")
-  @HttpCode(200)
-  async presign(@Body() dto: PresignAttachmentDto) {
-    // Say which knob is missing. Without this the plain Error from requireClient
-    // surfaces as a bare 500 "Máy chủ đang lỗi", and .env.example, config.py and
-    // DEPLOY.md §6f all promise the opposite.
-    if (!storageConfigured)
-      throw new ServiceUnavailableException(
-        "Object storage is not configured — set S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY"
-      );
-    // assertProjectOpen only rejects a CLOSED project; a project_id that does
-    // not exist passes it silently and would mint signed PUTs for keys no row
-    // will ever reference.
-    const project = await this.prisma.project.findUnique({
-      where: { id: dto.project_id },
-      select: { id: true },
-    });
-    if (!project) throw new NotFoundException("Project not found");
-    await assertProjectOpen(this.prisma, dto.project_id);
-    if (!ALLOWED_CONTENT_TYPES.has(dto.content_type))
-      throw new BadRequestException(
-        `Unsupported file type: ${dto.content_type}`
-      );
-    if (dto.content_length > MAX_UPLOAD_BYTES)
-      throw new BadRequestException(
-        `File is larger than ${Math.floor(MAX_UPLOAD_BYTES / 1024 / 1024)} MB`
-      );
-    const s3_key = buildKey(dto.project_id, dto.filename);
-    const upload_url = await presignPut(
-      s3_key,
-      dto.content_type,
-      dto.content_length
-    );
-    return { upload_url, s3_key, expires_in: PRESIGN_TTL_SECONDS };
-  }
-
-  /** Short-lived signed GET for one row — the download link the UI opens. */
-  @Get(":id/url")
-  async downloadUrl(@Param("id", ParseIntPipe) id: number) {
-    const row = await this.prisma.attachment.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException("Attachment not found");
-    // Rows from the metadata-only era (and the seed) hold a bare filename, with
-    // no object behind it. Signing one yields a valid URL that opens the
-    // provider's raw NoSuchKey XML in a new tab; say so instead.
-    if (!isOwnKey(row.project_id, row.s3_key))
-      throw new NotFoundException(
-        "This attachment predates file storage — only its name was recorded"
-      );
-    if (!storageConfigured)
-      throw new ServiceUnavailableException(
-        "Object storage is not configured — set S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY"
-      );
-    const download_url = await presignGet(row.s3_key, basename(row.s3_key));
-    return { download_url, expires_in: PRESIGN_TTL_SECONDS };
-  }
-
-  @Get()
-  list(
-    @Res({ passthrough: true }) res: Response,
-    @Query() page: PageQuery,
-    @Query("project_id") projectId?: string,
-    @Query("kind") kind?: string
-  ) {
-    const where = {
-      project_id: projectId ? Number(projectId) : undefined,
-      kind: kind || undefined,
-    };
-    return withTotalCount(
-      res,
-      this.prisma.attachment.findMany({
-        where,
-        orderBy: [{ created_at: "desc" }, { id: "desc" }],
-        ...pageArgs(page),
-      }),
-      this.prisma.attachment.count({ where })
-    );
-  }
-
-  @Post()
-  @HttpCode(201)
-  async create(@Body() dto: CreateAttachmentDto) {
-    await assertProjectOpen(this.prisma, dto.project_id);
-    // Another project's checklist row would collect this file silently.
-    if (dto.paperwork_item_id != null) {
-      const item = await this.prisma.paperworkItem.findUnique({
-        where: { id: dto.paperwork_item_id },
-      });
-      if (!item || item.project_id !== dto.project_id)
-        throw new BadRequestException(
-          "paperwork_item_id does not belong to project_id"
-        );
-    }
-    // The key must be one presignPut minted for THIS project. DELETE removes the
-    // object this names, so an unchecked key lets a caller record a row over
-    // someone else's file and then delete their bytes, leaving their row behind.
-    if (!isOwnKey(dto.project_id, dto.s3_key))
-      throw new BadRequestException(
-        "s3_key was not issued for this project — upload via /attachments/presign"
-      );
-    return this.prisma.attachment.create({
-      data: {
-        project_id: dto.project_id,
-        kind: dto.kind,
-        paperwork_item_id: dto.paperwork_item_id,
-        s3_key: dto.s3_key,
-        note: dto.note,
-      },
-    });
-  }
-
-  @Delete(":id")
-  @HttpCode(204)
-  async remove(@Param("id", ParseIntPipe) id: number) {
-    const row = await this.prisma.attachment.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException("Attachment not found");
-    await assertProjectOpen(this.prisma, row.project_id);
-    await this.prisma.attachment.delete({ where: { id } });
-    // After the row, and deliberately NOT awaited: deleteObject swallows its own
-    // errors, but awaiting it puts the SDK's retry backoff inside the user's
-    // request — a bucket outage would turn a committed delete into a timeout
-    // toast for a row that is already gone.
-    void deleteObject(row.s3_key);
-  }
-}
-
 @Module({
   controllers: [
     ProjectTypesController,
     ProjectsController,
     ProjectNotesController,
-    AttachmentsController,
   ],
 })
 export class ProjectsModule {}
