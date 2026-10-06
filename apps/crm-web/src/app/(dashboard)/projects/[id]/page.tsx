@@ -164,12 +164,13 @@ export default async function ProjectDetailPage({
         gates={gatesByStage[project.stage]}
       />
 
-      {/* The context pane only gets its own column from 2xl. The 18px root
-          scales the side columns (13rem = 234px, 18rem = 324px) but not the
-          px-based breakpoints, so a third column at a 1280px laptop left the
-          stage's work ~390px and its inputs collapsed. Below 2xl it sits under
-          the work. */}
-      <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] 2xl:grid-cols-[13rem_minmax(0,1fr)_18rem]">
+      {/* Option C's three panes at the mockup's widths (212px | work | 292px).
+          px, not rem: the 18px root would scale rem side columns (18rem =
+          324px) and squeeze the work column until its inputs collapse. Below
+          xl three panes don't fit beside the app sidebar, so the left column
+          holds the nav with the context under it and the work spans both
+          rows; the context is simply the next free cell either way. */}
+      <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr] xl:grid-cols-[212px_minmax(0,1fr)_292px]">
         <StageNav
           project={project}
           view={view}
@@ -178,7 +179,7 @@ export default async function ProjectDetailPage({
           crewCount={assignments.length}
         />
 
-        <div className="min-w-0">
+        <div className="min-w-0 lg:row-span-2 xl:row-span-1">
           {viewStage ? (
             <StagePanel
               stage={viewStage}
@@ -233,14 +234,12 @@ export default async function ProjectDetailPage({
           )}
         </div>
 
-        <div className="min-w-0 lg:col-start-2 2xl:col-start-auto">
-          <ContextPane
-            project={project}
-            milestones={milestones}
-            bills={bills}
-            paperworkItems={paperworkItems}
-          />
-        </div>
+        <ContextPane
+          project={project}
+          milestones={milestones}
+          bills={bills}
+          paperworkItems={paperworkItems}
+        />
       </div>
     </>
   );
