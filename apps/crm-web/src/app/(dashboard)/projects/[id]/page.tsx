@@ -164,7 +164,12 @@ export default async function ProjectDetailPage({
         gates={gatesByStage[project.stage]}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)_18rem]">
+      {/* The context pane only gets its own column from 2xl. The 18px root
+          scales the side columns (13rem = 234px, 18rem = 324px) but not the
+          px-based breakpoints, so a third column at a 1280px laptop left the
+          stage's work ~390px and its inputs collapsed. Below 2xl it sits under
+          the work. */}
+      <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] 2xl:grid-cols-[13rem_minmax(0,1fr)_18rem]">
         <StageNav
           project={project}
           view={view}
@@ -228,12 +233,14 @@ export default async function ProjectDetailPage({
           )}
         </div>
 
-        <ContextPane
-          project={project}
-          milestones={milestones}
-          bills={bills}
-          paperworkItems={paperworkItems}
-        />
+        <div className="min-w-0 lg:col-start-2 2xl:col-start-auto">
+          <ContextPane
+            project={project}
+            milestones={milestones}
+            bills={bills}
+            paperworkItems={paperworkItems}
+          />
+        </div>
       </div>
     </>
   );

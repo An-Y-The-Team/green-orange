@@ -90,7 +90,9 @@ function DateInput({
   };
 
   return (
-    <div className={cn("relative w-full", className)}>
+    // min-w: callers size it `w-auto` in flex rows and table cells, where the
+    // wrapper otherwise shrinks to the calendar icon — dd/mm/yyyy must fit.
+    <div className={cn("relative w-full min-w-36", className)}>
       <Input
         {...props}
         disabled={disabled}

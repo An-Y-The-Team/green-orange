@@ -9,14 +9,6 @@ import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
 import { Input } from "@yan/ui/components/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@yan/ui/components/table";
 
 import type { Quote } from "@/app/(dashboard)/quotes/types";
 import {
@@ -89,83 +81,45 @@ function PaperworkRow({
     item.status === PaperworkStatus.APPROVED
   );
 
+  // Two lines, not table columns: five editable cells side by side collapse
+  // the inputs to slivers in the middle pane. Line 1 says what and where it
+  // stands; line 2 is the details you fill in.
   return (
-    <TableRow>
-      <TableCell className="font-medium">{item.name}</TableCell>
-
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <Badge variant={label.variant}>{label.label}</Badge>
-          {/* One-way status advance; hidden once approved (terminal). Only the
-              APPROVED hop is confirm-gated: it is terminal and it opens Thi
-              công, while confirming every → Đã nộp on a 7-item checklist would
-              be friction with nothing to say. */}
-          {next === PaperworkStatus.APPROVED ? (
-            <ConfirmAction
-              trigger={
-                <Button size="sm" variant="outline" disabled={isPending}>
-                  → {labelOf(PAPERWORK_STATUSES, next).label}
-                </Button>
-              }
-              title={`Duyệt "${item.name}"?`}
-              consequence="Đã duyệt là trạng thái cuối — không có nút quay lại. Khi hồ sơ cần cho thi công đã duyệt hết và đã nhận cọc, công trình tự chuyển sang Thi công."
-              confirmLabel="Đã duyệt"
-              pending={isPending}
-              onConfirm={() =>
-                startTransition(() => updateAction({ status: next }))
-              }
-            />
-          ) : next ? (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isPending}
-              onClick={() =>
-                startTransition(() => updateAction({ status: next }))
-              }
-            >
-              → {labelOf(PAPERWORK_STATUSES, next).label}
-            </Button>
-          ) : null}
-        </div>
-      </TableCell>
-
-      {/* overdue drives the red chip + dashboard later. */}
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <DateInput
-            value={due}
-            disabled={isPending}
-            className="h-8 w-auto"
-            onChange={(value) => {
-              setDue(value);
-              startTransition(() =>
-                updateAction({ due_date: value === "" ? null : value })
-              );
-            }}
+    <li className="space-y-2 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-auto font-medium">{item.name}</span>
+        <Badge variant={label.variant}>{label.label}</Badge>
+        {/* One-way status advance; hidden once approved (terminal). Only the
+            APPROVED hop is confirm-gated: it is terminal and it opens Thi
+            công, while confirming every → Đã nộp on a 7-item checklist would
+            be friction with nothing to say. */}
+        {next === PaperworkStatus.APPROVED ? (
+          <ConfirmAction
+            trigger={
+              <Button size="sm" variant="outline" disabled={isPending}>
+                → {labelOf(PAPERWORK_STATUSES, next).label}
+              </Button>
+            }
+            title={`Duyệt "${item.name}"?`}
+            consequence="Đã duyệt là trạng thái cuối — không có nút quay lại. Khi hồ sơ cần cho thi công đã duyệt hết và đã nhận cọc, công trình tự chuyển sang Thi công."
+            confirmLabel="Đã duyệt"
+            pending={isPending}
+            onConfirm={() =>
+              startTransition(() => updateAction({ status: next }))
+            }
           />
-          {isLate ? (
-            <Badge variant={OVERDUE_LABEL.variant}>{OVERDUE_LABEL.label}</Badge>
-          ) : null}
-        </div>
-      </TableCell>
-
-      {/* "đã nộp cho ai" and other free text — saved on blur. */}
-      <TableCell>
-        <Input
-          value={note}
-          disabled={isPending}
-          placeholder="Đã nộp cho ai, tình trạng…"
-          className="h-8"
-          onChange={(e) => setNote(e.target.value)}
-          onBlur={() => {
-            if (note === (item.note ?? "")) return;
-            startTransition(() => updateAction({ note }));
-          }}
-        />
-      </TableCell>
-
-      <TableCell className="text-right">
+        ) : next ? (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isPending}
+            onClick={() =>
+              startTransition(() => updateAction({ status: next }))
+            }
+          >
+            → {labelOf(PAPERWORK_STATUSES, next).label}
+          </Button>
+        ) : null}
         <Button
           size="icon-sm"
           variant="ghost"
@@ -175,8 +129,41 @@ function PaperworkRow({
         >
           <X className="size-4" />
         </Button>
-      </TableCell>
-    </TableRow>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {/* overdue drives the red chip + dashboard later. */}
+        <DateInput
+          value={due}
+          disabled={isPending}
+          aria-label="Hạn"
+          placeholder="Hạn (dd/mm/yyyy)"
+          className="w-44"
+          onChange={(value) => {
+            setDue(value);
+            startTransition(() =>
+              updateAction({ due_date: value === "" ? null : value })
+            );
+          }}
+        />
+        {isLate ? (
+          <Badge variant={OVERDUE_LABEL.variant}>{OVERDUE_LABEL.label}</Badge>
+        ) : null}
+        {/* "đã nộp cho ai" and other free text — saved on blur. */}
+        <Input
+          value={note}
+          disabled={isPending}
+          aria-label={FIELDS.note}
+          placeholder="Đã nộp cho ai, tình trạng…"
+          className="min-w-48 flex-1"
+          onChange={(e) => setNote(e.target.value)}
+          onBlur={() => {
+            if (note === (item.note ?? "")) return;
+            startTransition(() => updateAction({ note }));
+          }}
+        />
+      </div>
+    </li>
   );
 }
 
@@ -202,34 +189,30 @@ function AddPaperworkRow({ projectId }: { projectId: number }) {
   };
 
   return (
-    <TableRow>
-      <TableCell colSpan={4}>
-        <Input
-          value={name}
-          placeholder="Tên hồ sơ mới…"
-          disabled={isPending}
-          className="h-8"
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              submit();
-            }
-          }}
-        />
-      </TableCell>
-      <TableCell className="text-right">
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={isPending || !name.trim()}
-          onClick={submit}
-        >
-          <Plus className="size-4" />
-          Thêm mục
-        </Button>
-      </TableCell>
-    </TableRow>
+    <li className="flex flex-wrap items-center gap-2 pt-3">
+      <Input
+        value={name}
+        placeholder="Tên hồ sơ mới…"
+        disabled={isPending}
+        aria-label="Tên hồ sơ mới"
+        className="min-w-48 flex-1"
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            submit();
+          }
+        }}
+      />
+      <Button
+        variant="outline"
+        disabled={isPending || !name.trim()}
+        onClick={submit}
+      >
+        <Plus className="size-4" />
+        Thêm mục
+      </Button>
+    </li>
   );
 }
 
@@ -316,23 +299,12 @@ export function PaperworkPanel({
           </p>
         ) : null}
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Hồ sơ</TableHead>
-              <TableHead>{FIELDS.status}</TableHead>
-              <TableHead>Hạn</TableHead>
-              <TableHead>{FIELDS.note}</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paperworkItems.map((item) => (
-              <PaperworkRow key={item.id} item={item} projectId={project.id} />
-            ))}
-            <AddPaperworkRow projectId={project.id} />
-          </TableBody>
-        </Table>
+        <ul className="divide-y border-t">
+          {paperworkItems.map((item) => (
+            <PaperworkRow key={item.id} item={item} projectId={project.id} />
+          ))}
+          <AddPaperworkRow projectId={project.id} />
+        </ul>
       </div>
     </StageCard>
   );

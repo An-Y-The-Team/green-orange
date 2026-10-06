@@ -631,6 +631,13 @@ inner container clips first and the outer one is dead. Wrapping a `<table>` in a
 scrollbars suppressed, which breaks sticky table headers, and it forces a client-component
 boundary into every server-rendered list page.
 
+**crm-web: scrollbars are always visible.** Operators asked to _see_ that a list
+continues, so `apps/crm-web/src/app/globals.css` styles `::-webkit-scrollbar`, which opts
+Chrome/Safari out of auto-hiding overlay scrollbars wherever something scrolls. Don't hide
+them (`scrollbar-none`, `scrollbar-width: none`) and don't set `scrollbar-color` /
+`scrollbar-width` on an element — Chromium then drops the pseudo-element styling and the
+scrollbar goes back to hiding.
+
 Note also that this project's shared UI is `@yan/ui/components/*`; there is no
 `@/components/ui/scroll-area`. If a genuinely fixed-height **vertical** scroller is
 needed, build it on the already-installed `@base-ui/react/scroll-area` (the primitive the
