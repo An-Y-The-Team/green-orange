@@ -774,6 +774,14 @@ transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
 | region     | `hcm`                                                                        |
 | bucket     | `greenorange`                                                                |
 | addressing | **path-style** (`forcePathStyle: true`) — Bizfly's own SDK page specifies it |
+| tier       | **Cold** (504đ/GB/month) — instant access, 99.9% availability/year    |
+
+The Cold tier is the right fit and not a Glacier-style archive: retrieval is
+immediate, so a download is a download. The only tradeoff vs Standard is
+availability — 99.9%/year rather than 99.99%, i.e. a few hours a year when the
+bucket may be unreachable. That is availability, **not** durability: it means
+"the contract did not open just now", never "the contract is gone". Protection
+against gone is versioning (on) plus the offsite copy in §8a.
 
 **Setup (provider console — the operator does this once):**
 
@@ -808,10 +816,44 @@ transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
    **`quanly.`**, not `crm.`. Do **not** use `*`. Note this is the crm-web
    origin, not `CRM_API_DOMAIN`: the browser does the PUT, the API only signs it.
 
-5. Add a lifecycle rule expiring **incomplete/orphaned objects after 7 days**.
-   An upload is three steps (presign → PUT → record the row); if the last one
-   fails the bytes are already in the bucket with no row pointing at them, and
-   nothing else ever deletes them.
+   Bizfly's console takes this as a **form**, not JSON (Bucket → Cấu hình CORS →
+   Thêm). Two traps there, both of which fail with the same opaque browser error:
+
+   - **No trailing dot** on the domain. `https://quanly.dichvuyan.com.` is a
+     valid FQDN but the browser's `Origin` header never carries the dot, so the
+     exact-match comparison fails.
+   - **Allowed headers must include `content-type`** (the "ADVANCED OPTION"
+     column — `0 headers` is the broken default). A `PUT` with
+     `Content-Type: application/pdf` is not CORS-safelisted, so the browser
+     sends a preflight; if the bucket does not echo the header back the upload
+     never starts. The content type is also signed into the URL, so it cannot
+     simply be dropped from the request.
+
+   `ExposeHeaders: ETag` is optional — the uploader does not read the ETag.
+
+5. Lifecycle Config → create one rule, whole bucket, and tick **only**
+   `TỰ ĐỘNG XÓA DELETE MARKER HOẶC CÁC FILE UPLOAD CHƯA HOÀN CHỈNH` (7 days).
+   That is housekeeping: abandoned multipart parts and delete markers left with
+   nothing behind them.
+
+   **Do NOT tick `TỰ ĐỘNG XÓA OBJECT (CURRENT VERSION)`.** A lifecycle rule
+   filters on age and prefix, never on "does a database row point at this".
+   Every signed hợp đồng in the bucket is a current-version object that is
+   eventually older than any threshold you set, so that checkbox is a scheduled
+   deletion of the company's contracts.
+
+   Leave `TỰ ĐỘNG XÓA OBJECT (OLD VERSION)` off too, or set it to a year.
+   Expiring old versions after a week undoes the versioning in step 2 — a
+   mistaken delete would stop being recoverable exactly one week later.
+
+   **Orphans are therefore not solved here, by design.** An upload is three
+   steps (presign → PUT → record the row); if the last one fails the bytes are
+   already in the bucket, complete and current, indistinguishable from a real
+   attachment by age. Deleting those safely needs a reconciliation pass (list
+   keys, compare to `Attachment.s3_key`, delete the unreferenced), which is not
+   worth writing until it matters: an orphan costs 504đ/GB/month and only
+   appears when the row insert fails after a successful PUT. The key layout
+   `projects/{id}/{uuid}/{name}` is what makes that script easy later.
 6. Create a second bucket `greenorange-backups` for §8a, with its **own** key.
 
 **Verify** after deploy: open a project → Khảo sát → upload a small .pdf → the
