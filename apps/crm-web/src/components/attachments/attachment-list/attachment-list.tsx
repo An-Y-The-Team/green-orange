@@ -55,6 +55,10 @@ interface AttachmentListProps {
   withNote?: boolean;
   /** Label on the file picker inside the add block. */
   uploadLabel?: string;
+  /** False = list + delete only (the Giấy tờ overview; uploads belong to a stage). */
+  addable?: boolean;
+  /** Per-row muted text naming the record a file documents, by attachment id. */
+  recordLabels?: Record<number, string>;
 }
 
 export function AttachmentList({
@@ -67,6 +71,8 @@ export function AttachmentList({
   compact = false,
   withNote = false,
   uploadLabel,
+  addable = true,
+  recordLabels,
 }: AttachmentListProps) {
   const [rows, setRows] = useState<Attachment[]>(initial);
   const [showAdd, setShowAdd] = useState(false);
@@ -100,13 +106,15 @@ export function AttachmentList({
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-medium">{label}</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowAdd((v) => !v)}
-        >
-          {PHOTO_TEXT.add}
-        </Button>
+        {addable ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAdd((v) => !v)}
+          >
+            {PHOTO_TEXT.add}
+          </Button>
+        ) : null}
       </div>
 
       {rows.length > 0 ? (
@@ -114,6 +122,11 @@ export function AttachmentList({
           {rows.map((a) => (
             <li key={a.id} className="flex items-center gap-2">
               <AttachmentDownload id={a.id} name={attachmentName(a.s3_key)} />
+              {recordLabels?.[a.id] ? (
+                <span className="text-muted-foreground">
+                  {recordLabels[a.id]}
+                </span>
+              ) : null}
               {a.note ? (
                 <span className="text-muted-foreground">{`— "${a.note}"`}</span>
               ) : null}
@@ -132,7 +145,7 @@ export function AttachmentList({
         <EmptyState message={emptyMessage} />
       )}
 
-      {showAdd ? (
+      {addable && showAdd ? (
         <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
           <p className="text-xs text-muted-foreground">{PHOTO_TEXT.hint}</p>
           <AttachmentUpload

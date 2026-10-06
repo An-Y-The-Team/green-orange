@@ -44,6 +44,22 @@ export interface LinkedRecords {
 }
 
 /**
+ * `linkedRecordLabel` for a group of files, keyed by attachment id — the shape
+ * a client list can take from a server component (no function props).
+ */
+export function recordLabels(
+  files: Attachment[],
+  records: LinkedRecords
+): Record<number, string> {
+  return Object.fromEntries(
+    files.flatMap((a) => {
+      const label = linkedRecordLabel(a, records);
+      return label ? [[a.id, label]] : [];
+    })
+  );
+}
+
+/**
  * What the file belongs to, in words ("HĐ-0012", "Báo giá v2", "Cọc · …").
  * Null when it is linked to nothing, or to a record that is gone.
  */

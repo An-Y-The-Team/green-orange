@@ -905,7 +905,8 @@ pages (which remain usable, just not optimized, on mobile).
   hồ sơ (per checklist row), ảnh thi công, ảnh lỗi cần sửa, biên bản nghiệm
   thu / quyết toán, hóa đơn VAT (per bill), plus CCCD / chứng chỉ on a crew
   member. Table rows use a 📎-count `<details>`. Giấy tờ tab lists every file
-  grouped by category. Files never gate a stage.
+  grouped by category, deletable there (the only place a file whose record
+  was deleted still shows). Files never gate a stage.
 
 ## Changelog
 

@@ -216,6 +216,10 @@ export const attachmentName = (s3Key: string): string =>
  * clickable inside the `<fieldset disabled>` a closed job renders (view actions
  * are meant to survive — see `stage-panel.tsx`) and avoids the popup blocker
  * that silently eats a `window.open` issued after an await.
+ *
+ * New tab: pdf/photos are served `inline`, so a same-tab link would swap the
+ * whole workspace (and any half-typed form) for a signed URL that dies in 5
+ * minutes. Office files still just download.
  */
 export function AttachmentDownload({ id, name }: { id: number; name: string }) {
   return (
@@ -224,7 +228,11 @@ export function AttachmentDownload({ id, name }: { id: number; name: string }) {
       size="sm"
       title={name}
       render={
-        <a href={`/api/attachments/${id}/download`}>
+        <a
+          href={`/api/attachments/${id}/download`}
+          target="_blank"
+          rel="noopener"
+        >
           <Paperclip className="size-4" />
           <span className="max-w-56 truncate">{name}</span>
         </a>

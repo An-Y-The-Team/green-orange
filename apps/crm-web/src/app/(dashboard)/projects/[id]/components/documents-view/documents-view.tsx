@@ -23,10 +23,6 @@ import type {
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
 import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
-import {
-  AttachmentDownload,
-  attachmentName,
-} from "@/components/attachments/attachment-upload/attachment-upload";
 import { AttachmentKind } from "@/components/attachments/enums";
 import type { Attachment } from "@/components/attachments/types";
 import {
@@ -48,7 +44,7 @@ import type { PaperworkItem, Project } from "../../../types";
 import {
   UPLOADED_FILES_ANCHOR,
   groupByKind,
-  linkedRecordLabel,
+  recordLabels,
 } from "./uploaded-files/uploaded-files";
 
 /**
@@ -191,46 +187,33 @@ export function DocumentsView({
         <CardHeader>
           <CardTitle as="h2">Tệp đã tải lên</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Ảnh và tệp của mọi giai đoạn. Muốn xóa, vào giai đoạn đã tải tệp.
+            Ảnh và tệp của mọi giai đoạn, xóa được ngay tại đây.
           </p>
         </CardHeader>
-        <CardContent className="space-y-5">
-          {groupByKind(attachments).map(([kind, files]) => (
-            <section key={kind} className="space-y-1">
-              <h3 className="text-sm font-medium">
-                {`${ATTACHMENT_KINDS[kind]} (${files.length})`}
-              </h3>
-              <ul className="space-y-1 text-sm">
-                {files.map((a) => {
-                  const record = linkedRecordLabel(a, records);
-                  return (
-                    <li
-                      key={a.id}
-                      className="flex flex-wrap items-center gap-2"
-                    >
-                      <AttachmentDownload
-                        id={a.id}
-                        name={attachmentName(a.s3_key)}
-                      />
-                      {record ? (
-                        <span className="text-muted-foreground">{record}</span>
-                      ) : null}
-                      {a.note ? (
-                        <span className="text-muted-foreground">{`— "${a.note}"`}</span>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
-
-          {/* A closed job 409s every write: same native lock as its stage
-              panels — the download links (<a>) stay live. */}
+        {/* Delete lives here too, not only in the stage panels: a file whose
+            hợp đồng / đợt / hóa đơn / hồ sơ row was deleted (its link is SET
+            NULL) or whose báo giá was superseded shows on no panel any more,
+            and this is the one place it can still be removed. A closed job
+            409s every write: same native lock as its stage panels — the
+            download links (<a>) stay live. */}
+        <CardContent>
           <fieldset
             disabled={project.stage === ProjectStage.CLOSED}
-            className="min-w-0"
+            className="min-w-0 space-y-5"
           >
+            {groupByKind(attachments).map(([kind, files]) => (
+              <AttachmentList
+                key={kind}
+                owner={{ project_id: project.id }}
+                kind={kind}
+                initial={files}
+                title={ATTACHMENT_KINDS[kind]}
+                emptyMessage="Đã xóa hết."
+                addable={false}
+                recordLabels={recordLabels(files, records)}
+              />
+            ))}
+
             <AttachmentList
               owner={{ project_id: project.id }}
               kind={AttachmentKind.OTHER}

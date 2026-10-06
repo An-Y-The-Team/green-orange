@@ -10,6 +10,7 @@ import {
   type LinkedRecords,
   groupByKind,
   linkedRecordLabel,
+  recordLabels,
 } from "./uploaded-files";
 
 const file = (id: number, kind: AttachmentKind, link = {}): Attachment => ({
@@ -76,5 +77,25 @@ describe("linkedRecordLabel", () => {
         none
       )
     ).toBeNull();
+  });
+});
+
+describe("recordLabels", () => {
+  // The overview is where unlinked files get deleted, so an orphan (link SET
+  // NULL by its parent's delete) must still be listed — just without a label.
+  test("keys labels by attachment id and skips unlinked files", () => {
+    const records = {
+      ...none,
+      contracts: [{ id: 9, code: "HĐ-0009" } as Contract],
+    };
+    expect(
+      recordLabels(
+        [
+          file(1, AttachmentKind.SIGNED_CONTRACT, { contract_id: 9 }),
+          file(2, AttachmentKind.SIGNED_CONTRACT),
+        ],
+        records
+      )
+    ).toEqual({ 1: "HĐ-0009" });
   });
 });
