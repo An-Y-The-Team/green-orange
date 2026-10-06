@@ -795,7 +795,7 @@ transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
    ```json
    [
      {
-       "AllowedOrigins": ["https://crm.dichvuyan.com"],
+       "AllowedOrigins": ["https://quanly.dichvuyan.com"],
        "AllowedMethods": ["GET", "PUT"],
        "AllowedHeaders": ["*"],
        "ExposeHeaders": ["ETag"],
@@ -804,7 +804,9 @@ transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
    ]
    ```
 
-   Replace the origin with the real `CRM_DOMAIN`. Do **not** use `*`.
+   That origin is `CRM_DOMAIN` from `deploy/deploy.env` — the CRM is at
+   **`quanly.`**, not `crm.`. Do **not** use `*`. Note this is the crm-web
+   origin, not `CRM_API_DOMAIN`: the browser does the PUT, the API only signs it.
 
 5. Add a lifecycle rule expiring **incomplete/orphaned objects after 7 days**.
    An upload is three steps (presign → PUT → record the row); if the last one
