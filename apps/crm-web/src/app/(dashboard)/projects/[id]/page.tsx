@@ -147,7 +147,10 @@ export default async function ProjectDetailPage({
   ) as Record<ProjectStage, StageGate[]>;
 
   const documentCount =
-    (project.quotes?.length ?? 0) + contracts.length + settlements.length;
+    (project.quotes?.length ?? 0) +
+    contracts.length +
+    settlements.length +
+    attachments.length;
 
   return (
     <>
@@ -197,6 +200,9 @@ export default async function ProjectDetailPage({
               contracts={contracts}
               settlements={settlements}
               bills={bills}
+              milestones={milestones}
+              paperworkItems={paperworkItems}
+              attachments={attachments}
             />
           ) : (
             <Card>

@@ -169,6 +169,7 @@ export function StagePanel({
         return (
           <ClosedPanel
             project={project}
+            attachments={attachments}
             bills={bills}
             milestones={milestones}
             settlements={settlements}

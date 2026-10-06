@@ -17,8 +17,20 @@ import {
   quoteHref,
   quotePrintHref,
 } from "@/app/(dashboard)/quotes/utils/quote-href/quote-href";
-import type { Bill, Settlement } from "@/app/(dashboard)/receivables/types";
+import type {
+  Bill,
+  PaymentMilestone,
+  Settlement,
+} from "@/app/(dashboard)/receivables/types";
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
 import {
+  AttachmentDownload,
+  attachmentName,
+} from "@/components/attachments/attachment-upload/attachment-upload";
+import { AttachmentKind } from "@/components/attachments/enums";
+import type { Attachment } from "@/components/attachments/types";
+import {
+  ATTACHMENT_KINDS,
   BILL_STATUSES,
   CONTRACT_STATUSES,
   PROJECT_STAGE_ORDER,
@@ -32,24 +44,39 @@ import { labelOf } from "@/utils/label-of/label-of";
 import { storedTotals } from "@/utils/quote-totals/quote-totals";
 
 import { ProjectStage } from "../../../enums";
-import type { Project } from "../../../types";
+import type { PaperworkItem, Project } from "../../../types";
+import {
+  UPLOADED_FILES_ANCHOR,
+  groupByKind,
+  linkedRecordLabel,
+} from "./uploaded-files/uploaded-files";
 
 /**
  * Giấy tờ — every document of the job in one list: each báo giá version, the
  * hợp đồng, the quyết toán and hóa đơn, and the fixed print sheets. It replaces
  * the read-only Báo giá / Thanh toán tabs, which showed the same rows with no
  * way to open or print them.
+ *
+ * Below it, every file uploaded to the job. Read-only — each stage panel owns
+ * deleting its own kind — except "Tệp khác", which belongs to no stage and so
+ * can only be added here.
  */
 export function DocumentsView({
   project,
   contracts,
   settlements,
   bills,
+  milestones,
+  paperworkItems,
+  attachments,
 }: {
   project: Project;
   contracts: Contract[];
   settlements: Settlement[];
   bills: Bill[];
+  milestones: PaymentMilestone[];
+  paperworkItems: PaperworkItem[];
+  attachments: Attachment[];
 }) {
   const base = `/projects/${project.id}`;
   const quotes = [...(project.quotes ?? [])].sort(
@@ -137,19 +164,87 @@ export function DocumentsView({
     />,
   ];
 
+  const records = {
+    contracts,
+    quotes,
+    milestones,
+    bills,
+    paperworkItems,
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle as="h2">Giấy tờ</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Mọi giấy tờ của công trình.
-        </p>
-      </CardHeader>
-      <CardContent>
-        {/* Never empty: the worker-list sheet always exists. */}
-        <ul className="divide-y rounded-lg border">{rows}</ul>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle as="h2">Giấy tờ</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Mọi giấy tờ của công trình.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {/* Never empty: the worker-list sheet always exists. */}
+          <ul className="divide-y rounded-lg border">{rows}</ul>
+        </CardContent>
+      </Card>
+
+      <Card id={UPLOADED_FILES_ANCHOR} className="scroll-mt-4">
+        <CardHeader>
+          <CardTitle as="h2">Tệp đã tải lên</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Ảnh và tệp của mọi giai đoạn. Muốn xóa, vào giai đoạn đã tải tệp.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {groupByKind(attachments).map(([kind, files]) => (
+            <section key={kind} className="space-y-1">
+              <h3 className="text-sm font-medium">
+                {`${ATTACHMENT_KINDS[kind]} (${files.length})`}
+              </h3>
+              <ul className="space-y-1 text-sm">
+                {files.map((a) => {
+                  const record = linkedRecordLabel(a, records);
+                  return (
+                    <li
+                      key={a.id}
+                      className="flex flex-wrap items-center gap-2"
+                    >
+                      <AttachmentDownload
+                        id={a.id}
+                        name={attachmentName(a.s3_key)}
+                      />
+                      {record ? (
+                        <span className="text-muted-foreground">{record}</span>
+                      ) : null}
+                      {a.note ? (
+                        <span className="text-muted-foreground">{`— "${a.note}"`}</span>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+
+          {/* A closed job 409s every write: same native lock as its stage
+              panels — the download links (<a>) stay live. */}
+          <fieldset
+            disabled={project.stage === ProjectStage.CLOSED}
+            className="min-w-0"
+          >
+            <AttachmentList
+              owner={{ project_id: project.id }}
+              kind={AttachmentKind.OTHER}
+              initial={attachments.filter(
+                (a) => a.kind === AttachmentKind.OTHER
+              )}
+              title={ATTACHMENT_KINDS[AttachmentKind.OTHER]}
+              emptyMessage="Chưa có tệp nào khác."
+              withNote
+            />
+          </fieldset>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
