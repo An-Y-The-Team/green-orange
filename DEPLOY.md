@@ -774,7 +774,7 @@ transfer. At <50 GB the saving is ~20,000đ/month. Not worth the filing.
 | region     | `hcm`                                                                        |
 | bucket     | `greenorange`                                                                |
 | addressing | **path-style** (`forcePathStyle: true`) — Bizfly's own SDK page specifies it |
-| tier       | **Cold** (504đ/GB/month) — instant access, 99.9% availability/year    |
+| tier       | **Cold** (504đ/GB/month) — instant access, 99.9% availability/year           |
 
 The Cold tier is the right fit and not a Glacier-style archive: retrieval is
 immediate, so a download is a download. The only tradeoff vs Standard is
@@ -818,7 +818,6 @@ against gone is versioning (on) plus the offsite copy in §8a.
 
    Bizfly's console takes this as a **form**, not JSON (Bucket → Cấu hình CORS →
    Thêm). Two traps there, both of which fail with the same opaque browser error:
-
    - **No trailing dot** on the domain. `https://quanly.dichvuyan.com.` is a
      valid FQDN but the browser's `Origin` header never carries the dot, so the
      exact-match comparison fails.
@@ -854,6 +853,7 @@ against gone is versioning (on) plus the offsite copy in §8a.
    worth writing until it matters: an orphan costs 504đ/GB/month and only
    appears when the row insert fails after a successful PUT. The key layout
    `projects/{id}/{uuid}/{name}` is what makes that script easy later.
+
 6. Create a second bucket `greenorange-backups` for §8a, with its **own** key.
 
 **Verify** after deploy: open a project → Khảo sát → upload a small .pdf → the
