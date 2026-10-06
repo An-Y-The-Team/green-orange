@@ -710,7 +710,8 @@ export class AttachmentsController {
     const row = await {
       quote_id: () => this.prisma.quote.findUnique(query),
       contract_id: () => this.prisma.contract.findUnique(query),
-      payment_milestone_id: () => this.prisma.paymentMilestone.findUnique(query),
+      payment_milestone_id: () =>
+        this.prisma.paymentMilestone.findUnique(query),
       bill_id: () => this.prisma.bill.findUnique(query),
       paperwork_item_id: () => this.prisma.paperworkItem.findUnique(query),
     }[want]();

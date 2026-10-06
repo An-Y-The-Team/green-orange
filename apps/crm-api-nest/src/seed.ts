@@ -1163,7 +1163,12 @@ const ATTACHMENTS: Seeded<Prisma.AttachmentUncheckedCreateInput>[] = [
     paperwork_item_id: 2, // PCCC
     s3_key: "pccc-ho-so.pdf",
   },
-  { id: 8, crew_member_id: 1, kind: "id_card", s3_key: "cccd-tran-quoc-bao.jpg" },
+  {
+    id: 8,
+    crew_member_id: 1,
+    kind: "id_card",
+    s3_key: "cccd-tran-quoc-bao.jpg",
+  },
 ];
 
 // `tag: "rework"` notes are the nghiệm thu history the acceptance and closed

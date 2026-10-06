@@ -124,7 +124,9 @@ export function buildKey(owner: Owner, kind: string, filename: string): string {
 }
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
-const KEY_SHAPE = new RegExp(`^((?:projects|crew)/\\d+)/([a-z_]+)/${UUID}/[^/]+$`);
+const KEY_SHAPE = new RegExp(
+  `^((?:projects|crew)/\\d+)/([a-z_]+)/${UUID}/[^/]+$`
+);
 // Before 2026-10 keys carried no kind segment. Such rows still download.
 const LEGACY_KEY_SHAPE = new RegExp(`^(projects/\\d+)/${UUID}/[^/]+$`);
 

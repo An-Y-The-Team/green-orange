@@ -4,12 +4,7 @@
 // seeing a uuid where the file's name should be.
 import { describe, expect, test } from "bun:test";
 
-import {
-  basename,
-  buildKey,
-  contentDisposition,
-  isOwnKey,
-} from "./storage";
+import { basename, buildKey, contentDisposition, isOwnKey } from "./storage";
 
 const P7 = { project_id: 7 };
 const lastSegment = (key: string) => key.split("/").slice(4).join("/");
@@ -25,7 +20,9 @@ describe("buildKey", () => {
   });
 
   test("two uploads of the same name get different keys", () => {
-    expect(buildKey(P7, "survey", "a.pdf")).not.toBe(buildKey(P7, "survey", "a.pdf"));
+    expect(buildKey(P7, "survey", "a.pdf")).not.toBe(
+      buildKey(P7, "survey", "a.pdf")
+    );
   });
 
   test("cannot escape the project prefix", () => {
