@@ -61,16 +61,18 @@ export function NavList({
                 className="min-w-0 flex-1"
               />
               {/* aria-expanded carries the state, so the label never flips. */}
+              {/* No sub-items on the collapsed icon rail: the section icon
+                  links to the section's first page. */}
               <Collapsible.Trigger
                 aria-label={item.label}
-                className="group rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                className="group rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground group-data-[collapsed=true]/sidebar:hidden"
               >
                 {/* data-panel-open lands on the trigger, not the icon. */}
                 <ChevronRight className="size-3.5 transition-transform group-data-[panel-open]:rotate-90" />
               </Collapsible.Trigger>
             </div>
             {/* Closed panels unmount, so hidden children are not tab stops. */}
-            <Collapsible.Panel className="flex flex-col gap-0.5 py-0.5">
+            <Collapsible.Panel className="flex flex-col gap-0.5 py-0.5 group-data-[collapsed=true]/sidebar:hidden">
               {item.children
                 .filter((child) => child.href !== USERS_HREF || showUsers)
                 .map((child) => (
@@ -115,6 +117,10 @@ function NavLink({
       href={item.href}
       // Expresses the highlight to a screen reader, not just to the eye.
       aria-current={active ? "page" : undefined}
+      // The label hides on the collapsed rail; the name stays for the hover
+      // tooltip and for screen readers.
+      title={item.label}
+      aria-label={item.label}
       onClick={onNavigate}
       className={cn(
         "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
@@ -125,7 +131,9 @@ function NavLink({
       )}
     >
       {Icon ? <Icon className="size-4 shrink-0" /> : null}
-      <span className="truncate">{item.label}</span>
+      <span className="truncate group-data-[collapsed=true]/sidebar:hidden">
+        {item.label}
+      </span>
     </Link>
   );
 }
@@ -136,10 +144,14 @@ export function NavBrand() {
     // px-3, not px-4: at the narrower w-48 sidebar the brand needs 140px and
     // px-4 left it 138.5 — it truncated to "GreenOrange C…" by 1.5px.
     <div className="flex h-14 shrink-0 items-center gap-2 px-3">
-      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
+      {/* Ink, not green: green is reserved for the primary button
+          (crm-ui-redesign.md, "Buttons vs badges"). */}
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground text-sm font-bold text-background">
         G
       </div>
-      <span className="truncate text-sm font-semibold">{APP_NAME}</span>
+      <span className="truncate text-sm font-semibold group-data-[collapsed=true]/sidebar:hidden">
+        {APP_NAME}
+      </span>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { LogOut } from "lucide-react";
+import { cookies } from "next/headers";
 
 import { Button } from "@yan/ui/components/button";
 
@@ -6,6 +7,10 @@ import { loadCompany } from "@/app/(dashboard)/settings/company/queries";
 import { auth, signOut } from "@/auth";
 import { AUTH_ENABLED } from "@/auth.config";
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar";
+import {
+  SIDEBAR_COLLAPSED,
+  SIDEBAR_COOKIE,
+} from "@/components/app-sidebar/constants";
 import { AppTopbar } from "@/components/app-topbar/app-topbar";
 import { CompanyProvider } from "@/components/company-provider/company-provider";
 import { LoginOverlay } from "@/components/login-overlay/login-overlay";
@@ -44,13 +49,19 @@ export default async function DashboardLayout({
   // back in.
   const load = needsLogin ? null : await loadCompany();
   const sessionDead = needsLogin || Boolean(load?.sessionExpired);
+  // Read on the server so a collapsed sidebar is collapsed in the first paint.
+  const sidebarCollapsed =
+    (await cookies()).get(SIDEBAR_COOKIE)?.value === SIDEBAR_COLLAPSED;
 
   // One node, rendered in the desktop sidebar footer AND the mobile drawer's —
   // the sign-out is a server action, so it has to be built here rather than in
   // either client component.
   const footer = userLabel ? (
     <div className="flex items-center justify-between gap-2 px-1">
-      <span className="truncate" title={userLabel}>
+      <span
+        className="truncate group-data-[collapsed=true]/sidebar:hidden"
+        title={userLabel}
+      >
         {userLabel}
       </span>
       <form
@@ -79,7 +90,11 @@ export default async function DashboardLayout({
         Bỏ qua thanh điều hướng
       </a>
       <div className="print:hidden">
-        <AppSidebar footer={footer} showUsers={usersEnabled} />
+        <AppSidebar
+          footer={footer}
+          showUsers={usersEnabled}
+          defaultCollapsed={sidebarCollapsed}
+        />
       </div>
       <div className="flex flex-1 flex-col overflow-hidden print:overflow-visible">
         <AppTopbar footer={footer} showUsers={usersEnabled} />
