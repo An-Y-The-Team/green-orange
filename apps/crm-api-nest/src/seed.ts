@@ -1130,7 +1130,8 @@ export const TIMEKEEPING: Seeded<Prisma.TimekeepingRecordUncheckedCreateInput>[]
 // Seed rows carry a bare filename as s3_key, with no object behind it: these
 // predate the bucket and exist so the lists render. The UI prints them fine
 // (it shows the key's last segment), but clicking one 404s from the bucket.
-// Real uploads write `projects/<id>/<uuid>/<filename>` — see common/storage.ts.
+// Real uploads write `{projects|crew}/<id>/<kind>/<uuid>/<filename>` — see
+// common/storage.ts.
 const ATTACHMENTS: Seeded<Prisma.AttachmentUncheckedCreateInput>[] = [
   {
     id: 1,
@@ -1155,7 +1156,14 @@ const ATTACHMENTS: Seeded<Prisma.AttachmentUncheckedCreateInput>[] = [
     s3_key: "bien-ban-nghiem-thu.pdf",
   },
   { id: 6, project_id: 3, kind: "finish_image", s3_key: "hoan-thien-sanh.jpg" },
-  { id: 7, project_id: 6, kind: "paperwork", s3_key: "pccc-ho-so.pdf" },
+  {
+    id: 7,
+    project_id: 6,
+    kind: "paperwork",
+    paperwork_item_id: 2, // PCCC
+    s3_key: "pccc-ho-so.pdf",
+  },
+  { id: 8, crew_member_id: 1, kind: "id_card", s3_key: "cccd-tran-quoc-bao.jpg" },
 ];
 
 // `tag: "rework"` notes are the nghiệm thu history the acceptance and closed

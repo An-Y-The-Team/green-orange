@@ -80,6 +80,7 @@ export function AttachmentUpload({
     start(async () => {
       // 1. ask our API to sign an upload for exactly this file
       const signed = await presignAttachment(projectId, {
+        kind,
         filename: file.name,
         content_type: contentType,
         content_length: file.size,

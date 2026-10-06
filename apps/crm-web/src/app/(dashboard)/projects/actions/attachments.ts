@@ -27,6 +27,7 @@ import type { Attachment, AttachmentPresign } from "../types";
  * process (and past its 1 MB body limit) for nothing.
  */
 const presignSchema = z.object({
+  kind: z.nativeEnum(AttachmentKind),
   filename: z.string().min(1),
   content_type: z.string().min(1),
   content_length: z.number().int().positive(),

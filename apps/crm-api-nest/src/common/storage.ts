@@ -90,11 +90,26 @@ const SEPARATORS = /[/\\]/g;
 const CONTROL = /[\x00-\x1f\x7f]/g;
 
 /**
- * `projects/{id}/{uuid}/{filename}` — the uuid segment keeps two uploads of the
- * same filename apart without renaming either, so the last segment stays the
- * human filename the UI prints (`basename(s3_key)`).
+ * Who a file belongs to. Exactly one is set — the DB enforces it with a CHECK
+ * (`attachment_one_owner`). An `Attachment` row satisfies this shape as-is.
  */
-export function buildKey(projectId: number, filename: string): string {
+export interface Owner {
+  project_id?: number | null;
+  crew_member_id?: number | null;
+}
+
+const ownerPrefix = (owner: Owner): string =>
+  owner.project_id != null
+    ? `projects/${owner.project_id}`
+    : `crew/${owner.crew_member_id}`;
+
+/**
+ * `{projects|crew}/{id}/{kind}/{uuid}/{filename}` — the owner and kind segments
+ * make the bucket browsable by category (and an orphan sweep a prefix listing);
+ * the uuid keeps two uploads of the same filename apart without renaming either,
+ * so the last segment stays the human filename the UI prints (`basename`).
+ */
+export function buildKey(owner: Owner, kind: string, filename: string): string {
   const cleaned = filename
     .replace(SEPARATORS, "-")
     .replace(CONTROL, "")
@@ -105,25 +120,28 @@ export function buildKey(projectId: number, filename: string): string {
   // throws URIError — a 500 on "…😀.pdf". Python's `[:120]` counts code points,
   // so slicing by code point is also what keeps the two backends agreeing.
   const safe = [...cleaned].slice(0, 120).join("") || "tep";
-  return `projects/${projectId}/${randomUUID()}/${safe}`;
+  return `${ownerPrefix(owner)}/${kind}/${randomUUID()}/${safe}`;
 }
 
-const KEY_SHAPE =
-  /^projects\/(\d+)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[^/]+$/;
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const KEY_SHAPE = new RegExp(`^((?:projects|crew)/\\d+)/([a-z_]+)/${UUID}/[^/]+$`);
+// Before 2026-10 keys carried no kind segment. Such rows still download.
+const LEGACY_KEY_SHAPE = new RegExp(`^(projects/\\d+)/${UUID}/[^/]+$`);
 
 /**
- * Does this key look like one WE minted, for THIS project?
+ * Does this key look like one WE minted, for THIS owner and kind?
  *
- * `POST /attachments` takes `s3_key` from the client, and `DELETE` now removes
- * the object that key names. Without this check a caller could record a row
+ * `POST /attachments` takes `s3_key` from the client, and `DELETE` removes the
+ * object that key names. Without this check a caller could record a row
  * pointing at someone else's object and then delete it — the bytes vanish while
  * the victim's row survives, so nothing in the UI shows the loss. Checking the
  * shape is enough: the uuid segment is unguessable, so a key that matches was
- * minted by `presignPut` for this project.
+ * minted by `presignPut` for this owner.
  */
-export function isOwnKey(projectId: number, key: string): boolean {
+export function isOwnKey(owner: Owner, kind: string, key: string): boolean {
   const match = KEY_SHAPE.exec(key);
-  return match !== null && Number(match[1]) === projectId;
+  if (match) return match[1] === ownerPrefix(owner) && match[2] === kind;
+  return LEGACY_KEY_SHAPE.exec(key)?.[1] === ownerPrefix(owner);
 }
 
 /**
@@ -170,13 +188,20 @@ const rfc5987 = (s: string): string =>
     (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
   );
 
+// What a browser renders itself — a photo or a scan opens in a tab instead of
+// landing in Downloads. Office files have no viewer, so they stay `attachment`.
+const INLINE = /\.(pdf|png|jpe?g|webp)$/i;
+
+export const contentDisposition = (filename: string): string =>
+  `${INLINE.test(filename) ? "inline" : "attachment"}; filename*=UTF-8''${rfc5987(filename)}`;
+
 export function presignGet(key: string, filename: string): Promise<string> {
   return getSignedUrl(
     requireClient(),
     new GetObjectCommand({
       Bucket: bucket,
       Key: key,
-      ResponseContentDisposition: `attachment; filename*=UTF-8''${rfc5987(filename)}`,
+      ResponseContentDisposition: contentDisposition(filename),
     }),
     { expiresIn: PRESIGN_TTL_SECONDS }
   );

@@ -50,7 +50,7 @@ const MESSAGES: { match: RegExp; vi: (m: RegExpMatchArray) => string }[] = [
     vi: (m) => `Tệp vượt quá ${m[1]} MB — nén hoặc cắt bớt rồi tải lại.`,
   },
   {
-    match: /s3_key was not issued for this project/i,
+    match: /s3_key was not issued for this/i,
     vi: () => "Tệp tải lên không hợp lệ — chọn lại tệp rồi thử lại.",
   },
   {
@@ -170,6 +170,29 @@ const MESSAGES: { match: RegExp; vi: (m: RegExpMatchArray) => string }[] = [
   {
     match: /paperwork_item_id does not belong to project_id/i,
     vi: () => "Mục hồ sơ không thuộc công trình này.",
+  },
+  {
+    match: /quote_id does not belong to project_id/i,
+    vi: () => "Báo giá không thuộc công trình này.",
+  },
+  {
+    match: /contract_id does not belong to project_id/i,
+    vi: () => "Hợp đồng không thuộc công trình này.",
+  },
+  {
+    match: /payment_milestone_id does not belong to project_id/i,
+    vi: () => "Đợt thanh toán không thuộc công trình này.",
+  },
+  {
+    // Wrong owner / missing or extra link for the file's category — a UI bug,
+    // not something the user can fix by retyping.
+    match: /kind \w+ (needs|takes no) |exactly one owner|Unknown kind/i,
+    vi: () => "Không lưu được tệp vào đúng mục — tải lại trang rồi thử lại.",
+  },
+  {
+    match: /Crew member has attached files/i,
+    vi: () =>
+      "Nhân sự này còn giấy tờ đính kèm (CCCD, chứng chỉ) — xóa các tệp đó trước.",
   },
   {
     match: /must be a contact of the same client/i,

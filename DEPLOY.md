@@ -852,13 +852,16 @@ against gone is versioning (on) plus the offsite copy in §8a.
    keys, compare to `Attachment.s3_key`, delete the unreferenced), which is not
    worth writing until it matters: an orphan costs 504đ/GB/month and only
    appears when the row insert fails after a successful PUT. The key layout
-   `projects/{id}/{uuid}/{name}` is what makes that script easy later.
+   `{projects|crew}/{id}/{kind}/{uuid}/{name}` (since 2026-10; older uploads are
+   `projects/{id}/{uuid}/{name}` and still download) is what makes that script
+   easy later. Both prefixes live in this one bucket — no CORS or lifecycle
+   change was needed for them.
 
 6. Create a second bucket `greenorange-backups` for §8a, with its **own** key.
 
 **Verify** after deploy: open a project → Khảo sát → upload a small .pdf → the
 row appears → click it → the file downloads. Then confirm the object exists in
-the console under `projects/<id>/<uuid>/`. A 403 on the PUT is almost always CORS
+the console under `projects/<id>/survey/<uuid>/`. A 403 on the PUT is almost always CORS
 or a clock skew on the VPS (`timedatectl` — signatures are time-sensitive).
 
 Unset `S3_*` is not fatal: the API boots and every other page works; the

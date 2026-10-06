@@ -71,6 +71,7 @@ erDiagram
   project ||--o{ timekeeping_record : ""
 
   project ||--o{ attachment : "photos / signed docs"
+  crew_member ||--o{ attachment : "CCCD / chứng chỉ"
   project ||--o{ project_note : "step notes"
 ```
 
@@ -421,15 +422,46 @@ the attachments bucket; the bytes are uploaded by the browser straight to the
 bucket via a presigned PUT, so no file ever passes through the API
 (`crm-api-nest/src/common/storage.ts`, `crm-api/app/core/storage.py`).
 
-| column            | type                      | notes                                                                                                                          |
-| ----------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| id                | bigserial PK              |                                                                                                                                |
-| project_id        | FK → project              |                                                                                                                                |
-| kind              | text                      | `survey` \| `site_log` \| `finish_image` \| `signed_contract` \| `acceptance_report` \| `settlement` \| `paperwork` \| `other` |
-| paperwork_item_id | FK → paperwork_item, null | when kind = `paperwork`                                                                                                        |
-| s3_key            | text                      |                                                                                                                                |
-| note              | text null                 |                                                                                                                                |
-| created_at        | timestamptz               |                                                                                                                                |
+Owner is a project **or** a crew member — exactly one (CHECK
+`attachment_one_owner`). `kind` is the category and decides both the owner and
+the ONE link column (if any) that says which record the file documents, so a
+panel fetches "the payment proof for this milestone" with
+`GET /attachments?payment_milestone_id=…`. Rules: `ATTACHMENT_KINDS` in
+`crm-api-nest/src/projects/projects.module.ts` / `crm-api/app/models/project.py`.
+Owners RESTRICT (delete is 409 while files exist); links SET NULL (the file
+outlives the row and stays under its owner).
+
+| column               | type                         | notes                                        |
+| -------------------- | ---------------------------- | -------------------------------------------- |
+| id                   | bigserial PK                 |                                              |
+| project_id           | FK → project, null           | owner of every kind except crew ones         |
+| crew_member_id       | FK → crew_member, null       | owner of `id_card` / `certificate`           |
+| kind                 | text                         | see below                                    |
+| quote_id             | FK → quote, null             | `signed_quote`                               |
+| contract_id          | FK → contract, null          | `signed_contract`                            |
+| payment_milestone_id | FK → payment_milestone, null | `payment_proof` (cọc and every đợt)          |
+| bill_id              | FK → bill, null              | `vat_invoice`                                |
+| paperwork_item_id    | FK → paperwork_item, null    | `paperwork`                                  |
+| s3_key               | text                         | `{projects\|crew}/{id}/{kind}/{uuid}/{name}` |
+| note                 | text null                    |                                              |
+| created_at           | timestamptz                  |                                              |
+
+| kind                | VN                  | owner   | link                   | stage / screen     |
+| ------------------- | ------------------- | ------- | ---------------------- | ------------------ |
+| `survey`            | Ảnh khảo sát        | project | —                      | Yêu cầu / khảo sát |
+| `signed_quote`      | Báo giá đã xác nhận | project | `quote_id`             | Báo giá            |
+| `signed_contract`   | Hợp đồng đã ký      | project | `contract_id`          | Hợp đồng           |
+| `payment_proof`     | Chứng từ thanh toán | project | `payment_milestone_id` | Cọc, Quyết toán    |
+| `paperwork`         | Hồ sơ giấy tờ       | project | `paperwork_item_id`    | Hồ sơ              |
+| `site_log`          | Ảnh thi công        | project | —                      | Thi công           |
+| `finish_image`      | Ảnh hoàn công       | project | —                      | Thi công           |
+| `defect_image`      | Ảnh lỗi cần sửa     | project | —                      | Nghiệm thu         |
+| `acceptance_report` | Biên bản nghiệm thu | project | —                      | Nghiệm thu         |
+| `settlement`        | Biên bản quyết toán | project | —                      | Quyết toán         |
+| `vat_invoice`       | Hóa đơn VAT         | project | `bill_id`              | Quyết toán         |
+| `other`             | Khác                | project | —                      | Giấy tờ tab        |
+| `id_card`           | CCCD                | crew    | —                      | Nhân sự            |
+| `certificate`       | Chứng chỉ           | crew    | —                      | Nhân sự            |
 
 ### project_note
 

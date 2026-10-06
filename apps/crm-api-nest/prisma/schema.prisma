@@ -205,8 +205,9 @@ model Quote {
   rep_title    String?
 
   project   Project?       @relation(fields: [project_id], references: [id])
-  items     QuoteItem[]
-  send_logs QuoteSendLog[]
+  items       QuoteItem[]
+  send_logs   QuoteSendLog[]
+  attachments Attachment[]
 
   @@unique([project_id, version])
   @@index([status]) // GET /quotes?status=
@@ -264,8 +265,9 @@ model Contract {
   // never change what an already-signed contract reprints.
   print_snapshot String?
 
-  project  Project?          @relation(fields: [project_id], references: [id])
-  template ContractTemplate? @relation(fields: [template_id], references: [id])
+  project     Project?          @relation(fields: [project_id], references: [id])
+  template    ContractTemplate? @relation(fields: [template_id], references: [id])
+  attachments Attachment[]
 
   @@index([project_id]) // GET /contracts?project_id, project delete guard _count
 }
@@ -369,9 +371,10 @@ model Bill {
   sent_date     DateTime? @db.Date
   paid_date     DateTime? @db.Date
 
-  project    Project            @relation(fields: [project_id], references: [id])
-  settlement Settlement?        @relation(fields: [settlement_id], references: [id])
-  milestones PaymentMilestone[]
+  project     Project            @relation(fields: [project_id], references: [id])
+  settlement  Settlement?        @relation(fields: [settlement_id], references: [id])
+  milestones  PaymentMilestone[]
+  attachments Attachment[]
 
   @@index([project_id]) // GET /bills?project_id, project delete guard _count
 }
@@ -386,8 +389,9 @@ model PaymentMilestone {
   status     String    @default("not_due") // not_due | awaiting_payment | paid — overdue is DERIVED (due_date < today && != paid), never stored
   paid_date  DateTime? @db.Date
 
-  project Project @relation(fields: [project_id], references: [id])
-  bill    Bill?   @relation(fields: [bill_id], references: [id])
+  project     Project      @relation(fields: [project_id], references: [id])
+  bill        Bill?        @relation(fields: [bill_id], references: [id])
+  attachments Attachment[]
 
   @@index([project_id, bill_id]) // GET /payment-milestones?project_id[&bill_id], deposit sweep on settlement sign
   @@index([bill_id]) // bill-only paths: revert-to-draft sweeps + bill delete FK check
@@ -423,6 +427,7 @@ model CrewMember {
   default_role CrewRole?           @relation(fields: [default_role_id], references: [id])
   assignments  Assignment[]
   timekeeping  TimekeepingRecord[]
+  attachments  Attachment[] // CCCD / chứng chỉ scans; delete guard
 
   @@index([status]) // GET /crew?status=
   @@index([employment_type]) // GET /crew?employment_type=
@@ -482,20 +487,42 @@ model TimekeepingRecord {
   @@index([status, work_date])
 }
 
+// One table for every file in the bucket. `kind` is the category; the owner
+// (project XOR crew member — CHECK attachment_one_owner in the migration) and at
+// most one link column say exactly which record the file belongs to. Which kind
+// needs which owner/link is ATTACHMENT_KINDS in src/projects/projects.module.ts.
 model Attachment {
-  id                Int      @id @default(autoincrement())
-  project_id        Int
-  kind              String // survey | site_log | finish_image | signed_contract | acceptance_report | settlement | paperwork | other
-  paperwork_item_id Int? // when kind = paperwork
-  s3_key            String // object key in the attachments bucket; see src/common/storage.ts
-  note              String?
-  created_at        DateTime @default(now())
+  id                   Int      @id @default(autoincrement())
+  project_id           Int?
+  crew_member_id       Int?
+  kind                 String // see ATTACHMENT_KINDS
+  quote_id             Int? // signed_quote
+  contract_id          Int? // signed_contract
+  payment_milestone_id Int? // payment_proof
+  bill_id              Int? // vat_invoice
+  paperwork_item_id    Int? // paperwork
+  s3_key               String // object key in the attachments bucket; see src/common/storage.ts
+  note                 String?
+  created_at           DateTime @default(now())
 
-  project        Project        @relation(fields: [project_id], references: [id])
-  paperwork_item PaperworkItem? @relation(fields: [paperwork_item_id], references: [id])
+  // Owners RESTRICT — deleting either is refused with 409 while files exist.
+  // Links SET NULL — the file outlives the row it documented and stays listed
+  // under its owner.
+  project           Project?          @relation(fields: [project_id], references: [id], onDelete: Restrict)
+  crew_member       CrewMember?       @relation(fields: [crew_member_id], references: [id], onDelete: Restrict)
+  quote             Quote?            @relation(fields: [quote_id], references: [id], onDelete: SetNull)
+  contract          Contract?         @relation(fields: [contract_id], references: [id], onDelete: SetNull)
+  payment_milestone PaymentMilestone? @relation(fields: [payment_milestone_id], references: [id], onDelete: SetNull)
+  bill              Bill?             @relation(fields: [bill_id], references: [id], onDelete: SetNull)
+  paperwork_item    PaperworkItem?    @relation(fields: [paperwork_item_id], references: [id], onDelete: SetNull)
 
   @@index([project_id]) // GET /attachments?project_id, project delete guard _count
-  @@index([paperwork_item_id]) // attachments include + paperwork-item delete FK RESTRICT check
+  @@index([crew_member_id]) // GET /attachments?crew_member_id, crew delete guard
+  @@index([quote_id]) // FK SET NULL on quote delete
+  @@index([contract_id]) // FK SET NULL on contract delete
+  @@index([payment_milestone_id]) // FK SET NULL on milestone delete
+  @@index([bill_id]) // FK SET NULL on bill delete
+  @@index([paperwork_item_id]) // FK SET NULL on paperwork-item delete
 }
 
 model ProjectNote {
