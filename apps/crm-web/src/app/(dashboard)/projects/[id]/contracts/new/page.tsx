@@ -77,7 +77,7 @@ export default async function NewContractPage({
     <>
       {backLink}
 
-      <h1 className="mb-4 text-xl font-semibold">
+      <h1 className="mb-4 text-xl font-semibold print:hidden">
         {contract ? `Sửa hợp đồng ${contract.code}` : "Tạo hợp đồng"}
       </h1>
 

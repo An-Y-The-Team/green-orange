@@ -9,6 +9,7 @@ export default function NewContractTemplatePage() {
     <>
       <BackLink href="/contracts/templates">{BACK_TO.templates}</BackLink>
       <PageHeader
+        className="print:hidden"
         title="Mẫu hợp đồng mới"
         description="Soạn nội dung và chèn các trường dữ liệu sẽ được điền tự động."
       />

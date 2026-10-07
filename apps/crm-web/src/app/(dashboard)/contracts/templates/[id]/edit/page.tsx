@@ -22,7 +22,11 @@ export default async function EditContractTemplatePage({
   return (
     <>
       <BackLink href="/contracts/templates">{BACK_TO.templates}</BackLink>
-      <PageHeader title="Chỉnh sửa mẫu hợp đồng" description={template.name} />
+      <PageHeader
+        className="print:hidden"
+        title="Chỉnh sửa mẫu hợp đồng"
+        description={template.name}
+      />
       <TemplateEditor template={template} />
     </>
   );

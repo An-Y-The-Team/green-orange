@@ -63,9 +63,7 @@ export default async function AcceptanceRequestPage({
 
   return (
     <>
-      <BackLink href={`/projects/${project.id}`} className="print:hidden">
-        {BACK_TO.project}
-      </BackLink>
+      <BackLink href={`/projects/${project.id}`}>{BACK_TO.project}</BackLink>
 
       <DocumentShell
         title="THƯ YÊU CẦU NGHIỆM THU"

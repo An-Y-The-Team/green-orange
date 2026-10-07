@@ -32,7 +32,7 @@ export function BackLink({
     <Link
       href={href}
       className={cn(
-        "mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground",
+        "mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden",
         className
       )}
     >
