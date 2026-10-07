@@ -41,6 +41,7 @@ export type LineItemsData = {
     amount?: number;
   }[];
   vatRate: number;
+  discount?: number; // giảm giá trước thuế, VND
 };
 
 /** Block alignment (Lexical element `format` string) → Tailwind class. */
@@ -134,7 +135,11 @@ function LineItemsTable({ data }: { data: LineItemsData | null | undefined }) {
       </p>
     );
   }
-  const { subtotal, vat, total } = quoteTotals(data.items, data.vatRate);
+  const { subtotal, discount, vat, total } = quoteTotals(
+    data.items,
+    data.vatRate,
+    data.discount
+  );
 
   return (
     <div className="my-3 break-inside-avoid">
@@ -179,6 +184,12 @@ function LineItemsTable({ data }: { data: LineItemsData | null | undefined }) {
           <span className="text-zinc-500">Tổng cộng trước thuế</span>
           <span>{formatVND(subtotal)}</span>
         </div>
+        {discount > 0 ? (
+          <div className="flex justify-between">
+            <span className="text-zinc-500">Giảm giá trước thuế</span>
+            <span>−{formatVND(discount)}</span>
+          </div>
+        ) : null}
         <div className="flex justify-between">
           <span className="text-zinc-500">
             Thuế VAT ({Math.round(data.vatRate * 100)}%)

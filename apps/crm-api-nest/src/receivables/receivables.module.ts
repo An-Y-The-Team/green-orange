@@ -94,7 +94,7 @@ const SETTLEMENT_INCLUDE = {
   items: { orderBy: { sort_order: "asc" as const } },
 };
 
-class SettlementItemDto {
+export class SettlementItemDto {
   @IsString() @MinLength(1) description: string;
   @IsOptional() @IsString() unit?: string;
   @IsNumber() @Min(0) quantity: number;
@@ -141,6 +141,39 @@ const computeItems = (items: SettlementItemDto[]) => {
   }));
   return { rows, total };
 };
+
+/**
+ * A draft quyết toán and the draft bill prepared alongside it (doc rule), in
+ * the caller's transaction. Rejects a giảm giá above Σ items.
+ */
+export async function insertSettlement(
+  tx: Prisma.TransactionClient,
+  dto: Omit<CreateSettlementDto, "items"> & { items?: SettlementItemDto[] }
+) {
+  const { rows, total } = computeItems(dto.items ?? []);
+  const discount = toBig(dto.discount_amount ?? 0)!;
+  assertDiscountWithin(total, discount);
+  const settlement = await tx.settlement.create({
+    data: {
+      project_id: dto.project_id,
+      note: dto.note,
+      total_amount: total,
+      discount_amount: discount,
+      // Omitted → the schema default (8%), not 0: an untaxed quyết toán is
+      // the exception, and defaulting to 0 silently under-bills.
+      vat_rate: dto.vat_rate,
+      items: { create: rows },
+    },
+  });
+  await tx.bill.create({
+    data: {
+      project_id: dto.project_id,
+      settlement_id: settlement.id,
+      total_amount: 0, // the bill gets the real total on sign
+    },
+  });
+  return settlement;
+}
 
 @Controller("settlements")
 export class SettlementsController {
@@ -190,30 +223,8 @@ export class SettlementsController {
       throw new ConflictException(
         `project already has a settlement (QT #${existing.id}) — a project settles once`
       );
-    const { rows, total } = computeItems(dto.items ?? []);
-    const discount = toBig(dto.discount_amount ?? 0)!;
-    assertDiscountWithin(total, discount);
-    // Doc rule: the draft bill is prepared alongside the settlement.
     const created = await this.prisma.$transaction(async (tx) => {
-      const settlement = await tx.settlement.create({
-        data: {
-          project_id: dto.project_id,
-          note: dto.note,
-          total_amount: total,
-          discount_amount: discount,
-          // Omitted → the schema default (8%), not 0: an untaxed quyết toán is
-          // the exception, and defaulting to 0 silently under-bills.
-          vat_rate: dto.vat_rate,
-          items: { create: rows },
-        },
-      });
-      await tx.bill.create({
-        data: {
-          project_id: dto.project_id,
-          settlement_id: settlement.id,
-          total_amount: 0, // the bill gets the real total on sign
-        },
-      });
+      const settlement = await insertSettlement(tx, dto);
       // Starting a settlement means the project has reached Quyết toán —
       // same transaction as the rows that prove it.
       await advanceStage(tx, dto.project_id, "settlement");

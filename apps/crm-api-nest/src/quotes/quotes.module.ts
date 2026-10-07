@@ -43,12 +43,23 @@ import { pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
+import {
+  DiscountDoc,
+  assertDiscountWithin,
+} from "../receivables/settlement-money";
 
 const CHANNEL = ["zalo", "email", "print"];
-const DECISION = ["deal", "on_hold", "rejected"];
-// Full lifecycle values (schema.prisma Quote.status) — DECISION is only the
-// closing subset the decide endpoint accepts.
-const QUOTE_STATUS = ["draft", "waiting", ...DECISION];
+// Full lifecycle values (schema.prisma Quote.status).
+export enum QuoteStatus {
+  DRAFT = "draft",
+  WAITING = "waiting",
+  DEAL = "deal",
+  ON_HOLD = "on_hold",
+  REJECTED = "rejected",
+}
+// The closing subset the decide endpoint accepts.
+const DECISION = [QuoteStatus.DEAL, QuoteStatus.ON_HOLD, QuoteStatus.REJECTED];
+const QUOTE_STATUS = Object.values(QuoteStatus);
 
 // F23: `client` and `project_code` used to be denormalized onto Quote; both were
 // dropped, so consumers need the relation to print anything but `#12`. Same shape
@@ -79,7 +90,7 @@ const LIST_INCLUDE = {
 };
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
-class QuoteItemDto {
+export class QuoteItemDto {
   // Free-text section header ("A. PHẦN VẬT TƯ"); consecutive items sharing one
   // are printed under it. Omit for an ungrouped quote.
   @IsOptional() @IsString() category?: string;
@@ -99,6 +110,8 @@ class CreateQuoteDto {
   @Type(() => QuoteItemDto)
   items: QuoteItemDto[];
   @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
+  // Giảm giá trước thuế, VND; never more than Σ items.
+  @IsOptional() @IsNumber() @Min(0) discount_amount?: number;
   @IsOptional() @IsString() note?: string;
   // Per-quote signer; unset = the company representative signs.
   @IsOptional() @IsString() rep_name?: string;
@@ -113,6 +126,8 @@ class UpdateQuoteDto {
   @Type(() => QuoteItemDto)
   items?: QuoteItemDto[];
   @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
+  // Giảm giá trước thuế, VND; never more than Σ items.
+  @IsOptional() @IsNumber() @Min(0) discount_amount?: number;
   @IsOptional() @IsString() note?: string;
   @IsOptional() @IsString() rep_name?: string;
   @IsOptional() @IsString() rep_title?: string;
@@ -170,7 +185,7 @@ export async function withIsLatest<T extends VersionedRow>(
 }
 
 // amount = round(quantity × unit_price) per item; total = Σ amounts.
-const computeItems = (items: QuoteItemDto[]) => {
+export const computeItems = (items: QuoteItemDto[]) => {
   const rows = items.map((it, i) => ({
     category: it.category?.trim() || null,
     description: it.description,
@@ -287,6 +302,8 @@ export class QuotesController {
   async create(@Body() dto: CreateQuoteDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
     const { rows, total } = computeItems(dto.items);
+    const discount = toBig(dto.discount_amount ?? 0)!;
+    assertDiscountWithin(total, discount, DiscountDoc.QUOTE);
     const version = await this.nextVersion(dto.project_id);
     // The quote and the stage move it triggers commit together.
     return this.prisma.$transaction(async (tx) => {
@@ -295,6 +312,7 @@ export class QuotesController {
           project_id: dto.project_id ?? null,
           version,
           total_amount: total,
+          discount_amount: discount,
           ...(dto.vat_rate !== undefined && { vat_rate: dto.vat_rate }),
           note: dto.note,
           // Blank normalizes to null — the printable falls back to the company
@@ -326,8 +344,19 @@ export class QuotesController {
     if (dto.rep_name !== undefined) data.rep_name = dto.rep_name.trim() || null;
     if (dto.rep_title !== undefined)
       data.rep_title = dto.rep_title.trim() || null;
-    if (dto.items) {
-      const { rows, total } = computeItems(dto.items);
+    const computed = dto.items ? computeItems(dto.items) : null;
+    // `!= null`: @IsOptional lets an explicit null through, and null means
+    // "unchanged" (as in the Python twin) — never a NULL into a NOT NULL column.
+    if (dto.discount_amount != null)
+      data.discount_amount = toBig(dto.discount_amount)!;
+    // Either side may move: new items can shrink Σ below the stored discount.
+    assertDiscountWithin(
+      computed?.total ?? quote.total_amount,
+      (data.discount_amount as bigint | undefined) ?? quote.discount_amount,
+      DiscountDoc.QUOTE
+    );
+    if (dto.items && computed) {
+      const { rows, total } = computed;
       data.total_amount = total;
       const [, updated] = await this.prisma.$transaction([
         this.prisma.quoteItem.deleteMany({ where: { quote_id: id } }),
@@ -405,6 +434,7 @@ export class QuotesController {
           project_id: quote.project_id,
           version,
           total_amount: quote.total_amount,
+          discount_amount: quote.discount_amount,
           vat_rate: quote.vat_rate,
           note: quote.note,
           rep_name: quote.rep_name,

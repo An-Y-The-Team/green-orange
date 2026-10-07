@@ -167,7 +167,11 @@ export async function ContractDocument({
           }
         : DEFAULT_HEADER_BLOCKS);
     const lineItems = quote
-      ? { items: quote.items, vatRate: quote.vat_rate }
+      ? {
+          items: quote.items,
+          vatRate: quote.vat_rate,
+          discount: quote.discount_amount,
+        }
       : null;
     return (
       <>

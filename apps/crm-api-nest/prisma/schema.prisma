@@ -182,27 +182,31 @@ model Project {
 }
 
 model Quote {
-  id           Int       @id @default(autoincrement())
-  project_id   Int? // null = standalone quote (walk-in / speculative), attachable later
-  version      Int // 1, 2, … — bargaining = new row; sent rows never edited
-  status       String    @default("draft") // draft | waiting | deal | on_hold | rejected — latest version carries live status
-  total_amount BigInt // VND
-  vat_rate     Float     @default(0.08) // kept from v1 (printable A4 shows VAT)
-  /// Σ items + VAT — the figure every screen prints — maintained by Postgres as
-  /// a STORED GENERATED column (migration 20260912000000_quote_grand_total) so
+  id              Int       @id @default(autoincrement())
+  project_id      Int? // null = standalone quote (walk-in / speculative), attachable later
+  version         Int // 1, 2, … — bargaining = new row; sent rows never edited
+  status          String    @default("draft") // draft | waiting | deal | on_hold | rejected — latest version carries live status
+  total_amount    BigInt // VND
+  // Giảm giá trước thuế — same convention as Settlement.discount_amount: the
+  // quote sheet prints Σ items, then minus this, then VAT on the net.
+  discount_amount BigInt    @default(0) // VND
+  vat_rate        Float     @default(0.08) // kept from v1 (printable A4 shows VAT)
+  /// (Σ items − giảm giá) + VAT — the figure every screen prints — maintained by Postgres as
+  /// a STORED GENERATED column (migrations 20260912000000_quote_grand_total,
+  /// 20261007000000_quote_discount) so
   /// GET /quotes?sort_by=grand_total pages by what the user sees. NEVER write
   /// it — Postgres rejects that; nullable here only so `create` may omit it,
   /// the column itself is NOT NULL. Same trap as `name_norm`: regenerating this
   /// table from schema.prisma alone (`db push`) would create it as a plain
   /// column and it would silently stop updating; the expression lives in that
   /// migration.
-  grand_total  BigInt?
-  decided_date DateTime? @db.Date
-  note         String?
+  grand_total     BigInt?
+  decided_date    DateTime? @db.Date
+  note            String?
   // Signature footer (per-quote signer); falls back to the company
   // representative when unset — same pattern as Contract.rep_b_*.
-  rep_name     String?
-  rep_title    String?
+  rep_name        String?
+  rep_title       String?
 
   project     Project?       @relation(fields: [project_id], references: [id])
   items       QuoteItem[]

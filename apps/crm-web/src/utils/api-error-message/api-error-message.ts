@@ -87,9 +87,10 @@ const MESSAGES: { match: RegExp; vi: (m: RegExpMatchArray) => string }[] = [
     vi: () => "Quyết toán đã ký — bỏ ký trước khi sửa giảm giá / VAT.",
   },
   {
-    match: /giảm giá \((\d+)\) exceeds the quyết toán subtotal \((\d+)\)/i,
+    match:
+      /giảm giá \((\d+)\) exceeds the (quyết toán|báo giá) subtotal \((\d+)\)/i,
     vi: (m) =>
-      `Giảm giá (${m[1]}) lớn hơn giá trị quyết toán (${m[2]}) — giảm bớt trước khi lưu.`,
+      `Giảm giá (${m[1]}) lớn hơn giá trị ${m[2]} (${m[3]}) — giảm bớt trước khi lưu.`,
   },
   {
     match: /cọc already scheduled \((\d+)\) exceeds the quyết toán payable/i,

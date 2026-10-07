@@ -32,7 +32,14 @@ export default async function NewQuotePage({
     version: 1,
     ...(copied
       ? quoteFormSeed(copied)
-      : { items: [], vatPercent: 8, note: "", repName: "", repTitle: "" }),
+      : {
+          items: [],
+          vatPercent: 8,
+          discountAmount: 0,
+          note: "",
+          repName: "",
+          repTitle: "",
+        }),
   };
 
   return (

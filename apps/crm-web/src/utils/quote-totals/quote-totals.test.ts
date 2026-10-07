@@ -60,7 +60,13 @@ test("VAT is rounded once off the subtotal; total is their integer sum", () => {
 });
 
 test("no items → zeros, not NaN", () => {
-  expect(quoteTotals([], 0.08)).toEqual({ subtotal: 0, vat: 0, total: 0 });
+  expect(quoteTotals([], 0.08)).toEqual({
+    subtotal: 0,
+    discount: 0,
+    net: 0,
+    vat: 0,
+    total: 0,
+  });
 });
 
 // storedTotals is the display path for a SAVED quote: never re-derive the
@@ -68,9 +74,26 @@ test("no items → zeros, not NaN", () => {
 test("storedTotals derives VAT from the stored total_amount", () => {
   expect(storedTotals({ total_amount: 200_000_000, vat_rate: 0.08 })).toEqual({
     subtotal: 200_000_000,
+    discount: 0,
+    net: 200_000_000,
     vat: 16_000_000,
     total: 216_000_000,
   });
+});
+
+// The Excel Bảng báo giá block: Σ → giảm giá trước thuế → VAT on the net. Same
+// figure as the DB's grand_total (migration 20261007000000_quote_discount).
+test("a quote's giảm giá comes off before VAT", () => {
+  expect(
+    storedTotals({
+      total_amount: 6_000_000,
+      discount_amount: 1_000_000,
+      vat_rate: 0.08,
+    }).total
+  ).toBe(5_400_000);
+  expect(
+    quoteTotals([{ quantity: 2, unit_price: 3_000_000 }], 0.08, 1_000_000).total
+  ).toBe(5_400_000);
 });
 
 test("storedTotals keeps VAT integral for an odd subtotal", () => {

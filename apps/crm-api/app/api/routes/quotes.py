@@ -21,6 +21,7 @@ from app.api.common import (
     unaccented,
 )
 from app.api.deps import SessionDep, get_current_user
+from app.api.routes.receivables import DiscountDoc, assert_discount_within
 from app.core.rules import advance_stage, assert_project_open, business_today
 from app.models.client import Client
 from app.models.project import Project
@@ -187,10 +188,13 @@ def get_quote(session: SessionDep, quote_id: int) -> Quote:
 def create_quote(session: SessionDep, payload: QuoteCreate) -> Quote:
     assert_project_open(session, payload.project_id)
     rows, total = compute_items(payload.items)
+    discount = int(payload.discount_amount or 0)
+    assert_discount_within(total, discount, DiscountDoc.QUOTE)
     quote = Quote(
         project_id=payload.project_id,
         version=next_version(session, payload.project_id),
         total_amount=total,
+        discount_amount=discount,
         note=payload.note,
         # Blank normalizes to null — the printable falls back to the company
         # representative only when the signer was never set.
@@ -224,10 +228,21 @@ def update_quote(session: SessionDep, quote_id: int, payload: QuoteUpdate) -> Qu
         quote.rep_name = (fields["rep_name"] or "").strip() or None
     if "rep_title" in fields:
         quote.rep_title = (fields["rep_title"] or "").strip() or None
-    if payload.items is not None:
+    computed = compute_items(payload.items) if payload.items is not None else None
+    discount = (
+        int(payload.discount_amount)
+        if payload.discount_amount is not None
+        else quote.discount_amount
+    )
+    # Either side may move: new items can shrink Σ below the stored discount.
+    assert_discount_within(
+        computed[1] if computed else quote.total_amount, discount, DiscountDoc.QUOTE
+    )
+    quote.discount_amount = discount
+    if computed is not None:
         # Replace, don't merge: line items are addressed by position, not id.
         # The delete-orphan cascade removes the rows this drops.
-        rows, total = compute_items(payload.items)
+        rows, total = computed
         quote.total_amount = total
         quote.items = rows
     session.add(quote)
@@ -295,6 +310,7 @@ def revise_quote(session: SessionDep, quote_id: int) -> Quote:
         project_id=quote.project_id,
         version=next_version(session, quote.project_id),
         total_amount=quote.total_amount,
+        discount_amount=quote.discount_amount,
         vat_rate=quote.vat_rate,
         note=quote.note,
         rep_name=quote.rep_name,

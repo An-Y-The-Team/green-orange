@@ -150,3 +150,41 @@ def test_grand_total_rounds_vat_half_up_like_the_screens(client: TestClient):
     )
     assert quote["grand_total"] == 6_600_006
     assert "AS NUMERIC" in Quote.__table__.c.grand_total.computed.sqltext.text
+
+
+def test_discount_comes_off_before_vat(client: TestClient):
+    # 1.500.000 + 4.500.000 = 6.000.000; − 1.000.000 giảm giá; + 8% VAT.
+    quote = make_quote(client, discount_amount=1_000_000)
+    assert quote["discount_amount"] == 1_000_000
+    assert quote["grand_total"] == 5_400_000
+    # A revision carries it forward.
+    revised = client.post(f"/quotes/{quote['id']}/revise").json()
+    assert revised["discount_amount"] == 1_000_000
+
+
+def test_discount_above_the_subtotal_is_rejected(client: TestClient):
+    res = client.post(
+        "/quotes",
+        json={
+            "items": [{"description": "x", "quantity": 1, "unit_price": 100}],
+            "discount_amount": 101,
+        },
+    )
+    assert res.status_code == 400
+    assert "exceeds the báo giá subtotal" in res.json()["detail"]
+
+
+def test_new_items_cannot_shrink_below_the_stored_discount(client: TestClient):
+    quote = make_quote(client, discount_amount=5_000_000)
+    res = client.patch(
+        f"/quotes/{quote['id']}",
+        json={"items": [{"description": "x", "quantity": 1, "unit_price": 100}]},
+    )
+    assert res.status_code == 400
+
+
+def test_a_null_discount_on_patch_keeps_the_stored_one(client: TestClient):
+    quote = make_quote(client, discount_amount=1_000_000)
+    res = client.patch(f"/quotes/{quote['id']}", json={"discount_amount": None})
+    assert res.status_code == 200, res.text
+    assert res.json()["discount_amount"] == 1_000_000

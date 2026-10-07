@@ -159,3 +159,64 @@ describe("withIsLatest", () => {
     });
   });
 });
+
+// Giảm giá trước thuế: never more than Σ items, checked whichever side moves.
+describe("quote discount", () => {
+  const items = [
+    { description: "Sơn nước", quantity: 10, unit_price: 100_000 },
+  ];
+  const prisma = (stored?: any) =>
+    ({
+      quote: {
+        create: async ({ data }: any) => data,
+        findUnique: async () => stored,
+        update: async ({ data }: any) => ({ ...stored, ...data }),
+      },
+      quoteItem: { deleteMany: async () => ({}) },
+      $transaction: async (arg: any) =>
+        typeof arg === "function" ? arg(prisma(stored)) : Promise.all(arg),
+    }) as any;
+
+  test("create stores it", async () => {
+    const q: any = await new QuotesController(prisma()).create({
+      items,
+      discount_amount: 200_000,
+    });
+    expect(q.total_amount).toBe(1_000_000n);
+    expect(q.discount_amount).toBe(200_000n);
+  });
+
+  test("create rejects one above Σ items", () =>
+    expect(
+      new QuotesController(prisma()).create({
+        items,
+        discount_amount: 1_000_001,
+      })
+    ).rejects.toThrow(/exceeds the báo giá subtotal/));
+
+  test("update with a null discount keeps the stored one (Python parity)", async () => {
+    const q: any = await new QuotesController(
+      prisma({
+        id: 1,
+        project_id: null,
+        status: "draft",
+        total_amount: 1_000_000n,
+        discount_amount: 200_000n,
+      })
+    ).update(1, { discount_amount: null } as any);
+    expect(q.discount_amount).toBe(200_000n);
+  });
+
+  test("update rejects new items that shrink Σ below the stored one", () =>
+    expect(
+      new QuotesController(
+        prisma({
+          id: 1,
+          project_id: null,
+          status: "draft",
+          total_amount: 1_000_000n,
+          discount_amount: 900_000n,
+        })
+      ).update(1, { items: [{ ...items[0]!, quantity: 1 }] })
+    ).rejects.toThrow(/exceeds the báo giá subtotal/));
+});

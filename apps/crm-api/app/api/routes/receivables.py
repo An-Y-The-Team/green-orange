@@ -13,6 +13,7 @@ Port of `crm-api-nest/src/receivables/receivables.module.ts`. The rules:
 """
 
 import math
+from enum import StrEnum
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -95,14 +96,24 @@ def compute_items(
     return rows, sum(row.amount for row in rows)
 
 
-def assert_discount_within(total: int, discount: int) -> None:
+class DiscountDoc(StrEnum):
+    """Which document a giảm giá sits on — named in the error crm-web
+    translates. Mirrors `DiscountDoc` in crm-api-nest settlement-money.ts."""
+
+    SETTLEMENT = "quyết toán"
+    QUOTE = "báo giá"
+
+
+def assert_discount_within(
+    total: int, discount: int, doc: DiscountDoc = DiscountDoc.SETTLEMENT
+) -> None:
     """Giảm giá can never exceed what there is to discount. Checked at WRITE
     time so an unsignable row is never stored, and again in `payable_total`,
     which reads the row back on the sign path."""
     if discount > total:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            f"giảm giá ({discount}) exceeds the quyết toán subtotal ({total})",
+            f"giảm giá ({discount}) exceeds the {doc} subtotal ({total})",
         )
 
 
@@ -146,6 +157,35 @@ def overdue_clauses() -> tuple:
         PaymentMilestone.due_date < business_today(),
         PaymentMilestone.status != "paid",
     )
+
+
+def insert_settlement(session: Session, payload: SettlementCreate) -> Settlement:
+    """A draft quyết toán and the draft bill prepared alongside it (doc rule)
+    — flushed, NOT committed, so a settlement can never exist without its bill
+    and the caller's other writes share the transaction. Rejects a giảm giá
+    above Σ items. Twin of crm-api-nest `insertSettlement`."""
+    rows, total = compute_items(payload.items or [])
+    discount = int(payload.discount_amount or 0)
+    assert_discount_within(total, discount)
+    settlement = Settlement(
+        project_id=payload.project_id,
+        note=payload.note,
+        total_amount=total,
+        discount_amount=discount,
+        items=rows,
+    )
+    if payload.vat_rate is not None:
+        settlement.vat_rate = payload.vat_rate
+    session.add(settlement)
+    session.flush()
+    session.add(
+        Bill(
+            project_id=payload.project_id,
+            settlement_id=settlement.id,
+            total_amount=0,  # the bill gets the real total on sign
+        )
+    )
+    return settlement
 
 
 def get_settlement_or_404(session: Session, settlement_id: int) -> Settlement:
@@ -214,29 +254,7 @@ def create_settlement(session: SessionDep, payload: SettlementCreate) -> Settlem
             f"project already has a settlement (QT #{existing.id}) "
             "— a project settles once",
         )
-    rows, total = compute_items(payload.items or [])
-    discount = int(payload.discount_amount or 0)
-    assert_discount_within(total, discount)
-    settlement = Settlement(
-        project_id=payload.project_id,
-        note=payload.note,
-        total_amount=total,
-        discount_amount=discount,
-        items=rows,
-    )
-    if payload.vat_rate is not None:
-        settlement.vat_rate = payload.vat_rate
-    session.add(settlement)
-    # Doc rule: the draft bill is prepared alongside the settlement — one
-    # transaction, so a settlement can never exist without its bill.
-    session.flush()
-    session.add(
-        Bill(
-            project_id=payload.project_id,
-            settlement_id=settlement.id,
-            total_amount=0,  # the bill gets the real total on sign
-        )
-    )
+    settlement = insert_settlement(session, payload)
     # Starting a settlement means the project has reached stage 8 — same
     # commit as the settlement and its bill.
     advance_stage(session, payload.project_id, "settlement")

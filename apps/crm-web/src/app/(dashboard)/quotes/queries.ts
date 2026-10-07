@@ -33,6 +33,7 @@ export function quoteFormSeed(quote: Quote) {
       unit_price: it.unit_price,
     })),
     vatPercent: Math.round(quote.vat_rate * 100),
+    discountAmount: quote.discount_amount ?? 0,
     note: quote.note ?? "",
     repName: quote.rep_name ?? "",
     repTitle: quote.rep_title ?? "",
