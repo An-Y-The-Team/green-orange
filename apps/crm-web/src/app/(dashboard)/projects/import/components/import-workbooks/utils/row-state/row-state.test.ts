@@ -52,7 +52,18 @@ test("each state, in the order a file moves through them", () => {
   expect(
     rowState({
       ...ROW,
-      result: { key: "k", ok: true, project: { id: 1, code: "CT", name: "x" } },
+      result: {
+        key: "k",
+        ok: true,
+        project: {
+          id: 1,
+          code: "CT",
+          name: "x",
+          client_id: 1,
+          location_id: 1,
+          working_contact_id: null,
+        },
+      },
     })
   ).toBe(ImportRowState.IMPORTED);
 });
@@ -65,7 +76,18 @@ test("only ready or refused files import; never one already created", () => {
   expect(
     isImportable({
       ...ROW,
-      result: { key: "k", ok: true, project: { id: 1, code: "CT", name: "x" } },
+      result: {
+        key: "k",
+        ok: true,
+        project: {
+          id: 1,
+          code: "CT",
+          name: "x",
+          client_id: 1,
+          location_id: 1,
+          working_contact_id: null,
+        },
+      },
     })
   ).toBe(false);
   expect(isImportable({ ...ROW, typeIds: [] })).toBe(false);

@@ -345,7 +345,9 @@ export class QuotesController {
     if (dto.rep_title !== undefined)
       data.rep_title = dto.rep_title.trim() || null;
     const computed = dto.items ? computeItems(dto.items) : null;
-    if (dto.discount_amount !== undefined)
+    // `!= null`: @IsOptional lets an explicit null through, and null means
+    // "unchanged" (as in the Python twin) — never a NULL into a NOT NULL column.
+    if (dto.discount_amount != null)
       data.discount_amount = toBig(dto.discount_amount)!;
     // Either side may move: new items can shrink Σ below the stored discount.
     assertDiscountWithin(

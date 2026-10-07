@@ -72,6 +72,14 @@ export type ImportResult =
   | {
       key: string;
       ok: true;
-      project: { id: number; code: string; name: string };
+      project: {
+        id: number;
+        code: string;
+        name: string;
+        // What a later file in the same run may reuse instead of re-creating.
+        client_id: number;
+        location_id: number;
+        working_contact_id: number | null;
+      };
     }
   | { key: string; ok: false; message: string };

@@ -12,6 +12,7 @@ import { apiFetchSafe, toActionError } from "@/utils/http/http";
 
 import { listProjectTypes } from "../../queries";
 import type { Project, ProjectType } from "../../types";
+import { MATCH_BATCH_MAX } from "../schema";
 import type { WorkbookMatch } from "../types";
 import {
   duplicateCodes,
@@ -44,7 +45,8 @@ const requestSchema = z
       }),
     })
   )
-  .min(1);
+  .min(1)
+  .max(MATCH_BATCH_MAX);
 
 export type MatchRequest = z.infer<typeof requestSchema>[number];
 
@@ -67,7 +69,15 @@ export async function matchWorkbooks(
   if (!parsed.success)
     return { success: false, message: INVALID_INPUT_MESSAGE };
 
-  const types = await listProjectTypes();
+  let types: ProjectType[];
+  try {
+    types = await listProjectTypes();
+  } catch (error) {
+    return {
+      success: false,
+      message: toActionError(error, "Không kiểm tra được khách hàng có sẵn."),
+    };
+  }
   const outcomes: MatchOutcome[] = [];
   // A few lookups per file; four files at a time keeps the API unhurried.
   await batchProcess(

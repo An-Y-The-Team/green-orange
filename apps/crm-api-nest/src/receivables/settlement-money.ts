@@ -21,17 +21,17 @@ export const computeItemAmounts = <T extends SettlementItemAmounts>(
   return { amounts, total: amounts.reduce((sum, a) => sum + a, 0n) };
 };
 
-/**
- * Giảm giá can never exceed what there is to discount. Checked at WRITE time
- * (create/update) so an unsignable row is never stored, and again in
- * {@link payableTotal} for the sign path, which reads the row back from the DB.
- */
 /** Which document a giảm giá sits on — named in the error crm-web translates. */
 export enum DiscountDoc {
   SETTLEMENT = "quyết toán",
   QUOTE = "báo giá",
 }
 
+/**
+ * Giảm giá can never exceed what there is to discount. Checked at WRITE time
+ * (create/update) so an unsignable row is never stored, and again in
+ * {@link payableTotal} for the sign path, which reads the row back from the DB.
+ */
 export const assertDiscountWithin = (
   total: bigint,
   discount: bigint,

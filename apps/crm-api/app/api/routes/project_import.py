@@ -110,9 +110,14 @@ def import_project(session: SessionDep, payload: ProjectImport) -> Project:
     # reach a later commit on the same session.
     try:
         client_id = _client(session, payload.client)
-        contact_id = (
-            _contact(session, client_id, payload.contact) if payload.contact else None
+        # A new cá nhân IS their own contact, managing their site — the same
+        # invariant POST /clients keeps (crm-business-flow.md, Client model).
+        contact = payload.contact or (
+            ImportContact(name=payload.client.name)
+            if payload.client.id is None and payload.client.type == "individual"
+            else None
         )
+        contact_id = _contact(session, client_id, contact) if contact else None
         location = _location(session, client_id, contact_id, payload.location)
         # Same defaults as POST /projects: the working contact falls back to the
         # site manager, the decision maker to the working contact.

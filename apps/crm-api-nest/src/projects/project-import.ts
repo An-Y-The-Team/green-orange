@@ -150,8 +150,15 @@ export class ProjectImportController {
 
     return this.prisma.$transaction(async (tx) => {
       const clientId = await this.client(tx, dto.client);
-      const contactId = dto.contact
-        ? await this.contact(tx, clientId, dto.contact)
+      // A new cá nhân IS their own contact, managing their site — the same
+      // invariant POST /clients keeps (crm-business-flow.md, Client model).
+      const contact =
+        dto.contact ??
+        (dto.client.id == null && dto.client.type === "individual"
+          ? { name: dto.client.name }
+          : undefined);
+      const contactId = contact
+        ? await this.contact(tx, clientId, contact)
         : null;
       const location = await this.location(
         tx,

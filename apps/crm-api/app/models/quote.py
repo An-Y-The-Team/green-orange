@@ -32,11 +32,11 @@ class QuoteStatus(StrEnum):
     REJECTED = "rejected"
 
 
-# The closing subset POST /quotes/{id}/decide accepts.
-QUOTE_DECISIONS = (QuoteStatus.DEAL, QuoteStatus.ON_HOLD, QuoteStatus.REJECTED)
 QUOTE_STATUSES = tuple(QuoteStatus)
 
 QuoteChannel = Literal["zalo", "email", "print"]
+# The closing subset POST /quotes/{id}/decide accepts.
+QuoteDecision = Literal["deal", "on_hold", "rejected"]
 
 # Kept in lock-step with Alembic revision 1a2b3c4d5e6f.
 GRAND_TOTAL_SQL = (
@@ -44,7 +44,6 @@ GRAND_TOTAL_SQL = (
     " + round(CAST((total_amount - discount_amount) * vat_rate AS NUMERIC))"
     " AS BIGINT)"
 )
-QuoteDecision = Literal["deal", "on_hold", "rejected"]
 
 
 # ── Tables ──────────────────────────────────────────────────────────────────

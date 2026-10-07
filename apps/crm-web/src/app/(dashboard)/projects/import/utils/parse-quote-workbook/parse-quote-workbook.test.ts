@@ -149,3 +149,48 @@ test("normalizePhone mirrors the Nest helper", () => {
   expect(normalizePhone("0912 345 678")).toBe("0912345678");
   expect(normalizePhone("028 37751727")).toBeNull();
 });
+
+test("a surname that starts like an honorific is kept whole", async () => {
+  const out = await filled({
+    sheet1: { ...COVER, B19: "Đại diện bởi Bạch Văn Long" },
+    sheet2: PRICED,
+  });
+  expect(out.contact?.name).toBe("Bạch Văn Long");
+});
+
+test("a price typed as text with comma grouping is thousands, not decimals", async () => {
+  const out = await filled({
+    sheet1: COVER,
+    sheet2: { ...PRICED, E25: "85,000" },
+  });
+  expect(out.quote.items[1]?.unit_price).toBe(85_000);
+  expect(out.warnings).toEqual([]);
+});
+
+test("terms text below the totals never overrides giảm giá or VAT", async () => {
+  const out = await filled({
+    sheet1: COVER,
+    sheet2: {
+      ...PRICED,
+      B49: "Giảm giá thêm 5% nếu thanh toán sớm",
+      B50: "Thuế VAT 10% áp dụng cho hạng mục phát sinh",
+    },
+  });
+  expect(out.quote.discount_amount).toBe(200_000);
+  expect(out.quote.vat_rate).toBe(0.08);
+});
+
+test("an MST or phone typed as a number gets its leading zero back", async () => {
+  const out = await filled({
+    sheet1: {
+      ...COVER,
+      B22: "Mã số thuế:",
+      C22: 309554620,
+      B23: "Điện thoại:",
+      C23: 912345678,
+    },
+    sheet2: PRICED,
+  });
+  expect(out.client.tax_code).toBe("0309554620");
+  expect(out.contact?.phone).toBe("0912345678");
+});

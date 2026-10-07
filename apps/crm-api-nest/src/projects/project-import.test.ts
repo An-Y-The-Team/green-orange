@@ -139,6 +139,23 @@ describe("POST /projects/import", () => {
     });
   });
 
+  test("a new individual is their own contact, managing their site", async () => {
+    const { prisma, log } = fake();
+    const project: any = await new ProjectImportController(prisma).import({
+      ...BASE,
+      client: { name: "Nguyễn Văn An", type: "individual" },
+      contact: undefined,
+    } as any);
+    expect(ops(log).slice(0, 3)).toEqual([
+      "client.create",
+      "contact.create",
+      "location.create",
+    ]);
+    expect(log[1]![1]).toMatchObject({ client_id: 101, name: "Nguyễn Văn An" });
+    expect(log[2]![1].manager_contact_id).toBe(102);
+    expect(project.working_contact_id).toBe(102);
+  });
+
   test("a site of another client is refused", () =>
     expect(
       new ProjectImportController(

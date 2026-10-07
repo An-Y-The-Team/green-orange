@@ -8,6 +8,7 @@ import {
 } from "@/utils/read-xlsx/read-xlsx";
 
 import { ProjectStage } from "../../../enums";
+import { CoverBlock, PriceColumn } from "../../enums";
 import type { ParsedItem, ParsedMoney, ParsedWorkbook } from "../../types";
 
 /**
@@ -140,7 +141,8 @@ const L = {
   address: /^\s*dia chi\s*:?/,
   partyA: /^\s*ben a\s*:?/,
   partyB: /^\s*ben b\b/,
-  rep: /^\s*dai dien boi\s*(?:ong|ba|anh|chi)?\s*[:.]?/,
+  // The honorific only as a whole word: "Bạch Văn Long" folds to "bach …".
+  rep: /^\s*dai dien boi\s*(?:(?:ong|ba|anh|chi)(?![\p{L}\p{N}]))?\s*[:.]?/u,
   title: /^\s*chuc vu\s*:?/,
   taxCode: /^\s*ma so thue\s*:?/,
   phone: /^\s*dien thoai\s*:?/,
@@ -150,7 +152,7 @@ function readCover(rows: SheetRow[]) {
   // The cover reads top-down in three blocks: the job, then Bên B (the
   // company itself — skipped), then Bên A (the client). "Địa chỉ" appears in
   // all three, so which block a row sits in decides what it means.
-  let block: "job" | "company" | "client" = "job";
+  let block = CoverBlock.JOB;
   const job: Record<string, string> = {};
   const client: Record<string, string> = {};
   const take = (
@@ -162,19 +164,19 @@ function readCover(rows: SheetRow[]) {
   };
 
   for (const row of rows) {
-    if (labelled(row, L.partyB) !== null) block = "company";
+    if (labelled(row, L.partyB) !== null) block = CoverBlock.COMPANY;
     const partyA = labelled(row, L.partyA);
     if (partyA !== null) {
-      block = "client";
+      block = CoverBlock.CLIENT;
       take(client, "name", partyA);
     }
-    if (block === "job") {
+    if (block === CoverBlock.JOB) {
       take(job, "name", labelled(row, L.project));
       take(job, "code_ref", labelled(row, L.codeRef));
       take(job, "work", labelled(row, L.work));
       take(job, "date", labelled(row, L.date));
       take(job, "site_address", labelled(row, L.address));
-    } else if (block === "client") {
+    } else if (block === CoverBlock.CLIENT) {
       take(client, "rep", labelled(row, L.rep));
       take(client, "title", labelled(row, L.title));
       take(client, "address", labelled(row, L.address));
@@ -184,9 +186,12 @@ function readCover(rows: SheetRow[]) {
   }
 
   const name = client.name ?? "";
-  const taxCode = (client.tax_code ?? "").replace(/[^\d-]/g, "");
+  const taxCode = restoreLeadingZero(
+    (client.tax_code ?? "").replace(/[^\d-]/g, ""),
+    [9, 12]
+  );
   const rep = (client.rep ?? "").replace(HONORIFIC, "").trim();
-  const phone = (client.phone ?? "").trim();
+  const phone = restoreLeadingZero((client.phone ?? "").trim(), [9]);
   return {
     project: {
       name: job.name ?? "",
@@ -217,6 +222,17 @@ function readCover(rows: SheetRow[]) {
   };
 }
 
+/**
+ * A number typed into a NUMBER cell loses its leading 0 (MST 0309554620 →
+ * 309554620, phone 0912345678 → 912345678). Both always start with 0 in
+ * Vietnam, so a digits-only value one short of a known length gets it back.
+ */
+function restoreLeadingZero(value: string, shortLengths: number[]) {
+  return /^\d+$/.test(value) && shortLengths.includes(value.length)
+    ? `0${value}`
+    : value;
+}
+
 /** A date typed as a real Excel date arrives as its serial (45853). */
 function excelDate(value: string) {
   if (!/^\d{5}(?:\.\d+)?$/.test(value)) return value;
@@ -241,34 +257,34 @@ export function normalizePhone(raw: string): string | null {
 
 // ── Priced tables ─────────────────────────────────────────────────────────
 
-type Column = "stt" | "desc" | "unit" | "qty" | "price" | "amount";
-type Columns = Partial<Record<Column, (header: string) => boolean>>;
+type Columns = Partial<Record<PriceColumn, (header: string) => boolean>>;
 
 // Matched against the folded header text; per column, the FIRST header cell
 // that matches wins, so specific headers are listed before generic ones.
 const QUOTE_COLUMNS: Columns = {
-  stt: (h) => h === "stt",
-  desc: (h) => h.startsWith("noi dung") || h.startsWith("mo ta"),
-  unit: (h) => h === "dvt",
-  qty: (h) => h.startsWith("khoi luong"),
-  price: (h) => h.startsWith("don gia"),
-  amount: (h) => h.startsWith("thanh tien"),
+  [PriceColumn.STT]: (h) => h === "stt",
+  [PriceColumn.DESC]: (h) => h.startsWith("noi dung") || h.startsWith("mo ta"),
+  [PriceColumn.UNIT]: (h) => h === "dvt",
+  [PriceColumn.QTY]: (h) => h.startsWith("khoi luong"),
+  [PriceColumn.PRICE]: (h) => h.startsWith("don gia"),
+  [PriceColumn.AMOUNT]: (h) => h.startsWith("thanh tien"),
 };
 const ACCEPTANCE_COLUMNS: Columns = {
   ...QUOTE_COLUMNS,
-  qty: (h) => h.startsWith("khoi luong nghiem thu"),
+  [PriceColumn.QTY]: (h) => h.startsWith("khoi luong nghiem thu"),
 };
 const SETTLEMENT_COLUMNS: Columns = {
   ...QUOTE_COLUMNS,
-  qty: (h) => h.startsWith("khoi luong thuc te"),
-  amount: (h) => h.startsWith("thanh tien thuc te"),
+  [PriceColumn.QTY]: (h) => h.startsWith("khoi luong thuc te"),
+  [PriceColumn.AMOUNT]: (h) => h.startsWith("thanh tien thuc te"),
 };
 
 const ROMAN = /^[IVXLC]+\.?$/;
 
 /**
- * "12,5" | "1.000.000" | 1000000 → number; blank → undefined; junk → NaN.
- * A dotted run of thousands is VN grouping, anything else a decimal.
+ * "12,5" | "1.000.000" | "85,000" | 1000000 → number; blank → undefined;
+ * junk → NaN. A run of 3-digit groups behind "." or "," is thousands
+ * grouping (VN and Excel-English styles); anything else is a decimal.
  */
 function toNumber(v: CellValue | undefined): number | undefined {
   if (v === undefined) return undefined;
@@ -277,6 +293,8 @@ function toNumber(v: CellValue | undefined): number | undefined {
   if (!s) return undefined;
   if (/^\d{1,3}(?:\.\d{3})+(?:,\d+)?$/.test(s))
     return Number(s.replace(/\./g, "").replace(",", "."));
+  if (/^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(s))
+    return Number(s.replace(/,/g, ""));
   return /^\d+(?:[.,]\d+)?$/.test(s) ? Number(s.replace(",", ".")) : NaN;
 }
 
@@ -313,23 +331,25 @@ function readMoney(
     if (rows.length) errors.push(`${where}: không thấy dòng tiêu đề "STT".`);
     return result([]);
   }
-  const cols: Partial<Record<Column, string>> = {};
+  const cols: Partial<Record<PriceColumn, string>> = {};
   for (const [col, value] of rows[headerAt]!.cells) {
     const header = fold(text(value)).replace(/\s+/g, " ").trim();
-    const key = (Object.keys(spec) as Column[]).find(
-      (k) => !cols[k] && spec[k]!(header)
+    const key = Object.values(PriceColumn).find(
+      (k) => spec[k] && !cols[k] && spec[k](header)
     );
     if (key) cols[key] = col;
   }
-  const missing = (
-    ["desc", "qty", ...(quantityOnly ? [] : ["price"])] as Column[]
-  ).filter((k) => !cols[k]);
+  const missing = [
+    PriceColumn.DESC,
+    PriceColumn.QTY,
+    ...(quantityOnly ? [] : [PriceColumn.PRICE]),
+  ].filter((k) => !cols[k]);
   if (missing.length) {
     errors.push(`${where}: thiếu cột ${missing.join(", ")} ở dòng tiêu đề.`);
     return result([]);
   }
 
-  const get = (row: SheetRow, key: Column) =>
+  const get = (row: SheetRow, key: PriceColumn) =>
     cols[key] ? row.cells.get(cols[key]!) : undefined;
   // "Tổng cộng trước thuế" (báo giá, quyết toán) / "Tổng % trung bình"
   // (nghiệm thu) — not a bare "Tổng", which a line ("Tổng vệ sinh") may start with.
@@ -343,15 +363,15 @@ function readMoney(
   let at = headerAt + 1;
   for (; at < rows.length && !isTotal(rows[at]!); at++) {
     const row = rows[at]!;
-    const stt = text(get(row, "stt"));
-    const description = filled(text(get(row, "desc")));
+    const stt = text(get(row, PriceColumn.STT));
+    const description = filled(text(get(row, PriceColumn.DESC)));
     if (!description) continue;
     if (ROMAN.test(stt)) {
       category = `${stt.replace(/\.$/, "")}. ${description}`;
       continue;
     }
-    const quantity = toNumber(get(row, "qty"));
-    const unitPrice = quantityOnly ? 0 : toNumber(get(row, "price"));
+    const quantity = toNumber(get(row, PriceColumn.QTY));
+    const unitPrice = quantityOnly ? 0 : toNumber(get(row, PriceColumn.PRICE));
     const line = `${where} dòng ${row.row}`;
     if (Number.isNaN(quantity) || Number.isNaN(unitPrice)) {
       errors.push(`${line}: khối lượng / đơn giá không phải là số.`);
@@ -372,16 +392,20 @@ function readMoney(
     items.push({
       ...(category && { category }),
       description,
-      ...(text(get(row, "unit")) && { unit: text(get(row, "unit")) }),
+      ...(text(get(row, PriceColumn.UNIT)) && {
+        unit: text(get(row, PriceColumn.UNIT)),
+      }),
       quantity,
       unit_price: Math.round(unitPrice),
     });
   }
   if (quantityOnly) return result(items);
 
-  // Totals block. A row's figure is its amount-column value, else its last number.
+  // Totals block, up to "Tổng cộng sau thuế" — the terms below it are free
+  // text ("Giảm giá thêm nếu …") and must not count. First match wins. A
+  // row's figure is its amount-column value, else its last number.
   let vatRate: number | undefined;
-  let discount = 0;
+  let discount: number | undefined;
   let sheetSubtotal: number | undefined;
   for (const row of rows.slice(at)) {
     const label = fold(
@@ -390,13 +414,14 @@ function readMoney(
     const numbers = [...row.cells.values()].filter(
       (v): v is number => typeof v === "number"
     );
-    const amount = toNumber(get(row, "amount"));
+    const amount = toNumber(get(row, PriceColumn.AMOUNT));
     const figure =
       amount !== undefined && !Number.isNaN(amount) ? amount : numbers.at(-1);
-    if (label.startsWith("giam gia")) discount = Math.round(figure ?? 0);
+    if (label.startsWith("tong cong sau thue")) break;
+    if (label.startsWith("giam gia")) discount ??= Math.round(figure ?? 0);
     else if (label.startsWith("thue") && label.includes("vat")) {
       const pct = /(\d+(?:[.,]\d+)?)\s*%/.exec(label)?.[1];
-      if (pct) vatRate = Number(pct.replace(",", ".")) / 100;
+      if (pct) vatRate ??= Number(pct.replace(",", ".")) / 100;
     } else if (
       label.startsWith("tong cong truoc thue") &&
       !label.includes("giam gia") &&
@@ -413,6 +438,7 @@ function readMoney(
     vatRate = 0.08;
     warnings.push(`${where}: không thấy dòng "Thuế VAT …%" — dùng 8%.`);
   }
+  discount ??= 0;
   if (discount < 0) errors.push(`${where}: giảm giá âm.`);
   if (discount > subtotal)
     errors.push(`${where}: giảm giá lớn hơn tổng trước thuế.`);

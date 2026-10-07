@@ -358,7 +358,6 @@ export const PLACEHOLDERS = {
  */
 export const APP_NAME = "Quản lý công trình & nhân sự Ý Ân" as const;
 
-// File categories — headings on the Giấy tờ tab and default list titles.
 /**
  * "Nhập từ báo giá" — one dropped workbook's standing. Tones keep their one
  * meaning: blue = done, purple = happening now, amber = waits on the operator,
@@ -380,6 +379,7 @@ export const IMPORT_ROW_STATES: Record<ImportRowState, Label> = {
   [ImportRowState.FAILED]: { label: "Chưa tạo được", variant: "destructive" },
 };
 
+// File categories — headings on the Giấy tờ tab and default list titles.
 export const ATTACHMENT_KINDS: Record<AttachmentKind, string> = {
   [AttachmentKind.SURVEY]: "Ảnh khảo sát",
   [AttachmentKind.SIGNED_QUOTE]: "Báo giá đã xác nhận",

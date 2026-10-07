@@ -18,7 +18,14 @@ import {
   type MatchRequest,
   matchWorkbooks,
 } from "../../actions/match-workbooks";
+import { MATCH_BATCH_MAX } from "../../schema";
+import type { ImportResult } from "../../types";
 import { buildImportPayload } from "../../utils/build-import-payload/build-import-payload";
+import {
+  type CreatedRefs,
+  createdRefs,
+  reuseCreated,
+} from "../../utils/reuse-created/reuse-created";
 import { WorkbookCard } from "./components/workbook-card/workbook-card";
 import type { ImportRow } from "./types";
 import { readWorkbookFile } from "./utils/read-workbook-file/read-workbook-file";
@@ -46,6 +53,46 @@ const lookupFields = ({ key, clientId, workbook }: MatchRequest) => ({
   },
 });
 
+/** POST one file; any failure — even the action itself throwing — is its result. */
+async function importOne({
+  row,
+  workbook,
+  match,
+}: {
+  row: ImportRow;
+  workbook: NonNullable<ImportRow["workbook"]>;
+  match: NonNullable<ImportRow["match"]>;
+}): Promise<ImportResult> {
+  try {
+    const res = await importProjects([
+      {
+        key: row.key,
+        body: buildImportPayload({
+          fileName: row.file.name,
+          workbook,
+          match,
+          stage: row.stage,
+          typeIds: row.typeIds,
+        }),
+      },
+    ]);
+    return (
+      res?.data?.[0] ?? {
+        key: row.key,
+        ok: false,
+        message: res?.message ?? "Không thể tạo công trình.",
+      }
+    );
+  } catch {
+    return {
+      key: row.key,
+      ok: false,
+      message:
+        "Mất kết nối khi tạo — kiểm tra danh sách công trình trước khi thử lại.",
+    };
+  }
+}
+
 /**
  * "Nhập từ báo giá": pick the operator's filled workbooks → each is parsed in
  * the browser and matched to existing clients/sites/contacts → one button
@@ -65,11 +112,25 @@ export function ImportWorkbooks({
       prev.map((r) => (r.key === key ? { ...r, ...patch } : r))
     );
 
-  // Server lookup for these rows; the outcome lands on each row. A row whose
-  // types the operator already picked keeps them.
+  // Server lookup for these rows (in chunks the action accepts); the outcome
+  // lands on each row. A row whose types the operator already picked keeps
+  // them. A lookup that throws marks its rows as failed — never stuck on
+  // "Đang kiểm tra", and never silently "new client".
   const runMatch = async (requests: MatchRequest[]) => {
-    if (!requests.length) return;
-    const res = await matchWorkbooks(requests.map(lookupFields));
+    const chunks = Array.from(
+      { length: Math.ceil(requests.length / MATCH_BATCH_MAX) },
+      (_, i) => requests.slice(i * MATCH_BATCH_MAX, (i + 1) * MATCH_BATCH_MAX)
+    );
+    await batchProcess(chunks, (chunk) => matchChunk(chunk), 1);
+  };
+
+  const matchChunk = async (requests: MatchRequest[]) => {
+    let res: Awaited<ReturnType<typeof matchWorkbooks>> | undefined;
+    try {
+      res = await matchWorkbooks(requests.map(lookupFields));
+    } catch {
+      res = undefined;
+    }
     const outcomes = res?.data ?? [];
     setRows((prev) =>
       prev.map((row) => {
@@ -102,8 +163,14 @@ export function ImportWorkbooks({
     event.target.value = "";
     if (!files.length) return;
     startTransition(async () => {
-      const added = await Promise.all(
-        files.map((file) => readWorkbookFile({ file }))
+      // Two at a time: each unzip + parse runs on this tab's main thread.
+      const added: ImportRow[] = [];
+      await batchProcess(
+        files,
+        async (file, index) => {
+          added[index] = await readWorkbookFile({ file });
+        },
+        2
       );
       setRows((prev) => [...prev, ...added]);
       await runMatch(
@@ -138,58 +205,38 @@ export function ImportWorkbooks({
 
   const ready = rows.filter(isImportable);
 
-  // Create every ready file, then file each original workbook on its new
-  // project. Rows already created are never sent again.
+  // One file at a time (each is ONE transaction server-side): a file for a
+  // client / site / contact an earlier file of this run just created reuses
+  // it, the original workbook is filed on its project, and every file gets
+  // its own result. Rows already created are never sent again.
   const handleImport = () => {
-    const batch = ready.flatMap((row) =>
-      row.workbook && row.match
-        ? [
-            {
-              row,
-              key: row.key,
-              body: buildImportPayload({
-                fileName: row.file.name,
-                workbook: row.workbook,
-                match: row.match,
-                stage: row.stage,
-                typeIds: row.typeIds,
-              }),
-            },
-          ]
-        : []
-    );
-    if (!batch.length) return;
+    const queue = ready;
+    if (!queue.length) return;
 
     startTransition(async () => {
-      const res = await importProjects(
-        batch.map(({ key, body }) => ({ key, body }))
-      );
-      const results = res?.data ?? [];
-      if (!results.length) {
-        toast.error(ACTION_TOAST_TITLES.errorToastTitle, {
-          description: res?.message ?? "Không thể tạo công trình.",
-        });
-        return;
-      }
-      setRows((prev) =>
-        prev.map((row) => {
-          const result = results.find((r) => r.key === row.key);
-          return result ? { ...row, result } : row;
-        })
-      );
-
-      // ponytail: the original file is filed AFTER its project committed, so a
-      // bucket outage leaves a project without its workbook (said on the card,
-      // re-attachable from the project page) — never a lost project.
-      const created = results.flatMap((result) => {
-        const row = batch.find((b) => b.key === result.key)?.row;
-        return result.ok && row ? [{ row, projectId: result.project.id }] : [];
-      });
+      const created: CreatedRefs[] = [];
+      const failed: MatchRequest[] = [];
       await batchProcess(
-        created,
-        async ({ row, projectId }) => {
+        queue,
+        async (row) => {
+          if (!row.workbook || !row.match) return;
+          const workbook = row.workbook;
+          const match = reuseCreated({ match: row.match, workbook, created });
+          const result = await importOne({ row, workbook, match });
+          patchRow(row.key, { match, result });
+          if (!result.ok) {
+            failed.push({ key: row.key, workbook });
+            return;
+          }
+          created.push(
+            createdRefs({ match, workbook, project: result.project })
+          );
+
+          // ponytail: the original file is filed AFTER its project committed,
+          // so a bucket outage leaves a project without its workbook (said on
+          // the card, re-attachable from the project page) — never a lost one.
           const uploaded = await uploadAttachment({
-            owner: { project_id: projectId },
+            owner: { project_id: result.project.id },
             kind: AttachmentKind.OTHER,
             file: row.file,
             note: "File báo giá gốc",
@@ -197,15 +244,21 @@ export function ImportWorkbooks({
           if (!uploaded.ok)
             patchRow(row.key, { attachError: uploaded.message });
         },
-        2
+        1
       );
 
-      const notify = res?.success ? toast.success : toast.error;
+      // A refused file may still have been written (a timeout after the server
+      // committed). Look it up again, so a retry shows the duplicate warning
+      // instead of quietly making a second công trình.
+      if (failed.length) await runMatch(failed);
+
+      const done = queue.length - failed.length;
+      const notify = done ? toast.success : toast.error;
       notify(
-        res?.success
+        done
           ? ACTION_TOAST_TITLES.successToastTitle
           : ACTION_TOAST_TITLES.errorToastTitle,
-        { description: res?.message }
+        { description: `Đã tạo ${done}/${queue.length} công trình.` }
       );
     });
   };

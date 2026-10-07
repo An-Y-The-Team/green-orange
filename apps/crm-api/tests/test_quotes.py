@@ -181,3 +181,10 @@ def test_new_items_cannot_shrink_below_the_stored_discount(client: TestClient):
         json={"items": [{"description": "x", "quantity": 1, "unit_price": 100}]},
     )
     assert res.status_code == 400
+
+
+def test_a_null_discount_on_patch_keeps_the_stored_one(client: TestClient):
+    quote = make_quote(client, discount_amount=1_000_000)
+    res = client.patch(f"/quotes/{quote['id']}", json={"discount_amount": None})
+    assert res.status_code == 200, res.text
+    assert res.json()["discount_amount"] == 1_000_000

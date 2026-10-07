@@ -43,7 +43,14 @@ export async function importProjects(
         results[index] = {
           key,
           ok: true,
-          project: { id: project.id, code: project.code, name: project.name },
+          project: {
+            id: project.id,
+            code: project.code,
+            name: project.name,
+            client_id: project.client_id,
+            location_id: project.location_id,
+            working_contact_id: project.working_contact_id,
+          },
         };
       } catch (error) {
         results[index] = {
@@ -59,7 +66,11 @@ export async function importProjects(
     1
   );
 
+  // An import writes clients, quotes and (when settled) a quyết toán + bill.
   revalidatePath("/projects");
+  revalidatePath("/clients");
+  revalidatePath("/quotes");
+  revalidatePath("/receivables");
   const created = results.filter((r) => r.ok).length;
   return {
     success: created > 0,

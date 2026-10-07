@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import {
   COVER,
@@ -19,12 +20,13 @@ import {
  *
  * Re-dropping the first file then warns about the duplicate.
  */
-test("two workbooks → two công trình, existing client reused", async ({
+test("workbooks → công trình: existing client reused, a new one created once", async ({
   page,
 }, testInfo) => {
   const stamp = Date.now();
   const existing = testInfo.outputPath(`bg-an-phat-${stamp}.xlsx`);
   const settled = testInfo.outputPath(`bg-moi-${stamp}.xlsx`);
+  const sameNewClient = testInfo.outputPath(`bg-moi-2-${stamp}.xlsx`);
   await writeFile(
     existing,
     await fillTemplate({
@@ -53,19 +55,36 @@ test("two workbooks → two công trình, existing client reused", async ({
     })
   );
 
+  // A second job for the SAME brand-new client, dropped in the same batch:
+  // it must reuse the client the first file creates, not make its twin.
+  await writeFile(
+    sameNewClient,
+    await fillTemplate({
+      sheet1: {
+        ...COVER,
+        B4: `Công trình: E2E Khách mới lần 2 ${stamp}`,
+        C18: `CÔNG TY E2E ${stamp}`,
+        B22: `Mã số thuế: ${String(stamp).slice(-10)}`,
+      },
+      sheet2: PRICED,
+    })
+  );
+
   await page.goto("/projects");
   // A Button rendered as a Link keeps role="button".
   await page.getByRole("button", { name: "Nhập từ báo giá" }).click();
   await expect(page).toHaveURL(/\/projects\/import$/);
 
-  await page.locator("#quote-workbooks").setInputFiles([existing, settled]);
+  await page
+    .locator("#quote-workbooks")
+    .setInputFiles([existing, settled, sameNewClient]);
 
-  const anPhat = page.locator('[data-slot="card"]', {
-    hasText: `E2E An Phát ${stamp}`,
-  });
-  const moi = page.locator('[data-slot="card"]', {
-    hasText: `E2E Khách mới ${stamp}`,
-  });
+  // Keyed by file name: once a site is reused, a project name shows on
+  // more than one card ("Có sẵn: …").
+  const card = (file: string) =>
+    page.locator('[data-slot="card"]', { hasText: path.basename(file) });
+  const anPhat = card(existing);
+  const moi = card(settled);
   await expect(anPhat.getByText("Khách có sẵn")).toBeVisible();
   await expect(anPhat.getByText("Có sẵn: Toà nhà A — Q.1")).toBeVisible();
   await expect(
@@ -76,7 +95,7 @@ test("two workbooks → two công trình, existing client reused", async ({
   await expect(anPhat.getByText("Sẵn sàng")).toBeVisible();
   await expect(moi.getByText("Sẵn sàng")).toBeVisible();
 
-  await page.getByRole("button", { name: "Tạo 2 công trình" }).click();
+  await page.getByRole("button", { name: "Tạo 3 công trình" }).click();
 
   const created = moi.getByRole("link", {
     name: /CT-\d{4}-\d+ · E2E Khách mới/,
@@ -85,6 +104,14 @@ test("two workbooks → two công trình, existing client reused", async ({
   await expect(
     anPhat.getByRole("link", { name: /CT-\d{4}-\d+ · E2E An Phát/ })
   ).toBeVisible();
+
+  const moi2 = card(sameNewClient);
+  await expect(
+    moi2.getByRole("link", { name: /CT-\d{4}-\d+ · E2E Khách mới lần 2/ })
+  ).toBeVisible();
+  // Imported against the client the earlier file created, same site too.
+  await expect(moi2.getByText("Khách có sẵn")).toBeVisible();
+  await expect(moi2.getByText("Có sẵn: E2E Khách mới")).toBeVisible();
 
   // Same file again: the client now has a công trình of that name.
   await page.locator("#quote-workbooks").setInputFiles(existing);
@@ -97,4 +124,10 @@ test("two workbooks → two công trình, existing client reused", async ({
   await expect(
     page.getByRole("heading", { name: `E2E Khách mới ${stamp}` })
   ).toBeVisible();
+
+  // Two files, one new customer → exactly one client row.
+  await page.goto(`/clients?search=${encodeURIComponent(`E2E ${stamp}`)}`);
+  await expect(
+    page.getByRole("cell", { name: `CÔNG TY E2E ${stamp}` })
+  ).toHaveCount(1);
 });

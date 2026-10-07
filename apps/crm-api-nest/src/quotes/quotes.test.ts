@@ -194,6 +194,19 @@ describe("quote discount", () => {
       })
     ).rejects.toThrow(/exceeds the báo giá subtotal/));
 
+  test("update with a null discount keeps the stored one (Python parity)", async () => {
+    const q: any = await new QuotesController(
+      prisma({
+        id: 1,
+        project_id: null,
+        status: "draft",
+        total_amount: 1_000_000n,
+        discount_amount: 200_000n,
+      })
+    ).update(1, { discount_amount: null } as any);
+    expect(q.discount_amount).toBe(200_000n);
+  });
+
   test("update rejects new items that shrink Σ below the stored one", () =>
     expect(
       new QuotesController(

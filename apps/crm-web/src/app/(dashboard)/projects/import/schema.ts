@@ -62,6 +62,13 @@ export const importProjectSchema = z.object({
 
 export type ImportProjectBody = z.infer<typeof importProjectSchema>;
 
+/** Files per lookup call — the page chunks a bigger drop. */
+export const MATCH_BATCH_MAX = 25;
+
+/** The page sends one file per call; the cap keeps any caller bounded. */
+export const IMPORT_BATCH_MAX = 20;
+
 export const importRequestSchema = z
   .array(z.object({ key: z.string().min(1), body: importProjectSchema }))
-  .min(1);
+  .min(1)
+  .max(IMPORT_BATCH_MAX);

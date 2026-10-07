@@ -180,3 +180,24 @@ def test_bad_bodies_are_422(client: TestClient, fixtures: dict):
         json=body(fixtures, settlement={"items": QUOTE["items"], "vat_rate": 0.08}),
     )
     assert res.status_code == 400
+
+
+def test_a_new_individual_is_their_own_contact(
+    client: TestClient, session: Session, fixtures: dict
+):
+    res = client.post(
+        "/projects/import",
+        json=body(
+            fixtures,
+            client={"name": "Nguyễn Văn An", "type": "individual"},
+            contact=None,
+        ),
+    )
+    assert res.status_code == 201, res.text
+    project = res.json()
+    contact = session.get(Contact, project["working_contact_id"])
+    assert contact.name == "Nguyễn Văn An"
+    assert contact.client_id == project["client_id"]
+    assert (
+        session.get(Location, project["location_id"]).manager_contact_id == contact.id
+    )

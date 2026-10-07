@@ -10,3 +10,20 @@ export enum ImportRowState {
   IMPORTED = "imported",
   FAILED = "failed", // the server refused it — the message says why
 }
+
+/** The three blocks the Bia sheet reads in, top-down. */
+export enum CoverBlock {
+  JOB = "job", // Công trình, Mã số CT, Công việc, Ngày, Địa chỉ
+  COMPANY = "company", // Bên B — the company itself, skipped
+  CLIENT = "client", // Bên A
+}
+
+/** The columns a priced table is read by, found by their header text. */
+export enum PriceColumn {
+  STT = "stt",
+  DESC = "desc",
+  UNIT = "unit",
+  QTY = "qty",
+  PRICE = "price",
+  AMOUNT = "amount",
+}
