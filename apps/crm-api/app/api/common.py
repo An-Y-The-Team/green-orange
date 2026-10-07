@@ -169,4 +169,9 @@ def counts_by_id(rows: Iterable[tuple[int, int]], ids: Iterable[int]) -> dict[in
     Rows whose id is not in `ids` are ignored, so one grouped query can be
     reused across pages without being re-filtered first.
     """
-    raise NotImplementedError("student exercise: docs/tasks/03-…")
+    requested = set(ids)
+    counts = dict.fromkeys(requested, 0)
+    for row_id, count in rows:
+        if row_id in requested:
+            counts[row_id] = count
+    return counts

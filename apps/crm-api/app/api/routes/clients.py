@@ -11,7 +11,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, or_
 from sqlmodel import Session, select
 
-from app.api.common import PageDep, csv_filter, ilike, order_by, paged, unaccented
+from app.api.common import (
+    PageDep,
+    counts_by_id,
+    csv_filter,
+    ilike,
+    order_by,
+    paged,
+    unaccented,
+)
 from app.api.deps import SessionDep, get_current_user
 from app.models.client import (
     CLIENT_TYPES,
@@ -115,25 +123,35 @@ def list_clients(
         ),
         page,
     )
+    client_ids = [row.id for row in rows]
+    if not client_ids:
+        return []
+    location_counts = counts_by_id(
+        session.exec(
+            select(Location.client_id, func.count())
+            .where(Location.client_id.in_(client_ids))
+            .group_by(Location.client_id)
+        ).all(),
+        client_ids,
+    )
+    project_counts = counts_by_id(
+        session.exec(
+            select(Project.client_id, func.count())
+            .where(Project.client_id.in_(client_ids))
+            .group_by(Project.client_id)
+        ).all(),
+        client_ids,
+    )
     return [
         ClientListItem(
             **row.model_dump(),
             counts=ClientCounts(
-                locations=_count_by_client(session, Location, row.id),
-                projects=_count_by_client(session, Project, row.id),
+                locations=location_counts[row.id],
+                projects=project_counts[row.id],
             ),
         )
         for row in rows
     ]
-
-
-def _count_by_client(session: Session, model: type, client_id: int) -> int:
-    # ponytail: one COUNT per row per relation — a page of 100 clients is 200
-    # cheap indexed counts. Swap in two grouped counts over the page's ids if a
-    # list read ever shows up in a profile.
-    return session.exec(
-        select(func.count()).select_from(model).where(model.client_id == client_id)
-    ).one()
 
 
 @router.get("/{client_id}", response_model=ClientDetail)
