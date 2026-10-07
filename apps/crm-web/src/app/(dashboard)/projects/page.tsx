@@ -15,9 +15,15 @@ export default function ProjectsPage() {
       <PageHeader
         title={FIELDS.project}
         action={
-          <Button render={<Link href="/projects/new?stage=choose" />}>
-            + Thêm công trình
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {/* Outline: green is the one primary action on the page. */}
+            <Button variant="outline" render={<Link href="/projects/import" />}>
+              Nhập từ báo giá
+            </Button>
+            <Button render={<Link href="/projects/new?stage=choose" />}>
+              + Thêm công trình
+            </Button>
+          </div>
         }
       />
       {/* The list owns its filters/sort/page in the URL (usePageParams →

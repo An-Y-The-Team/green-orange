@@ -45,3 +45,33 @@ export interface ParsedWorkbook {
   /** Worth a look, never blocking. */
   warnings: string[];
 }
+
+/** An existing row the workbook matched, as the preview names it. */
+export interface MatchedRef {
+  id: number;
+  name: string;
+}
+
+/**
+ * What matching found for one workbook. `null` = no existing row → the import
+ * creates it from the workbook's fields.
+ */
+export interface WorkbookMatch {
+  client: MatchedRef | null;
+  location: MatchedRef | null;
+  contact: MatchedRef | null;
+  type_ids: number[];
+  /** "Công việc" names with no project type of that name. */
+  unmatched_types: string[];
+  /** CT codes of this client's projects with the same name. */
+  duplicates: string[];
+}
+
+/** The outcome of POST /projects/import for one workbook. */
+export type ImportResult =
+  | {
+      key: string;
+      ok: true;
+      project: { id: number; code: string; name: string };
+    }
+  | { key: string; ok: false; message: string };

@@ -1,4 +1,3 @@
-import JSZip from "jszip";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "vitest";
 
@@ -7,72 +6,17 @@ import { readXlsx } from "@/utils/read-xlsx/read-xlsx";
 
 import { ProjectStage } from "../../../enums";
 import { normalizePhone, parseQuoteWorkbook } from "./parse-quote-workbook";
+import {
+  COVER,
+  PRICED,
+  SETTLED,
+  type Sheets,
+  TEMPLATE,
+  fillTemplate,
+} from "./test-fixtures";
 
-// The real, unfilled template operators work from — the parser must read it
-// as is, never a copy made for the CRM.
-const TEMPLATE = new URL(
-  "../../../../../../../../../01. MẪU FILE HỒ SƠ/Mẫu Báo giá - Nghiem thu - Quyet toan - DNTT.xlsx",
-  import.meta.url
-);
-
-type Cells = Record<string, string | number>;
-
-/**
- * The template with some cells typed over, as an operator would. Sheet files:
- * sheet1 = Bia, sheet2 = Bang bao gia, sheet3 = nghiệm thu, sheet4 = quyết toán.
- * A typed cell replaces the formula there too, like overtyping in Excel.
- */
-async function filled(sheets: Record<string, Cells>) {
-  const zip = await JSZip.loadAsync(await readFile(TEMPLATE));
-  for (const [sheet, cells] of Object.entries(sheets)) {
-    const path = `xl/worksheets/${sheet}.xml`;
-    let xml = await zip.file(path)!.async("string");
-    for (const [ref, value] of Object.entries(cells)) {
-      const cell =
-        typeof value === "number"
-          ? `<c r="${ref}"><v>${value}</v></c>`
-          : `<c r="${ref}" t="inlineStr"><is><t>${value}</t></is></c>`;
-      const existing = new RegExp(`<c r="${ref}"[^>]*?(?:/>|>.*?</c>)`, "s");
-      if (existing.test(xml)) xml = xml.replace(existing, cell);
-      else {
-        const row = ref.replace(/\D/g, "");
-        const open = new RegExp(`(<row r="${row}"[^>]*>.*?)(</row>)`, "s");
-        expect(open.test(xml), `row ${row} in ${sheet}`).toBe(true);
-        xml = xml.replace(open, `$1${cell}$2`);
-      }
-    }
-    zip.file(path, xml);
-  }
-  return parseQuoteWorkbook(
-    await readXlsx(await zip.generateAsync({ type: "uint8array" }))
-  );
-}
-
-const COVER: Cells = {
-  B4: "Công trình: Bread Talk",
-  B5: "Mã số CT: 2026/07/15-BreadTalk",
-  B6: "Công việc: Tháo dỡ/ Vệ sinh",
-  B7: "Ngày: 15/07/2026",
-  B8: "Địa chỉ: B3-15A, TTTM Vincom Center, 72 Lê Thánh Tôn",
-  C18: "CÔNG TY CỔ PHẦN BÌNH MINH TOÀN CẦU",
-  B19: "Đại diện bởi Bà: Trần Khánh Vân",
-  B20: "Chức vụ: Phó Tổng Giám Đốc",
-  B21: "Địa chỉ: 121 đường 10 Tây, Phường Tân Hưng",
-  B22: "Mã số thuế:  0309554620",
-  B23: "Điện thoại: +84 912 345 678",
-};
-
-// Two priced lines in two sections, the rest left as the template has them.
-const PRICED: Cells = {
-  D22: 1,
-  E22: 2_000_000,
-  F22: 2_000_000, // I. 1.1 Bảo hiểm công trình
-  D25: 120,
-  E25: 85_000,
-  F25: 10_200_000, // II. 2.1 Tháo trần thạch cao
-  F42: 12_200_000,
-  F43: 200_000,
-};
+const filled = async (sheets: Sheets) =>
+  parseQuoteWorkbook(await readXlsx(await fillTemplate(sheets)));
 
 test("the unfilled template names every field it is missing", async () => {
   const out = parseQuoteWorkbook(await readXlsx(await readFile(TEMPLATE)));
@@ -146,8 +90,7 @@ test("nghiệm thu quantities → acceptance; quyết toán thực tế → sett
     sheet1: COVER,
     sheet2: PRICED,
     sheet3: { E25: 1 },
-    // quyết toán: Đơn giá D, Khối lượng thực tế G; 1.2 Đóng hoarding row 27.
-    sheet4: { D27: 150_000, G27: 40, H27: 6_000_000, H46: 6_000_000 },
+    sheet4: SETTLED,
   });
   expect(settled.errors).toEqual([]);
   expect(settled.stage).toBe(ProjectStage.SETTLEMENT);
