@@ -462,6 +462,50 @@ server-side — `crm-api-nest/src/common/stage.ts` (`paperworkReady`,
 `fullyPaid`, `advanceIfPaperworkReady`, `closeIfFullyPaid`) and its twin
 `crm-api/app/core/rules.py`.
 
+## Nhập từ báo giá — Công trình mới từ Bảng Báo Giá (2026-10-07)
+
+`/projects` → **Nhập từ báo giá** (`/projects/import`). The operator drops one or
+more of the Excel workbooks they already fill in — the template in
+`01. MẪU FILE HỒ SƠ/Mẫu Báo giá - Nghiem thu - Quyet toan - DNTT.xlsx`, read **as
+is**, no CRM-specific copy — and each becomes a công trình. When everything
+matches, it is pick files → **Tạo N công trình**.
+
+**Read in the browser, by printed label — never by cell address** (operators add
+and delete rows): `projects/import/utils/parse-quote-workbook`.
+
+- `Bia` (the only input sheet), top-down in three blocks — the job (`Công trình`,
+  `Mã số CT`, `Công việc`, `Ngày`, `Địa chỉ`), Bên B (the company, skipped), Bên A
+  (name, `Đại diện bởi`, `Chức vụ`, `Địa chỉ`, `Mã số thuế`, `Điện thoại`). A
+  value is the rest of the label's cell or the cell right next to it; the
+  template's placeholders (`XYZ`, `ABC`, dotted runs) count as empty.
+- `Bang bao gia` → quote v1: header row `STT`, Roman-numeral rows become the
+  hạng mục (`category`), lines need both khối lượng and đơn giá (neither = a
+  template leftover, skipped; one = an error), then `Giảm giá trước thuế` and
+  `Thuế VAT x%` (rate from the label). The file's own `Tổng cộng trước thuế` is
+  only cross-checked — the template's SUBTOTAL covers a fixed range, so a
+  mismatch is a warning, never silently "fixed".
+- **Stage** = how far the paperwork goes: any `Khối lượng thực tế` on the quyết
+  toán sheet → Quyết toán (its lines become a draft quyết toán + draft bill);
+  else any `Khối lượng nghiệm thu` → Nghiệm thu; else Báo giá. The operator may
+  change it (Báo giá … Quyết toán). At Báo giá the quote is `waiting`; past it,
+  `deal`.
+
+**Matched, never guessed** (`actions/match-workbooks.ts`, read-only): the client
+by **MST** first, else by exact name (a same-name client with a different MST is
+another company); then, inside that client only, the site by address and the
+contact by phone or name; loại công trình by name. Unmatched → created from the
+file. A failed lookup blocks the file rather than defaulting to "new client".
+A same-name công trình for the client is flagged (re-dropped file).
+
+**Written in one transaction per file** — `POST /projects/import` (both backends):
+client, contact, site, project (+ CT code + paperwork checklist), quote, and the
+quyết toán + bill when settled. A refused file leaves nothing behind and never
+blocks the others. The original workbook is then filed on the project as an
+attachment (`other`, "File báo giá gốc"); if storage refuses it the project
+stays and the card says so. `Mã số CT` and `Ngày` ride on the intake note.
+
+Out of scope (v1): contracts (.docx), PDFs/scans, the đề nghị thanh toán sheet.
+
 ## Changelog
 
 - 2026-07-23 — doc created; captured current (wrong) state machines as the
@@ -509,3 +553,6 @@ server-side — `crm-api-nest/src/common/stage.ts` (`paperworkReady`,
   (chốt → 3, hồ sơ + cọc → 5, nghiệm thu đạt → 7, fully paid → 8; closing
   marks the bill paid). Paperwork items gain `needed_for` (execution |
   acceptance | settlement) so later-stage documents don't block Thi công.
+- 2026-10-07 — **Nhập từ báo giá**: operator workbooks → công trình (parse in
+  the browser by label, match client by MST/name, one-transaction
+  `POST /projects/import`); Quote gains `discount_amount` (giảm giá trước thuế).
