@@ -32,7 +32,6 @@ import {
 import type { Response } from "express";
 
 import { businessDayRange, businessToday } from "../common/business-date";
-import { nextCode } from "../common/code";
 import { toDate } from "../common/coerce";
 import {
   CsvIn,
@@ -44,8 +43,9 @@ import {
 import { type PageQuery, pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { STAGE_ORDER, shouldAdvance } from "../common/stage";
-import { DEFAULT_PAPERWORK } from "../paperwork/paperwork.module";
 import { PrismaService } from "../prisma/prisma.service";
+import { insertProject } from "./insert-project";
+import { ProjectImportController } from "./project-import";
 
 // Enum-like values — English snake_case, from prisma/schema.prisma comments.
 const STAGE = STAGE_ORDER;
@@ -106,6 +106,7 @@ class ProjectTypesController {
 }
 
 // ── Projects ────────────────────────────────────────────────────────────────
+
 // Stage-2 measurement rows, stored as Json (scratch input for quote prefill).
 class SurveyItemDto {
   @IsString() @MinLength(1) name: string;
@@ -385,31 +386,21 @@ export class ProjectsController {
     // workspace header is where one gets attached later.
     const working =
       dto.working_contact_id ?? location.manager_contact_id ?? null;
-    const code = await nextCode(this.prisma.project, "CT");
-    // Same transaction: auto-seed the stage-5 default paperwork checklist.
-    return this.prisma.$transaction(async (tx) => {
-      const project = await tx.project.create({
-        data: {
-          code,
-          name: dto.name,
-          client_id: dto.client_id,
-          location_id: dto.location_id,
-          working_contact_id: working,
-          decision_maker_contact_id: dto.decision_maker_contact_id ?? working,
-          stage: dto.stage ?? "request",
-          appointment_at: toDate(dto.appointment_at),
-          request_note: dto.request_note,
-          referral_source: dto.referral_source,
-          survey_items: dto.survey_items?.map((i) => ({ ...i })),
-          types: { connect: dto.type_ids.map((id) => ({ id })) },
-        },
-        include: { client: true, location: true, types: true },
-      });
-      await tx.paperworkItem.createMany({
-        data: DEFAULT_PAPERWORK.map((d) => ({ project_id: project.id, ...d })),
-      });
-      return project;
-    });
+    return this.prisma.$transaction((tx) =>
+      insertProject(tx, {
+        name: dto.name,
+        client_id: dto.client_id,
+        location_id: dto.location_id,
+        working_contact_id: working,
+        decision_maker_contact_id: dto.decision_maker_contact_id ?? working,
+        stage: dto.stage,
+        appointment_at: toDate(dto.appointment_at),
+        request_note: dto.request_note,
+        referral_source: dto.referral_source,
+        survey_items: dto.survey_items?.map((i) => ({ ...i })),
+        type_ids: dto.type_ids,
+      })
+    );
   }
 
   @Patch(":id")
@@ -583,6 +574,7 @@ class ProjectNotesController {
 
 @Module({
   controllers: [
+    ProjectImportController,
     ProjectTypesController,
     ProjectsController,
     ProjectNotesController,

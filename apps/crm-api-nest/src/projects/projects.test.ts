@@ -23,18 +23,17 @@ describe("project create — contacts must belong to the client", () => {
       contact: {
         findUnique: async () => ({ id: 42, client_id: contactClientId }),
       },
-      project: {
-        // nextCode reads the codes already issued for this prefix+year, not
-        // max(id). Echoing the prefix it asked for keeps this fixture correct
-        // in January without a clock: three issued → the next is -004.
-        findMany: async ({ where }: any) =>
-          [1, 2, 3].map((n) => ({
-            code: `${where.code.startsWith}${String(n).padStart(3, "0")}`,
-          })),
-      },
       $transaction: async (fn: any) =>
         fn({
           project: {
+            // nextCode reads the codes already issued for this prefix+year,
+            // not max(id), inside the create's transaction. Echoing the prefix
+            // it asked for keeps this fixture correct in January without a
+            // clock: three issued → the next is -004.
+            findMany: async ({ where }: any) =>
+              [1, 2, 3].map((n) => ({
+                code: `${where.code.startsWith}${String(n).padStart(3, "0")}`,
+              })),
             create: async ({ data }: any) => {
               created.push(data);
               return { id: 4, ...data };

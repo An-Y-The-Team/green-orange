@@ -108,6 +108,27 @@ def resolve_types(session: Session, type_ids: list[int]) -> list[ProjectType]:
     return list(rows)
 
 
+def insert_project(session: Session, *, type_ids: list[int], **fields) -> Project:
+    """The project row, its CT code and the default paperwork checklist —
+    flushed, NOT committed, so the caller's other writes share the transaction.
+    Ids are trusted: POST /projects and POST /projects/import check ownership
+    first. Twin of crm-api-nest `projects/insert-project.ts`."""
+    project = Project(
+        code=next_code(session, Project, "CT"),
+        types=resolve_types(session, type_ids),
+        **fields,
+    )
+    session.add(project)
+    # The auto-seeded stage-5 checklist goes in the SAME transaction as the
+    # project, so no công trình can exist without it.
+    session.flush()
+    for name, needed_for in DEFAULT_PAPERWORK.items():
+        session.add(
+            PaperworkItem(project_id=project.id, name=name, needed_for=needed_for)
+        )
+    return project
+
+
 # ── Project types (user-managed tags) ───────────────────────────────────────
 @types_router.get("", response_model=list[ProjectTypePublic])
 def list_project_types(session: SessionDep) -> list[ProjectType]:
@@ -310,9 +331,9 @@ def create_project(session: SessionDep, payload: ProjectCreate) -> Project:
     # call, and the intake form's quick-create block lets it through. The
     # workspace header is where one gets attached later.
     working = payload.working_contact_id or location.manager_contact_id
-    types = resolve_types(session, payload.type_ids)
-    project = Project(
-        code=next_code(session, Project, "CT"),
+    project = insert_project(
+        session,
+        type_ids=payload.type_ids,
         name=payload.name,
         client_id=payload.client_id,
         location_id=payload.location_id,
@@ -327,16 +348,7 @@ def create_project(session: SessionDep, payload: ProjectCreate) -> Project:
             if payload.survey_items is not None
             else None
         ),
-        types=types,
     )
-    session.add(project)
-    # flush(), not commit(): the auto-seeded stage-5 checklist goes in the SAME
-    # transaction as the project, so no công trình can exist without it.
-    session.flush()
-    for name, needed_for in DEFAULT_PAPERWORK.items():
-        session.add(
-            PaperworkItem(project_id=project.id, name=name, needed_for=needed_for)
-        )
     session.commit()
     session.refresh(project)
     return project

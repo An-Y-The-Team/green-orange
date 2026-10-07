@@ -6,6 +6,7 @@ Bargaining is versioned: a sent version is frozen and a revision is a new row
 """
 
 from datetime import date, datetime
+from enum import StrEnum
 from typing import TYPE_CHECKING, Literal, Optional
 
 from sqlalchemy import BigInteger, Column, Computed, DateTime, UniqueConstraint
@@ -18,10 +19,22 @@ if TYPE_CHECKING:  # avoids a circular import; SQLAlchemy resolves it by name
     from app.models.project import Project
 
 QUOTE_SEND_CHANNELS = ("zalo", "email", "print")
-# The closing subset POST /quotes/{id}/decide accepts…
-QUOTE_DECISIONS = ("deal", "on_hold", "rejected")
-# …and the full lifecycle, which is what `?status=` filters on.
-QUOTE_STATUSES = ("draft", "waiting", *QUOTE_DECISIONS)
+
+
+class QuoteStatus(StrEnum):
+    """The full lifecycle — what `?status=` filters on. Mirrors `QuoteStatus`
+    in crm-api-nest quotes.module.ts."""
+
+    DRAFT = "draft"
+    WAITING = "waiting"
+    DEAL = "deal"
+    ON_HOLD = "on_hold"
+    REJECTED = "rejected"
+
+
+# The closing subset POST /quotes/{id}/decide accepts.
+QUOTE_DECISIONS = (QuoteStatus.DEAL, QuoteStatus.ON_HOLD, QuoteStatus.REJECTED)
+QUOTE_STATUSES = tuple(QuoteStatus)
 
 QuoteChannel = Literal["zalo", "email", "print"]
 

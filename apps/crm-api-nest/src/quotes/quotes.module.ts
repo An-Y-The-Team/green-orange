@@ -49,10 +49,17 @@ import {
 } from "../receivables/settlement-money";
 
 const CHANNEL = ["zalo", "email", "print"];
-const DECISION = ["deal", "on_hold", "rejected"];
-// Full lifecycle values (schema.prisma Quote.status) — DECISION is only the
-// closing subset the decide endpoint accepts.
-const QUOTE_STATUS = ["draft", "waiting", ...DECISION];
+// Full lifecycle values (schema.prisma Quote.status).
+export enum QuoteStatus {
+  DRAFT = "draft",
+  WAITING = "waiting",
+  DEAL = "deal",
+  ON_HOLD = "on_hold",
+  REJECTED = "rejected",
+}
+// The closing subset the decide endpoint accepts.
+const DECISION = [QuoteStatus.DEAL, QuoteStatus.ON_HOLD, QuoteStatus.REJECTED];
+const QUOTE_STATUS = Object.values(QuoteStatus);
 
 // F23: `client` and `project_code` used to be denormalized onto Quote; both were
 // dropped, so consumers need the relation to print anything but `#12`. Same shape
@@ -83,7 +90,7 @@ const LIST_INCLUDE = {
 };
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
-class QuoteItemDto {
+export class QuoteItemDto {
   // Free-text section header ("A. PHẦN VẬT TƯ"); consecutive items sharing one
   // are printed under it. Omit for an ungrouped quote.
   @IsOptional() @IsString() category?: string;
@@ -178,7 +185,7 @@ export async function withIsLatest<T extends VersionedRow>(
 }
 
 // amount = round(quantity × unit_price) per item; total = Σ amounts.
-const computeItems = (items: QuoteItemDto[]) => {
+export const computeItems = (items: QuoteItemDto[]) => {
   const rows = items.map((it, i) => ({
     category: it.category?.trim() || null,
     description: it.description,

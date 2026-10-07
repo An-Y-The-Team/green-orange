@@ -23,6 +23,7 @@ from app.api.routes import (
     contracts,
     crew,
     paperwork,
+    project_import,
     projects,
     quotes,
     receivables,
@@ -94,6 +95,7 @@ app.include_router(clients.contacts_router)
 app.include_router(clients.locations_router)
 app.include_router(projects.types_router)
 app.include_router(projects.router)
+app.include_router(project_import.router)
 app.include_router(projects.notes_router)
 app.include_router(attachments.router)
 app.include_router(quotes.router)

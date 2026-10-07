@@ -159,6 +159,35 @@ def overdue_clauses() -> tuple:
     )
 
 
+def insert_settlement(session: Session, payload: SettlementCreate) -> Settlement:
+    """A draft quyết toán and the draft bill prepared alongside it (doc rule)
+    — flushed, NOT committed, so a settlement can never exist without its bill
+    and the caller's other writes share the transaction. Rejects a giảm giá
+    above Σ items. Twin of crm-api-nest `insertSettlement`."""
+    rows, total = compute_items(payload.items or [])
+    discount = int(payload.discount_amount or 0)
+    assert_discount_within(total, discount)
+    settlement = Settlement(
+        project_id=payload.project_id,
+        note=payload.note,
+        total_amount=total,
+        discount_amount=discount,
+        items=rows,
+    )
+    if payload.vat_rate is not None:
+        settlement.vat_rate = payload.vat_rate
+    session.add(settlement)
+    session.flush()
+    session.add(
+        Bill(
+            project_id=payload.project_id,
+            settlement_id=settlement.id,
+            total_amount=0,  # the bill gets the real total on sign
+        )
+    )
+    return settlement
+
+
 def get_settlement_or_404(session: Session, settlement_id: int) -> Settlement:
     row = session.get(Settlement, settlement_id)
     if not row:
@@ -225,29 +254,7 @@ def create_settlement(session: SessionDep, payload: SettlementCreate) -> Settlem
             f"project already has a settlement (QT #{existing.id}) "
             "— a project settles once",
         )
-    rows, total = compute_items(payload.items or [])
-    discount = int(payload.discount_amount or 0)
-    assert_discount_within(total, discount)
-    settlement = Settlement(
-        project_id=payload.project_id,
-        note=payload.note,
-        total_amount=total,
-        discount_amount=discount,
-        items=rows,
-    )
-    if payload.vat_rate is not None:
-        settlement.vat_rate = payload.vat_rate
-    session.add(settlement)
-    # Doc rule: the draft bill is prepared alongside the settlement — one
-    # transaction, so a settlement can never exist without its bill.
-    session.flush()
-    session.add(
-        Bill(
-            project_id=payload.project_id,
-            settlement_id=settlement.id,
-            total_amount=0,  # the bill gets the real total on sign
-        )
-    )
+    settlement = insert_settlement(session, payload)
     # Starting a settlement means the project has reached stage 8 — same
     # commit as the settlement and its bill.
     advance_stage(session, payload.project_id, "settlement")
