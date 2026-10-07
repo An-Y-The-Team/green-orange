@@ -3,7 +3,12 @@
 // client only sends description/unit/quantity/unit_price + a VAT fraction.
 import { z } from "zod";
 
+import { quoteTotals } from "@/utils/quote-totals/quote-totals";
+
 import { QUOTE_DECISIONS, QuoteChannel } from "./enums";
+
+// Giảm giá trước thuế, whole đồng; never above Σ items (server: assertDiscountWithin).
+const discountAmount = z.number().int().min(0);
 
 const quoteItemSchema = z.object({
   // Section header shared by consecutive rows ("A. PHẦN VẬT TƯ"); optional, an
@@ -23,6 +28,7 @@ export const createQuoteSchema = z.object({
   project_id: z.number().int().positive().optional(),
   items: z.array(quoteItemSchema).min(1, "Cần ít nhất một dòng"),
   vat_rate: z.number().min(0).max(1),
+  discount_amount: discountAmount.optional(),
   note: z.string().optional(),
   // Per-quote signer; unset = the company representative signs the printable.
   rep_name: z.string().optional(),
@@ -35,6 +41,7 @@ export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
 export const updateQuoteSchema = z.object({
   items: z.array(quoteItemSchema).min(1).optional(),
   vat_rate: z.number().min(0).max(1).optional(),
+  discount_amount: discountAmount.optional(),
   note: z.string().optional(),
   rep_name: z.string().optional(),
   rep_title: z.string().optional(),
@@ -56,13 +63,26 @@ export const decideQuoteSchema = z.object({
 
 // Builder form values — VAT held as a percent (0..100) for the input; converted
 // to a fraction on submit. Totals shown client-side, recomputed server-side.
-export const quoteFormSchema = z.object({
-  items: z.array(quoteItemSchema).min(1, "Cần ít nhất một dòng"),
-  vat_percent: z.number().min(0).max(100),
-  note: z.string().optional(),
-  // Signer is mandatory (prefilled with the company representative); the title
-  // is optional and prints only when given.
-  rep_name: z.string().trim().min(1, "Nhập người ký"),
-  rep_title: z.string().optional(),
-});
+export const quoteFormSchema = z
+  .object({
+    items: z.array(quoteItemSchema).min(1, "Cần ít nhất một dòng"),
+    vat_percent: z.number().min(0).max(100),
+    discount_amount: discountAmount,
+    note: z.string().optional(),
+    // Signer is mandatory (prefilled with the company representative); the title
+    // is optional and prints only when given.
+    rep_name: z.string().trim().min(1, "Nhập người ký"),
+    rep_title: z.string().optional(),
+  })
+  .superRefine((val, ctx) => {
+    // Mirrors the server's write-time guard so the operator sees it on the
+    // field, not as a 400 toast. Same per-line rounding as the server.
+    if (val.discount_amount > quoteTotals(val.items, 0).subtotal) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["discount_amount"],
+        message: "Giảm giá không được vượt quá tổng trước thuế.",
+      });
+    }
+  });
 export type QuoteFormValues = z.infer<typeof quoteFormSchema>;

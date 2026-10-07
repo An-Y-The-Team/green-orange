@@ -308,7 +308,11 @@ export class ProjectsController {
       }),
       this.prisma.quote.findMany({
         where: { status: "deal", project: { status: "active" } },
-        select: { total_amount: true, project: { select: { stage: true } } },
+        select: {
+          total_amount: true,
+          discount_amount: true,
+          project: { select: { stage: true } },
+        },
       }),
     ]);
 
@@ -316,7 +320,9 @@ export class ProjectsController {
     for (const quote of dealQuotes) {
       const stage = quote.project?.stage;
       if (!stage) continue;
-      dealTotals.set(stage, (dealTotals.get(stage) ?? 0n) + quote.total_amount);
+      // Pre-tax deal value, net of giảm giá.
+      const net = quote.total_amount - quote.discount_amount;
+      dealTotals.set(stage, (dealTotals.get(stage) ?? 0n) + net);
     }
 
     // Every stage present and in pipeline order, so the dashboard renders eight

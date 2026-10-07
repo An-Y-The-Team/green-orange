@@ -29,8 +29,9 @@ export interface Quote {
   version: number;
   status: QuoteStatus;
   total_amount: number; // VND, before VAT (Σ item amounts)
+  discount_amount: number; // VND, giảm giá trước thuế — comes off before VAT
   vat_rate: number; // e.g. 0.08
-  grand_total: number; // VND, after VAT — DB-generated; sort key for the list
+  grand_total: number; // VND, (Σ − giảm giá) + VAT — DB-generated; sort key for the list
   decided_date?: string | null; // YYYY-MM-DD
   note?: string | null; // terms block on the printable
   rep_name?: string | null; // signer on the printable; null = company representative

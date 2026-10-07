@@ -76,6 +76,7 @@ export interface QuoteBuilderInitial {
     unit_price: number;
   }[];
   vatPercent: number;
+  discountAmount: number; // giảm giá trước thuế, VND
   /** Lexical editorState JSON; legacy plain text is migrated on open. */
   note: string;
   /**
@@ -148,6 +149,7 @@ export function QuoteBuilderForm({
         quote: {
           total_amount: quoteTotals(initial.items, initial.vatPercent / 100)
             .subtotal,
+          discount_amount: initial.discountAmount,
           vat_rate: initial.vatPercent / 100,
           project: initial.project,
         },
@@ -162,6 +164,7 @@ export function QuoteBuilderForm({
     defaultValues: {
       items: initial.items.length ? initial.items : [BLANK_ROW],
       vat_percent: initial.vatPercent,
+      discount_amount: initial.discountAmount,
       note: noteSeed,
       // Mandatory signer, prefilled with the company representative; swap the
       // name when someone else signs. Title stays blank unless typed.
@@ -197,13 +200,15 @@ export function QuoteBuilderForm({
   // Live totals — server recomputes on save and is authoritative.
   const watchedItems = useWatch({ control, name: "items" });
   const watchedVat = useWatch({ control, name: "vat_percent" });
+  const watchedDiscount = useWatch({ control, name: "discount_amount" });
   const rows = (watchedItems ?? []).map((it) => ({
     quantity: Number(it?.quantity) || 0,
     unit_price: Number(it?.unit_price) || 0,
   }));
-  const { subtotal, vat, total } = quoteTotals(
+  const { subtotal, discount, vat, total } = quoteTotals(
     rows,
-    (Number(watchedVat) || 0) / 100
+    (Number(watchedVat) || 0) / 100,
+    Number(watchedDiscount) || 0
   );
 
   // Chips inserted from the palette read the figures as they stand now; the
@@ -211,6 +216,7 @@ export function QuoteBuilderForm({
   const noteCtx = buildQuoteContext({
     quote: {
       total_amount: subtotal,
+      discount_amount: discount,
       vat_rate: (Number(watchedVat) || 0) / 100,
       project: initial.project,
     },
@@ -236,6 +242,7 @@ export function QuoteBuilderForm({
         unit_price: it.unit_price,
       })),
       vat_rate: values.vat_percent / 100,
+      discount_amount: values.discount_amount,
       // Baked chip text round-trips through storage, so strip it back to bare
       // tokens or a stale total freezes onto the paper. An emptied editor sends
       // "" (never undefined) so deleting the terms persists on PATCH, the same
@@ -467,20 +474,40 @@ export function QuoteBuilderForm({
 
               <Separator />
 
-              {/* VAT + live totals */}
+              {/* Giảm giá + VAT + live totals — the Excel sheet's block */}
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="vat_percent">VAT</Label>
-                  <Input
-                    id="vat_percent"
-                    type="number"
-                    min={0}
-                    max={100}
-                    step="any"
-                    className="w-20"
-                    {...register("vat_percent", { valueAsNumber: true })}
-                  />
-                  <span className="text-sm text-muted-foreground">%</span>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="discount_amount">Giảm giá trước thuế</Label>
+                    <Controller
+                      control={control}
+                      name="discount_amount"
+                      render={({ field }) => (
+                        <MoneyInput
+                          id="discount_amount"
+                          className="w-36"
+                          value={field.value}
+                          // Empty box = no discount, so the live total never NaNs.
+                          onChange={(v) => field.onChange(v ?? 0)}
+                          onBlur={field.onBlur}
+                        />
+                      )}
+                    />
+                  </div>
+                  {fieldError(formState.errors.discount_amount)}
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="vat_percent">VAT</Label>
+                    <Input
+                      id="vat_percent"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="any"
+                      className="w-20"
+                      {...register("vat_percent", { valueAsNumber: true })}
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
                 </div>
                 <dl className="ml-auto w-56 space-y-1 text-sm">
                   <div className="flex justify-between">
@@ -489,6 +516,12 @@ export function QuoteBuilderForm({
                     </dt>
                     <dd className="tabular-nums">{formatVND(subtotal)}</dd>
                   </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Giảm giá</dt>
+                      <dd className="tabular-nums">−{formatVND(discount)}</dd>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">VAT</dt>
                     <dd className="tabular-nums">{formatVND(vat)}</dd>

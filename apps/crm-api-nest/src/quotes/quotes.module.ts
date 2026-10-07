@@ -43,6 +43,10 @@ import { pageArgs, withTotalCount } from "../common/pagination";
 import { assertProjectOpen } from "../common/project-lock";
 import { advanceStage } from "../common/stage";
 import { PrismaService } from "../prisma/prisma.service";
+import {
+  DiscountDoc,
+  assertDiscountWithin,
+} from "../receivables/settlement-money";
 
 const CHANNEL = ["zalo", "email", "print"];
 const DECISION = ["deal", "on_hold", "rejected"];
@@ -99,6 +103,8 @@ class CreateQuoteDto {
   @Type(() => QuoteItemDto)
   items: QuoteItemDto[];
   @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
+  // Giảm giá trước thuế, VND; never more than Σ items.
+  @IsOptional() @IsNumber() @Min(0) discount_amount?: number;
   @IsOptional() @IsString() note?: string;
   // Per-quote signer; unset = the company representative signs.
   @IsOptional() @IsString() rep_name?: string;
@@ -113,6 +119,8 @@ class UpdateQuoteDto {
   @Type(() => QuoteItemDto)
   items?: QuoteItemDto[];
   @IsOptional() @IsNumber() @Min(0) @Max(1) vat_rate?: number;
+  // Giảm giá trước thuế, VND; never more than Σ items.
+  @IsOptional() @IsNumber() @Min(0) discount_amount?: number;
   @IsOptional() @IsString() note?: string;
   @IsOptional() @IsString() rep_name?: string;
   @IsOptional() @IsString() rep_title?: string;
@@ -287,6 +295,8 @@ export class QuotesController {
   async create(@Body() dto: CreateQuoteDto) {
     await assertProjectOpen(this.prisma, dto.project_id);
     const { rows, total } = computeItems(dto.items);
+    const discount = toBig(dto.discount_amount ?? 0)!;
+    assertDiscountWithin(total, discount, DiscountDoc.QUOTE);
     const version = await this.nextVersion(dto.project_id);
     // The quote and the stage move it triggers commit together.
     return this.prisma.$transaction(async (tx) => {
@@ -295,6 +305,7 @@ export class QuotesController {
           project_id: dto.project_id ?? null,
           version,
           total_amount: total,
+          discount_amount: discount,
           ...(dto.vat_rate !== undefined && { vat_rate: dto.vat_rate }),
           note: dto.note,
           // Blank normalizes to null — the printable falls back to the company
@@ -326,8 +337,17 @@ export class QuotesController {
     if (dto.rep_name !== undefined) data.rep_name = dto.rep_name.trim() || null;
     if (dto.rep_title !== undefined)
       data.rep_title = dto.rep_title.trim() || null;
-    if (dto.items) {
-      const { rows, total } = computeItems(dto.items);
+    const computed = dto.items ? computeItems(dto.items) : null;
+    if (dto.discount_amount !== undefined)
+      data.discount_amount = toBig(dto.discount_amount)!;
+    // Either side may move: new items can shrink Σ below the stored discount.
+    assertDiscountWithin(
+      computed?.total ?? quote.total_amount,
+      (data.discount_amount as bigint | undefined) ?? quote.discount_amount,
+      DiscountDoc.QUOTE
+    );
+    if (dto.items && computed) {
+      const { rows, total } = computed;
       data.total_amount = total;
       const [, updated] = await this.prisma.$transaction([
         this.prisma.quoteItem.deleteMany({ where: { quote_id: id } }),
@@ -405,6 +425,7 @@ export class QuotesController {
           project_id: quote.project_id,
           version,
           total_amount: quote.total_amount,
+          discount_amount: quote.discount_amount,
           vat_rate: quote.vat_rate,
           note: quote.note,
           rep_name: quote.rep_name,

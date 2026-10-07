@@ -113,7 +113,11 @@ export async function exportDocx({
 
   // The auto báo giá table → a docx Table + totals + amount-in-words.
   const lineItemsBlocks = (data: LineItemsData) => {
-    const { subtotal, vat, total } = quoteTotals(data.items, data.vatRate);
+    const { subtotal, discount, vat, total } = quoteTotals(
+      data.items,
+      data.vatRate,
+      data.discount
+    );
     const header = new TableRow({
       tableHeader: true,
       children: [
@@ -146,7 +150,7 @@ export async function exportDocx({
       new Paragraph({
         children: [
           new TextRun({
-            text: `Tổng cộng trước thuế: ${formatVND(subtotal)} · Thuế VAT (${Math.round(data.vatRate * 100)}%): ${formatVND(vat)} · Tổng cộng sau thuế: ${formatVND(total)}`,
+            text: `Tổng cộng trước thuế: ${formatVND(subtotal)}${discount > 0 ? ` · Giảm giá trước thuế: −${formatVND(discount)}` : ""} · Thuế VAT (${Math.round(data.vatRate * 100)}%): ${formatVND(vat)} · Tổng cộng sau thuế: ${formatVND(total)}`,
           }),
         ],
       }),

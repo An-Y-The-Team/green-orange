@@ -40,7 +40,7 @@ export function QuoteDocument({
       : null;
   // Saved quote → the server's stored Σ, so the lines below sum to it and the
   // printable agrees with the /quotes list.
-  const { subtotal, vat, total } = storedTotals(quote);
+  const { subtotal, discount, vat, total } = storedTotals(quote);
 
   return (
     <DocumentShell
@@ -164,6 +164,12 @@ export function QuoteDocument({
             <span className="text-zinc-500">{DOCUMENT_TEXT.subtotal}</span>
             <span>{formatVND(subtotal)}</span>
           </div>
+          {discount > 0 ? (
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Giảm giá trước thuế</span>
+              <span>−{formatVND(discount)}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between">
             <span className="text-zinc-500">
               VAT ({Math.round(quote.vat_rate * 100)}%)

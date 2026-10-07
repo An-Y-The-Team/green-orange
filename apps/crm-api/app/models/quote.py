@@ -24,6 +24,13 @@ QUOTE_DECISIONS = ("deal", "on_hold", "rejected")
 QUOTE_STATUSES = ("draft", "waiting", *QUOTE_DECISIONS)
 
 QuoteChannel = Literal["zalo", "email", "print"]
+
+# Kept in lock-step with Alembic revision 1a2b3c4d5e6f.
+GRAND_TOTAL_SQL = (
+    "CAST((total_amount - discount_amount)"
+    " + round(CAST((total_amount - discount_amount) * vat_rate AS NUMERIC))"
+    " AS BIGINT)"
+)
 QuoteDecision = Literal["deal", "on_hold", "rejected"]
 
 
@@ -41,11 +48,14 @@ class Quote(SQLModel, table=True):
     # the live status.
     status: str = Field(default="draft", index=True)
     total_amount: int = Field(sa_type=BigInteger)  # VND
+    # Giảm giá trước thuế — same convention as Settlement.discount_amount.
+    discount_amount: int = Field(default=0, sa_type=BigInteger)  # VND
     vat_rate: float = 0.08
-    # Σ items + VAT — the figure every screen prints — as a STORED generated
-    # column so GET /quotes?sort_by=grand_total pages by what the user sees.
-    # Mirrors crm-api-nest migration 20260912000000_quote_grand_total and the
-    # Alembic revision e5f3c2d41b76 (create_all only serves the SQLite tests).
+    # (Σ items − giảm giá) + VAT — the figure every screen prints — as a STORED
+    # generated column so GET /quotes?sort_by=grand_total pages by what the user
+    # sees. Mirrors crm-api-nest migrations 20260912000000_quote_grand_total and
+    # 20261007000000_quote_discount, and the Alembic revisions e5f3c2d41b76 and
+    # 1a2b3c4d5e6f (create_all only serves the SQLite tests).
     # Ties round half up like `Math.round` in crm-web: Postgres round() on double
     # precision goes to even, so the product is rounded as NUMERIC. SQLite's
     # round() is already half away from zero.
@@ -54,8 +64,7 @@ class Quote(SQLModel, table=True):
         sa_column=Column(
             BigInteger,
             Computed(
-                "CAST(total_amount + round(CAST(total_amount * vat_rate AS NUMERIC))"
-                " AS BIGINT)",
+                GRAND_TOTAL_SQL,
                 persisted=True,
             ),
             nullable=False,
@@ -120,6 +129,8 @@ class QuoteCreate(SQLModel):
     project_id: int | None = None
     items: list[QuoteItemIn] = Field(min_length=1)
     vat_rate: float | None = Field(default=None, ge=0, le=1)
+    # Giảm giá trước thuế, VND; never more than Σ items.
+    discount_amount: float | None = Field(default=None, ge=0)
     note: str | None = None
     rep_name: str | None = None
     rep_title: str | None = None
@@ -128,6 +139,7 @@ class QuoteCreate(SQLModel):
 class QuoteUpdate(SQLModel):
     items: list[QuoteItemIn] | None = Field(default=None, min_length=1)
     vat_rate: float | None = Field(default=None, ge=0, le=1)
+    discount_amount: float | None = Field(default=None, ge=0)
     note: str | None = None
     rep_name: str | None = None
     rep_title: str | None = None
@@ -179,6 +191,7 @@ class QuoteBasic(SQLModel):
     version: int
     status: str
     total_amount: int
+    discount_amount: int
     grand_total: int
     vat_rate: float
     decided_date: date | None

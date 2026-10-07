@@ -169,7 +169,11 @@ describe("project list — filters, search, sort", () => {
 describe("GET /projects/summary (pipeline rollup)", () => {
   const fake = ({
     counts = [] as { stage: string; count: number }[],
-    dealQuotes = [] as { stage: string | null; total: bigint }[],
+    dealQuotes = [] as {
+      stage: string | null;
+      total: bigint;
+      discount?: bigint;
+    }[],
   }) => {
     const wheres: any[] = [];
     return {
@@ -189,6 +193,7 @@ describe("GET /projects/summary (pipeline rollup)", () => {
             wheres.push(["quote.findMany", where]);
             return dealQuotes.map((q) => ({
               total_amount: q.total,
+              discount_amount: q.discount ?? 0n,
               project: q.stage === null ? null : { stage: q.stage },
             }));
           },
@@ -214,6 +219,8 @@ describe("GET /projects/summary (pipeline rollup)", () => {
         { stage: "quote", total: 10_000_000n },
         { stage: "quote", total: 26_000_000n },
         { stage: "contract", total: 5_000_000n },
+        // giảm giá comes off the deal value
+        { stage: "contract", total: 3_000_000n, discount: 1_000_000n },
       ],
     });
     const out = await new ProjectsController(prisma).summary();
@@ -223,7 +230,7 @@ describe("GET /projects/summary (pipeline rollup)", () => {
       count: 3,
       deal_total: 36_000_000,
     });
-    expect(byStage.contract!.deal_total).toBe(5_000_000);
+    expect(byStage.contract!.deal_total).toBe(7_000_000);
     // A stage with projects but no chốt quote is 0, not undefined.
     expect(byStage.closed).toEqual({
       stage: "closed",

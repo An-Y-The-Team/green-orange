@@ -54,6 +54,7 @@ export default async function QuoteBuilderPage({
                 }))
               : [],
           vatPercent: 8,
+          discountAmount: 0,
           note: "",
           repName: "",
           repTitle: "",

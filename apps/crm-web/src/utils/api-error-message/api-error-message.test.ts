@@ -67,6 +67,13 @@ test("keeps interpolated values from a templated message", () => {
       backendMessage: "giảm giá (900) exceeds the quyết toán subtotal (500)",
     })
   ).toContain("(900)");
+
+  expect(
+    apiErrorMessage({
+      status: 400,
+      backendMessage: "giảm giá (900) exceeds the báo giá subtotal (500)",
+    })
+  ).toContain("giá trị báo giá (500)");
 });
 
 // A specific entry must win over the broader ones declared after it.

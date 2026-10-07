@@ -253,7 +253,10 @@ export function buildContractContext({
   project,
 }: {
   contract: Contract;
-  quote?: Pick<Quote, "total_amount" | "vat_rate"> | null;
+  quote?:
+    | (Pick<Quote, "total_amount" | "vat_rate"> &
+        Partial<Pick<Quote, "discount_amount">>)
+    | null;
   company?: CompanyInfo;
   project?: ContractProject | null;
 }): MergeContext {
@@ -286,7 +289,8 @@ export function buildContractContext({
     ...companyContext(company),
     // Tài chính
     value: money ? formatVND(money.total) : "",
-    value_before_tax: money ? formatVND(money.subtotal) : "",
+    // Net of giảm giá: the base the VAT is charged on.
+    value_before_tax: money ? formatVND(money.net) : "",
     vat_rate: `${Math.round(vatRate * 100)}%`,
     vat_amount: money ? formatVND(money.vat) : "",
     value_in_words: money ? vndInWords(money.total) : "",
@@ -310,13 +314,14 @@ export function buildQuoteContext({
    * Not necessarily a Quote row — the fields this reads, so the builder form
    * can pass live totals and whatever project it has in hand.
    */
-  quote: Pick<Quote, "total_amount" | "vat_rate"> & {
-    project?: {
-      code: string;
-      name: string;
-      client?: { name: string };
-    } | null;
-  };
+  quote: Pick<Quote, "total_amount" | "vat_rate"> &
+    Partial<Pick<Quote, "discount_amount">> & {
+      project?: {
+        code: string;
+        name: string;
+        client?: { name: string };
+      } | null;
+    };
   company?: CompanyInfo;
 }): MergeContext {
   const money = storedTotals(quote);
@@ -327,7 +332,7 @@ export function buildQuoteContext({
     client: quote.project?.client?.name ?? "",
     ...companyContext(company),
     value: formatVND(money.total),
-    value_before_tax: formatVND(money.subtotal),
+    value_before_tax: formatVND(money.net),
     vat_rate: `${Math.round(quote.vat_rate * 100)}%`,
     vat_amount: formatVND(money.vat),
     value_in_words: vndInWords(money.total),

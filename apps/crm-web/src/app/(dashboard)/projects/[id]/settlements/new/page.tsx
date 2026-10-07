@@ -48,7 +48,8 @@ export default async function NewSettlementPage({
     projectId: project.id,
     projectCode: project.code,
     items,
-    discountAmount: 0,
+    // The giảm giá the client was quoted carries into the quyết toán.
+    discountAmount: dealQuote?.discount_amount ?? 0,
     // Settle at the rate the job was priced at — a quyết toán that drops the
     // quote's VAT bills less than the hợp đồng says.
     vatPercent: Math.round((dealQuote?.vat_rate ?? DEFAULT_VAT_RATE) * 100),

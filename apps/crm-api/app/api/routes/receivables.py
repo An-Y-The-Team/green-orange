@@ -13,6 +13,7 @@ Port of `crm-api-nest/src/receivables/receivables.module.ts`. The rules:
 """
 
 import math
+from enum import StrEnum
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -95,14 +96,24 @@ def compute_items(
     return rows, sum(row.amount for row in rows)
 
 
-def assert_discount_within(total: int, discount: int) -> None:
+class DiscountDoc(StrEnum):
+    """Which document a giảm giá sits on — named in the error crm-web
+    translates. Mirrors `DiscountDoc` in crm-api-nest settlement-money.ts."""
+
+    SETTLEMENT = "quyết toán"
+    QUOTE = "báo giá"
+
+
+def assert_discount_within(
+    total: int, discount: int, doc: DiscountDoc = DiscountDoc.SETTLEMENT
+) -> None:
     """Giảm giá can never exceed what there is to discount. Checked at WRITE
     time so an unsignable row is never stored, and again in `payable_total`,
     which reads the row back on the sign path."""
     if discount > total:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            f"giảm giá ({discount}) exceeds the quyết toán subtotal ({total})",
+            f"giảm giá ({discount}) exceeds the {doc} subtotal ({total})",
         )
 
 

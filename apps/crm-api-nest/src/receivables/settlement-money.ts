@@ -26,10 +26,20 @@ export const computeItemAmounts = <T extends SettlementItemAmounts>(
  * (create/update) so an unsignable row is never stored, and again in
  * {@link payableTotal} for the sign path, which reads the row back from the DB.
  */
-export const assertDiscountWithin = (total: bigint, discount: bigint): void => {
+/** Which document a giảm giá sits on — named in the error crm-web translates. */
+export enum DiscountDoc {
+  SETTLEMENT = "quyết toán",
+  QUOTE = "báo giá",
+}
+
+export const assertDiscountWithin = (
+  total: bigint,
+  discount: bigint,
+  doc: DiscountDoc = DiscountDoc.SETTLEMENT
+): void => {
   if (discount > total)
     throw new BadRequestException(
-      `giảm giá (${discount}) exceeds the quyết toán subtotal (${total})`
+      `giảm giá (${discount}) exceeds the ${doc} subtotal (${total})`
     );
 };
 

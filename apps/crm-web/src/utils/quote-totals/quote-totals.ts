@@ -19,17 +19,25 @@ export function itemAmount(item: QuoteTotalsItem): number {
 }
 
 /**
- * Display-side quote/settlement money math from line items + VAT rate.
- * For a saved document prefer {@link storedTotals} — reading `total_amount`
- * cannot drift from the figure the list pages show.
+ * Display-side quote/settlement money math from line items, VAT rate and an
+ * optional giảm giá trước thuế. For a saved document prefer
+ * {@link storedTotals} — reading `total_amount` cannot drift from the figure the
+ * list pages show.
  */
-export function quoteTotals(items: QuoteTotalsItem[], vatRate: number) {
+export function quoteTotals(
+  items: QuoteTotalsItem[],
+  vatRate: number,
+  discount = 0
+) {
   const subtotal = (items ?? []).reduce(
     (sum, item) => sum + itemAmount(item),
     0
   );
-  const vat = Math.round(subtotal * vatRate);
-  return { subtotal, vat, total: subtotal + vat };
+  return settlementTotals({
+    total_amount: subtotal,
+    discount_amount: discount,
+    vat_rate: vatRate,
+  });
 }
 
 /**
@@ -61,13 +69,15 @@ export function settlementTotals({
 }
 
 /**
- * VAT split for a SAVED quote — `total_amount` is the server's Σ item amounts
- * (before VAT). Single VAT rule for screen, printable, .docx and merge tokens.
+ * Money split for a SAVED quote — `total_amount` is the server's Σ item amounts
+ * (before VAT), less `discount_amount`, then VAT on the net: the DB's
+ * `grand_total`. Single VAT rule for screen, printable, .docx and merge tokens.
  */
 export function storedTotals({
   total_amount,
+  discount_amount = 0,
   vat_rate,
-}: Pick<Quote, "total_amount" | "vat_rate">) {
-  const vat = Math.round(total_amount * vat_rate);
-  return { subtotal: total_amount, vat, total: total_amount + vat };
+}: Pick<Quote, "total_amount" | "vat_rate"> &
+  Partial<Pick<Quote, "discount_amount">>) {
+  return settlementTotals({ total_amount, discount_amount, vat_rate });
 }

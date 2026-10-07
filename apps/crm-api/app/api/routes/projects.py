@@ -258,7 +258,8 @@ def get_projects_summary(session: SessionDep) -> list[ProjectStageSummary]:
     )
     deal_totals = dict(
         session.exec(
-            select(Project.stage, func.sum(Quote.total_amount))
+            # Pre-tax deal value, net of giảm giá.
+            select(Project.stage, func.sum(Quote.total_amount - Quote.discount_amount))
             .join(Quote, Quote.project_id == Project.id)
             .where(Project.status == "active", Quote.status == "deal")
             .group_by(Project.stage)
