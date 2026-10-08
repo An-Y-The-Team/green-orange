@@ -26,7 +26,7 @@ import "reflect-metadata";
 import { Public } from "../common/public.decorator";
 import type { PrismaService } from "../prisma/prisma.service";
 import { AuthController } from "./auth.controller";
-import { AuthService } from "./auth.service";
+import { AuthService, PHONE_NOT_ON_ROSTER } from "./auth.service";
 import { JwtGuard } from "./jwt.guard";
 import { OidcService } from "./oidc.service";
 
@@ -709,18 +709,12 @@ describe("AuthService.zaloToken", () => {
   // shows verbatim, so a worker knows to call the office rather than retry.
   test("a number nobody on the roster has → 401 with the Vietnamese reason", async () => {
     const { auth } = service(ok, []);
-    await refused(
-      auth.zaloToken("t", "a"),
-      "Số điện thoại chưa được đăng ký với công ty. Báo văn phòng để được thêm vào danh sách."
-    );
+    await refused(auth.zaloToken("t", "a"), PHONE_NOT_ON_ROSTER);
   });
 
   test("a member who has left can no longer log in", async () => {
     const { auth } = service(ok, [{ ...kim, status: "left" }]);
-    await refused(
-      auth.zaloToken("t", "a"),
-      "Số điện thoại chưa được đăng ký với công ty. Báo văn phòng để được thêm vào danh sách."
-    );
+    await refused(auth.zaloToken("t", "a"), PHONE_NOT_ON_ROSTER);
   });
 
   test("on_leave is not left: they can still log time", async () => {

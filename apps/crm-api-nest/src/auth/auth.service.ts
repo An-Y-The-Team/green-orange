@@ -14,6 +14,14 @@ import { PrismaService } from "../prisma/prisma.service";
 // site waiting for a login, and Zalo answers in well under a second normally.
 const ZALO_FETCH_TIMEOUT_MS = 5_000;
 
+// The mini app renders a 401 body verbatim, so this string IS the screen an
+// unlisted phone sees — and it is the only screen a Zalo reviewer can reach,
+// since the roster cannot be pre-seeded with a phone we do not know. It has to
+// read as a deliberate gate with a way through, not as a broken app. Exported
+// so the tests assert the same string the reviewer reads.
+export const PHONE_NOT_ON_ROSTER =
+  "Số điện thoại chưa được đăng ký. Đây là ứng dụng nội bộ của Công ty TNHH TM DV Ý Ân, chỉ dành cho nhân sự. Liên hệ 0773964407 qua Zalo để được hỗ trợ.";
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -121,9 +129,7 @@ export class AuthService {
       where: { phone },
     });
     if (!member || member.status === "left") {
-      throw new UnauthorizedException(
-        "Số điện thoại chưa được đăng ký với công ty. Báo văn phòng để được thêm vào danh sách."
-      );
+      throw new UnauthorizedException(PHONE_NOT_ON_ROSTER);
     }
 
     // Best-effort, and deliberately not awaited into the login path's success:
