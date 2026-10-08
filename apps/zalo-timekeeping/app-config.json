@@ -4,7 +4,7 @@
     "headerTitle": "Chấm công",
     "headerColor": "#177a3a",
     "textColor": "white",
-    "leftButton": "back",
+    "leftButton": "none",
     "statusBar": "normal",
     "actionBarHidden": false
   },
