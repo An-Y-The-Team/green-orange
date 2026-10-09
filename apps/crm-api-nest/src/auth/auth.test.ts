@@ -21,6 +21,7 @@ import { JwtService } from "@nestjs/jwt";
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Request } from "express";
 import type { JWTPayload } from "jose";
+import { createHmac } from "node:crypto";
 import "reflect-metadata";
 
 import { Public } from "../common/public.decorator";
@@ -729,5 +730,90 @@ describe("AuthService.zaloToken", () => {
       kim,
     ]);
     expect((await auth.zaloToken("t", "a")).crew_member.id).toBe(7);
+  });
+});
+
+// The platform-mandated entry point: Zalo already signed this person in, so the
+// app may not show a login button (version 4 was rejected for doing so). These
+// cover the three outcomes the mini app branches on.
+describe("AuthService.zaloIdentify", () => {
+  const SECRET_KEY = "zalo-app-secret";
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  const service = (
+    zalo: { ok?: boolean; body?: unknown },
+    members: {
+      id: number;
+      name: string;
+      zalo_user_id: string | null;
+      status: string;
+    }[] = []
+  ) => {
+    setEnv("ZALO_APP_SECRET", SECRET_KEY);
+    setEnv("JWT_SECRET", SECRET);
+    const calls: { url: string; headers: Record<string, string> }[] = [];
+    globalThis.fetch = (async (url: string, init: any) => {
+      calls.push({ url, headers: init?.headers ?? {} });
+      return { ok: zalo.ok ?? true, json: async () => zalo.body };
+    }) as unknown as typeof fetch;
+    const prisma = {
+      crewMember: {
+        findFirst: async ({ where }: any) =>
+          members.find((m) => m.zalo_user_id === where.zalo_user_id) ?? null,
+      },
+    } as unknown as PrismaService;
+    return { auth: new AuthService(prisma, jwt), calls };
+  };
+
+  const kim = {
+    id: 7,
+    name: "Kim Lê",
+    zalo_user_id: "zalo-abc",
+    status: "working",
+  };
+  const profile = { body: { id: "zalo-abc", error: 0 } };
+
+  test("a linked Zalo id logs in with no phone prompt at all", async () => {
+    const { auth } = service(profile, [kim]);
+    const out = (await auth.zaloIdentify("access")) as {
+      linked: boolean;
+      crew_member: { id: number };
+    };
+    expect(out.linked).toBe(true);
+    expect(out.crew_member.id).toBe(7);
+  });
+
+  // Not an error: a first-time worker and a Zalo reviewer both land here, and
+  // the app answers with the onboarding screen rather than a failure.
+  test("an unlinked Zalo id is linked:false, not a rejection", async () => {
+    const { auth } = service(profile, []);
+    expect(await auth.zaloIdentify("access")).toEqual({ linked: false });
+  });
+
+  test("someone who has left cannot identify back in", async () => {
+    const { auth } = service(profile, [{ ...kim, status: "left" }]);
+    expect(await auth.zaloIdentify("access")).toEqual({ linked: false });
+  });
+
+  // The 01/01/2024 rule. Passing the token as a query parameter with no proof
+  // is what made this call fail silently for every login before.
+  test("the profile read sends the token and appsecret_proof as headers", async () => {
+    const { auth, calls } = service(profile, [kim]);
+    await auth.zaloIdentify("access");
+    expect(calls[0].headers.access_token).toBe("access");
+    expect(calls[0].headers.appsecret_proof).toBe(
+      createHmac("sha256", SECRET_KEY).update("access").digest("hex")
+    );
+    expect(calls[0].url).not.toContain("access_token=");
+  });
+
+  test("a profile Zalo will not return is refused, never guessed", async () => {
+    const { auth } = service({ ok: false, body: { error: -1 } }, [kim]);
+    await expect(auth.zaloIdentify("access")).rejects.toBeInstanceOf(
+      UnauthorizedException
+    );
   });
 });

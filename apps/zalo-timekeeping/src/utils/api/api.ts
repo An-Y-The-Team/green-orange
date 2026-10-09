@@ -9,9 +9,10 @@ import type { CrewMe } from "../../types";
 export const NETWORK_ERROR_MESSAGE =
   "Không có mạng. Kiểm tra kết nối rồi thử lại.";
 const GENERIC_ERROR_MESSAGE = "Có lỗi xảy ra, vui lòng thử lại";
-const LOGIN_FAILED_MESSAGE = "Đăng nhập Zalo thất bại, vui lòng thử lại";
+const LINK_FAILED_MESSAGE = "Không liên kết được tài khoản, vui lòng thử lại";
+const IDENTIFY_FAILED_MESSAGE = "Không mở được ứng dụng, vui lòng thử lại.";
 const PHONE_PERMISSION_MESSAGE =
-  "Bạn chưa cho phép Zalo chia sẻ số điện thoại. Bấm đăng nhập lại và chọn Cho phép.";
+  "Bạn chưa cho phép Zalo chia sẻ số điện thoại. Bấm liên kết lại và chọn Cho phép.";
 
 export class ApiError extends Error {
   status: number;
@@ -97,11 +98,49 @@ export async function apiFetch<T>({
 }
 
 /**
- * Zalo login: getPhoneNumber() (permission prompt) + getAccessToken(), both
- * exchanged server-side for a crew JWT — the phone number itself never reaches
- * this client. 401 messages are shown to the worker verbatim.
+ * Step 1, and the only one most opens need: ask Zalo who this is, with no
+ * button and no permission prompt. A Mini App may not show a "Đăng nhập với
+ * Zalo" button — the person is already signed in to Zalo — so identification
+ * happens silently from the access token.
+ *
+ * Resolves true when the Zalo account is already linked to a roster row, false
+ * when it is not — an ordinary first-open state, and the one a Zalo reviewer
+ * lands in, answered by the onboarding screen rather than an error.
  */
-export async function login(): Promise<CrewMe["id"]> {
+export async function identify(): Promise<boolean> {
+  // A stored crew JWT already proves the link; skip the round trip so a
+  // returning worker opens straight into the app, offline-tolerant.
+  if (getToken()) return true;
+  let accessToken: string;
+  try {
+    accessToken = await getAccessToken({});
+  } catch {
+    throw new ApiError({ status: 0, message: IDENTIFY_FAILED_MESSAGE });
+  }
+  const data = (await fetchJson({
+    url: `${API_BASE}/auth/zalo-identify`,
+    init: {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token: accessToken }),
+    },
+    fallback: IDENTIFY_FAILED_MESSAGE,
+  })) as
+    | { linked: false }
+    | { linked: true; access_token: string; crew_member: { id: number } };
+  if (!data.linked) return false;
+  localStorage.setItem(TOKEN_STORAGE_KEY, data.access_token);
+  return true;
+}
+
+/**
+ * Step 2, reached only from onboarding: liên kết tài khoản. getPhoneNumber()
+ * (permission prompt) + getAccessToken() are exchanged server-side for a crew
+ * JWT — the phone number itself never reaches this client — and the server
+ * stores the Zalo user id so this is the last time the person is asked.
+ * 401 messages are shown to the worker verbatim.
+ */
+export async function link(): Promise<CrewMe["id"]> {
   let accessToken: string;
   let token: string | undefined;
   try {
@@ -119,7 +158,7 @@ export async function login(): Promise<CrewMe["id"]> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, access_token: accessToken }),
     },
-    fallback: LOGIN_FAILED_MESSAGE,
+    fallback: LINK_FAILED_MESSAGE,
   })) as { access_token: string; crew_member: { id: number } };
   localStorage.setItem(TOKEN_STORAGE_KEY, data.access_token);
   return data.crew_member.id;

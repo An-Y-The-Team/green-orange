@@ -14,6 +14,10 @@ import { Public } from "../common/public.decorator";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./current-user.decorator";
 
+class ZaloIdentifyDto {
+  @IsString() @MinLength(1) access_token: string; // zmp-sdk getAccessToken()
+}
+
 class ZaloTokenDto {
   @IsString() @MinLength(1) token: string; // zmp-sdk getPhoneNumber() token (2-min TTL, single use)
   @IsString() @MinLength(1) access_token: string; // zmp-sdk getAccessToken()
@@ -51,7 +55,22 @@ export class AuthController {
     return this.auth.token(body.username, body.password);
   }
 
-  // Zalo mini-app login — converts the phone-number token pair into a crew JWT.
+  /**
+   * Zalo mini-app entry point: identify from the access token alone, with no
+   * button and no permission prompt. Returns `{ linked: false }` for someone
+   * the roster does not know yet, which the app answers with onboarding.
+   */
+  @Public()
+  @UseGuards(ThrottlerGuard)
+  @Post("zalo-identify")
+  @HttpCode(200)
+  zaloIdentify(@Body() dto: ZaloIdentifyDto) {
+    return this.auth.zaloIdentify(dto.access_token);
+  }
+
+  // Step 2, reached only from onboarding: links the Zalo account to a roster
+  // row via the phone number, and stores zalo_user_id so this is the last time
+  // the person is ever asked.
   @Public()
   @UseGuards(ThrottlerGuard)
   @Post("zalo-token")

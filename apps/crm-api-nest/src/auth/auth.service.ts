@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { verify } from "@node-rs/argon2";
+import { createHmac } from "node:crypto";
 
 import { normalizePhone } from "../common/phone";
 import { PrismaService } from "../prisma/prisma.service";
@@ -58,24 +59,89 @@ export class AuthService {
    * sends. Verify against one real revocation before trusting the automatic
    * path — if the ids differ, the webhook's fallback logging still catches it.
    */
+  /**
+   * The Zalo user id for an access token — the identifier the platform expects
+   * a Mini App to log people in by ("Hướng dẫn sử dụng tài khoản Zalo để đăng
+   * nhập"). Stable per user per Zalo App ID.
+   *
+   * The token goes in a HEADER, and since 01/01/2024 every profile read must
+   * carry appsecret_proof = HMAC-SHA256(accessToken, appSecret). This used to
+   * pass the token as a query parameter with no proof, so graph.zalo.me refused
+   * every call — silently, because the only caller swallowed failures. Prod had
+   * zalo_user_id null on all 4 crew rows as a result.
+   */
+  private async zaloProfileId(zaloAccessToken: string): Promise<string | null> {
+    const secret = process.env.ZALO_APP_SECRET;
+    if (!secret) return null;
+    try {
+      const res = await fetch("https://graph.zalo.me/v2.0/me?fields=id", {
+        headers: {
+          access_token: zaloAccessToken,
+          appsecret_proof: createHmac("sha256", secret)
+            .update(zaloAccessToken)
+            .digest("hex"),
+        },
+        signal: AbortSignal.timeout(ZALO_FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) return null;
+      const body = (await res.json()) as { id?: unknown };
+      return typeof body?.id === "string" && body.id ? body.id : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Mints the 30-day crew JWT both Zalo entry points hand back. */
+  private async crewSession(member: { id: number; name: string }) {
+    const access_token = await this.jwt.signAsync(
+      { sub: `crew:${member.id}`, kind: "crew", crew_member_id: member.id },
+      { secret: process.env.JWT_SECRET, expiresIn: "30d" }
+    );
+    return {
+      access_token,
+      token_type: "bearer",
+      crew_member: { id: member.id, name: member.name },
+    };
+  }
+
+  /**
+   * Step 1 of the platform-mandated flow: identify silently from the access
+   * token alone. A Mini App may NOT show a "Đăng nhập với Zalo" button — the
+   * person is already signed in to Zalo — and version 4 was rejected for doing
+   * exactly that. The phone is only for linking, in zaloToken() below.
+   *
+   * `linked: false` is a 200, not a 401: a first-time user is an ordinary
+   * state, and the mini app answers it with the onboarding screen rather than
+   * an error.
+   */
+  async zaloIdentify(zaloAccessToken: string) {
+    const zaloUserId = await this.zaloProfileId(zaloAccessToken);
+    if (!zaloUserId) {
+      throw new UnauthorizedException(
+        "Không xác định được tài khoản Zalo, vui lòng thử lại."
+      );
+    }
+    const member = await this.prisma.crewMember.findFirst({
+      where: { zalo_user_id: zaloUserId },
+    });
+    if (!member || member.status === "left") return { linked: false as const };
+    return { linked: true as const, ...(await this.crewSession(member)) };
+  }
+
   private async captureZaloUserId(
     crewMemberId: number,
     zaloAccessToken: string
   ) {
+    const zaloUserId = await this.zaloProfileId(zaloAccessToken);
+    if (!zaloUserId) return;
     try {
-      const res = await fetch(
-        `https://graph.zalo.me/v2.0/me?access_token=${encodeURIComponent(zaloAccessToken)}&fields=id`,
-        { signal: AbortSignal.timeout(ZALO_FETCH_TIMEOUT_MS) }
-      );
-      if (!res.ok) return;
-      const body = (await res.json()) as { id?: unknown };
-      if (typeof body?.id !== "string" || !body.id) return;
       await this.prisma.crewMember.update({
         where: { id: crewMemberId },
-        data: { zalo_user_id: body.id },
+        data: { zalo_user_id: zaloUserId },
       });
     } catch {
-      // Already covered by the doc comment: never fails a login.
+      // Must never fail the login: the worker is standing on site. Losing the
+      // link only costs them the phone prompt once more on next open.
     }
   }
 
@@ -138,14 +204,6 @@ export class AuthService {
     // worker must still be able to clock in if Zalo is slow or this call fails.
     await this.captureZaloUserId(member.id, zaloAccessToken);
 
-    const access_token = await this.jwt.signAsync(
-      { sub: `crew:${member.id}`, kind: "crew", crew_member_id: member.id },
-      { secret: process.env.JWT_SECRET, expiresIn: "30d" }
-    );
-    return {
-      access_token,
-      token_type: "bearer",
-      crew_member: { id: member.id, name: member.name },
-    };
+    return this.crewSession(member);
   }
 }

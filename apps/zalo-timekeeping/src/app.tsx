@@ -1,16 +1,15 @@
-import { Suspense, useState } from "react";
+import { Suspense, use, useState } from "react";
 
 import { ErrorBoundary } from "./components/error-boundary/error-boundary";
 import { HistoryPage } from "./pages/history/history";
 import { HomePage } from "./pages/home/home";
-import { LoginPage } from "./pages/login/login";
+import { OnboardingPage } from "./pages/onboarding/onboarding";
 import { RemedyPage } from "./pages/remedy/remedy";
 import type { OpenShift, RemedyPrefill } from "./types";
-import { getToken } from "./utils/api/api";
-import { invalidate } from "./utils/query-cache/query-cache";
+import { clearToken, identify } from "./utils/api/api";
+import { cachedFetch, invalidate } from "./utils/query-cache/query-cache";
 
 enum PageName {
-  LOGIN = "login",
   HOME = "home",
   HISTORY = "history",
   REMEDY = "remedy",
@@ -18,13 +17,36 @@ enum PageName {
 
 const REMEDY_SENT_MESSAGE = "Đã gửi đơn bù công. Văn phòng sẽ duyệt.";
 
-// Four screens, plain state — no router. Boot reads the stored token
-// synchronously; a stale token surfaces as a 401 on the first data load, which
-// clears it and lands back here on login.
+/**
+ * Zalo has already signed this person in, so the app never shows a login
+ * screen: it asks who they are from the access token and renders straight into
+ * the shell. Only someone the roster does not know yet sees onboarding.
+ *
+ * `use()` + the promise cache rather than useEffect (AGENTS.md), so the first
+ * open suspends on the identify call instead of flashing an empty screen.
+ */
 export function App() {
-  const [page, setPage] = useState<PageName>(() =>
-    getToken() ? PageName.HOME : PageName.LOGIN
+  return (
+    <Suspense fallback={<p className="screen-message">Đang mở ứng dụng…</p>}>
+      <Session />
+    </Suspense>
   );
+}
+
+function Session() {
+  const identified = use(cachedFetch("session", identify));
+  // `use()` gives the answer on first open; the state carries a link that
+  // happens later, from the onboarding button's own handler.
+  const [linked, setLinked] = useState(identified);
+  if (!linked) return <OnboardingPage onLinked={() => setLinked(true)} />;
+  return <Shell onUnlinked={() => setLinked(false)} />;
+}
+
+// Three screens, plain state — no router. A stale or revoked crew token
+// surfaces as a 401 on the first data load, which clears it and drops back to
+// onboarding.
+function Shell({ onUnlinked }: { onUnlinked: () => void }) {
+  const [page, setPage] = useState<PageName>(PageName.HOME);
   // Set when the remedy form is opened to close a shift they forgot to chấm
   // công ra: the project, date and stamped start are then fixed, and only the
   // giờ ra is theirs to claim.
@@ -36,15 +58,13 @@ export function App() {
   // reads as "did it work?". Cleared on any navigation.
   const [flash, setFlash] = useState<string | null>(null);
 
-  const handleLoggedIn = () => {
-    setFlash(null);
-    setPage(PageName.HOME);
-  };
-
+  // A stale or revoked crew token: drop it, forget the cached session so the
+  // next open re-identifies, and fall back to onboarding rather than a dead end.
   const handleAuthLost = () => {
+    clearToken();
     invalidate();
     setFlash(null);
-    setPage(PageName.LOGIN);
+    onUnlinked();
   };
 
   const openHistory = () => {
@@ -77,10 +97,6 @@ export function App() {
     setFlash(null);
     setPage(PageName.REMEDY);
   };
-
-  if (page === PageName.LOGIN) {
-    return <LoginPage onLoggedIn={handleLoggedIn} />;
-  }
 
   return (
     <ErrorBoundary onAuthError={handleAuthLost}>
