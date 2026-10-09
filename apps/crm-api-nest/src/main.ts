@@ -7,7 +7,11 @@ import { PrismaExceptionFilter } from "./common/prisma-exception.filter";
 import { SerializeInterceptor } from "./common/serialize.interceptor";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody so the Zalo webhook can log the exact bytes Zalo signed. Its
+  // signature spec is ambiguous in public sources (sorted-key concat vs
+  // appId+body+timestamp, API Key vs app secret), and a re-serialised body
+  // cannot settle it — only the bytes on the wire can.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   const origins = (process.env.CORS_ORIGINS ?? "http://localhost:3002")
     .split(",")

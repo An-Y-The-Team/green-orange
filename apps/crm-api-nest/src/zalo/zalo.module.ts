@@ -6,8 +6,11 @@ import {
   Logger,
   Module,
   Post,
+  Req,
   UnauthorizedException,
 } from "@nestjs/common";
+import type { RawBodyRequest } from "@nestjs/common";
+import type { Request } from "express";
 
 import { Public } from "../common/public.decorator";
 import { PrismaService } from "../prisma/prisma.service";
@@ -51,6 +54,7 @@ export class ZaloWebhookController {
   @HttpCode(200)
   async webhook(
     @Body() payload: ZaloEvent,
+    @Req() req: RawBodyRequest<Request>,
     @Headers("x-zevent-signature") signature?: string
   ) {
     // The API Key from Quản lý Zalo App → Open APIs. A DIFFERENT secret from
@@ -61,8 +65,16 @@ export class ZaloWebhookController {
     // /auth/zalo-token, where a missing secret is a 500 the operator sees).
     if (!apiKey || !signature) throw new UnauthorizedException();
     if (!signatureMatches(zaloSignature(payload, apiKey), signature)) {
+      // Zalo's real versions.review.done was rejected here on 09/10/2026 and
+      // the verdict was lost, because "bad signature" alone cannot say whether
+      // the key is wrong or the formula is. Dump what Zalo actually sent so the
+      // next event settles it offline against candidate formulas. Never logs
+      // the key; a sha256 digest does not reveal its input.
       this.log.warn(
-        `rejected a webhook with a bad signature: ${payload.event}`
+        `rejected a webhook with a bad signature: ${payload.event}\n` +
+          `  got:      ${signature}\n` +
+          `  computed: ${zaloSignature(payload, apiKey)}\n` +
+          `  raw:      ${req.rawBody?.toString("utf8") ?? "(no raw body)"}`
       );
       throw new UnauthorizedException();
     }

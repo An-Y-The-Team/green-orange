@@ -37,6 +37,13 @@ const fake = () => {
   return { prisma, updates };
 };
 
+// The controller reads req.rawBody only to log what Zalo actually sent when a
+// signature fails; nothing else on the request is touched.
+const reqFor = (payload: unknown) =>
+  ({ rawBody: Buffer.from(JSON.stringify(payload)) }) as Parameters<
+    ZaloWebhookController["webhook"]
+  >[1];
+
 const send = (
   payload: Record<string, unknown>,
   opts: { signature?: string; secret?: string | null } = {}
@@ -48,7 +55,11 @@ const send = (
     opts.signature ?? zaloSignature(payload, opts.secret ?? API_KEY);
   return {
     updates,
-    run: new ZaloWebhookController(prisma).webhook(payload, signature),
+    run: new ZaloWebhookController(prisma).webhook(
+      payload,
+      reqFor(payload),
+      signature
+    ),
   };
 };
 
@@ -98,7 +109,11 @@ describe("POST /zalo/webhook — authentication", () => {
     const { prisma, updates } = fake();
     process.env.ZALO_API_KEY = API_KEY;
     await expect(
-      new ZaloWebhookController(prisma).webhook(withdrawal, undefined)
+      new ZaloWebhookController(prisma).webhook(
+        withdrawal,
+        reqFor(withdrawal),
+        undefined
+      )
     ).rejects.toThrow();
     expect(updates).toHaveLength(0);
   });
@@ -118,6 +133,7 @@ describe("POST /zalo/webhook — authentication", () => {
     await expect(
       new ZaloWebhookController(prisma).webhook(
         payload,
+        reqFor(payload),
         zaloSignature(payload, "attacker-secret")
       )
     ).rejects.toThrow();
@@ -171,6 +187,7 @@ describe("POST /zalo/webhook — handling", () => {
     await expect(
       new ZaloWebhookController(prisma).webhook(
         payload,
+        reqFor(payload),
         zaloSignature(payload, API_KEY)
       )
     ).resolves.toEqual({ ok: true });
