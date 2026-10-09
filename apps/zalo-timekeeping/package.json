@@ -9,7 +9,8 @@
     "lint": "eslint src --max-warnings 0",
     "check-types": "tsc --noEmit",
     "test": "bun test src",
-    "clean": "rm -rf www .turbo node_modules"
+    "clean": "rm -rf www .turbo node_modules",
+    "deploy": "bun run build && zmp deploy"
   },
   "dependencies": {
     "dayjs": "^1.11.13",
