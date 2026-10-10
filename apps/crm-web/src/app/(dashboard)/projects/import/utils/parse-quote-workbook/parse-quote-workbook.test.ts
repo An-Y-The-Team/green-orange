@@ -18,12 +18,14 @@ import {
 const filled = async (sheets: Sheets) =>
   parseQuoteWorkbook(await readXlsx(await fillTemplate(sheets)));
 
-test("the unfilled template names every field it is missing", async () => {
+test("the unfilled template reads back blank, and only money blocks it", async () => {
   const out = parseQuoteWorkbook(await readXlsx(await readFile(TEMPLATE)));
+  // The header placeholders come back empty — the card asks for them
+  // (missing-fields.ts); only what Excel must fix is an error.
+  expect(out.project.name).toBe("");
+  expect(out.project.site_address).toBe("");
+  expect(out.client.name).toBe("");
   expect(out.errors).toEqual([
-    "Bia: chưa điền tên công trình.",
-    "Bia: chưa điền địa chỉ công trình.",
-    "Bia: chưa điền tên Bên A.",
     "Bảng báo giá: chưa có dòng nào điền cả khối lượng và đơn giá.",
   ]);
   // Bên B — the company's own block — never leaks into the client.
@@ -193,4 +195,26 @@ test("an MST or phone typed as a number gets its leading zero back", async () =>
   });
   expect(out.client.tax_code).toBe("0309554620");
   expect(out.contact?.phone).toBe("0912345678");
+});
+
+// A real job's workbook (ACE/EMART, 08-2026) words the same table its own
+// way. Every heading here was copied from that file.
+test("the headings a real workbook uses are read the same", async () => {
+  const out = await filled({
+    sheet1: COVER,
+    sheet2: {
+      ...PRICED,
+      B20: "Tên hàng hóa, dịch vụ",
+      C20: "Đơn vị tính",
+      D20: "Số lượng",
+      A42: "TỔNG CỘNG CHƯA BAO GỒM THUẾ",
+      A45: "THUẾ GIÁ TRỊ GIA TĂNG 8%",
+      A46: "TỔNG CỘNG BAO GỒM THUẾ GTGT",
+    },
+  });
+  expect(out.errors).toEqual([]);
+  expect(out.warnings).toEqual([]);
+  expect(out.quote.vat_rate).toBe(0.08);
+  expect(out.quote.items.map((i) => i.unit_price)).toEqual([2_000_000, 85_000]);
+  expect(out.quote.items[1]?.unit).toBe("m2");
 });

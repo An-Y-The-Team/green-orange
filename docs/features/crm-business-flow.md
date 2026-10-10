@@ -481,7 +481,11 @@ and delete rows): `projects/import/utils/parse-quote-workbook`.
 - `Bang bao gia` → quote v1: header row `STT`, Roman-numeral rows become the
   hạng mục (`category`), lines need both khối lượng and đơn giá (neither = a
   template leftover, skipped; one = an error), then `Giảm giá trước thuế` and
-  `Thuế VAT x%` (rate from the label). The file's own `Tổng cộng trước thuế` is
+  `Thuế VAT x%` (rate from the label). **Each job words these its own way** —
+  "Tên hàng hóa, dịch vụ" + "Số lượng" + "TỔNG CỘNG CHƯA BAO GỒM THUẾ" +
+  "THUẾ GIÁ TRỊ GIA TĂNG 8%" on one real file, the template's own wording on
+  the next — so every wording seen in a real workbook belongs in
+  `QUOTE_COLUMNS` / `isBeforeTax` / `isVat` / `isAfterTax`. The file's own `Tổng cộng trước thuế` is
   only cross-checked — the template's SUBTOTAL covers a fixed range, so a
   mismatch is a warning, never silently "fixed".
 - **Stage** = how far the paperwork goes: any `Khối lượng thực tế` on the quyết
@@ -489,6 +493,14 @@ and delete rows): `projects/import/utils/parse-quote-workbook`.
   else any `Khối lượng nghiệm thu` → Nghiệm thu; else Báo giá. The operator may
   change it (Báo giá … Quyết toán). At Báo giá the quote is `waiting`; past it,
   `deal`.
+
+**A blank is asked for, not refused.** The Bia placeholders the operator left
+(`Công trình`, `Địa chỉ`, Bên A's name) are typed on the card instead of
+sending them back to Excel: `missing-fields.ts` decides what this row still
+needs (a matched client or site answers its own field), the row sits at **Cần
+điền** until it is filled, and a typed client name is looked up on blur like a
+parsed one. Money and line items are NOT askable — the báo giá is the paper the
+client holds, so a wrong đơn giá is corrected in the file (**Phải sửa file**).
 
 **Matched, never guessed** (`actions/match-workbooks.ts`, read-only): the client
 by **MST** first, else by exact name (a same-name client with a different MST is

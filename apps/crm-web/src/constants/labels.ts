@@ -370,9 +370,10 @@ export const IMPORT_ROW_STATES: Record<ImportRowState, Label> = {
   },
   [ImportRowState.CHECKING]: { label: "Đang kiểm tra", variant: "secondary" },
   [ImportRowState.BLOCKED]: {
-    label: "Thiếu thông tin",
+    label: "Phải sửa file",
     variant: "destructive",
   },
+  [ImportRowState.NEEDS_FILL]: { label: "Cần điền", variant: "warning" },
   [ImportRowState.NEEDS_PICK]: { label: "Chọn loại", variant: "warning" },
   [ImportRowState.READY]: { label: "Sẵn sàng", variant: "default" },
   [ImportRowState.IMPORTED]: { label: "Đã tạo", variant: "success" },

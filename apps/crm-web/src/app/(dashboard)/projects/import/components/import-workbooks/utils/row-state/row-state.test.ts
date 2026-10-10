@@ -23,6 +23,7 @@ const ROW: ImportRow = {
   key: "k",
   file: new File([], "x.xlsx"),
   workbook: WORKBOOK,
+  blankFields: [],
   matching: false,
   match: {
     client: null,
@@ -44,6 +45,14 @@ test("each state, in the order a file moves through them", () => {
   ).toBe(ImportRowState.BLOCKED);
   // A failed lookup never falls back to "new client".
   expect(rowState({ ...ROW, matchError: "down" })).toBe(ImportRowState.BLOCKED);
+  // A blank the operator has not typed yet blocks the import, but asks
+  // rather than sending them back to Excel.
+  expect(
+    rowState({
+      ...ROW,
+      workbook: { ...WORKBOOK, project: { ...WORKBOOK.project, name: "" } },
+    })
+  ).toBe(ImportRowState.NEEDS_FILL);
   expect(rowState({ ...ROW, typeIds: [] })).toBe(ImportRowState.NEEDS_PICK);
   expect(rowState(ROW)).toBe(ImportRowState.READY);
   expect(

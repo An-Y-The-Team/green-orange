@@ -4,11 +4,24 @@
 export enum ImportRowState {
   UNREADABLE = "unreadable", // not an .xlsx, or not the template at all
   CHECKING = "checking", // looking up the existing client / site / contact
-  BLOCKED = "blocked", // read, but something the job needs is missing
+  BLOCKED = "blocked", // the file itself has to be fixed (sheets, money)
+  NEEDS_FILL = "needs_fill", // read, but a field the job needs is blank
   NEEDS_PICK = "needs_pick", // fine, but no loại công trình matched yet
   READY = "ready",
   IMPORTED = "imported",
   FAILED = "failed", // the server refused it — the message says why
+}
+
+/**
+ * The header fields a công trình cannot open without. Blank in the workbook
+ * (the operator left the Bia placeholder) = typed on the card instead of
+ * sending them back to Excel. Money and line items are NOT here: the báo giá
+ * is the paper the client holds, so those are corrected in the file.
+ */
+export enum ImportField {
+  PROJECT_NAME = "project_name",
+  SITE_ADDRESS = "site_address",
+  CLIENT_NAME = "client_name",
 }
 
 /** The three blocks the Bia sheet reads in, top-down. */

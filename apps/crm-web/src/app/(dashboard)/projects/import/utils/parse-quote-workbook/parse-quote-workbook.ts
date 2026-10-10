@@ -36,11 +36,9 @@ export function parseQuoteWorkbook(workbook: Workbook): ParsedWorkbook {
   if (!cover) errors.push("Không thấy sheet Bia.");
   if (!quoteRows) errors.push("Không thấy sheet Bảng báo giá.");
 
+  // A blank Công trình / Địa chỉ / Bên A is NOT an error: the card asks for
+  // it (missing-fields.ts). Only what the operator must fix in Excel is.
   const head = readCover(cover ?? []);
-  if (!head.project.name) errors.push("Bia: chưa điền tên công trình.");
-  if (!head.project.site_address)
-    errors.push("Bia: chưa điền địa chỉ công trình.");
-  if (!head.client.name) errors.push("Bia: chưa điền tên Bên A.");
 
   const quote = readMoney(quoteRows ?? [], QUOTE_COLUMNS, "Bảng báo giá");
   errors.push(...quote.errors);
@@ -261,11 +259,18 @@ type Columns = Partial<Record<PriceColumn, (header: string) => boolean>>;
 
 // Matched against the folded header text; per column, the FIRST header cell
 // that matches wins, so specific headers are listed before generic ones.
+// Each real workbook words these its own way — "Tên hàng hóa, dịch vụ" and
+// "Số lượng" on one job, "Nội dung công việc" and "Khối lượng" on the next —
+// so every wording seen in a real file belongs here.
 const QUOTE_COLUMNS: Columns = {
   [PriceColumn.STT]: (h) => h === "stt",
-  [PriceColumn.DESC]: (h) => h.startsWith("noi dung") || h.startsWith("mo ta"),
-  [PriceColumn.UNIT]: (h) => h === "dvt",
-  [PriceColumn.QTY]: (h) => h.startsWith("khoi luong"),
+  [PriceColumn.DESC]: (h) =>
+    ["noi dung", "mo ta", "ten hang", "dien giai", "hang muc"].some((p) =>
+      h.startsWith(p)
+    ),
+  [PriceColumn.UNIT]: (h) => h === "dvt" || h.startsWith("don vi"),
+  [PriceColumn.QTY]: (h) =>
+    h.startsWith("khoi luong") || h.startsWith("so luong"),
   [PriceColumn.PRICE]: (h) => h.startsWith("don gia"),
   [PriceColumn.AMOUNT]: (h) => h.startsWith("thanh tien"),
 };
@@ -280,6 +285,23 @@ const SETTLEMENT_COLUMNS: Columns = {
 };
 
 const ROMAN = /^[IVXLC]+\.?$/;
+
+// The totals rows, in every wording a real workbook has used:
+// "Tổng cộng trước thuế" | "TỔNG CỘNG CHƯA BAO GỒM THUẾ" (the Σ to cross-check),
+// "Thuế VAT 8%" | "THUẾ GIÁ TRỊ GIA TĂNG 8%" (the rate),
+// "Tổng cộng sau thuế" | "TỔNG CỘNG BAO GỒM THUẾ GTGT" (where the block ends).
+const isBeforeTax = (label: string) =>
+  label.startsWith("tong cong") &&
+  !label.includes("giam gia") &&
+  /truoc thue|chua bao gom/.test(label);
+
+const isVat = (label: string) =>
+  label.startsWith("thue") && /vat|gtgt|gia tri gia tang/.test(label);
+
+const isAfterTax = (label: string) =>
+  label.startsWith("tong cong") &&
+  !label.includes("chua") &&
+  /sau thue|bao gom thue/.test(label);
 
 /**
  * "12,5" | "1.000.000" | "85,000" | 1000000 → number; blank → undefined;
@@ -401,7 +423,7 @@ function readMoney(
   }
   if (quantityOnly) return result(items);
 
-  // Totals block, up to "Tổng cộng sau thuế" — the terms below it are free
+  // Totals block, up to the after-tax total — the terms below it are free
   // text ("Giảm giá thêm nếu …") and must not count. First match wins. A
   // row's figure is its amount-column value, else its last number.
   let vatRate: number | undefined;
@@ -417,16 +439,12 @@ function readMoney(
     const amount = toNumber(get(row, PriceColumn.AMOUNT));
     const figure =
       amount !== undefined && !Number.isNaN(amount) ? amount : numbers.at(-1);
-    if (label.startsWith("tong cong sau thue")) break;
+    if (isAfterTax(label)) break;
     if (label.startsWith("giam gia")) discount ??= Math.round(figure ?? 0);
-    else if (label.startsWith("thue") && label.includes("vat")) {
+    else if (isVat(label)) {
       const pct = /(\d+(?:[.,]\d+)?)\s*%/.exec(label)?.[1];
       if (pct) vatRate ??= Number(pct.replace(",", ".")) / 100;
-    } else if (
-      label.startsWith("tong cong truoc thue") &&
-      !label.includes("giam gia") &&
-      sheetSubtotal === undefined
-    )
+    } else if (isBeforeTax(label) && sheetSubtotal === undefined)
       sheetSubtotal = figure;
   }
 

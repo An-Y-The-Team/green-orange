@@ -1,4 +1,5 @@
 import { ProjectStage } from "../../../../../enums";
+import { missingFields } from "../../../../utils/missing-fields/missing-fields";
 import type { ImportRow } from "../../types";
 
 /**
@@ -28,6 +29,8 @@ export async function readWorkbookFile({
       key,
       file,
       workbook,
+      // Before any lookup: every header field the file left blank.
+      blankFields: missingFields({ workbook }),
       matching: true,
       stage: workbook.stage,
       typeIds: [],
@@ -38,6 +41,7 @@ export async function readWorkbookFile({
       key,
       file,
       workbook: null,
+      blankFields: [],
       matching: false,
       stage: ProjectStage.QUOTE,
       typeIds: [],

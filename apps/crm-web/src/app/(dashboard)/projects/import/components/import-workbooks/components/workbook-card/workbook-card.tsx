@@ -6,6 +6,7 @@ import type { ChangeEvent } from "react";
 
 import { Badge } from "@yan/ui/components/badge";
 import { Card, CardContent } from "@yan/ui/components/card";
+import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
 import { Select } from "@yan/ui/components/select";
 
@@ -17,8 +18,9 @@ import { quoteTotals } from "@/utils/quote-totals/quote-totals";
 import { TypeChips } from "../../../../../components/type-chips/type-chips";
 import type { ProjectStage } from "../../../../../enums";
 import type { ProjectType } from "../../../../../types";
-import { ImportRowState } from "../../../../enums";
+import { ImportField, ImportRowState } from "../../../../enums";
 import { IMPORT_STAGES } from "../../../../schema";
+import { fieldsToAsk } from "../../../../utils/missing-fields/missing-fields";
 import type { ImportRow } from "../../types";
 import { rowState } from "../../utils/row-state/row-state";
 
@@ -33,12 +35,22 @@ export function WorkbookCard({
   onClientChange,
   onStageChange,
   onTypeToggle,
+  onFieldChange,
+  onFieldBlur,
 }: {
   row: ImportRow;
   projectTypes: ProjectType[];
   onClientChange: (row: ImportRow, clientId: number | null) => void;
   onStageChange: (row: ImportRow, stage: ProjectStage) => void;
   onTypeToggle: (row: ImportRow, typeId: number) => void;
+  /** A header field the file left blank, typed here instead. */
+  onFieldChange: (change: {
+    row: ImportRow;
+    field: ImportField;
+    value: string;
+  }) => void;
+  /** Typing done — a typed client name gets looked up like a parsed one. */
+  onFieldBlur: (change: { row: ImportRow; field: ImportField }) => void;
 }) {
   const state = rowState(row);
   const badge = IMPORT_ROW_STATES[state];
@@ -56,6 +68,22 @@ export function WorkbookCard({
   const handleStageChange = (event: ChangeEvent<HTMLSelectElement>) =>
     onStageChange(row, event.target.value as ProjectStage);
   const handleTypeToggle = (typeId: number) => onTypeToggle(row, typeId);
+
+  // A field the workbook left blank — typed here, then imported like any other.
+  const asked = fieldsToAsk({ blankFields: row?.blankFields ?? [], match });
+  const fieldInput = (field: ImportField, label: string) => (
+    <Input
+      id={`${row.key}-${field}`}
+      aria-label={label}
+      placeholder={label}
+      defaultValue=""
+      disabled={locked}
+      onChange={(event) =>
+        onFieldChange({ row, field, value: event.target.value })
+      }
+      onBlur={() => onFieldBlur({ row, field })}
+    />
+  );
 
   const total = workbook
     ? quoteTotals(
@@ -93,6 +121,19 @@ export function WorkbookCard({
           </p>
         ) : (
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[9rem_1fr]">
+            {asked.includes(ImportField.PROJECT_NAME) ? (
+              <>
+                <dt>
+                  <Label htmlFor={`${row.key}-${ImportField.PROJECT_NAME}`}>
+                    Tên công trình
+                  </Label>
+                </dt>
+                <dd className="max-w-md">
+                  {fieldInput(ImportField.PROJECT_NAME, "Tên công trình")}
+                </dd>
+              </>
+            ) : null}
+
             <dt className="text-muted-foreground">Khách hàng</dt>
             <dd className="space-y-1.5">
               <EntityCombobox
@@ -106,22 +147,43 @@ export function WorkbookCard({
                 className="max-w-md"
                 disabled={locked}
               />
+              {asked.includes(ImportField.CLIENT_NAME)
+                ? fieldInput(ImportField.CLIENT_NAME, "Tên khách hàng mới")
+                : null}
               <p className="text-xs text-muted-foreground">
                 {match?.client
                   ? "Khách có sẵn — đúng mã số thuế hoặc tên."
-                  : `Sẽ tạo khách mới: ${workbook.client.name || "—"}${
-                      workbook.client.tax_code
-                        ? ` · MST ${workbook.client.tax_code}`
-                        : ""
-                    }`}
+                  : asked.includes(ImportField.CLIENT_NAME)
+                    ? "File không có tên Bên A — nhập tên để tạo khách mới, hoặc chọn khách có sẵn ở trên."
+                    : `Sẽ tạo khách mới: ${workbook.client.name}${
+                        workbook.client.tax_code
+                          ? ` · MST ${workbook.client.tax_code}`
+                          : ""
+                      }`}
               </p>
             </dd>
 
-            <dt className="text-muted-foreground">Địa điểm</dt>
-            <dd>
+            <dt
+              className={
+                asked.includes(ImportField.SITE_ADDRESS)
+                  ? ""
+                  : "text-muted-foreground"
+              }
+            >
+              {asked.includes(ImportField.SITE_ADDRESS) ? (
+                <Label htmlFor={`${row.key}-${ImportField.SITE_ADDRESS}`}>
+                  Địa điểm
+                </Label>
+              ) : (
+                "Địa điểm"
+              )}
+            </dt>
+            <dd className="max-w-md space-y-1.5">
               {match?.location
                 ? `Có sẵn: ${match.location.name}`
-                : `Tạo mới: ${workbook.project.site_address || "—"}`}
+                : asked.includes(ImportField.SITE_ADDRESS)
+                  ? fieldInput(ImportField.SITE_ADDRESS, "Địa chỉ thi công")
+                  : `Tạo mới: ${workbook.project.site_address}`}
             </dd>
 
             <dt className="text-muted-foreground">Người liên hệ</dt>

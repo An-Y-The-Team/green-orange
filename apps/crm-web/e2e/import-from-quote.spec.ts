@@ -131,3 +131,46 @@ test("workbooks → công trình: existing client reused, a new one created once
     page.getByRole("cell", { name: `CÔNG TY E2E ${stamp}` })
   ).toHaveCount(1);
 });
+
+/**
+ * A file the operator left half-filled is asked about, not refused: the Bia
+ * placeholders become inputs on the card. Only money and missing sheets send
+ * them back to Excel.
+ */
+test("a blank Công trình is typed on the card and imports", async ({
+  page,
+}, testInfo) => {
+  const stamp = Date.now();
+  const blank = testInfo.outputPath(`bg-thieu-${stamp}.xlsx`);
+  await writeFile(
+    blank,
+    await fillTemplate({
+      sheet1: {
+        ...COVER,
+        B4: "Công trình:", // left blank, as the template ships
+        C18: `CÔNG TY THIẾU ${stamp}`,
+        B22: `Mã số thuế: ${String(stamp).slice(-10)}`,
+      },
+      sheet2: PRICED,
+    })
+  );
+
+  // Through the list, as an operator arrives: a file picked on a page that
+  // has not hydrated yet fires its change event into nothing.
+  await page.goto("/projects");
+  await page.getByRole("button", { name: "Nhập từ báo giá" }).click();
+  await page.locator("#quote-workbooks").setInputFiles(blank);
+
+  await expect(page.getByText("Cần điền")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Tạo 0 công trình" })
+  ).toBeDisabled();
+
+  await page.getByLabel("Tên công trình").fill(`E2E Điền tay ${stamp}`);
+  await expect(page.getByText("Sẵn sàng", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Tạo 1 công trình" }).click();
+  await expect(
+    page.getByRole("link", { name: /CT-\d{4}-\d+ · E2E Điền tay/ })
+  ).toBeVisible();
+});

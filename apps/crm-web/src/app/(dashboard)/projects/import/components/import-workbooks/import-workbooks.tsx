@@ -18,9 +18,11 @@ import {
   type MatchRequest,
   matchWorkbooks,
 } from "../../actions/match-workbooks";
+import { ImportField } from "../../enums";
 import { MATCH_BATCH_MAX } from "../../schema";
 import type { ImportResult } from "../../types";
 import { buildImportPayload } from "../../utils/build-import-payload/build-import-payload";
+import { withField } from "../../utils/missing-fields/missing-fields";
 import {
   type CreatedRefs,
   createdRefs,
@@ -195,6 +197,46 @@ export function ImportWorkbooks({
   const handleStageChange = (row: ImportRow, stage: ProjectStage) =>
     patchRow(row.key, { stage });
 
+  // A header field the file left blank, typed on the card. Written onto the
+  // freshest workbook, not the one this render captured.
+  const handleFieldChange = ({
+    row,
+    field,
+    value,
+  }: {
+    row: ImportRow;
+    field: ImportField;
+    value: string;
+  }) =>
+    setRows((prev) =>
+      prev.map((r) =>
+        r.key === row.key && r.workbook
+          ? {
+              ...r,
+              workbook: withField({ workbook: r.workbook, field, value }),
+            }
+          : r
+      )
+    );
+
+  // A typed client name deserves the same lookup a parsed one gets, or the
+  // import would make a second "An Phát" next to the one already on file.
+  const handleFieldBlur = ({
+    row,
+    field,
+  }: {
+    row: ImportRow;
+    field: ImportField;
+  }) => {
+    if (field !== ImportField.CLIENT_NAME) return;
+    const workbook = rows.find((r) => r.key === row.key)?.workbook;
+    if (!workbook?.client?.name?.trim()) return;
+    patchRow(row.key, { matching: true });
+    startTransition(async () => {
+      await runMatch([{ key: row.key, workbook }]);
+    });
+  };
+
   // Chip toggle — adds or removes one loại công trình on this row.
   const handleTypeToggle = (row: ImportRow, typeId: number) =>
     patchRow(row.key, {
@@ -296,6 +338,8 @@ export function ImportWorkbooks({
           onClientChange={handleClientChange}
           onStageChange={handleStageChange}
           onTypeToggle={handleTypeToggle}
+          onFieldChange={handleFieldChange}
+          onFieldBlur={handleFieldBlur}
         />
       ))}
 

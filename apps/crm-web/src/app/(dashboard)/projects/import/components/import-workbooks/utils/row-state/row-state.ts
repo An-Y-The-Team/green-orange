@@ -1,4 +1,5 @@
 import { ImportRowState } from "../../../../enums";
+import { missingFields } from "../../../../utils/missing-fields/missing-fields";
 import type { ImportRow } from "../../types";
 
 /** Where a dropped file stands — the card's badge and whether it imports. */
@@ -9,6 +10,7 @@ export function rowState(row: ImportRow): ImportRowState {
   if (row.workbook.errors?.length || row?.matchError || !row?.match)
     return ImportRowState.BLOCKED;
   if (row?.result && !row.result.ok) return ImportRowState.FAILED;
+  if (missingFields(row).length) return ImportRowState.NEEDS_FILL;
   if (!row?.typeIds?.length) return ImportRowState.NEEDS_PICK;
   return ImportRowState.READY;
 }
