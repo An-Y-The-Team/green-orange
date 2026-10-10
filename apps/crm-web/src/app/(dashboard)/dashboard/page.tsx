@@ -156,10 +156,9 @@ export default async function DashboardPage() {
   );
 
   const { by_status: byStatus, overdue } = summary.milestones;
-  const owed =
-    byStatus.not_due.total +
-    byStatus.awaiting_payment.total +
-    summary.bills.by_status.sent.total;
+  // Đợt only: a hóa đơn's total IS its đợt (cọc + remainder, attached on
+  // settlement sign), so adding sent bills counts the same money twice.
+  const owed = byStatus.not_due.total + byStatus.awaiting_payment.total;
 
   return (
     <>
