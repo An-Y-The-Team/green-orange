@@ -235,7 +235,7 @@ export function QuoteBuilderForm({
     const payload = {
       project_id: projectId,
       items: values.items.map((it) => ({
-        category: it.category || undefined,
+        category: it.category?.trim() || undefined,
         description: it.description,
         unit: it.unit || undefined,
         quantity: it.quantity,
@@ -331,7 +331,11 @@ export function QuoteBuilderForm({
                         <TableRow className="bg-muted/50">
                           <TableCell colSpan={5}>
                             <Input
-                              value={group.category}
+                              // Raw row value, not the trimmed group key, or a
+                              // trailing space is eaten before the next word.
+                              value={
+                                watchedItems?.[group.indices[0]]?.category ?? ""
+                              }
                               placeholder="Tên hạng mục (để trống nếu không chia nhóm)"
                               className="font-medium placeholder:text-foreground/60"
                               aria-label="Tên hạng mục"
