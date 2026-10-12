@@ -234,8 +234,10 @@ New files:
   [Xem chênh lệch] comparison modal (per-day records; allowed dialog),
   [Xác nhận hoàn tất thi công] (works_done_at + stage acceptance) with
   optional image-log attachments.
-- `panels/acceptance.tsx` — transitions per redesign (rework note
-  REQUIRED), history from notes, [In thư yêu cầu] →
+- `panels/acceptance/`: 3-step stepper (Hẹn ngày nghiệm thu, Thực hiện
+  Nghiệm thu, Biên bản đã ký & hoàn tất; appointment date REQUIRED, rework
+  note REQUIRED, `signing` sub-status before `passed`), history from notes
+  in the "In thư · Giấy tờ · Lịch sử" drawer, [In thư yêu cầu] →
   `projects/[id]/print/acceptance-request/page.tsx` (DocumentShell
   letter: lịch + biên bản + hình ảnh), Đạt stamps handled server-side.
 - `panels/settlement.tsx` — settlement cards list (phases), embedded
@@ -507,8 +509,8 @@ apps/web too); not yet clicked through in a browser.
   Execution (sub-status stepper w/ skippable hoarding, optional notes,
   duration dual-source + Xem chênh lệch timekeeping modal, exit stamps
   works_done_at + enters acceptance w/ request_sent), acceptance
-  (transitions w/ required rework note, history from notes, printable
-  request letter), settlement (cards list, builder prefilled from deal
+  (3-step stepper w/ required appointment date and rework note, signing
+  step, history from notes in the drawer, printable request letter), settlement (cards list, builder prefilled from deal
   quote, send/sign choreography, bill + milestone actions, settlement &
   bill printables), closed (recap + Mở lại → settlement + repeat-business
   intake ?from). Receivables page gained row actions. Built via 4

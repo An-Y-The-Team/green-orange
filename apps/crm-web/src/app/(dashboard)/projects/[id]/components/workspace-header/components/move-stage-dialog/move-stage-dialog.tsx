@@ -33,7 +33,7 @@ import type { Project } from "../../../../../types";
 import type { StageGate } from "../../../../utils/stage-gates/stage-gates";
 
 /**
- * The manual stage move — an exception, not the flow. Stages advance by
+ * The manual stage move: an exception, not the flow. Stages advance by
  * themselves when the work is done (crm-api-nest common/stage.ts); this is for
  * backfilling a pre-CRM job, undoing a mistake, or reopening a closed one.
  * Soft: the open rows of the current stage are listed, never blocking.
@@ -41,9 +41,13 @@ import type { StageGate } from "../../../../utils/stage-gates/stage-gates";
 export function MoveStageDialog({
   project,
   gates,
+  open,
+  onOpenChange,
 }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   project: Project;
-  /** The CURRENT stage's gates — their open rows are the warning. */
+  /** The CURRENT stage's gates: their open rows are the warning. */
   gates: StageGate[];
 }) {
   const [state, formAction] = useActionState(
@@ -51,7 +55,6 @@ export function MoveStageDialog({
     INITIAL_ACTION_STATE
   );
   const [isPending, startTransition] = useTransition();
-  const [open, setOpen] = useState(false);
 
   // A closed project only reopens to Quyết toán (the server refuses any other
   // PATCH on a closed project).
@@ -67,27 +70,24 @@ export function MoveStageDialog({
 
   useServerAction(state, isPending, {
     ...ACTION_TOAST_TITLES,
-    onSuccess: () => setOpen(false),
+    onSuccess: () => onOpenChange(false),
   });
 
   const unmet = gates.filter((g) => !g.done);
   const currentLabel = labelOf(PROJECT_STAGES, project.stage).label;
 
-  // Open — always start from the sensible default, not last time's pick.
-  const handleOpen = () => {
-    setTarget(defaultTarget);
-    setOpen(true);
+  // Open/close: on open, start from the sensible default, not last time's pick.
+  const handleOpenChange = (next: boolean) => {
+    if (next) setTarget(defaultTarget);
+    onOpenChange(next);
   };
 
-  // Confirm — PATCH the stage; the toast reports the outcome.
+  // Confirm: PATCH the stage; the toast reports the outcome.
   const handleConfirm = () =>
     startTransition(() => formAction({ stage: target }));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Button variant="ghost" onClick={handleOpen}>
-        Chuyển giai đoạn…
-      </Button>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Chuyển giai đoạn thủ công</DialogTitle>
@@ -114,8 +114,8 @@ export function MoveStageDialog({
         {unmet.length > 0 ? (
           <div className="rounded-lg border border-waiting/40 bg-waiting-soft px-3 py-2 text-sm">
             <p className="font-medium text-waiting">
-              Còn {unmet.length} việc ở {currentLabel} — các việc này vẫn hiện
-              để làm sau.
+              Còn {unmet.length} việc ở {currentLabel}. Các việc này vẫn hiện để
+              làm sau.
             </p>
             <ul className="mt-1 list-disc space-y-0.5 pl-5">
               {unmet.map((g) => (

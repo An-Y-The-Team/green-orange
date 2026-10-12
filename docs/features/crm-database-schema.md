@@ -145,7 +145,8 @@ The spine. Stage + orthogonal status + per-stage sub-statuses live here.
 | actual_duration_days      | int null          | **manual = source of truth**; timekeeping-derived value computed at read time, conflict surfaced in UI                                  |
 | approaches                | text null         | free text until a structure emerges                                                                                                     |
 | works_done_at             | timestamptz null  | stage-5 exit button                                                                                                                     |
-| acceptance_sub_status     | text null         | `request_sent` \| `inspecting` \| `rework` \| `passed`                                                                                  |
+| acceptance_sub_status     | text null         | `request_sent` \| `inspecting` \| `rework` \| `signing` \| `passed` (null counts as `request_sent`)                                    |
+| acceptance_scheduled_date | date null         | appointment date the client picked; required to leave `request_sent`, editable while `inspecting`/`rework`                              |
 | acceptance_passed_date    | date null         | stamped when acceptance_sub_status → `passed` (2026-07-23 UI deltas)                                                                    |
 | created_at / updated_at   | timestamptz       |                                                                                                                                         |
 
@@ -495,7 +496,7 @@ crew role names, quote units) is data, stays Vietnamese as typed.
 |                               | closed                                          | Đã đóng                                       |
 | project.status                | active / on_hold / cancelled                    | Đang hoạt động / Hoãn / Hủy                   |
 | project.execution_sub_status  | kickoff / hoarding / works                      | Khởi công / Dựng rào / Thi công               |
-| project.acceptance_sub_status | request_sent / inspecting / rework / passed     | Gửi yêu cầu / Nghiệm thu / Bổ sung / Đạt      |
+| project.acceptance_sub_status | request_sent / inspecting / rework / signing / passed | Gửi yêu cầu / Thực hiện Nghiệm thu / Bổ sung / Chờ ký biên bản / Đạt |
 | quote.status                  | draft / waiting / deal / on_hold / rejected     | Nháp / Chờ / Chốt / Hoãn / Hủy                |
 | contract.status               | draft / signed                                  | Nháp / Đã ký                                  |
 | paperwork_item.status         | preparing / submitted / approved                | Chưa xong / Đã nộp / Đã duyệt                 |

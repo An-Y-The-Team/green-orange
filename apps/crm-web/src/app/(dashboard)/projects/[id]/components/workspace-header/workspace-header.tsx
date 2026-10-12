@@ -1,6 +1,5 @@
 "use client";
 
-import { Pencil } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 
 import {
@@ -21,6 +20,13 @@ import {
 } from "@yan/ui/components/dialog";
 import { Input } from "@yan/ui/components/input";
 import { Label } from "@yan/ui/components/label";
+import {
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuSeparator,
+  MenuTrigger,
+} from "@yan/ui/components/menu";
 import { Select } from "@yan/ui/components/select";
 import { Textarea } from "@yan/ui/components/textarea";
 
@@ -45,6 +51,16 @@ import type { Project, ProjectContact, ProjectType } from "../../../types";
 import type { StageGate } from "../../utils/stage-gates/stage-gates";
 import { MoveStageDialog } from "./components/move-stage-dialog/move-stage-dialog";
 
+// Two-line menu row: the action, then a muted hint of when to use it.
+function MenuItemText({ label, hint }: { label: string; hint: string }) {
+  return (
+    <span className="flex flex-col py-1.5">
+      <span>{label}</span>
+      <span className="text-xs text-muted-foreground">{hint}</span>
+    </span>
+  );
+}
+
 export function WorkspaceHeader({
   project,
   contacts,
@@ -54,7 +70,7 @@ export function WorkspaceHeader({
   project: Project;
   contacts: ProjectContact[];
   projectTypes: ProjectType[];
-  /** The current stage's gates — the manual move warns with the open ones. */
+  /** The current stage's gates: the manual move warns with the open ones. */
   gates: StageGate[];
 }) {
   const [state, formAction] = useActionState(
@@ -70,6 +86,7 @@ export function WorkspaceHeader({
 
   const [holdOpen, setHoldOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const [followUp, setFollowUp] = useState("");
   const [reason, setReason] = useState("");
 
@@ -95,7 +112,7 @@ export function WorkspaceHeader({
   const saveEdit = () =>
     run({
       name: draft.name.trim(),
-      // Omitted while nobody is named — PATCH takes ids, and there is no
+      // Omitted while nobody is named: PATCH takes ids, and there is no
       // "clear it" on the API: attaching a contact is the only move.
       working_contact_id: draft.working_contact_id ?? undefined,
       decision_maker_contact_id: draft.decision_maker_contact_id ?? undefined,
@@ -107,7 +124,7 @@ export function WorkspaceHeader({
   const run = (input: UpdateProjectFormValues) =>
     startTransition(() => formAction(input));
 
-  // Chip toggle — adds/removes one type id in the edit draft.
+  // Chip toggle: adds/removes one type id in the edit draft.
   const handleTypeToggle = (typeId: number) =>
     setDraft((prev) => ({
       ...prev,
@@ -116,7 +133,7 @@ export function WorkspaceHeader({
         : [...prev.type_ids, typeId],
     }));
 
-  // Hoãn — freeze the project at its current stage, then close the dialog; the
+  // Hoãn: freeze the project at its current stage, then close the dialog; the
   // toast reports the outcome. Re-used as "Dời ngày hẹn" while already parked:
   // status is idempotent, only the follow-up date moves (the quote stays frozen).
   const confirmHold = () => {
@@ -128,16 +145,20 @@ export function WorkspaceHeader({
     setHoldOpen(true);
   };
 
-  // Hủy — same shape as Hoãn, with the required reason instead of a date.
+  // Hủy: same shape as Hoãn, with the required reason instead of a date.
   const confirmCancel = () => {
     run({ status: ProjectStatus.CANCELLED, cancel_reason: reason.trim() });
     setCancelOpen(false);
   };
 
+  // "Khác" menu items: each only opens its dialog or form.
+  const handleMoveOpen = () => setMoveOpen(true);
+  const handleCancelOpen = () => setCancelOpen(true);
+
   const parked = project.status === ProjectStatus.ON_HOLD;
   const frozen = parked || project.status === ProjectStatus.CANCELLED;
 
-  // Same key both places it's shown — the header badge and the frozen banner.
+  // Same key both places it's shown: the header badge and the frozen banner.
   // A closed job is locked server-side: only the reopen move (Chuyển giai
   // đoạn… → Quyết toán) is accepted, so the badge says Đã đóng and the edits
   // the server would refuse with a 409 are not offered.
@@ -145,6 +166,10 @@ export function WorkspaceHeader({
   const statusBadge = closed
     ? labelOf(PROJECT_STAGES, ProjectStage.CLOSED)
     : labelOf(PROJECT_STATUSES, project.status);
+
+  const canEdit = !closed;
+  const canMove = !frozen;
+  const canCancel = !frozen && !closed;
 
   const shownContacts = [
     project.working_contact,
@@ -190,7 +215,7 @@ export function WorkspaceHeader({
             {/* Only while none is set: a công trình can be opened before anyone
                 at the company is named, and the API has no way to unset one. */}
             {draft.working_contact_id == null ? (
-              <option value="">— Chưa có —</option>
+              <option value="">Chưa có</option>
             ) : null}
             {contacts.map((c) => (
               <option key={c.id} value={c.id}>
@@ -214,7 +239,7 @@ export function WorkspaceHeader({
             }
           >
             {draft.decision_maker_contact_id == null ? (
-              <option value="">— Chưa có —</option>
+              <option value="">Chưa có</option>
             ) : null}
             {contacts.map((c) => (
               <option key={c.id} value={c.id}>
@@ -307,7 +332,7 @@ export function WorkspaceHeader({
               </Button>
             ) : null}
 
-            {/* Hoãn — pick a follow-up date; while parked, move that date */}
+            {/* Hoãn: pick a follow-up date; while parked, move that date */}
             {project.status !== ProjectStatus.CANCELLED && !closed ? (
               <Dialog open={holdOpen} onOpenChange={setHoldOpen}>
                 <Button variant="outline" onClick={openHold}>
@@ -349,69 +374,95 @@ export function WorkspaceHeader({
               </Dialog>
             ) : null}
 
-            {frozen || closed ? null : (
-              <>
-                {/* Hủy — reason required */}
-                <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
-                  <Button
-                    variant="destructive"
-                    onClick={() => setCancelOpen(true)}
-                  >
-                    {ACTIONS.cancel}
-                  </Button>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Hủy công trình</DialogTitle>
-                      <DialogDescription>
-                        Nhập lý do hủy. Thao tác này đóng băng công trình.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="cancel-reason">Lý do hủy</Label>
-                      <Textarea
-                        id="cancel-reason"
-                        rows={3}
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
+            {canEdit || canMove || canCancel ? (
+              <Menu>
+                <MenuTrigger
+                  render={<Button variant="outline" />}
+                  aria-label="Thao tác khác"
+                >
+                  Khác ▾
+                </MenuTrigger>
+                <MenuContent>
+                  {canEdit ? (
+                    <MenuItem onClick={openEdit}>
+                      <MenuItemText
+                        label="Sửa thông tin công trình"
+                        hint="Tên, địa chỉ, liên hệ, loại công trình"
                       />
-                    </div>
-                    <DialogFooter>
-                      <DialogClose
-                        render={
-                          <Button variant="outline">{ACTIONS.close}</Button>
-                        }
+                    </MenuItem>
+                  ) : null}
+                  {canMove ? (
+                    <MenuItem onClick={handleMoveOpen}>
+                      <MenuItemText
+                        label="Chuyển giai đoạn…"
+                        hint="Chỉ dùng khi cần sửa sai, có cảnh báo việc còn dở"
                       />
-                      <Button
-                        variant="destructive"
-                        disabled={isPending || !reason.trim()}
-                        onClick={confirmCancel}
-                      >
-                        Xác nhận hủy
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </>
-            )}
-            {/* Manual move replaces the old stepper buttons; a frozen job
-                is reactivated first, so it's hidden then. */}
-            {frozen ? null : (
-              <MoveStageDialog project={project} gates={gates} />
-            )}
-            {closed ? null : (
-              <Button variant="ghost" onClick={openEdit}>
-                <Pencil className="size-4" />
-                {ACTIONS.edit}
-              </Button>
-            )}
+                    </MenuItem>
+                  ) : null}
+                  {canCancel ? (
+                    <>
+                      {canEdit || canMove ? <MenuSeparator /> : null}
+                      <MenuItem tone="destructive" onClick={handleCancelOpen}>
+                        <MenuItemText
+                          label="Hủy công trình…"
+                          hint="Hỏi lý do (bắt buộc) trước khi hủy"
+                        />
+                      </MenuItem>
+                    </>
+                  ) : null}
+                </MenuContent>
+              </Menu>
+            ) : null}
           </div>
         </div>
       )}
 
+      {canCancel ? (
+        <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Hủy công trình</DialogTitle>
+              <DialogDescription>
+                Nhập lý do hủy. Thao tác này đóng băng công trình.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <Label htmlFor="cancel-reason">Lý do hủy</Label>
+              <Textarea
+                id="cancel-reason"
+                rows={3}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <DialogClose
+                render={<Button variant="outline">{ACTIONS.close}</Button>}
+              />
+              <Button
+                variant="destructive"
+                disabled={isPending || !reason.trim()}
+                onClick={confirmCancel}
+              >
+                Xác nhận hủy
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
+      {canMove ? (
+        <MoveStageDialog
+          project={project}
+          gates={gates}
+          open={moveOpen}
+          onOpenChange={setMoveOpen}
+        />
+      ) : null}
+
       {frozen ? (
         <div className="rounded-lg border border-waiting/40 bg-waiting-soft px-4 py-2 text-sm">
           <span className="font-medium">{statusBadge.label}</span>
-          {" — đóng băng ở giai đoạn "}
+          {". Đóng băng ở giai đoạn "}
           <span className="font-medium">
             {labelOf(PROJECT_STAGES, project.stage).label}
           </span>

@@ -16,8 +16,9 @@ import {
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 
+import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { EmptyState } from "@/components/empty-state/empty-state";
-import { ACTIONS, PHOTO_TEXT } from "@/constants/labels";
+import { ACTIONS, ATTACHMENT_KINDS, PHOTO_TEXT } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -131,14 +132,28 @@ export function AttachmentList({
       {a.note ? (
         <span className="text-muted-foreground">{`— "${a.note}"`}</span>
       ) : null}
-      <Button
-        variant="destructive"
-        size="sm"
-        disabled={delPending && deletingId === a.id}
-        onClick={() => handleDelete(a.id)}
-      >
-        {ACTIONS.delete}
-      </Button>
+      <ConfirmAction
+        trigger={
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`Xóa ${attachmentName(a.s3_key)}`}
+            disabled={delPending && deletingId === a.id}
+          >
+            {`${ACTIONS.delete}…`}
+          </Button>
+        }
+        title="Xóa tệp này?"
+        consequence={
+          <>
+            <strong>{attachmentName(a.s3_key)}</strong>
+            {` (${ATTACHMENT_KINDS[a.kind]}). Xóa rồi không lấy lại được.`}
+          </>
+        }
+        confirmLabel="Xóa tệp"
+        confirmVariant="destructive"
+        onConfirm={() => handleDelete(a.id)}
+      />
     </>
   );
 

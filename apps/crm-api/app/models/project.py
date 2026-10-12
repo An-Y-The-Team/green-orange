@@ -27,7 +27,7 @@ from app.models.refs import ContactRef
 
 PROJECT_STATUSES = ("active", "on_hold", "cancelled")
 EXECUTION_SUB_STATUSES = ("kickoff", "hoarding", "works")
-ACCEPTANCE_SUB_STATUSES = ("request_sent", "inspecting", "rework", "passed")
+ACCEPTANCE_SUB_STATUSES = ("request_sent", "inspecting", "signing", "rework", "passed")
 
 # The 8 lifecycle stages, in order. app/core/rules.py reads STAGE_ORDER off this
 # Literal, so the list lives in exactly one place.
@@ -43,7 +43,9 @@ ProjectStage = Literal[
 ]
 ProjectStatus = Literal["active", "on_hold", "cancelled"]
 ExecutionSubStatus = Literal["kickoff", "hoarding", "works"]
-AcceptanceSubStatus = Literal["request_sent", "inspecting", "rework", "passed"]
+AcceptanceSubStatus = Literal[
+    "request_sent", "inspecting", "signing", "rework", "passed"
+]
 
 
 # ── Tables ──────────────────────────────────────────────────────────────────
@@ -116,8 +118,10 @@ class Project(SQLModel, table=True):
     works_done_at: datetime | None = Field(
         default=None, sa_type=DateTime(timezone=True)
     )
-    # request_sent | inspecting | rework | passed
+    # request_sent | inspecting | signing | rework | passed
     acceptance_sub_status: str | None = None
+    # Planned inspection date; twin of Nest Project.acceptance_scheduled_date.
+    acceptance_scheduled_date: date | None = None
     # Stamped server-side when acceptance_sub_status → passed.
     acceptance_passed_date: date | None = None
     created_at: datetime = Field(
@@ -218,6 +222,7 @@ class ProjectUpdate(SQLModel):
     building_letter_body: str | None = None
     works_done_at: datetime | None = None
     acceptance_sub_status: AcceptanceSubStatus | None = None
+    acceptance_scheduled_date: date | None = None
 
 
 class ProjectNoteCreate(SQLModel):
@@ -260,6 +265,7 @@ class ProjectPublic(SQLModel):
     building_letter_body: str | None
     works_done_at: datetime | None
     acceptance_sub_status: str | None
+    acceptance_scheduled_date: date | None
     acceptance_passed_date: date | None
     created_at: datetime
     updated_at: datetime

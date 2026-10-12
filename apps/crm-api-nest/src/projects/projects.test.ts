@@ -1,11 +1,13 @@
 // Cross-entity ownership guards (F10) + single-write create (F14), unit-tested
 // against a fake Prisma — no DB. The HTTP roundtrip is the README smoke check.
 import { describe, expect, test } from "bun:test";
+import { plainToInstance } from "class-transformer";
+import { validate } from "class-validator";
 import type { Response } from "express";
 
 import { STAGE_ORDER } from "../common/stage";
 import type { PrismaService } from "../prisma/prisma.service";
-import { ProjectsController } from "./projects.module";
+import { ProjectsController, UpdateProjectDto } from "./projects.module";
 
 describe("project create — contacts must belong to the client", () => {
   // Location 5 belongs to client 1; contact 42 belongs to `contactClientId`.
@@ -275,5 +277,58 @@ describe("project detail — nested quotes carry their send logs", () => {
 
     expect(args.include.quotes.include.send_logs).toBeDefined();
     expect(args.include.quotes.orderBy).toEqual({ version: "desc" });
+  });
+});
+
+describe("update acceptance", () => {
+  const run = async (current: object, body: object) => {
+    let data: any;
+    const prisma = {
+      project: {
+        findUnique: async () => ({ id: 7, stage: "acceptance", ...current }),
+        update: async (a: any) => {
+          data = a.data;
+          return { id: 7, ...a.data };
+        },
+      },
+    } as unknown as PrismaService;
+    await new ProjectsController(prisma).update(7, body as any);
+    return data;
+  };
+
+  test("signing is written without stamping the date or moving the stage", async () => {
+    const data = await run(
+      { acceptance_sub_status: "inspecting" },
+      { acceptance_sub_status: "signing" }
+    );
+    expect(data.acceptance_sub_status).toBe("signing");
+    expect(data.acceptance_passed_date).toBeUndefined();
+    expect(data.stage).toBeUndefined();
+  });
+
+  test("acceptance_scheduled_date writes a Date; null clears it", async () => {
+    const set = await run({}, { acceptance_scheduled_date: "2026-10-14" });
+    expect(set.acceptance_scheduled_date).toBeInstanceOf(Date);
+    expect(set.acceptance_scheduled_date.toISOString().slice(0, 10)).toBe(
+      "2026-10-14"
+    );
+    const cleared = await run({}, { acceptance_scheduled_date: null });
+    expect(cleared.acceptance_scheduled_date).toBeNull();
+  });
+
+  test("passed from signing stamps the date and advances to settlement", async () => {
+    const data = await run(
+      { acceptance_sub_status: "signing", acceptance_passed_date: null },
+      { acceptance_sub_status: "passed" }
+    );
+    expect(data.acceptance_passed_date).toBeInstanceOf(Date);
+    expect(data.stage).toBe("settlement");
+  });
+
+  test("the DTO accepts signing and rejects a bogus sub-status", async () => {
+    const check = (v: string) =>
+      validate(plainToInstance(UpdateProjectDto, { acceptance_sub_status: v }));
+    expect(await check("signing")).toHaveLength(0);
+    expect(await check("bogus")).not.toHaveLength(0);
   });
 });

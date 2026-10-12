@@ -86,6 +86,7 @@ export interface Project {
   building_letter_body?: string | null;
   works_done_at?: string | null; // stage-6 exit (full ISO)
   acceptance_sub_status?: AcceptanceSubStatus | null; // stage 7
+  acceptance_scheduled_date?: string | null; // date the client set for inspection
   acceptance_passed_date?: string | null; // stamped on passed
   created_at: string;
   updated_at: string;

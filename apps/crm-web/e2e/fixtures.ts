@@ -53,6 +53,15 @@ export type Api = {
     type?: MilestoneType;
     status?: MilestoneStatus;
   }): Promise<{ id: number }>;
+  /**
+   * A signed quyết toán worth `amount` with two unpaid đợt: a cọc of `deposit`
+   * (due sooner, so it is Đợt 1) and the remainder the server creates on sign.
+   */
+  createSignedSettlement(opts: {
+    projectId: number;
+    amount: number;
+    deposit: number;
+  }): Promise<void>;
 };
 
 /** `n` days from today as YYYY-MM-DD, in the browser's (= the app's) timezone. */
@@ -124,6 +133,14 @@ function makeApi(request: APIRequestContext): Api {
     }
   };
 
+  const patch = async (path: string, data: unknown) => {
+    const res = await request.patch(`${API_URL}${path}`, {
+      headers: await headers(),
+      data,
+    });
+    expect(res.ok(), `PATCH ${path} → ${res.status()}`).toBe(true);
+  };
+
   return {
     // ponytail: retried, not fixed here. POST /projects derives its code from
     // `max(id) + 1` (crm-api-nest common/code.ts `nextCode`) outside any lock,
@@ -175,6 +192,25 @@ function makeApi(request: APIRequestContext): Api {
         status,
         due_date: dueDate,
       }),
+
+    createSignedSettlement: async ({ projectId, amount, deposit }) => {
+      // Unallocated cọc: signing attaches it to the bill (stage 4 → 8 rule).
+      await post("/payment-milestones", {
+        project_id: projectId,
+        type: MilestoneType.DEPOSIT,
+        amount: deposit,
+        status: MilestoneStatus.AWAITING_PAYMENT,
+        due_date: isoDay(1),
+      });
+      const settlement = (await post("/settlements", {
+        project_id: projectId,
+        items: [
+          { description: "Vệ sinh kính", quantity: 1, unit_price: amount },
+        ],
+      })) as { id: number };
+      await patch(`/settlements/${settlement.id}`, { status: "sent" });
+      await patch(`/settlements/${settlement.id}`, { status: "signed" });
+    },
   };
 }
 

@@ -217,15 +217,23 @@ Starts by mailing a "Nghiệm thu" request to the host/client, requesting:
 Stage 6 sub-status, with a **rework loop**:
 
 ```text
-gui_yeu_cau (Gửi yêu cầu — request mailed, waiting for schedule)
-  └─→ nghiem_thu (Nghiệm thu — inspection scheduled/underway)
-        ├─→ bo_sung (Bổ sung — client found issues, crew reworks)
-        │     └─→ nghiem_thu (re-inspect; loop until passed)
-        └─→ dat (Đạt — biên bản signed) → stage 7
+request_sent (Gửi yêu cầu: letter sent, waiting for the client's date)
+  └─→ inspecting (Thực hiện Nghiệm thu: appointment date recorded)
+        ├─→ rework (Bổ sung: client found issues, crew reworks)
+        │     └─→ inspecting (re-inspect; loop until the client agrees)
+        └─→ signing (Chờ ký biên bản: client agreed, minutes to be signed)
+              ├─→ inspecting ("Quay lại", undo the agreement)
+              └─→ passed (Đạt: stamps acceptance_passed_date) → stage 7
 ```
 
 - Entry: works-done confirmation (stage 5 exit).
-- Exit: biên bản nghiệm thu signed → stage 7.
+- Leaving `request_sent` requires the appointment date
+  (`acceptance_scheduled_date`); it can be changed later and each change is
+  written to the history.
+- Exit: "Hoàn tất nghiệm thu" (`passed`) → stage 7. The signed minutes are
+  recommended, not required; completing without one shows a warning.
+- The UI shows this as a 3-step stepper: Hẹn ngày nghiệm thu, Thực hiện
+  Nghiệm thu, Biên bản đã ký & hoàn tất.
 
 ### 7. Quyết toán & Thanh toán (merged stage)
 
@@ -450,7 +458,7 @@ backfill let a job start at any stage.
 - Cọc received (`tam_ung` milestone `da_thu`) closes stage 3.
 - All `needed_for: execution` paperwork items `da_duyet` + cọc received gates
   Thi công.
-- Biên bản nghiệm thu signed (stage-6 sub-status `dat`) gates stage 7.
+- Stage-6 sub-status `passed` (after `signing`) gates stage 7.
 - Quyết toán `da_ky` turns the draft Bill `chinh_thuc` and defines the
   payment milestones.
 - Final milestone `da_thu` (Bill `da_thanh_toan`) closes the project — and

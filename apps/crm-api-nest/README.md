@@ -92,12 +92,12 @@ Business codes (`CT-…` projects, `HD-…` contracts) are server-assigned.
 - `GET /projects` (`?client_id&stage&status`), `POST /projects` — assigns
   `code` (CT-…); working contact defaults to the location manager, decision
   maker to the working contact; ≥1 type required.
-- `GET|PATCH|DELETE /projects/:id` — PATCH enforces the **stage gates**
-  (forward moves only; backward is free): `contract` needs latest quote =
-  `deal`; `execution` needs `client_signed_date` + a paid deposit milestone +
-  all paperwork approved; `settlement` needs `acceptance_sub_status =
-'passed'`; `closed` needs no unpaid milestones/bills. Cancelling requires
-  `cancel_reason`.
+- `GET|PATCH|DELETE /projects/:id`: PATCH has **no stage gates**
+  (transitions are soft; forward moves auto-advance from the work).
+  `acceptance_sub_status` is `request_sent | inspecting | rework | signing |
+  passed`; `passed` stamps `acceptance_passed_date` and advances to
+  settlement. `acceptance_scheduled_date` (`YYYY-MM-DD`, null clears) is the
+  booked inspection day. Cancelling requires `cancel_reason`.
 - `GET|POST /project-notes`, `DELETE /project-notes/:id`
 - `GET|POST /attachments`, `DELETE /attachments/:id` — `kind`-tagged, may hang
   off a paperwork item.

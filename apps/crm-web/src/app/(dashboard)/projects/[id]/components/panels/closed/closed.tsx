@@ -35,7 +35,11 @@ import { todayISO } from "@/utils/today-iso/today-iso";
 
 import { MilestoneStatus } from "../../../../../receivables/enums";
 import { updateProject } from "../../../../actions/update-project";
-import { ProjectStage, WorkspacePane } from "../../../../enums";
+import {
+  AcceptanceNoteTag,
+  ProjectStage,
+  WorkspacePane,
+} from "../../../../enums";
 import type { Project } from "../../../../types";
 import { viewHref } from "../../../utils/view-href/view-href";
 import { UPLOADED_FILES_ANCHOR } from "../../documents-view/uploaded-files/uploaded-files";
@@ -141,7 +145,8 @@ export function ClosedPanel({
   const firstStamp = project.appointment_at ?? project.visit_date ?? null;
   const closeStamp = project.acceptance_passed_date ?? todayISO();
   const reworkCount =
-    project.notes?.filter((n) => n.tag === "rework").length ?? 0;
+    project.notes?.filter((n) => n.tag === AcceptanceNoteTag.REWORK).length ??
+    0;
 
   const quotes = project.quotes ?? [];
 

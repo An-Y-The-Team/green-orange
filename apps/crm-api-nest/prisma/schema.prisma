@@ -147,7 +147,8 @@ model Project {
   acceptance_letter_body    String? // "Thư yêu cầu nghiệm thu" to the client
   building_letter_body      String? // same letter addressed to the BQL tòa nhà
   works_done_at             DateTime? // stage-6 exit button
-  acceptance_sub_status     String? // request_sent | inspecting | rework | passed
+  acceptance_sub_status     String? // request_sent | inspecting | rework | signing | passed
+  acceptance_scheduled_date DateTime? @db.Date // day the client booked the inspection
   acceptance_passed_date    DateTime? @db.Date // stamped when acceptance_sub_status → passed
   created_at                DateTime  @default(now())
   updated_at                DateTime  @updatedAt

@@ -36,7 +36,19 @@ export enum AcceptanceSubStatus {
   REQUEST_SENT = "request_sent", // Gửi yêu cầu
   INSPECTING = "inspecting", // Nghiệm thu
   REWORK = "rework", // Bổ sung
+  SIGNING = "signing", // Chờ ký biên bản
   PASSED = "passed", // Đạt
+}
+
+// ProjectNote.tag values written by the acceptance stepper.
+export enum AcceptanceNoteTag {
+  SCHEDULED = "acceptance_scheduled",
+  RESCHEDULED = "acceptance_rescheduled",
+  REWORK = "rework", // existing value: closed.tsx and seed data use it
+  REWORK_DONE = "acceptance_rework_done",
+  AGREED = "acceptance_agreed",
+  UNDO_AGREED = "acceptance_undo_agreed",
+  COMPLETED = "acceptance_completed",
 }
 
 // Stage-4 checklist items; overdue is DERIVED (due_date passed, not approved).
@@ -69,6 +81,8 @@ export enum GateKey {
   PAPERWORK_APPROVED = "paperwork_approved",
   START_DATE = "start_date",
   WORKS_DONE = "works_done",
+  ACCEPTANCE_SCHEDULED = "acceptance_scheduled",
+  ACCEPTANCE_AGREED = "acceptance_agreed",
   ACCEPTANCE_PASSED = "acceptance_passed",
   SETTLEMENT_EXISTS = "settlement_exists",
   SETTLEMENT_SIGNED = "settlement_signed",

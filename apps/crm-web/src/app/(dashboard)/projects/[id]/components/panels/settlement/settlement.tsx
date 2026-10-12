@@ -1,38 +1,35 @@
 import Link from "next/link";
-
-import { Button } from "@yan/ui/components/button";
-import { Separator } from "@yan/ui/components/separator";
+import type { ReactNode } from "react";
 
 import type { Quote } from "@/app/(dashboard)/quotes/types";
-import {
-  MilestoneStatus,
-  SettlementStatus,
-} from "@/app/(dashboard)/receivables/enums";
 import type {
   Bill,
   PaymentMilestone,
   Settlement,
 } from "@/app/(dashboard)/receivables/types";
+import { AttachmentList } from "@/components/attachments/attachment-list/attachment-list";
+import { attachmentName } from "@/components/attachments/attachment-upload/attachment-upload";
+import { AttachmentKind } from "@/components/attachments/enums";
 import type { Attachment } from "@/components/attachments/types";
-import { EmptyState } from "@/components/empty-state/empty-state";
-import { MILESTONE_TYPES } from "@/constants/labels";
+import { StepState } from "@/components/step-list/enums";
+import { type StepItem, StepList } from "@/components/step-list/step-list";
+import { ATTACHMENT_KINDS } from "@/constants/labels";
+import { formatDate } from "@/utils/format-date/format-date";
 import { formatVND } from "@/utils/format-vnd/format-vnd";
-import { settlementTotals } from "@/utils/quote-totals/quote-totals";
 
-import { GateKey, ProjectStage } from "../../../../enums";
+import { ProjectStage } from "../../../../enums";
 import type { Project } from "../../../../types";
-import { gateButtonProps } from "../../../utils/gate-button-props/gate-button-props";
-import type { StageGate } from "../../../utils/stage-gates/stage-gates";
-import {
-  type GateActions,
-  GateChecklist,
-} from "../../gate-checklist/gate-checklist";
+import { viewHref } from "../../../utils/view-href/view-href";
 import { StageCard } from "../../stage-card/stage-card";
-import { RecordMilestonePaid } from "./components/record-milestone-paid/record-milestone-paid";
-import {
-  SettlementAdvance,
-  SettlementCard,
-} from "./components/settlement-card/settlement-card";
+import { StageDrawer } from "../../stage-drawer/stage-drawer";
+import { StepCollect } from "./components/step-collect/step-collect";
+import { StepCreate } from "./components/step-create/step-create";
+import { StepSend } from "./components/step-send/step-send";
+import { StepSign } from "./components/step-sign/step-sign";
+import { SettlementStepKey } from "./enums";
+import { paymentPlan } from "./utils/payment-plan/payment-plan";
+import { settlementHistory } from "./utils/settlement-history/settlement-history";
+import { settlementSteps } from "./utils/settlement-steps/settlement-steps";
 
 export function SettlementPanel({
   project,
@@ -41,7 +38,6 @@ export function SettlementPanel({
   bills,
   milestones,
   dealQuote,
-  gates,
 }: {
   project: Project;
   attachments: Attachment[];
@@ -49,9 +45,8 @@ export function SettlementPanel({
   bills: Bill[];
   milestones: PaymentMilestone[];
   dealQuote?: Quote;
-  gates: StageGate[];
 }) {
-  // One quyết toán per công trình (1:1) — the API still answers with a list.
+  // One quyết toán per công trình (1:1); the API still answers with a list.
   const settlement = settlements[0];
   const bill = settlement
     ? (settlement.bill ??
@@ -59,102 +54,195 @@ export function SettlementPanel({
       null)
     : null;
 
-  // Unallocated deposit(s) (pre-bill, stage 4) surface on the card — that's
-  // where the sign transaction attaches them.
-  const unallocated = milestones.filter((m) => m.bill_id == null);
+  const signedFile = attachments.find(
+    (a) => a.kind === AttachmentKind.SETTLEMENT
+  );
+  const steps = settlementSteps({
+    settlement,
+    signedFileName: signedFile ? attachmentName(signedFile.s3_key) : undefined,
+  });
 
-  const collected = milestones
-    .filter((m) => m.status === MilestoneStatus.PAID)
-    .reduce((sum, m) => sum + m.amount, 0);
-  // The payable, not the pre-tax Σ: the đợt thanh toán being counted against it
-  // were derived from the payable on sign.
-  const target = settlement ? settlementTotals(settlement).total : 0;
+  // Unallocated deposit(s) (pre-bill, stage 4) come first: signing attaches them.
+  const rows = [
+    ...milestones.filter((m) => m.bill_id == null),
+    ...milestones.filter((m) => bill && m.bill_id === bill.id),
+  ];
+  const plan = paymentPlan({ milestones: rows, bill });
 
-  // The đợt to collect next: earliest hạn first, undated ones after in
-  // creation order. Only once signed — the đợt are derived on sign.
-  const nextUnpaid =
-    settlement?.status === SettlementStatus.SIGNED
-      ? milestones
-          .filter((m) => m.status !== MilestoneStatus.PAID)
-          .sort(
-            (a, b) =>
-              (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999") ||
-              a.id - b.id
-          )[0]
-      : undefined;
+  const showBanner =
+    project.stage === ProjectStage.SETTLEMENT &&
+    Boolean(project.acceptance_passed_date) &&
+    settlements.length === 0;
 
-  // Create first, then send → sign, then collect. Hóa đơn chính thức follows
-  // the signature, so it has no button of its own.
-  const actions: GateActions = settlement
-    ? {
-        [GateKey.SETTLEMENT_SIGNED]: (primary) => (
-          <SettlementAdvance settlement={settlement} primary={primary} />
-        ),
-        ...(nextUnpaid && {
-          [GateKey.MILESTONES_PAID]: (primary: boolean) => (
-            <RecordMilestonePaid
-              milestone={nextUnpaid}
-              projectId={project.id}
-              primary={primary}
-              label={`Ghi nhận đã thu · ${MILESTONE_TYPES[nextUnpaid.type] ?? nextUnpaid.type} · ${formatVND(nextUnpaid.amount)}`}
-            />
-          ),
-        }),
-      }
-    : {
-        [GateKey.SETTLEMENT_EXISTS]: (primary) => (
-          <Button
-            {...gateButtonProps(primary)}
-            render={
-              <Link
-                data-edit-link
-                href={`/projects/${project.id}/settlements/new`}
-              />
-            }
-          >
-            Lập quyết toán
-          </Button>
-        ),
-      };
+  const bodies: Record<SettlementStepKey, ReactNode> = {
+    [SettlementStepKey.CREATE]: (
+      <StepCreate projectId={project.id} dealQuote={dealQuote} />
+    ),
+    [SettlementStepKey.SEND]: settlement ? (
+      <StepSend settlement={settlement} projectId={project.id} />
+    ) : null,
+    [SettlementStepKey.SIGN]: settlement ? (
+      <StepSign
+        settlement={settlement}
+        bill={bill}
+        projectId={project.id}
+        attachments={attachments}
+      />
+    ) : null,
+    [SettlementStepKey.COLLECT]: settlement ? (
+      <StepCollect
+        settlementId={settlement.id}
+        bill={bill}
+        milestones={rows}
+        plan={plan}
+        projectId={project.id}
+        attachments={attachments}
+      />
+    ) : null,
+  };
+
+  const items: StepItem[] = steps.map((step) => ({
+    key: step.key,
+    title: step.title,
+    state: step.state,
+    // Only DONE steps and the FUTURE Thu tiền hint carry a summary.
+    summary:
+      step.state === StepState.DONE ||
+      (step.key === SettlementStepKey.COLLECT &&
+        step.state === StepState.FUTURE)
+        ? step.summary
+        : undefined,
+    badge:
+      step.key === SettlementStepKey.COLLECT && step.state === StepState.NOW ? (
+        <span className="ml-auto text-sm">
+          Đã thu{" "}
+          <span className="font-semibold tabular-nums">
+            {formatVND(plan.collected)}
+          </span>{" "}
+          / <span className="tabular-nums">{formatVND(plan.target)}</span>
+        </span>
+      ) : undefined,
+    children: bodies[step.key],
+  }));
+
+  const history = settlementHistory({
+    settlement,
+    bill,
+    milestones: rows,
+    numbers: plan.numbers,
+  });
+  const printHref = (path: string) => `/projects/${project.id}/print/${path}`;
+  const proofLabels = Object.fromEntries(
+    rows.map((m) => [m.id, `Đợt ${plan.numbers.get(m.id)}`])
+  );
 
   return (
     <StageCard stage={ProjectStage.SETTLEMENT} contentClassName="space-y-4">
-      <GateChecklist
-        stage={ProjectStage.SETTLEMENT}
-        gates={gates}
-        actions={actions}
-      />
+      {showBanner ? (
+        <p
+          role="status"
+          className="rounded-lg bg-done-soft p-3 text-sm text-done"
+        >
+          ✓ Nghiệm thu xong ngày {formatDate(project.acceptance_passed_date)}.
+          Công trình đã chuyển sang Quyết toán &amp; Thanh toán.{" "}
+          <Link
+            className="font-medium underline"
+            href={viewHref({ project, view: ProjectStage.ACCEPTANCE })}
+          >
+            Xem lại Nghiệm thu
+          </Link>
+        </p>
+      ) : null}
+
+      <StepList steps={items} aria-label="Các bước quyết toán" />
+
       {settlement ? (
-        <SettlementCard
-          settlement={settlement}
-          bill={bill}
-          billMilestones={
-            bill ? milestones.filter((m) => m.bill_id === bill.id) : []
-          }
-          extraMilestones={unallocated}
-          projectId={project.id}
-          attachments={attachments}
+        <StageDrawer
+          label="In · Giấy tờ · Lịch sử"
+          sections={[
+            {
+              title: "In lại",
+              content: (
+                <div className="flex flex-wrap gap-3 text-sm">
+                  <Link
+                    className="underline"
+                    href={printHref(`settlement/${settlement.id}`)}
+                    target="_blank"
+                  >
+                    In quyết toán
+                  </Link>
+                  {bill ? (
+                    <Link
+                      className="underline"
+                      href={printHref(`bill/${bill.id}`)}
+                      target="_blank"
+                    >
+                      In đề nghị thanh toán
+                    </Link>
+                  ) : null}
+                </div>
+              ),
+            },
+            {
+              title: "Giấy tờ",
+              content: (
+                <div className="space-y-3">
+                  {[
+                    AttachmentKind.SETTLEMENT,
+                    AttachmentKind.VAT_INVOICE,
+                    AttachmentKind.PAYMENT_PROOF,
+                  ].map((kind) => (
+                    <AttachmentList
+                      key={kind}
+                      addable={false}
+                      owner={{ project_id: project.id }}
+                      kind={kind}
+                      initial={attachments.filter((a) => a.kind === kind)}
+                      title={ATTACHMENT_KINDS[kind]}
+                      emptyMessage="Chưa có tệp."
+                      recordLabels={
+                        kind === AttachmentKind.PAYMENT_PROOF
+                          ? Object.fromEntries(
+                              attachments
+                                .filter(
+                                  (a) =>
+                                    a.kind === kind && a.payment_milestone_id
+                                )
+                                .map((a) => [
+                                  a.id,
+                                  proofLabels[a.payment_milestone_id ?? 0] ??
+                                    "",
+                                ])
+                            )
+                          : undefined
+                      }
+                    />
+                  ))}
+                </div>
+              ),
+            },
+            {
+              title: "Lịch sử",
+              content: (
+                <ul className="space-y-1 text-sm">
+                  {history.length > 0 ? (
+                    history.map((h) => (
+                      <li key={h.key}>
+                        <span className="tabular-nums text-muted-foreground">
+                          {formatDate(h.date)}
+                        </span>{" "}
+                        {h.label}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-muted-foreground">Chưa có mục nào.</li>
+                  )}
+                </ul>
+              ),
+            },
+          ]}
         />
-      ) : (
-        <EmptyState
-          message={
-            dealQuote
-              ? "Chưa có quyết toán. Quyết toán mới sẽ lấy hạng mục từ báo giá đã chốt."
-              : "Chưa có quyết toán."
-          }
-        />
-      )}
-
-      <Separator />
-
-      <p className="text-sm">
-        <span className="text-muted-foreground">Toàn công trình: </span>
-        Đã thu{" "}
-        <span className="font-semibold tabular-nums">
-          {formatVND(collected)}
-        </span>{" "}
-        / <span className="tabular-nums">{formatVND(target)}</span>
-      </p>
+      ) : null}
     </StageCard>
   );
 }

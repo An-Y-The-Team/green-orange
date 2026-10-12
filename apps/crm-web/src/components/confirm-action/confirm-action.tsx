@@ -35,6 +35,7 @@ export function ConfirmAction({
   title,
   consequence,
   confirmLabel = ACTIONS.confirm,
+  confirmVariant = "default",
   onConfirm,
   pending,
   confirmDisabled,
@@ -53,6 +54,7 @@ export function ConfirmAction({
   title: string;
   consequence?: ReactNode;
   confirmLabel?: string;
+  confirmVariant?: "default" | "destructive";
   onConfirm: () => void;
   pending?: boolean;
   confirmDisabled?: boolean;
@@ -78,6 +80,7 @@ export function ConfirmAction({
             {ACTIONS.close}
           </Button>
           <Button
+            variant={confirmVariant}
             disabled={pending || confirmDisabled}
             onClick={() => {
               onConfirm();
