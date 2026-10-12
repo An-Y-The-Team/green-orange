@@ -95,7 +95,7 @@ Business codes (`CT-…` projects, `HD-…` contracts) are server-assigned.
 - `GET|PATCH|DELETE /projects/:id`: PATCH has **no stage gates**
   (transitions are soft; forward moves auto-advance from the work).
   `acceptance_sub_status` is `request_sent | inspecting | rework | signing |
-  passed`; `passed` stamps `acceptance_passed_date` and advances to
+passed`; `passed` stamps `acceptance_passed_date` and advances to
   settlement. `acceptance_scheduled_date` (`YYYY-MM-DD`, null clears) is the
   booked inspection day. Cancelling requires `cancel_reason`.
 - `GET|POST /project-notes`, `DELETE /project-notes/:id`

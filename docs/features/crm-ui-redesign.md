@@ -574,11 +574,11 @@ Design boards: https://claude.ai/artifact/QjQ99LLKa6cgHJ9dHFK4mY ("B chi tiết 
 
 The panel is a 3-step stepper; the sub-status decides the open step.
 
-| Step | Sub-status | What it holds |
-|---|---|---|
-| 1. Hẹn ngày nghiệm thu | `request_sent` | print "In thư yêu cầu nghiệm thu" / "In thư gửi BQL tòa nhà"; required date "Ngày khách hẹn nghiệm thu"; primary "Khách đã hẹn lịch" |
-| 2. Thực hiện Nghiệm thu | `inspecting`, `rework` | "Ngày hẹn" with "Đổi ngày hẹn"; primary "Nghiệm thu Đạt"; outline "Khách báo lỗi, cần sửa…" opens an inline form (required note, optional defect photos); in `rework`: the client's note, defect photos, optional "Ảnh sau khi sửa", primary "Đã sửa xong, nghiệm thu lại" |
-| 3. Biên bản đã ký & hoàn tất | `signing` | signed minutes upload (recommended, not required); ghost "Quay lại" (back to step 2); primary "Hoàn tất nghiệm thu" with a confirm that warns when no minutes are attached |
+| Step                         | Sub-status             | What it holds                                                                                                                                                                                                                                                              |
+| ---------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Hẹn ngày nghiệm thu       | `request_sent`         | print "In thư yêu cầu nghiệm thu" / "In thư gửi BQL tòa nhà"; required date "Ngày khách hẹn nghiệm thu"; primary "Khách đã hẹn lịch"                                                                                                                                       |
+| 2. Thực hiện Nghiệm thu      | `inspecting`, `rework` | "Ngày hẹn" with "Đổi ngày hẹn"; primary "Nghiệm thu Đạt"; outline "Khách báo lỗi, cần sửa…" opens an inline form (required note, optional defect photos); in `rework`: the client's note, defect photos, optional "Ảnh sau khi sửa", primary "Đã sửa xong, nghiệm thu lại" |
+| 3. Biên bản đã ký & hoàn tất | `signing`              | signed minutes upload (recommended, not required); ghost "Quay lại" (back to step 2); primary "Hoàn tất nghiệm thu" with a confirm that warns when no minutes are attached                                                                                                 |
 
 `passed` shows every step done as a read-only summary.
 
