@@ -76,18 +76,12 @@ export function MoveStageDialog({
   const unmet = gates.filter((g) => !g.done);
   const currentLabel = labelOf(PROJECT_STAGES, project.stage).label;
 
-  // Open/close: on open, start from the sensible default, not last time's pick.
-  const handleOpenChange = (next: boolean) => {
-    if (next) setTarget(defaultTarget);
-    onOpenChange(next);
-  };
-
   // Confirm: PATCH the stage; the toast reports the outcome.
   const handleConfirm = () =>
     startTransition(() => formAction({ stage: target }));
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Chuyển giai đoạn thủ công</DialogTitle>

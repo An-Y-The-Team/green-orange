@@ -50,17 +50,23 @@ function MenuContent({
   );
 }
 
+/** How a menu item reads: destructive items (Hủy…) are red. */
+enum MenuItemTone {
+  DEFAULT = "default",
+  DESTRUCTIVE = "destructive",
+}
+
 function MenuItem({
   className,
-  tone = "default",
+  tone = MenuItemTone.DEFAULT,
   ...props
-}: MenuPrimitive.Item.Props & { tone?: "default" | "destructive" }) {
+}: MenuPrimitive.Item.Props & { tone?: MenuItemTone }) {
   return (
     <MenuPrimitive.Item
       data-slot="menu-item"
       className={cn(
         "flex min-h-11 cursor-default items-center gap-2 rounded-md px-3 outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50",
-        tone === "destructive"
+        tone === MenuItemTone.DESTRUCTIVE
           ? "text-destructive data-highlighted:bg-destructive/10"
           : "data-highlighted:bg-muted",
         "data-highlighted:ring-2 data-highlighted:ring-ring/50",
@@ -71,10 +77,7 @@ function MenuItem({
   );
 }
 
-function MenuSeparator({
-  className,
-  ...props
-}: MenuPrimitive.Separator.Props) {
+function MenuSeparator({ className, ...props }: MenuPrimitive.Separator.Props) {
   return (
     <MenuPrimitive.Separator
       data-slot="menu-separator"
@@ -84,4 +87,11 @@ function MenuSeparator({
   );
 }
 
-export { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger };
+export {
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuItemTone,
+  MenuSeparator,
+  MenuTrigger,
+};

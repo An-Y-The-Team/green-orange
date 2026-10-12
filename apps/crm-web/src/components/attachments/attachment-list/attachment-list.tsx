@@ -52,7 +52,10 @@ interface AttachmentListProps {
   kind: AttachmentKind;
   /** The record these files document — also how `initial` was filtered. */
   link?: AttachmentLink;
-  /** Server-fetched rows of this kind; the list owns them from then on. */
+  /**
+   * Server-fetched rows of this kind. The list edits its own copy and resets to
+   * this whenever the server's set of ids changes.
+   */
   initial: Attachment[];
   title: string;
   /**
@@ -95,6 +98,16 @@ export function AttachmentList({
 }: AttachmentListProps) {
   const [rows, setRows] = useState<Attachment[]>(initial);
   const [showAdd, setShowAdd] = useState(false);
+
+  // Re-sync when the server's set of files changes (an upload or delete made in
+  // another list of the same kind, then revalidated). Keyed on ids, not the
+  // array, because callers pass a fresh `.filter()` on every render.
+  const initialIds = initial.map((a) => a.id).join(",");
+  const [syncedIds, setSyncedIds] = useState(initialIds);
+  if (initialIds !== syncedIds) {
+    setSyncedIds(initialIds);
+    setRows(initial);
+  }
 
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [delState, delAction] = useActionState(

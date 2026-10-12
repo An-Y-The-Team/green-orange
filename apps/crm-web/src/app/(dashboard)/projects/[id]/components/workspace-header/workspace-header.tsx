@@ -24,6 +24,7 @@ import {
   Menu,
   MenuContent,
   MenuItem,
+  MenuItemTone,
   MenuSeparator,
   MenuTrigger,
 } from "@yan/ui/components/menu";
@@ -402,7 +403,10 @@ export function WorkspaceHeader({
                   {canCancel ? (
                     <>
                       {canEdit || canMove ? <MenuSeparator /> : null}
-                      <MenuItem tone="destructive" onClick={handleCancelOpen}>
+                      <MenuItem
+                        tone={MenuItemTone.DESTRUCTIVE}
+                        onClick={handleCancelOpen}
+                      >
                         <MenuItemText
                           label="Hủy công trình…"
                           hint="Hỏi lý do (bắt buộc) trước khi hủy"
@@ -450,7 +454,10 @@ export function WorkspaceHeader({
           </DialogContent>
         </Dialog>
       ) : null}
-      {canMove ? (
+      {/* Mounted only while open, so every open starts from the current
+          stage's default target, not a pick left over from before a stage
+          change (Base UI never calls onOpenChange for a parent-driven open). */}
+      {canMove && moveOpen ? (
         <MoveStageDialog
           project={project}
           gates={gates}

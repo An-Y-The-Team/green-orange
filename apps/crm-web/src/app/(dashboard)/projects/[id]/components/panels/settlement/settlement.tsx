@@ -194,7 +194,10 @@ export function SettlementPanel({
                   ].map((kind) => (
                     <AttachmentList
                       key={kind}
-                      addable={false}
+                      // The signed scan often arrives after "Khách đã ký", when
+                      // Bước 3 is closed: this is its only upload slot then.
+                      // VAT and payment proof are added on their own rows.
+                      addable={kind === AttachmentKind.SETTLEMENT}
                       owner={{ project_id: project.id }}
                       kind={kind}
                       initial={attachments.filter((a) => a.kind === kind)}

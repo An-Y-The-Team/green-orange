@@ -7,7 +7,6 @@ import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
 import { DateInput } from "@yan/ui/components/date-input/date-input";
-import { Label } from "@yan/ui/components/label";
 
 import { updateProjectWithNote } from "@/app/(dashboard)/projects/actions/update-project-with-note";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@/app/(dashboard)/projects/enums";
 import type { Project } from "@/app/(dashboard)/projects/types";
 import { ConfirmAction } from "@/components/confirm-action/confirm-action";
+import { FieldLabel } from "@/components/form-bits/form-bits";
 import {
   ACCEPTANCE_SUB_STATUSES,
   EXECUTION_SUB_STATUSES,
@@ -152,11 +152,12 @@ export function FieldSubStatusCard({ project }: { project: Project }) {
                 onConfirm={handleScheduled}
               >
                 <div className="space-y-1">
-                  <Label htmlFor={`scheduled-${project.id}`}>
+                  <FieldLabel htmlFor={`scheduled-${project.id}`} required>
                     Ngày khách hẹn nghiệm thu
-                  </Label>
+                  </FieldLabel>
                   <DateInput
                     id={`scheduled-${project.id}`}
+                    required
                     value={scheduledDate}
                     onChange={setScheduledDate}
                   />
