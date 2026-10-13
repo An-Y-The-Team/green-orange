@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -137,17 +138,19 @@ class RemedyDto {
 
 /**
  * The whole remedy path, exported for the unit test (fake-prisma pattern):
- * 1. an Assignment must cover work_date — being on the roster is not enough,
+ * 1. work_date may not be in the future — a đơn bù công is a claim about a day
+ *    that has already happened (400);
+ * 2. an Assignment must cover work_date — being on the roster is not enough,
  *    the worker must be phân công on that project that day (403 otherwise);
- * 2. the project must be open (409), EXCEPT when closing a shift that is already
+ * 3. the project must be open (409), EXCEPT when closing a shift that is already
  *    open — otherwise a project closed mid-shift traps the worker completely;
- * 3. hours come from the start/end pair, never from the client;
- * 4. a server-stamped start survives any remedy: it is preserved whenever the
+ * 4. hours come from the start/end pair, never from the client;
+ * 5. a server-stamped start survives any remedy: it is preserved whenever the
  *    row's own times were not themselves claimed, so the stamp is never the
  *    worker's to rewrite;
- * 5. a fully-stamped shift (clocked in AND out, undecided) is refused outright —
+ * 6. a fully-stamped shift (clocked in AND out, undecided) is refused outright —
  *    the office corrects those in the grid;
- * 6. upsert on the same 4-col key as POST /timekeeping: a rejected row and a
+ * 7. upsert on the same 4-col key as POST /timekeeping: a rejected row and a
  *    previous remedy are overwritten back to pending (resubmission), an approved
  *    day is locked (409) — chỉ văn phòng sửa được công đã duyệt.
  */
@@ -157,6 +160,14 @@ export const submitRemedy = async (
   dto: RemedyDto
 ) => {
   const workDate = toDate(dto.work_date)!;
+
+  // A đơn bù công is a claim about a day that has already happened. Nothing
+  // rejected a future date, so a worker could file tomorrow's công — and with
+  // remedy_reason set it reached the office queue looking like any other
+  // pending row. First, so it costs no query.
+  if (workDate > businessToday()) {
+    throw new BadRequestException("Không thể báo công cho ngày chưa đến");
+  }
 
   const assignment = await prisma.assignment.findFirst({
     where: {
