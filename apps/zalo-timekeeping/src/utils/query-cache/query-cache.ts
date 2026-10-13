@@ -22,3 +22,34 @@ export function invalidate(key?: string): void {
   if (key === undefined) cache.clear();
   else cache.delete(key);
 }
+
+// Zalo keeps a mini app's webview alive when the worker switches back to the
+// chat list, so the cache outlived the day: nothing ever invalidated the công
+// trình list, and an assignment added in the office only appeared once the
+// worker force-closed the app. Dropping everything on resume also refreshes the
+// shift and the history, which are just as stale after a night with the app open.
+let epoch = 0;
+const listeners = new Set<() => void>();
+
+const onVisibilityChange = () => {
+  if (document.visibilityState !== "visible") return;
+  cache.clear();
+  epoch += 1;
+  for (const listener of listeners) listener();
+};
+
+/** `useSyncExternalStore` pair — subscribing to it re-reads every key on resume. */
+export function subscribeResume(onStoreChange: () => void): () => void {
+  if (listeners.size === 0) {
+    document.addEventListener("visibilitychange", onVisibilityChange);
+  }
+  listeners.add(onStoreChange);
+  return () => {
+    listeners.delete(onStoreChange);
+    if (listeners.size === 0) {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    }
+  };
+}
+
+export const resumeEpoch = (): number => epoch;

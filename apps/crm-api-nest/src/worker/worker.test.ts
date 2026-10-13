@@ -226,6 +226,21 @@ describe("submitRemedy (đơn bù công)", () => {
     expect(args.create.remedy_reason).toBe("Quên chấm công vào");
   });
 
+  // Nothing rejected a future date, so a worker could file tomorrow's công and
+  // it reached the office queue as an ordinary pending row. Two days rather
+  // than one: a UTC "+1 day" is still today in Asia/Ho_Chi_Minh for part of
+  // the night, which would make this test pass only during office hours.
+  test("a future work_date is refused before any read or write", async () => {
+    const { prisma, upserts } = fake(null);
+    const future = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    await expect(
+      submitRemedy(prisma, 1, dto({ work_date: future }) as never)
+    ).rejects.toThrow(/ngày chưa đến/);
+    expect(upserts).toHaveLength(0);
+  });
+
   test("a day outside every assignment window is a 403", async () => {
     const { prisma } = fake(null);
     await expect(

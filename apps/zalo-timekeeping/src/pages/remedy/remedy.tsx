@@ -53,11 +53,12 @@ export function RemedyPage({
   const [projectId, setProjectId] = useState<number | null>(
     shiftToClose?.project?.id ?? prefill?.projectId ?? projects[0]?.id ?? null
   );
+  // The API refuses a ngày làm in the future (a đơn bù công is about a day that
+  // has happened), so cap the calendar instead of letting the worker fill the
+  // whole form and meet the rule as an error.
+  const today = dayjs().format("YYYY-MM-DD");
   const [workDate, setWorkDate] = useState(
-    () =>
-      shiftToClose?.work_date ??
-      prefill?.workDate ??
-      dayjs().format("YYYY-MM-DD")
+    () => shiftToClose?.work_date ?? prefill?.workDate ?? today
   );
   const [startTime, setStartTime] = useState(
     shiftToClose?.start_time ?? DEFAULT_START_TIME
@@ -163,7 +164,12 @@ export function RemedyPage({
 
           <label className="field">
             Ngày làm
-            <input type="date" value={workDate} onChange={handleDateChange} />
+            <input
+              type="date"
+              value={workDate}
+              max={today}
+              onChange={handleDateChange}
+            />
           </label>
 
           <div className="field-row">
