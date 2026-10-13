@@ -1,4 +1,4 @@
-import { Suspense, use, useState } from "react";
+import { Suspense, use, useState, useSyncExternalStore } from "react";
 
 import { ErrorBoundary } from "./components/error-boundary/error-boundary";
 import { HistoryPage } from "./pages/history/history";
@@ -7,7 +7,12 @@ import { OnboardingPage } from "./pages/onboarding/onboarding";
 import { RemedyPage } from "./pages/remedy/remedy";
 import type { OpenShift, RemedyPrefill } from "./types";
 import { clearToken, identify } from "./utils/api/api";
-import { cachedFetch, invalidate } from "./utils/query-cache/query-cache";
+import {
+  cachedFetch,
+  invalidate,
+  resumeEpoch,
+  subscribeResume,
+} from "./utils/query-cache/query-cache";
 
 enum PageName {
   HOME = "home",
@@ -46,6 +51,10 @@ function Session() {
 // surfaces as a 401 on the first data load, which clears it and drops back to
 // onboarding.
 function Shell({ onUnlinked }: { onUnlinked: () => void }) {
+  // Re-render whenever the worker returns to the app, so the pages below re-read
+  // the cache that query-cache.ts just dropped. Subscribing IS the effect — the
+  // value is only a change counter.
+  useSyncExternalStore(subscribeResume, resumeEpoch);
   const [page, setPage] = useState<PageName>(PageName.HOME);
   // Set when the remedy form is opened to close a shift they forgot to chấm
   // công ra: the project, date and stamped start are then fixed, and only the
