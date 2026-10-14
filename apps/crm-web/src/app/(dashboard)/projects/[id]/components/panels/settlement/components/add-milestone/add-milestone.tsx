@@ -19,7 +19,7 @@ import { ACTIONS, FIELDS } from "@/constants/labels";
 import { useRun } from "@/hooks/use-run/use-run";
 import { vndInWords } from "@/utils/vnd-in-words/vnd-in-words";
 
-/** "+ Thêm đợt" — adds a payment milestone against the settlement's bill. */
+/** "+ Thêm đợt": adds a payment milestone against the settlement's bill. */
 export function AddMilestone({
   projectId,
   billId,

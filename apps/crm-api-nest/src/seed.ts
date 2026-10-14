@@ -320,6 +320,7 @@ export const PROJECTS: SeededProject[] = [
     actual_duration_days: 11,
     works_done_at: atHour(-1, 16),
     acceptance_sub_status: "inspecting",
+    acceptance_scheduled_date: day(-3),
     type_names: ["Tháo dỡ"],
   },
   {
@@ -365,6 +366,26 @@ export const PROJECTS: SeededProject[] = [
     visit_date: day(-22),
     survey_note: "Sân thượng 300m², lan can kính cần vệ sinh riêng.",
     type_names: ["Vệ sinh"],
+  },
+  {
+    // Stage 7, nghiệm thu: "Chờ ký biên bản": the stepper's signing state.
+    id: 10,
+    code: "CT-2026-010",
+    client_id: 1,
+    location_id: 1,
+    working_contact_id: 1,
+    decision_maker_contact_id: 1,
+    name: "Sơn lại hành lang tầng 5 Toà nhà A",
+    stage: "acceptance",
+    visit_date: day(-45),
+    client_signed_date: day(-40),
+    start_date: day(-20),
+    est_duration_days: 8,
+    actual_duration_days: 8,
+    works_done_at: atHour(-8, 16),
+    acceptance_sub_status: "signing",
+    acceptance_scheduled_date: day(-5),
+    type_names: ["Thi công"],
   },
 ];
 

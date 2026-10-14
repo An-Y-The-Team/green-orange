@@ -146,13 +146,7 @@ export function StagePanel({
           />
         );
       case ProjectStage.ACCEPTANCE:
-        return (
-          <AcceptancePanel
-            project={project}
-            attachments={attachments}
-            gates={gates}
-          />
-        );
+        return <AcceptancePanel project={project} attachments={attachments} />;
       case ProjectStage.SETTLEMENT:
         return (
           <SettlementPanel
@@ -162,7 +156,6 @@ export function StagePanel({
             bills={bills}
             milestones={milestones}
             dealQuote={dealQuote}
-            gates={gates}
           />
         );
       case ProjectStage.CLOSED:

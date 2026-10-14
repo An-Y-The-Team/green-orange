@@ -138,10 +138,14 @@ export const ACCEPTANCE_SUB_STATUSES: Record<AcceptanceSubStatus, Label> = {
     variant: "warning",
   },
   [AcceptanceSubStatus.INSPECTING]: {
-    label: "Nghiệm thu",
+    label: "Thực hiện Nghiệm thu",
     variant: "default",
   },
   [AcceptanceSubStatus.REWORK]: { label: "Bổ sung", variant: "warning" },
+  [AcceptanceSubStatus.SIGNING]: {
+    label: "Chờ ký biên bản",
+    variant: "warning",
+  },
   [AcceptanceSubStatus.PASSED]: { label: "Đạt", variant: "success" },
 };
 

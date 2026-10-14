@@ -16,8 +16,9 @@ import {
 } from "@yan/shared/hooks/use-server-actions";
 import { Button } from "@yan/ui/components/button";
 
+import { ConfirmAction } from "@/components/confirm-action/confirm-action";
 import { EmptyState } from "@/components/empty-state/empty-state";
-import { ACTIONS, PHOTO_TEXT } from "@/constants/labels";
+import { ACTIONS, ATTACHMENT_KINDS, PHOTO_TEXT } from "@/constants/labels";
 import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
@@ -51,7 +52,10 @@ interface AttachmentListProps {
   kind: AttachmentKind;
   /** The record these files document — also how `initial` was filtered. */
   link?: AttachmentLink;
-  /** Server-fetched rows of this kind; the list owns them from then on. */
+  /**
+   * Server-fetched rows of this kind. The list edits its own copy and resets to
+   * this whenever the server's set of ids changes.
+   */
   initial: Attachment[];
   title: string;
   /**
@@ -95,6 +99,16 @@ export function AttachmentList({
   const [rows, setRows] = useState<Attachment[]>(initial);
   const [showAdd, setShowAdd] = useState(false);
 
+  // Re-sync when the server's set of files changes (an upload or delete made in
+  // another list of the same kind, then revalidated). Keyed on ids, not the
+  // array, because callers pass a fresh `.filter()` on every render.
+  const initialIds = initial.map((a) => a.id).join(",");
+  const [syncedIds, setSyncedIds] = useState(initialIds);
+  if (initialIds !== syncedIds) {
+    setSyncedIds(initialIds);
+    setRows(initial);
+  }
+
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [delState, delAction] = useActionState(
     (prev: ServerActionState, id: number) => deleteAttachment(id, owner, prev),
@@ -131,14 +145,28 @@ export function AttachmentList({
       {a.note ? (
         <span className="text-muted-foreground">{`— "${a.note}"`}</span>
       ) : null}
-      <Button
-        variant="destructive"
-        size="sm"
-        disabled={delPending && deletingId === a.id}
-        onClick={() => handleDelete(a.id)}
-      >
-        {ACTIONS.delete}
-      </Button>
+      <ConfirmAction
+        trigger={
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`Xóa ${attachmentName(a.s3_key)}`}
+            disabled={delPending && deletingId === a.id}
+          >
+            {`${ACTIONS.delete}…`}
+          </Button>
+        }
+        title="Xóa tệp này?"
+        consequence={
+          <>
+            <strong>{attachmentName(a.s3_key)}</strong>
+            {` (${ATTACHMENT_KINDS[a.kind]}). Xóa rồi không lấy lại được.`}
+          </>
+        }
+        confirmLabel="Xóa tệp"
+        confirmVariant="destructive"
+        onConfirm={() => handleDelete(a.id)}
+      />
     </>
   );
 

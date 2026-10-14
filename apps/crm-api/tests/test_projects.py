@@ -101,6 +101,27 @@ def test_patch_rules(client: TestClient, project: dict):
     assert passed.json()["acceptance_passed_date"] == business_today().isoformat()
 
 
+def test_signing_and_scheduled_date(client: TestClient, project: dict):
+    pid = project["id"]
+    res = client.patch(
+        f"/projects/{pid}",
+        json={
+            "acceptance_sub_status": "signing",
+            "acceptance_scheduled_date": "2026-10-20",
+        },
+    )
+    body = res.json()
+    assert res.status_code == 200
+    assert body["acceptance_sub_status"] == "signing"
+    assert body["acceptance_passed_date"] is None
+    assert body["stage"] == project["stage"]
+    assert body["acceptance_scheduled_date"] == "2026-10-20"
+    cleared = client.patch(f"/projects/{pid}", json={"acceptance_scheduled_date": None})
+    assert cleared.json()["acceptance_scheduled_date"] is None
+    bogus = client.patch(f"/projects/{pid}", json={"acceptance_sub_status": "bogus"})
+    assert bogus.status_code == 422
+
+
 def test_closed_project_is_locked_except_for_the_reopen(
     client: TestClient, session: Session, project: dict
 ):

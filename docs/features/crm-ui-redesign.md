@@ -568,36 +568,41 @@ parking chore.
   (`approaches`).
 - Exit stamps `works_done_at` → stage 6; optional image-log attachments.
 
-### Stage 6 — Nghiệm thu (confirmed 2026-07-23)
+### Stage 6: Nghiệm thu (confirmed 2026-07-23, stepper 2026-10)
 
-```text
-┌ GIAI ĐOẠN 6 · NGHIỆM THU ──────────────────────┐
-│ Gửi yêu cầu ●──● Nghiệm thu ⇄ Bổ sung ──○ Đạt   │
-│                                                 │
-│ Trạng thái: Đang nghiệm thu                     │
-│ [Khách báo lỗi → Bổ sung]    [✓ Đạt — ký BB]    │
-│                                                 │
-│ Lịch sử: 24/07 Bổ sung — "ố kính tầng 15"       │
-│          25/07 Nghiệm thu lại                   │
-│                                                 │
-│ [In thư yêu cầu nghiệm thu]                     │
-│ Biên bản nghiệm thu: (đính kèm khi Đạt)         │
-└─────────────────────────────────────────────────┘
-```
+Design boards: https://claude.ai/artifact/QjQ99LLKa6cgHJ9dHFK4mY ("B chi tiết · Nghiệm thu").
+
+The panel is a 3-step stepper; the sub-status decides the open step.
+
+| Step                         | Sub-status             | What it holds                                                                                                                                                                                                                                                              |
+| ---------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Hẹn ngày nghiệm thu       | `request_sent`         | print "In thư yêu cầu nghiệm thu" / "In thư gửi BQL tòa nhà"; required date "Ngày khách hẹn nghiệm thu"; primary "Khách đã hẹn lịch"                                                                                                                                       |
+| 2. Thực hiện Nghiệm thu      | `inspecting`, `rework` | "Ngày hẹn" with "Đổi ngày hẹn"; primary "Nghiệm thu Đạt"; outline "Khách báo lỗi, cần sửa…" opens an inline form (required note, optional defect photos); in `rework`: the client's note, defect photos, optional "Ảnh sau khi sửa", primary "Đã sửa xong, nghiệm thu lại" |
+| 3. Biên bản đã ký & hoàn tất | `signing`              | signed minutes upload (recommended, not required); ghost "Quay lại" (back to step 2); primary "Hoàn tất nghiệm thu" with a confirm that warns when no minutes are attached                                                                                                 |
+
+`passed` shows every step done as a read-only summary.
+
+- The "In thư · Giấy tờ · Lịch sử" drawer holds the print links, every
+  acceptance file (minutes, defect photos, finish photos) and the history
+  built from the ProjectNote timeline.
 
 - Entering stage 6 sets `request_sent` automatically — the stage starts by
   requesting; no extra tap.
 - **Formal printable request** — [In thư yêu cầu] renders a DocumentShell
   letter (letterhead, signature blocks) listing the three asks: lịch
   nghiệm thu, biên bản nghiệm thu, hình ảnh hoàn công.
-- Transition buttons: "Khách đã hẹn lịch" (→ inspecting) · "Khách báo lỗi
-  → Bổ sung" (→ rework, **note required** — what the client found) ·
-  "Bổ sung xong — nghiệm thu lại" (→ inspecting) · "Đạt" (→ passed,
-  **stamps `acceptance_passed_date`**, unlocks stage 7). Notes land in
-  the ProjectNote timeline; the rework history shown is those notes
-  filtered.
-- Signed biên bản = uploaded file, attachable from the moment acceptance is
-  requested (optional; never gates Đạt).
+- Transitions: "Khách đã hẹn lịch" (→ inspecting, **date required**,
+  stored in `acceptance_scheduled_date`) · "Khách báo lỗi, cần sửa…"
+  (→ rework, **note required**) · "Đã sửa xong, nghiệm thu lại"
+  (→ inspecting) · "Nghiệm thu Đạt" (→ signing) · "Quay lại" (signing →
+  inspecting) · "Hoàn tất nghiệm thu" (→ passed, **stamps
+  `acceptance_passed_date`**, unlocks stage 7). Notes land in the
+  ProjectNote timeline; the history shown is those notes filtered.
+- Signed biên bản = uploaded file (optional; never gates completion, the
+  confirm only warns).
+- Going back after completion uses "Chuyển giai đoạn…" in the header
+  "Khác ▾" menu (aria-label "Thao tác khác"), which also holds "Sửa thông
+  tin công trình" and "Hủy công trình…".
 
 ### Stage 7 — Quyết toán & Thanh toán (confirmed 2026-07-23)
 
@@ -610,7 +615,7 @@ owning its bill and that bill's milestones:
 │ QT #4                     Nháp ─● Đã gửi ─○ Ký  │
 │   38.500.000₫  [Sửa] [In] [Đã gửi] [✓ Đã ký]    │
 │   ② Hóa đơn HĐ #4 · Nháp (chính thức khi ký)    │
-│      [In đề nghị thanh toán] [Đã gửi] [Đã thu]  │
+│      [In đề nghị thanh toán] [Đã gửi]           │
 │   ③ Đợt thanh toán                  [+ Thêm đợt]│
 │      Tạm ứng (cọc)  21,6tr · Đã thu 23/07 ✓     │
 │      Đợt cuối       16,9tr · hạn 15/08 ⚠Quá hạn │
@@ -644,6 +649,22 @@ owning its bill and that bill's milestones:
 - Quá hạn derived (due date passed, unpaid), red chip here + dashboard +
   `/receivables`.
 - Gate to Đã đóng: the bill + all milestones paid (server-enforced).
+- **Stepper (2026-10):** the project page shows this stage as a 4-step
+  stepper (Lập quyết toán, Gửi khách, Khách ký quyết toán, Thu tiền), the
+  settlement status deciding the open step. Design boards: "B chi tiết ·
+  Quyết toán" in https://claude.ai/artifact/QjQ99LLKa6cgHJ9dHFK4mY.
+  - Thu tiền: only the next đợt carries the primary "Khách đã chuyển
+    tiền…"; its confirm shows the amount and "Đã nhận <số tiền>". Paying the
+    last đợt adds the warning "Đây là đợt cuối" (the bill becomes Đã thanh
+    toán and the project closes).
+  - **The bill "Đã thu" button was removed from the project page.** It had no
+    confirm, and on the server it paid every đợt and closed the project, which
+    cannot be undone. Collecting is now per đợt with a confirm; paying the
+    last đợt does the same bill/project closing. `/receivables` keeps its
+    own "Đã thu".
+  - "In · Giấy tờ · Lịch sử" drawer: print links, settlement / VAT / payment
+    proof files, and a history built from the stored dates.
+  - Rare fixes (sửa hạn, thêm đợt, Sửa lại (bỏ ký)) sit behind "Thêm…".
 
 ### Stage 8 — Đã đóng (confirmed 2026-07-23)
 
@@ -938,6 +959,10 @@ pages (which remain usable, just not optimized, on mobile).
   as-is, no hours-to-days conversion rule; derived "trễ" chip.
 - 2026-07-23 — stage 7 confirmed: formal printable request letter;
   `acceptance_passed_date` stamped on Đạt; rework note required.
+- 2026-10: stages 6 and 7 became steppers: acceptance gained the required
+  appointment date (`acceptance_scheduled_date`) and the `signing`
+  sub-status; the project-page bill "Đã thu" was removed; the header got the
+  "Khác ▾" menu.
 - 2026-07-23 — stage 8 confirmed: settlements in phases (list of cards);
   settlement gets its own line items (new SettlementItem table) prefilled
   from quote; signing auto-allocates cọc + auto-creates the remaining-

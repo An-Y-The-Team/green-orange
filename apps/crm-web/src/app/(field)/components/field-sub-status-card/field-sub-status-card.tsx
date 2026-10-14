@@ -1,19 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 
 import { useServerAction } from "@yan/shared/hooks/use-server-actions";
 import { Badge } from "@yan/ui/components/badge";
 import { Button } from "@yan/ui/components/button";
+import { DateInput } from "@yan/ui/components/date-input/date-input";
 
-import { updateProject } from "@/app/(dashboard)/projects/actions/update-project";
+import { updateProjectWithNote } from "@/app/(dashboard)/projects/actions/update-project-with-note";
 import {
+  AcceptanceNoteTag,
   AcceptanceSubStatus,
   ExecutionSubStatus,
   ProjectStage,
 } from "@/app/(dashboard)/projects/enums";
 import type { Project } from "@/app/(dashboard)/projects/types";
+import { ConfirmAction } from "@/components/confirm-action/confirm-action";
+import { FieldLabel } from "@/components/form-bits/form-bits";
 import {
   ACCEPTANCE_SUB_STATUSES,
   EXECUTION_SUB_STATUSES,
@@ -22,6 +26,7 @@ import {
   ACTION_TOAST_TITLES,
   INITIAL_ACTION_STATE,
 } from "@/constants/server-action";
+import { formatDate } from "@/utils/format-date/format-date";
 import { labelOf } from "@/utils/label-of/label-of";
 
 import { FieldRow } from "../field-row/field-row";
@@ -35,13 +40,47 @@ const EXEC_STEPS = [
 
 export function FieldSubStatusCard({ project }: { project: Project }) {
   const [state, formAction] = useActionState(
-    updateProject.bind(null, project.id),
+    updateProjectWithNote.bind(null, project.id),
     INITIAL_ACTION_STATE
   );
+  const [scheduledDate, setScheduledDate] = useState("");
   const [isPending, startTransition] = useTransition();
   useServerAction(state, isPending, ACTION_TOAST_TITLES);
-  const run = (input: Parameters<typeof updateProject>[2]) =>
+  const run = (input: Parameters<typeof updateProjectWithNote>[2]) =>
     startTransition(() => formAction(input));
+
+  // Client named an inspection date: stamp it and move to inspecting.
+  const handleScheduled = () =>
+    run({
+      patch: {
+        acceptance_sub_status: AcceptanceSubStatus.INSPECTING,
+        acceptance_scheduled_date: scheduledDate,
+      },
+      note: {
+        body: `Khách hẹn nghiệm thu ${formatDate(scheduledDate)}`,
+        tag: AcceptanceNoteTag.SCHEDULED,
+      },
+    });
+
+  // Client agreed with the result; the office finishes once the signed minutes arrive.
+  const handleAgreed = () =>
+    run({
+      patch: { acceptance_sub_status: AcceptanceSubStatus.SIGNING },
+      note: {
+        body: "Nghiệm thu Đạt",
+        tag: AcceptanceNoteTag.AGREED,
+      },
+    });
+
+  // Rework finished: back to inspecting.
+  const handleReworkDone = () =>
+    run({
+      patch: { acceptance_sub_status: AcceptanceSubStatus.INSPECTING },
+      note: {
+        body: "Đã sửa xong, nghiệm thu lại",
+        tag: AcceptanceNoteTag.REWORK_DONE,
+      },
+    });
 
   const isExecution = project.stage === ProjectStage.EXECUTION;
 
@@ -76,7 +115,7 @@ export function FieldSubStatusCard({ project }: { project: Project }) {
                 variant="outline"
                 size="sm"
                 disabled={isPending}
-                onClick={() => run({ execution_sub_status: target })}
+                onClick={() => run({ patch: { execution_sub_status: target } })}
               >
                 → {labelOf(EXECUTION_SUB_STATUSES, target).label}
               </Button>
@@ -86,9 +125,11 @@ export function FieldSubStatusCard({ project }: { project: Project }) {
               disabled={isPending}
               onClick={() =>
                 run({
-                  works_done_at: new Date().toISOString(),
-                  stage: ProjectStage.ACCEPTANCE,
-                  acceptance_sub_status: AcceptanceSubStatus.REQUEST_SENT,
+                  patch: {
+                    works_done_at: new Date().toISOString(),
+                    stage: ProjectStage.ACCEPTANCE,
+                    acceptance_sub_status: AcceptanceSubStatus.REQUEST_SENT,
+                  },
                 })
               }
             >
@@ -98,39 +139,58 @@ export function FieldSubStatusCard({ project }: { project: Project }) {
         ) : (
           <>
             {acc === AcceptanceSubStatus.REQUEST_SENT ? (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isPending}
-                onClick={() =>
-                  run({ acceptance_sub_status: AcceptanceSubStatus.INSPECTING })
+              <ConfirmAction
+                trigger={
+                  <Button variant="outline" size="sm" disabled={isPending}>
+                    Khách đã hẹn lịch
+                  </Button>
                 }
+                title="Khách đã hẹn lịch nghiệm thu"
+                consequence="Ghi nhận ngày khách hẹn và chuyển sang Thực hiện Nghiệm thu."
+                pending={isPending}
+                confirmDisabled={!scheduledDate}
+                onConfirm={handleScheduled}
               >
-                Khách đã hẹn lịch
-              </Button>
+                <div className="space-y-1">
+                  <FieldLabel htmlFor={`scheduled-${project.id}`} required>
+                    Ngày khách hẹn nghiệm thu
+                  </FieldLabel>
+                  <DateInput
+                    id={`scheduled-${project.id}`}
+                    required
+                    value={scheduledDate}
+                    onChange={setScheduledDate}
+                  />
+                </div>
+              </ConfirmAction>
             ) : null}
             {acc === AcceptanceSubStatus.INSPECTING ? (
-              <Button
-                size="sm"
-                disabled={isPending}
-                onClick={() =>
-                  run({ acceptance_sub_status: AcceptanceSubStatus.PASSED })
+              <ConfirmAction
+                trigger={
+                  <Button size="sm" disabled={isPending}>
+                    Nghiệm thu Đạt
+                  </Button>
                 }
-              >
-                ✓ Đạt
-              </Button>
+                title="Nghiệm thu Đạt"
+                consequence="Ghi nhận khách đồng ý kết quả. Văn phòng sẽ hoàn tất khi có biên bản đã ký."
+                pending={isPending}
+                onConfirm={handleAgreed}
+              />
             ) : null}
             {acc === AcceptanceSubStatus.REWORK ? (
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isPending}
-                onClick={() =>
-                  run({ acceptance_sub_status: AcceptanceSubStatus.INSPECTING })
-                }
+                onClick={handleReworkDone}
               >
-                Bổ sung xong — nghiệm thu lại
+                Bổ sung xong, nghiệm thu lại
               </Button>
+            ) : null}
+            {acc === AcceptanceSubStatus.SIGNING ? (
+              <p className="text-muted-foreground text-sm">
+                Chờ ký biên bản, văn phòng hoàn tất.
+              </p>
             ) : null}
           </>
         )}

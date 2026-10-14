@@ -1,6 +1,11 @@
 "use client";
 
-import { type ReactElement, type ReactNode, useState } from "react";
+import {
+  type ComponentProps,
+  type ReactElement,
+  type ReactNode,
+  useState,
+} from "react";
 
 import { Button } from "@yan/ui/components/button";
 import {
@@ -35,6 +40,7 @@ export function ConfirmAction({
   title,
   consequence,
   confirmLabel = ACTIONS.confirm,
+  confirmVariant = "default",
   onConfirm,
   pending,
   confirmDisabled,
@@ -53,6 +59,8 @@ export function ConfirmAction({
   title: string;
   consequence?: ReactNode;
   confirmLabel?: string;
+  /** The confirm button's look; "destructive" for deletes. */
+  confirmVariant?: ComponentProps<typeof Button>["variant"];
   onConfirm: () => void;
   pending?: boolean;
   confirmDisabled?: boolean;
@@ -78,6 +86,7 @@ export function ConfirmAction({
             {ACTIONS.close}
           </Button>
           <Button
+            variant={confirmVariant}
             disabled={pending || confirmDisabled}
             onClick={() => {
               onConfirm();

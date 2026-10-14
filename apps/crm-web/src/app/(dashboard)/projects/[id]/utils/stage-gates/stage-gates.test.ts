@@ -278,30 +278,59 @@ describe("stages 5–6 — Thi công, Nghiệm thu", () => {
     ).toEqual({ start_date: true, works_done: true });
   });
 
-  test("acceptance is done only at `passed`", () => {
-    for (const sub of [
-      AcceptanceSubStatus.REQUEST_SENT,
-      AcceptanceSubStatus.INSPECTING,
-      AcceptanceSubStatus.REWORK,
-    ]) {
-      const gs = stageGates({
-        project: project({
-          stage: ProjectStage.ACCEPTANCE,
-          acceptance_sub_status: sub,
-        }),
-      });
-      expect(keys(gs).acceptance_passed, sub).toBe(false);
-    }
-    const passed = stageGates({
+  test("acceptance has three gates that follow the sub-status", () => {
+    const doneBy = (sub: AcceptanceSubStatus | null) =>
+      keys(
+        stageGates({
+          project: project({
+            stage: ProjectStage.ACCEPTANCE,
+            acceptance_sub_status: sub,
+          }),
+        })
+      );
+    const open = {
+      acceptance_scheduled: false,
+      acceptance_agreed: false,
+      acceptance_passed: false,
+    };
+    expect(doneBy(null)).toEqual(open);
+    expect(doneBy(AcceptanceSubStatus.REQUEST_SENT)).toEqual(open);
+    expect(doneBy(AcceptanceSubStatus.INSPECTING)).toEqual({
+      ...open,
+      acceptance_scheduled: true,
+    });
+    expect(doneBy(AcceptanceSubStatus.REWORK)).toEqual({
+      ...open,
+      acceptance_scheduled: true,
+    });
+    expect(doneBy(AcceptanceSubStatus.SIGNING)).toEqual({
+      acceptance_scheduled: true,
+      acceptance_agreed: true,
+      acceptance_passed: false,
+    });
+    expect(doneBy(AcceptanceSubStatus.PASSED)).toEqual({
+      acceptance_scheduled: true,
+      acceptance_agreed: true,
+      acceptance_passed: true,
+    });
+  });
+
+  test("acceptance details are dates in the Vietnamese format; only the last gate advances and is leftover", () => {
+    const gs = stageGates({
       project: project({
         stage: ProjectStage.ACCEPTANCE,
         acceptance_sub_status: AcceptanceSubStatus.PASSED,
+        acceptance_scheduled_date: "2026-09-03",
         acceptance_passed_date: "2026-09-06",
       }),
     });
-    expect(keys(passed).acceptance_passed).toBe(true);
-    // Shown to the operator, so in the Vietnamese date format.
-    expect(passed[0].detail).toBe("06/09/2026");
+    expect(gs.map((g) => g.detail)).toEqual([
+      "03/09/2026",
+      undefined,
+      "06/09/2026",
+    ]);
+    expect(gs.map((g) => Boolean(g.advances))).toEqual([false, false, true]);
+    expect(gs.map((g) => Boolean(g.leftover))).toEqual([false, false, true]);
   });
 });
 

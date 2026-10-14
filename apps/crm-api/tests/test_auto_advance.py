@@ -94,6 +94,15 @@ def test_acceptance_passed_moves_to_settlement(client: TestClient, project: dict
     assert res.json()["acceptance_passed_date"] is not None
 
 
+def test_signing_then_passed_moves_to_settlement(client: TestClient, project: dict):
+    pid = project["id"]
+    client.patch(f"/projects/{pid}", json={"stage": "acceptance"})
+    client.patch(f"/projects/{pid}", json={"acceptance_sub_status": "signing"})
+    assert stage(client, pid) == "acceptance"
+    client.patch(f"/projects/{pid}", json={"acceptance_sub_status": "passed"})
+    assert stage(client, pid) == "settlement"
+
+
 def test_last_payment_closes_the_job_and_pays_the_bill(
     client: TestClient, project: dict
 ):

@@ -53,6 +53,7 @@ const updateProjectSchema = z.object({
   building_letter_body: z.string().optional(),
   works_done_at: z.string().optional(),
   acceptance_sub_status: z.nativeEnum(AcceptanceSubStatus).optional(),
+  acceptance_scheduled_date: z.string().optional(),
 });
 
 export type UpdateProjectFormValues = z.infer<typeof updateProjectSchema>;

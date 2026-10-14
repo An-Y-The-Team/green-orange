@@ -247,13 +247,28 @@ export function stageGates({
         ),
       ];
 
-    case ProjectStage.ACCEPTANCE:
+    case ProjectStage.ACCEPTANCE: {
+      // null counts as request_sent: entering the stage sets it, but guard anyway.
+      const sub =
+        project.acceptance_sub_status ?? AcceptanceSubStatus.REQUEST_SENT;
+      const agreed =
+        sub === AcceptanceSubStatus.SIGNING ||
+        sub === AcceptanceSubStatus.PASSED;
       return [
+        gate(
+          GateKey.ACCEPTANCE_SCHEDULED,
+          "Hẹn ngày nghiệm thu",
+          sub !== AcceptanceSubStatus.REQUEST_SENT,
+          project.acceptance_scheduled_date
+            ? formatDate(project.acceptance_scheduled_date)
+            : undefined
+        ),
+        gate(GateKey.ACCEPTANCE_AGREED, "Nghiệm thu Đạt", agreed),
         {
           ...gate(
             GateKey.ACCEPTANCE_PASSED,
-            "Nghiệm thu đạt, khách ký biên bản",
-            project.acceptance_sub_status === AcceptanceSubStatus.PASSED,
+            "Biên bản đã ký & hoàn tất",
+            sub === AcceptanceSubStatus.PASSED,
             project.acceptance_passed_date
               ? formatDate(project.acceptance_passed_date)
               : undefined,
@@ -262,6 +277,7 @@ export function stageGates({
           leftover: true,
         },
       ];
+    }
 
     case ProjectStage.SETTLEMENT: {
       const settlement = settlements[0];

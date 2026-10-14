@@ -51,7 +51,13 @@ import { ProjectImportController } from "./project-import";
 const STAGE = STAGE_ORDER;
 const STATUS = ["active", "on_hold", "cancelled"];
 const EXECUTION_SUB = ["kickoff", "hoarding", "works"];
-const ACCEPTANCE_SUB = ["request_sent", "inspecting", "rework", "passed"];
+const ACCEPTANCE_SUB = [
+  "request_sent",
+  "inspecting",
+  "rework",
+  "signing",
+  "passed",
+];
 
 // ── Project types (user-managed tags) ───────────────────────────────────────
 class ProjectTypeDto {
@@ -138,7 +144,7 @@ class CreateProjectDto {
   survey_items?: SurveyItemDto[];
 }
 
-class UpdateProjectDto {
+export class UpdateProjectDto {
   @IsOptional() @IsString() @MinLength(1) name?: string;
   @IsOptional() @IsInt() working_contact_id?: number;
   @IsOptional() @IsInt() decision_maker_contact_id?: number;
@@ -167,6 +173,7 @@ class UpdateProjectDto {
   @IsOptional() @IsString() building_letter_body?: string;
   @IsOptional() @IsDateString() works_done_at?: string;
   @IsOptional() @IsIn(ACCEPTANCE_SUB) acceptance_sub_status?: string;
+  @IsOptional() @IsDateString() acceptance_scheduled_date?: string | null;
 }
 
 const DATE_FIELDS = [
@@ -176,6 +183,7 @@ const DATE_FIELDS = [
   "client_signed_date",
   "start_date",
   "works_done_at",
+  "acceptance_scheduled_date",
 ] as const;
 
 const PROJECT_SORT = ["code", "name", "appointment_at", "created_at"];

@@ -61,6 +61,9 @@ test("quick-create files a client with no người liên hệ", async ({ page })
 
   // The workspace is where one gets attached later — its edit form offers the
   // empty slot rather than silently picking somebody.
-  await page.getByRole("button", { name: "Sửa" }).click();
+  await page.getByRole("button", { name: "Thao tác khác" }).click();
+  await page
+    .getByRole("menuitem", { name: "Sửa thông tin công trình" })
+    .click();
   await expect(page.locator("#working-contact")).toHaveValue("");
 });

@@ -145,7 +145,8 @@ The spine. Stage + orthogonal status + per-stage sub-statuses live here.
 | actual_duration_days      | int null          | **manual = source of truth**; timekeeping-derived value computed at read time, conflict surfaced in UI                                  |
 | approaches                | text null         | free text until a structure emerges                                                                                                     |
 | works_done_at             | timestamptz null  | stage-5 exit button                                                                                                                     |
-| acceptance_sub_status     | text null         | `request_sent` \| `inspecting` \| `rework` \| `passed`                                                                                  |
+| acceptance_sub_status     | text null         | `request_sent` \| `inspecting` \| `rework` \| `signing` \| `passed` (null counts as `request_sent`)                                     |
+| acceptance_scheduled_date | date null         | appointment date the client picked; required to leave `request_sent`, editable while `inspecting`/`rework`                              |
 | acceptance_passed_date    | date null         | stamped when acceptance_sub_status → `passed` (2026-07-23 UI deltas)                                                                    |
 | created_at / updated_at   | timestamptz       |                                                                                                                                         |
 
@@ -481,34 +482,34 @@ Step-level notes (stage-5 sub-steps, acceptance rework rounds, anything).
 The single source for `labels.ts`. User-entered content (paperwork names,
 crew role names, quote units) is data, stays Vietnamese as typed.
 
-| entity.field                  | English value                                   | Vietnamese label                              |
-| ----------------------------- | ----------------------------------------------- | --------------------------------------------- |
-| client.type                   | company / individual                            | Công ty / Cá nhân                             |
-| project types                 | (user-managed `project_type` rows, not an enum) | seeded: Vệ sinh, Thi công, Tháo dỡ            |
-| project.stage                 | request                                         | Yêu cầu & Khảo sát (Gặp khách)                |
-|                               | quote                                           | Báo giá                                       |
-|                               | contract                                        | Hợp đồng                                      |
-|                               | paperwork                                       | Chuẩn bị hồ sơ                                |
-|                               | execution                                       | Thi công                                      |
-|                               | acceptance                                      | Nghiệm thu                                    |
-|                               | settlement                                      | Quyết toán & Thanh toán                       |
-|                               | closed                                          | Đã đóng                                       |
-| project.status                | active / on_hold / cancelled                    | Đang hoạt động / Hoãn / Hủy                   |
-| project.execution_sub_status  | kickoff / hoarding / works                      | Khởi công / Dựng rào / Thi công               |
-| project.acceptance_sub_status | request_sent / inspecting / rework / passed     | Gửi yêu cầu / Nghiệm thu / Bổ sung / Đạt      |
-| quote.status                  | draft / waiting / deal / on_hold / rejected     | Nháp / Chờ / Chốt / Hoãn / Hủy                |
-| contract.status               | draft / signed                                  | Nháp / Đã ký                                  |
-| paperwork_item.status         | preparing / submitted / approved                | Chưa xong / Đã nộp / Đã duyệt                 |
-| settlement.status             | draft / sent / signed                           | Nháp / Đã gửi / Đã ký                         |
-| bill.status                   | draft / official / sent / paid                  | Nháp / Chính thức / Đã gửi / Đã thanh toán    |
-| payment_milestone.type        | deposit / progress / acceptance                 | Tạm ứng (Cọc) / Theo tiến độ / Khi nghiệm thu |
-| payment_milestone.status      | not_due / awaiting_payment / paid               | Chưa đến hạn / Chờ thanh toán / Đã thu        |
-| (derived)                     | overdue                                         | Quá hạn                                       |
-| crew_member.employment_type   | permanent / day_hire                            | Chính thức / Thời vụ                          |
-| crew_member.status            | working / on_leave / left                       | Đang làm / Tạm nghỉ / Nghỉ việc               |
-| timekeeping_record.source     | manual / zalo_app                               | Thủ công / Zalo app                           |
-| timekeeping_record.status     | open / pending / approved / rejected            | Đang làm / Chờ duyệt / Đã duyệt / Từ chối     |
-| timekeeping_record.flag       | over_cap                                        | Quá 16 giờ                                    |
+| entity.field                  | English value                                         | Vietnamese label                                                     |
+| ----------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| client.type                   | company / individual                                  | Công ty / Cá nhân                                                    |
+| project types                 | (user-managed `project_type` rows, not an enum)       | seeded: Vệ sinh, Thi công, Tháo dỡ                                   |
+| project.stage                 | request                                               | Yêu cầu & Khảo sát (Gặp khách)                                       |
+|                               | quote                                                 | Báo giá                                                              |
+|                               | contract                                              | Hợp đồng                                                             |
+|                               | paperwork                                             | Chuẩn bị hồ sơ                                                       |
+|                               | execution                                             | Thi công                                                             |
+|                               | acceptance                                            | Nghiệm thu                                                           |
+|                               | settlement                                            | Quyết toán & Thanh toán                                              |
+|                               | closed                                                | Đã đóng                                                              |
+| project.status                | active / on_hold / cancelled                          | Đang hoạt động / Hoãn / Hủy                                          |
+| project.execution_sub_status  | kickoff / hoarding / works                            | Khởi công / Dựng rào / Thi công                                      |
+| project.acceptance_sub_status | request_sent / inspecting / rework / signing / passed | Gửi yêu cầu / Thực hiện Nghiệm thu / Bổ sung / Chờ ký biên bản / Đạt |
+| quote.status                  | draft / waiting / deal / on_hold / rejected           | Nháp / Chờ / Chốt / Hoãn / Hủy                                       |
+| contract.status               | draft / signed                                        | Nháp / Đã ký                                                         |
+| paperwork_item.status         | preparing / submitted / approved                      | Chưa xong / Đã nộp / Đã duyệt                                        |
+| settlement.status             | draft / sent / signed                                 | Nháp / Đã gửi / Đã ký                                                |
+| bill.status                   | draft / official / sent / paid                        | Nháp / Chính thức / Đã gửi / Đã thanh toán                           |
+| payment_milestone.type        | deposit / progress / acceptance                       | Tạm ứng (Cọc) / Theo tiến độ / Khi nghiệm thu                        |
+| payment_milestone.status      | not_due / awaiting_payment / paid                     | Chưa đến hạn / Chờ thanh toán / Đã thu                               |
+| (derived)                     | overdue                                               | Quá hạn                                                              |
+| crew_member.employment_type   | permanent / day_hire                                  | Chính thức / Thời vụ                                                 |
+| crew_member.status            | working / on_leave / left                             | Đang làm / Tạm nghỉ / Nghỉ việc                                      |
+| timekeeping_record.source     | manual / zalo_app                                     | Thủ công / Zalo app                                                  |
+| timekeeping_record.status     | open / pending / approved / rejected                  | Đang làm / Chờ duyệt / Đã duyệt / Từ chối                            |
+| timekeeping_record.flag       | over_cap                                              | Quá 16 giờ                                                           |
 
 ## Cost module — sketch only (own design session pending)
 
