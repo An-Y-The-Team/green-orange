@@ -204,9 +204,9 @@ true forever — and what would have to change for you to switch sides.
 > Replace this block. One short paragraph each, with the reason, not just the
 > choice.
 
-- **One query or two, and what the fan-out taught you:** …
-- **Whether a closed công trình counts:** …
-- **Why not a stored counter column:** …
+- **One query or two, and what the fan-out taught you:** Use two grouped queries, one for locations and one for projects. A single join across both child tables multiplies each location by each project, so `3` locations and `2` projects incorrectly become `6` for both counts unless each relation is counted distinctly; separate grouped queries are simpler and avoid that fan-out.
+- **Whether a closed công trình counts:** Closed projects count. This preserves the endpoint's existing meaning of the column as the total number of projects on the client's books, and changing it to active projects would be a separate product decision that needs explicit UI and test requirements.
+- **Why not a stored counter column:** Two small grouped queries are cheap, transactionally accurate, and avoid duplicated write-maintenance logic across every location and project create/delete path. A stored counter would be worthwhile only if list-read volume made these reads a measured bottleneck and the application also gained a reliable mechanism, such as database-maintained counters, to keep every update path consistent.
 
 ## Task
 
